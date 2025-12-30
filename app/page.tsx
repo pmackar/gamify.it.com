@@ -175,7 +175,7 @@ export default function Home() {
               </SignedOut>
               <SignedIn>
                 <a
-                  href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
+                  href="https://iron-quest.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary nav-cta"
@@ -213,7 +213,7 @@ export default function Home() {
 
             <div className="hero-buttons animate-fade-in delay-300" style={{ opacity: 0 }}>
               <a
-                href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
+                href="https://iron-quest.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
@@ -248,10 +248,10 @@ export default function Home() {
       <section id="products" className="products">
         <div className="container">
           <div className="section-header">
-            <p className="section-label font-display">Choose Your Path</p>
-            <h2 className="section-title">Enter the <strong>Realms</strong></h2>
+            <p className="section-label font-display">Choose Your Story</p>
+            <h2 className="section-title">Enter the <strong>Apps</strong></h2>
             <p className="section-subtitle">
-              Each realm offers unique challenges and rewards. Where will your adventure begin?
+              Each <strong>app</strong> serves a unique purpose in your life: fitness, task management, and travel. Each offers unique challenges and rewards. Where will <strong>your adventure</strong> begin?
             </p>
           </div>
 
@@ -262,14 +262,14 @@ export default function Home() {
                 <FireIcon />
               </div>
               <h3>Iron Quest</h3>
-              <p className="product-domain">gamify.fitness</p>
+              <p className="product-domain">ironquest.gamify.it.com</p>
               <p>
                 Forge your legend through iron and sweat. Every workout becomes a battle, every rep a step toward greatness. Rise through the ranks of strength.
               </p>
               <div className="product-status live">Testing</div>
               <div className="product-cta">
                 <a
-                  href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
+                  href="https://iron-quest.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary"
@@ -284,8 +284,8 @@ export default function Home() {
               <div className="product-icon nature">
                 <DocumentIcon />
               </div>
-              <h3>Quest Log</h3>
-              <p className="product-domain">gamify.today</p>
+              <h3>Day Quest</h3>
+              <p className="product-domain">dayquest.gamify.it.com</p>
               <p>
                 Transform mundane tasks into legendary quests. Defeat the procrastination dragon, collect productivity gems, and master your daily destiny.
               </p>
@@ -297,7 +297,7 @@ export default function Home() {
               <div className="product-icon arcane">
                 <CompassIcon />
               </div>
-              <h3>World Map</h3>
+              <h3>Explorer</h3>
               <p className="product-domain">gamify.travel</p>
               <p>
                 Uncover hidden realms in your own neighborhood. Every location holds secrets, every journey earns experience. The world awaits your discovery.
@@ -359,9 +359,9 @@ export default function Home() {
           <div className="cta-inner">
             <div className="cta-card glass-card">
               <h2>Ready to <strong>Level Up</strong>?</h2>
-              <p>Your adventure awaits. Start with Iron Quest - completely free.</p>
+              <p>Your adventure awaits. Start with Iron Quest.</p>
               <a
-                href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
+                href="https://iron-quest.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
@@ -385,7 +385,7 @@ export default function Home() {
 
             <div className="footer-links">
               <a
-                href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
+                href="https://iron-quest.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
               >
