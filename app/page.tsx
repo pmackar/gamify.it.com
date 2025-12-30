@@ -279,7 +279,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Quest Log */}
+            {/* Day Quest */}
             <div className="product-card glass-card">
               <div className="product-icon nature">
                 <DocumentIcon />
@@ -289,7 +289,17 @@ export default function Home() {
               <p>
                 Transform mundane tasks into legendary quests. Defeat the procrastination dragon, collect productivity gems, and master your daily destiny.
               </p>
-              <div className="product-status coming-soon">Coming Soon</div>
+              <div className="product-status live">Testing</div>
+              <div className="product-cta">
+                <a
+                  href="https://gamify-today.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                >
+                  Enter Realm
+                </a>
+              </div>
             </div>
 
             {/* World Map */}

@@ -56,7 +56,9 @@ Edit the text below and send it back to update the website.
 - **Name:** Day Quest
 - **Domain:** dayquest.gamify.it.com
 - **Description:** Transform mundane tasks into legendary quests. Defeat the procrastination dragon, collect productivity gems, and master your daily destiny.
-- **Status:** Coming Soon
+- **Status:** Testing
+- **Button:** Enter Realm
+- **URL:** https://gamify-today.vercel.app
 
 ### Product 3: gamify.travel
 - **Name:** Explorer
