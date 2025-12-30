@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 // Logo SVG Component
 const Logo = ({ className }: { className?: string }) => (
@@ -165,14 +166,30 @@ export default function Home() {
             <div className="nav-links">
               <a href="#products">Realms</a>
               <a href="#features">Abilities</a>
-              <a
-                href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary nav-cta"
-              >
-                Begin Quest
-              </a>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="btn-primary nav-cta">
+                    Sign In
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <a
+                  href="https://iron-quest-78x1cvngy-peters-projects-5938774f.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary nav-cta"
+                >
+                  Iron Quest
+                </a>
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-10 h-10"
+                    }
+                  }}
+                />
+              </SignedIn>
             </div>
           </div>
         </div>
