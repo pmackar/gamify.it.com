@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "gamify.travel - Turn Your Travels Into Adventure",
-  description: "Track your travels, earn XP, unlock achievements, and level up your adventures. A gamified travel companion that makes every journey an epic quest.",
-  keywords: ["travel", "gamification", "travel tracker", "achievements", "adventure", "explore"],
+  title: "gamify.it.com - Life's Not a Game, But It Should Be",
+  description: "Gamify your life with XP, achievements, and quests. Track fitness, tasks, travel, and more. Turn everyday accomplishments into epic adventures.",
+  keywords: ["gamification", "life tracking", "achievements", "XP", "fitness", "productivity", "travel"],
   authors: [{ name: "gamify.it" }],
   openGraph: {
-    title: "gamify.travel - Turn Your Travels Into Adventure",
-    description: "Track your travels, earn XP, unlock achievements, and level up your adventures.",
+    title: "gamify.it.com - Life's Not a Game, But It Should Be",
+    description: "Gamify your life with XP, achievements, and quests. Turn everyday accomplishments into epic adventures.",
     type: "website",
-    url: "https://gamify.travel",
+    url: "https://gamify.it.com",
   },
   twitter: {
     card: "summary_large_image",
-    title: "gamify.travel - Turn Your Travels Into Adventure",
-    description: "Track your travels, earn XP, unlock achievements, and level up your adventures.",
+    title: "gamify.it.com - Life's Not a Game, But It Should Be",
+    description: "Gamify your life with XP, achievements, and quests. Turn everyday accomplishments into epic adventures.",
   },
 };
 
