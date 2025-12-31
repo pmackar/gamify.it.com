@@ -1,17 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 
 export default function TravelPage() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
-
   return (
     <>
       <style jsx global>{`
@@ -182,35 +173,6 @@ export default function TravelPage() {
           margin: 0;
         }
 
-        .travel-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: #3a3a3a;
-          border: 2px solid #4a4a4a;
-          border-radius: 8px;
-          padding: 1rem 1.25rem;
-          color: #fff;
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.6rem;
-          cursor: pointer;
-          text-decoration: none;
-          margin-top: 1rem;
-          transition: all 0.1s;
-          box-shadow: 0 4px 0 #222;
-        }
-
-        .travel-btn:hover {
-          background: #4a4a4a;
-          transform: translateY(2px);
-          box-shadow: 0 2px 0 #222;
-        }
-
-        .travel-btn:active {
-          transform: translateY(4px);
-          box-shadow: none;
-        }
-
         .game-list {
           list-style: none;
           padding: 0;
@@ -239,44 +201,6 @@ export default function TravelPage() {
         .game-list li a:hover {
           color: #FFD700;
           text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-        }
-
-        .travel-form {
-          display: flex;
-          gap: 0.75rem;
-          margin-top: 1rem;
-        }
-
-        .travel-input {
-          flex: 1;
-          padding: 0.875rem 1rem;
-          background: #1a1a1a;
-          border: 2px solid #3a3a3a;
-          border-radius: 8px;
-          color: #fff;
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.5rem;
-        }
-
-        .travel-input:focus {
-          outline: none;
-          border-color: #FFD700;
-          box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-        }
-
-        .travel-input::placeholder {
-          color: #555;
-        }
-
-        .travel-success {
-          background: #1a3a1a;
-          border: 2px solid #2a5a2a;
-          border-radius: 8px;
-          padding: 1rem;
-          margin-top: 1rem;
-          font-size: 0.55rem;
-          color: #6f6;
-          text-shadow: 0 0 8px rgba(102, 255, 102, 0.3);
         }
 
         .travel-back {
@@ -329,15 +253,6 @@ export default function TravelPage() {
           .travel-cards {
             grid-template-columns: 1fr;
           }
-
-          .travel-form {
-            flex-direction: column;
-          }
-
-          .travel-btn {
-            width: 100%;
-            justify-content: center;
-          }
         }
       `}</style>
 
@@ -366,27 +281,6 @@ export default function TravelPage() {
                   Create your avatar, gain experience, level up, and
                   find achievements in a gamified version of our world.
                 </p>
-
-                {!submitted ? (
-                  <form onSubmit={handleSubmit} className="travel-form">
-                    <input
-                      type="email"
-                      className="travel-input"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <button type="submit" className="travel-btn">
-                      <img src="/travel/star.png" alt="" className="pixel-icon-sm" />
-                      Request Access
-                    </button>
-                  </form>
-                ) : (
-                  <div className="travel-success">
-                    You&apos;re on the list! We&apos;ll be in touch.
-                  </div>
-                )}
               </div>
 
               {/* Current Games Card */}
