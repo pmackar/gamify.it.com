@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 const videos = [
   '/8-bit city road/8-bit city road_front.mp4',
@@ -706,28 +705,14 @@ export default function Home() {
               <div className="nav-links">
                 <a href="#realms">Realms</a>
                 <a href="#abilities">Abilities</a>
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <button className="nav-btn">Sign In</button>
-                  </SignInButton>
-                </SignedOut>
-                <SignedIn>
-                  <a
-                    href="https://gamify-fitness.vercel.app"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="nav-btn nav-btn-secondary"
-                  >
-                    Play Now
-                  </a>
-                  <UserButton
-                    appearance={{
-                      elements: {
-                        avatarBox: "w-8 h-8"
-                      }
-                    }}
-                  />
-                </SignedIn>
+                <a
+                  href="https://gamify-fitness.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-btn"
+                >
+                  Play Now
+                </a>
               </div>
             </div>
           </nav>
