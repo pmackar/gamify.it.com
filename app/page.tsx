@@ -475,9 +475,12 @@ export default function LandingPage() {
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onSuccess={() => {
+        onSuccess={async () => {
           const supabase = createClient();
-          supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+          // Force refresh session from server
+          await supabase.auth.refreshSession();
+          const { data: { user } } = await supabase.auth.getUser();
+          setUser(user);
         }}
       />
     </>

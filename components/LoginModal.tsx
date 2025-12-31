@@ -50,6 +50,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       checkIntervalRef.current = setInterval(async () => {
         if (popupRef.current?.closed) {
           clearInterval(checkIntervalRef.current!);
+          // Wait a moment for cookies to sync, then refresh session
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await supabase.auth.refreshSession();
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
             setIsLoading(false);
