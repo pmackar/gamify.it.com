@@ -265,14 +265,12 @@ export default function LandingPage() {
 
         .video-primary {
           opacity: 0;
-          transition: opacity 1.5s ease-in-out;
         }
         .video-primary.active { opacity: 0.6; }
         .video-primary.hidden { opacity: 0; }
 
         .video-secondary {
           opacity: 0;
-          transition: opacity 1.5s ease-in-out;
         }
         .video-secondary.active { opacity: 0.6; }
         .video-secondary.hidden { opacity: 0; }
@@ -315,7 +313,7 @@ export default function LandingPage() {
 
         .typing-line {
           white-space: nowrap;
-          font-size: clamp(0.6rem, 3.2vw, 2.2rem);
+          font-size: clamp(0.5rem, 2.5vw, 1.8rem);
           line-height: 1.8;
         }
 

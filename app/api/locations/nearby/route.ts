@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { LocationType } from "@prisma/client";
 
@@ -22,8 +21,8 @@ function toRad(deg: number): number {
 
 // GET /api/locations/nearby - Find locations near a point
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) {
       city: { select: { id: true, name: true, country: true } },
       neighborhood: { select: { id: true, name: true } },
       userData: {
-        where: { userId: session.user.id },
+        where: { userId: user.id },
         select: {
           hotlist: true,
           visited: true,

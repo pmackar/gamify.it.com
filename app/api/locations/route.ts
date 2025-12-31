@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { addXP, updateStreak, updateUserStats, calculateLocationXP } from "@/lib/gamification";
 import { checkAchievements } from "@/lib/achievements";
 import { LocationType } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
       neighborhood: { select: { id: true, name: true } },
       _count: { select: { visits: true, photos: true, reviews: true } },
       userData: {
-        where: { userId: session.user.id },
+        where: { userId: user.id },
         select: {
           hotlist: true,
           visited: true,
@@ -100,7 +99,7 @@ export async function POST(req: NextRequest) {
   // Create global location with createdById (not userId ownership)
   const location = await prisma.location.create({
     data: {
-      createdById: session.user.id,
+      createdById: user.id,
       cityId: body.cityId,
       neighborhoodId: body.neighborhoodId,
       name: body.name,
@@ -127,7 +126,7 @@ export async function POST(req: NextRequest) {
   if (body.hotlist || body.visited) {
     await prisma.userLocationData.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         locationId: location.id,
         hotlist: body.hotlist ?? false,
         visited: body.visited ?? false,
@@ -142,15 +141,15 @@ export async function POST(req: NextRequest) {
   });
 
   // Calculate and award XP for creating a location
-  const streak = await updateStreak(session.user.id);
+  const streak = await updateStreak(user.id);
   const xpGained = calculateLocationXP("new_location", body.type, streak);
-  const xpResult = await addXP(session.user.id, xpGained);
+  const xpResult = await addXP(user.id, xpGained);
 
   // Update user stats
-  await updateUserStats(session.user.id);
+  await updateUserStats(user.id);
 
   // Check for new achievements
-  const newAchievements = await checkAchievements(session.user.id);
+  const newAchievements = await checkAchievements(user.id);
 
   return NextResponse.json({
     location,

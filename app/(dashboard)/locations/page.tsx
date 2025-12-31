@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Star, Filter, Plus, ChevronRight, X } from "lucide-react";
@@ -52,7 +52,7 @@ const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> 
   OTHER: { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#6b7280' },
 };
 
-export default function LocationsPage() {
+function LocationsContent() {
   const searchParams = useSearchParams();
   const [locations, setLocations] = useState<Location[]>([]);
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
@@ -348,5 +348,17 @@ export default function LocationsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function LocationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 rounded border-4 border-gray-600 border-t-teal-400 animate-spin" />
+      </div>
+    }>
+      <LocationsContent />
+    </Suspense>
   );
 }

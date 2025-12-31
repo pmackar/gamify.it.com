@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 interface RouteParams {
@@ -9,8 +8,8 @@ interface RouteParams {
 
 // GET /api/locations/[id] - Get a single location with user data
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,7 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
       visits: {
-        where: { userId: session.user.id },
+        where: { userId: user.id },
         orderBy: { date: "desc" },
         take: 10,
       },
@@ -57,7 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const userLocationData = await prisma.userLocationData.findUnique({
     where: {
       userId_locationId: {
-        userId: session.user.id,
+        userId: user.id,
         locationId: id,
       },
     },
@@ -94,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Location not found" }, { status: 404 });
   }
 
-  if (existing.createdById !== session.user.id) {
+  if (existing.createdById !== user.id) {
     return NextResponse.json(
       { error: "You can only edit locations you created" },
       { status: 403 }
@@ -148,7 +147,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Location not found" }, { status: 404 });
   }
 
-  if (existing.createdById !== session.user.id) {
+  if (existing.createdById !== user.id) {
     return NextResponse.json(
       { error: "You can only delete locations you created" },
       { status: 403 }

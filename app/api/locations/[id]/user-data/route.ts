@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { addXP, updateStreak, updateUserStats, calculateLocationXP } from "@/lib/gamification";
 import { checkAchievements } from "@/lib/achievements";
@@ -11,8 +10,8 @@ interface RouteParams {
 
 // GET /api/locations/[id]/user-data - Get user's data for this location
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const userLocationData = await prisma.userLocationData.findUnique({
     where: {
       userId_locationId: {
-        userId: session.user.id,
+        userId: user.id,
         locationId,
       },
     },
@@ -67,7 +66,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const existingData = await prisma.userLocationData.findUnique({
     where: {
       userId_locationId: {
-        userId: session.user.id,
+        userId: user.id,
         locationId,
       },
     },
@@ -81,7 +80,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const userLocationData = await prisma.userLocationData.upsert({
     where: {
       userId_locationId: {
-        userId: session.user.id,
+        userId: user.id,
         locationId,
       },
     },
@@ -98,7 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }),
     },
     create: {
-      userId: session.user.id,
+      userId: user.id,
       locationId,
       hotlist: body.hotlist ?? false,
       visited: body.visited ?? false,
@@ -123,15 +122,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     // Award XP
-    const streak = await updateStreak(session.user.id);
+    const streak = await updateStreak(user.id);
     xpGained = calculateLocationXP("first_visit", location.type, streak);
-    xpResult = await addXP(session.user.id, xpGained);
+    xpResult = await addXP(user.id, xpGained);
 
     // Update user stats
-    await updateUserStats(session.user.id);
+    await updateUserStats(user.id);
 
     // Check for new achievements
-    newAchievements = await checkAchievements(session.user.id);
+    newAchievements = await checkAchievements(user.id);
   }
 
   return NextResponse.json({

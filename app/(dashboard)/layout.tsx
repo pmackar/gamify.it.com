@@ -1,22 +1,16 @@
-import { getUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
+'use client';
 
-export default async function DashboardLayout({
+import { NavBar } from "@/components/NavBar";
+
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
   return (
-    <div className="min-h-screen" style={{ background: 'var(--rpg-bg-dark)' }}>
-      <Navbar user={user} />
-      <main className="pt-14">{children}</main>
+    <div className="min-h-screen" style={{ background: '#1a1a1a' }}>
+      <NavBar />
+      <main style={{ paddingTop: '80px' }}>{children}</main>
     </div>
   );
 }
