@@ -57,6 +57,7 @@ export default function LandingPage() {
   const [videoFading, setVideoFading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [crtFlash, setCrtFlash] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const firstLine = "Life's not a game";
@@ -109,10 +110,14 @@ export default function LandingPage() {
                 secondCharIndex++;
               } else {
                 clearInterval(typeSecondLine);
-                // Start video AFTER second line completes
+                // Start video AFTER second line completes with CRT flash
                 setTimeout(() => {
-                  setShowVideo(true);
-                  setIntroComplete(true);
+                  setCrtFlash(true);
+                  setTimeout(() => {
+                    setShowVideo(true);
+                    setCrtFlash(false);
+                    setIntroComplete(true);
+                  }, 300);
                 }, 500);
               }
             }, 80);
@@ -222,8 +227,22 @@ export default function LandingPage() {
           transition: opacity 1s ease-in-out;
         }
 
-        .video-background video.active { opacity: 0.5; }
+        .video-background video.active { opacity: 0.6; }
         .video-background video.fading { opacity: 0; }
+
+        /* CRT Flash Effect */
+        .crt-flash {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: white;
+          z-index: 50;
+          animation: crtFlash 0.3s ease-out forwards;
+        }
+        @keyframes crtFlash {
+          0% { opacity: 0; }
+          20% { opacity: 0.9; }
+          100% { opacity: 0; }
+        }
 
         .video-overlay {
           position: absolute;
@@ -241,7 +260,7 @@ export default function LandingPage() {
         }
 
         .typing-text {
-          font-size: clamp(1.3rem, 5.2vw, 2.3rem);
+          font-size: clamp(1.7rem, 6.8vw, 3rem);
           line-height: 2;
           color: #00ff00;
         }
@@ -274,7 +293,7 @@ export default function LandingPage() {
           position: absolute;
           bottom: 2rem; left: 50%;
           transform: translateX(-50%);
-          font-size: 0.5rem;
+          font-size: 0.65rem;
           color: #666;
           animation: bounce 2s infinite;
           opacity: 0;
@@ -301,7 +320,7 @@ export default function LandingPage() {
         }
 
         .nav-logo {
-          font-size: 0.7rem;
+          font-size: 0.9rem;
           color: #FFD700;
           text-shadow: 0 0 8px rgba(255,215,0,0.5);
           font-family: 'Press Start 2P', monospace;
@@ -309,7 +328,7 @@ export default function LandingPage() {
 
         .nav-btn {
           font-family: 'Press Start 2P', monospace;
-          font-size: 0.45rem;
+          font-size: 0.6rem;
           padding: 0.5rem 1rem;
           background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
           border: 2px solid #CC8800;
@@ -332,9 +351,9 @@ export default function LandingPage() {
 
         .retro-section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
         .section-header { text-align: center; margin-bottom: 3rem; }
-        .section-label { font-size: 0.5rem; color: #FFD700; margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
-        .section-title { font-size: clamp(0.9rem, 3vw, 1.2rem); color: #fff; margin-bottom: 1rem; font-family: 'Press Start 2P', monospace; line-height: 1.8; }
-        .section-subtitle { font-size: 0.55rem; color: #888; line-height: 2; max-width: 600px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
+        .section-label { font-size: 0.65rem; color: #FFD700; margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
+        .section-title { font-size: clamp(1.2rem, 3.9vw, 1.6rem); color: #fff; margin-bottom: 1rem; font-family: 'Press Start 2P', monospace; line-height: 1.8; }
+        .section-subtitle { font-size: 0.7rem; color: #888; line-height: 2; max-width: 600px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
 
         .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto; }
 
@@ -352,15 +371,16 @@ export default function LandingPage() {
         .game-card:hover { transform: translateY(-4px); border-color: #FFD700; box-shadow: 0 8px 0 #1a1a1a, 0 0 20px rgba(255,215,0,0.2); }
 
         .game-icon { width: 80px; height: 80px; margin: 0 auto 1.5rem; }
-        .game-name { font-size: 0.8rem; color: #FFD700; margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
-        .game-desc { font-size: 0.5rem; color: #888; line-height: 1.8; font-family: 'Press Start 2P', monospace; }
-        .game-domain { font-size: 0.4rem; color: #666; margin-top: 1rem; font-family: 'Press Start 2P', monospace; }
+        .game-name { font-size: 1rem; color: #FFD700; margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
+        .game-desc { font-size: 0.65rem; color: #888; line-height: 1.8; font-family: 'Press Start 2P', monospace; }
+        .game-domain { font-size: 0.5rem; color: #666; margin-top: 1rem; font-family: 'Press Start 2P', monospace; }
 
         .retro-footer { padding: 2rem; text-align: center; border-top: 2px solid #2d2d2d; }
-        .footer-text { font-size: 0.5rem; color: #666; font-family: 'Press Start 2P', monospace; }
+        .footer-text { font-size: 0.65rem; color: #666; font-family: 'Press Start 2P', monospace; }
       `}</style>
 
       <div className="crt-wrapper">
+        {crtFlash && <div className="crt-flash" />}
         <div className="page-content">
           <nav className="retro-nav">
             <div className="nav-bar">
