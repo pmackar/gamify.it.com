@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Large video files
+public/8-bit city road/
+public/arcade-game-pixeled-art-illustration-set-*/

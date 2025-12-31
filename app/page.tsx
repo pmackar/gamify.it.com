@@ -3,12 +3,19 @@
 import { useEffect, useState } from 'react';
 import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
+const videos = [
+  '/8-bit city road/8-bit city road_front.mp4',
+  '/8-bit city road/8-bit city road_side.mp4',
+  '/8-bit city road/8-bit city road_back.mp4',
+];
+
 export default function Home() {
   const [typedText, setTypedText] = useState('');
   const [showSecondLine, setShowSecondLine] = useState(false);
   const [secondLineText, setSecondLineText] = useState('');
   const [blinkDots, setBlinkDots] = useState(true);
   const [introComplete, setIntroComplete] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
@@ -49,6 +56,15 @@ export default function Home() {
     }, 100);
 
     return () => clearInterval(typeFirstLine);
+  }, []);
+
+  // Cycle through videos
+  useEffect(() => {
+    const videoInterval = setInterval(() => {
+      setCurrentVideoIndex((prev) => (prev + 1) % videos.length);
+    }, 10000); // Switch every 10 seconds
+
+    return () => clearInterval(videoInterval);
   }, []);
 
   return (
@@ -141,18 +157,74 @@ export default function Home() {
           justify-content: center;
           padding: 2rem;
           position: relative;
+          overflow: hidden;
+        }
+
+        .video-background {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+          overflow: hidden;
+        }
+
+        .video-background video {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          min-width: 100%;
+          min-height: 100%;
+          width: auto;
+          height: auto;
+          transform: translate(-50%, -50%);
+          object-fit: cover;
+          opacity: 0;
+          transition: opacity 1.5s ease-in-out;
+        }
+
+        .video-background video.active {
+          opacity: 0.5;
+        }
+
+        .video-background video.first-load {
+          opacity: 0.5;
+          transition: none;
+        }
+
+        .video-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+          z-index: 1;
         }
 
         .crt-screen {
           max-width: 800px;
           text-align: center;
+          position: relative;
+          z-index: 2;
         }
 
         .typing-text {
           font-size: clamp(1rem, 4vw, 1.75rem);
           line-height: 2;
           color: #00ff00;
-          text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+          text-shadow:
+            0 0 10px rgba(0, 255, 0, 0.8),
+            0 0 20px rgba(0, 255, 0, 0.5),
+            -2px -2px 0 #000,
+            2px -2px 0 #000,
+            -2px 2px 0 #000,
+            2px 2px 0 #000,
+            -2px 0 0 #000,
+            2px 0 0 #000,
+            0 -2px 0 #000,
+            0 2px 0 #000;
         }
 
         .typing-cursor {
@@ -175,7 +247,17 @@ export default function Home() {
           display: block;
           margin-top: 0.5rem;
           color: #FFD700;
-          text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+          text-shadow:
+            0 0 15px rgba(255, 215, 0, 0.8),
+            0 0 30px rgba(255, 215, 0, 0.5),
+            -2px -2px 0 #000,
+            2px -2px 0 #000,
+            -2px 2px 0 #000,
+            2px 2px 0 #000,
+            -2px 0 0 #000,
+            2px 0 0 #000,
+            0 -2px 0 #000,
+            0 2px 0 #000;
         }
 
         .scroll-hint {
@@ -606,6 +688,24 @@ export default function Home() {
 
           {/* CRT TV Intro */}
           <section className="crt-intro">
+            {/* Video Background */}
+            <div className="video-background">
+              {videos.map((src, index) => (
+                <video
+                  key={src}
+                  className={index === currentVideoIndex ? 'active' : ''}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                >
+                  <source src={src} type="video/mp4" />
+                </video>
+              ))}
+              <div className="video-overlay" />
+            </div>
+
             <div className="crt-screen">
               <div className="typing-text">
                 {typedText}
