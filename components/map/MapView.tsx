@@ -1,223 +1,222 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import { useEffect, useRef, useCallback } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { useMapStore } from '@/stores/map-store';
+import { LocationListItem } from '@/types';
 
-interface Location {
-  id: string;
-  name: string;
-  type: string;
-  latitude: number;
-  longitude: number;
-  avgRating?: number | null;
-  city?: {
-    name: string;
-    country: string;
-  };
-}
+// Set Mapbox token
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 interface MapViewProps {
-  locations: Location[];
-  center?: [number, number];
-  zoom?: number;
-  onLocationClick?: (locationId: string) => void;
+  locations?: LocationListItem[];
+  onLocationClick?: (location: LocationListItem) => void;
+  onMapClick?: (lngLat: { lng: number; lat: number }) => void;
   className?: string;
+  interactive?: boolean;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  RESTAURANT: "#ff6b6b",
-  BAR: "#9775fa",
-  CAFE: "#f0932b",
-  ATTRACTION: "#00d2d3",
-  HOTEL: "#54a0ff",
-  SHOP: "#5f27cd",
-  NATURE: "#10ac84",
-  TRANSPORT: "#95afc0",
-  MUSEUM: "#ee5a24",
-  BEACH: "#22a6b3",
-  NIGHTLIFE: "#eb2f06",
-  OTHER: "#636e72",
-};
-
-export default function MapView({
-  locations,
-  center = [-74.5, 40],
-  zoom = 3,
+export function MapView({
+  locations = [],
   onLocationClick,
-  className = "",
+  onMapClick,
+  className = '',
+  interactive = true,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const markers = useRef<mapboxgl.Marker[]>([]);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
 
+  const {
+    center,
+    zoom,
+    selectedLocationId,
+    hoveredLocationId,
+    setCenter,
+    setZoom,
+    setBounds,
+    setMapLoaded,
+    selectLocation,
+  } = useMapStore();
+
+  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      console.error("Mapbox token not configured");
-      return;
-    }
-
-    mapboxgl.accessToken = token;
-
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: 'mapbox://styles/mapbox/dark-v11', // Dark theme to match retro aesthetic
       center,
       zoom,
+      interactive,
     });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-    map.current.on("load", () => {
+    map.current.on('load', () => {
       setMapLoaded(true);
     });
 
+    map.current.on('moveend', () => {
+      if (!map.current) return;
+      const mapCenter = map.current.getCenter();
+      setCenter([mapCenter.lng, mapCenter.lat]);
+      setZoom(map.current.getZoom());
+
+      const bounds = map.current.getBounds();
+      if (bounds) {
+        setBounds([
+          [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
+          [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
+        ]);
+      }
+    });
+
+    if (onMapClick) {
+      map.current.on('click', (e) => {
+        onMapClick({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+      });
+    }
+
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    // Add geolocation control
+    map.current.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true,
+        },
+        trackUserLocation: true,
+        showUserHeading: true,
+      }),
+      'top-right'
+    );
+
     return () => {
-      markers.current.forEach((m) => m.remove());
       map.current?.remove();
       map.current = null;
     };
   }, []);
 
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+  // Create marker element
+  const createMarkerElement = useCallback(
+    (location: LocationListItem, isSelected: boolean, isHovered: boolean) => {
+      const el = document.createElement('div');
+      el.className = 'marker';
 
-    // Clear existing markers
-    markers.current.forEach((m) => m.remove());
-    markers.current = [];
+      // Determine marker style based on user data
+      const isHotlisted = location.userSpecific?.hotlist;
+      const isVisited = location.userSpecific?.visited;
 
-    // Add new markers
-    locations.forEach((location) => {
-      const el = document.createElement("div");
-      el.className = "map-marker";
+      let bgColor = '#FFD700'; // Gold default
+      let borderColor = '#CC8800';
+
+      if (isVisited) {
+        bgColor = '#00ff00'; // Green for visited
+        borderColor = '#00aa00';
+      } else if (isHotlisted) {
+        bgColor = '#ff4444'; // Red for hotlisted
+        borderColor = '#cc0000';
+      }
+
+      if (isSelected || isHovered) {
+        el.style.transform = 'scale(1.3)';
+        el.style.zIndex = '10';
+      }
+
       el.style.cssText = `
-        width: 24px;
-        height: 24px;
-        background-color: ${TYPE_COLORS[location.type] || TYPE_COLORS.OTHER};
-        border: 2px solid white;
+        width: ${isSelected ? '24px' : '20px'};
+        height: ${isSelected ? '24px' : '20px'};
+        background: ${bgColor};
+        border: 3px solid ${borderColor};
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 0 ${isSelected || isHovered ? '15px' : '8px'} ${bgColor}80;
+        transition: all 0.2s ease;
+        ${isSelected || isHovered ? 'transform: scale(1.3);' : ''}
       `;
 
-      const popupContent = `
-        <div style="
-          font-family: system-ui, -apple-system, sans-serif;
-          padding: 12px;
-          min-width: 180px;
-        ">
-          <h3 style="
-            margin: 0 0 6px 0;
-            font-size: 15px;
-            font-weight: 600;
-            color: #fff;
-          ">${location.name}</h3>
-          <p style="
-            margin: 0 0 4px 0;
-            font-size: 12px;
-            color: #9ca3af;
-            text-transform: capitalize;
-          ">${location.type.toLowerCase()}</p>
-          ${location.city ? `
-            <p style="
-              margin: 0 0 8px 0;
-              font-size: 11px;
-              color: #6b7280;
-            ">${location.city.name}, ${location.city.country}</p>
-          ` : ""}
-          ${location.avgRating ? `
-            <p style="
-              margin: 0 0 8px 0;
-              font-size: 13px;
-              color: #fbbf24;
-            ">★ ${location.avgRating.toFixed(1)}</p>
-          ` : ""}
-          <button
-            onclick="window.dispatchEvent(new CustomEvent('openLocationDetail', { detail: '${location.id}' }))"
-            style="
-              display: inline-block;
-              margin-top: 4px;
-              padding: 6px 12px;
-              background: #0891b2;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-            "
-          >View Details</button>
-        </div>
-      `;
+      return el;
+    },
+    []
+  );
 
-      const popup = new mapboxgl.Popup({
-        offset: 25,
-        closeButton: false,
-        className: "custom-popup",
-      }).setHTML(popupContent);
+  // Update markers when locations change
+  useEffect(() => {
+    if (!map.current) return;
 
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([location.longitude, location.latitude])
-        .setPopup(popup)
-        .addTo(map.current!);
-
-      markers.current.push(marker);
+    // Remove old markers that are no longer in locations
+    const currentIds = new Set(locations.map((l) => l.id));
+    markers.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) {
+        marker.remove();
+        markers.current.delete(id);
+      }
     });
 
-    // Fit bounds if multiple locations
-    if (locations.length > 1) {
-      const bounds = new mapboxgl.LngLatBounds();
-      locations.forEach((loc) => {
-        bounds.extend([loc.longitude, loc.latitude]);
-      });
-      map.current.fitBounds(bounds, { padding: 60, maxZoom: 12 });
-    } else if (locations.length === 1) {
+    // Add or update markers
+    locations.forEach((location) => {
+      const isSelected = selectedLocationId === location.id;
+      const isHovered = hoveredLocationId === location.id;
+      const existingMarker = markers.current.get(location.id);
+
+      if (existingMarker) {
+        // Update existing marker
+        const el = createMarkerElement(location, isSelected, isHovered);
+        existingMarker.getElement().replaceWith(el);
+        existingMarker.setLngLat([location.longitude, location.latitude]);
+      } else {
+        // Create new marker
+        const el = createMarkerElement(location, isSelected, isHovered);
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectLocation(location.id);
+          onLocationClick?.(location);
+        });
+
+        el.addEventListener('mouseenter', () => {
+          el.style.transform = 'scale(1.3)';
+          el.style.zIndex = '10';
+        });
+
+        el.addEventListener('mouseleave', () => {
+          if (selectedLocationId !== location.id) {
+            el.style.transform = 'scale(1)';
+            el.style.zIndex = '1';
+          }
+        });
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([location.longitude, location.latitude])
+          .addTo(map.current!);
+
+        markers.current.set(location.id, marker);
+      }
+    });
+  }, [locations, selectedLocationId, hoveredLocationId, createMarkerElement, onLocationClick, selectLocation]);
+
+  // Fly to selected location
+  useEffect(() => {
+    if (!map.current || !selectedLocationId) return;
+
+    const location = locations.find((l) => l.id === selectedLocationId);
+    if (location) {
       map.current.flyTo({
-        center: [locations[0].longitude, locations[0].latitude],
-        zoom: 14,
+        center: [location.longitude, location.latitude],
+        zoom: Math.max(map.current.getZoom(), 14),
+        duration: 1000,
       });
     }
-  }, [locations, mapLoaded, onLocationClick]);
+  }, [selectedLocationId, locations]);
 
   return (
-    <div className={`relative ${className}`}>
-      <div ref={mapContainer} className="w-full h-full min-h-[400px] rounded-xl overflow-hidden" />
-      {!mapLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 rounded-xl">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-400" />
-        </div>
-      )}
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 text-xs">
-        <div className="grid grid-cols-3 gap-2">
-          {Object.entries(TYPE_COLORS).slice(0, 6).map(([type, color]) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-gray-400 capitalize">
-                {type.toLowerCase()}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <style jsx global>{`
-        .mapboxgl-popup-content {
-          background: #1f2937 !important;
-          border-radius: 8px !important;
-          padding: 0 !important;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-        }
-        .mapboxgl-popup-tip {
-          border-top-color: #1f2937 !important;
-        }
-      `}</style>
-    </div>
+    <div
+      ref={mapContainer}
+      className={`w-full h-full min-h-[400px] ${className}`}
+      style={{ background: '#1a1a1a' }}
+    />
   );
 }
+
+export default MapView;
