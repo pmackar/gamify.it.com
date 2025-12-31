@@ -1,406 +1,786 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
-// Logo SVG Component
-const Logo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="16" cy="16" r="14" stroke="url(#logo-gradient)" strokeWidth="2" fill="none"/>
-    <path d="M16 6 L20 14 L28 16 L20 18 L16 26 L12 18 L4 16 L12 14 Z" fill="url(#logo-gradient)"/>
-    <defs>
-      <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#00d4ff"/>
-        <stop offset="100%" stopColor="#a855f7"/>
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
-// Icon Components
-const PlayIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="5 3 19 12 5 21 5 3"/>
-  </svg>
-);
-
-const FireIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M6.5 6.5c1.5-1.5 3-2 4.5-1.5s2 2.5.5 4.5c-1 1.5-.5 2 .5 2.5s2 .5 3-1c.5-1 1-1.5 1.5-1.5s1 .5 1 1.5c0 2-1 4-3 5s-4.5 1-6.5-1S4 9 6.5 6.5z"/>
-    <path d="M12 21c-3 0-6-2-6-6 0-2 1-3 2-4"/>
-  </svg>
-);
-
-const DocumentIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="9" y1="15" x2="15" y2="15"/>
-    <line x1="9" y1="11" x2="15" y2="11"/>
-  </svg>
-);
-
-const CompassIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
-
-const MedalIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="8" r="6"/>
-    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
-  </svg>
-);
-
-const ChartIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 20V10"/>
-    <path d="M12 20V4"/>
-    <path d="M6 20v-6"/>
-  </svg>
-);
-
-const CheckCircleIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-    <path d="m9 12 2 2 4-4"/>
-  </svg>
-);
-
-const PlayCircleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <polygon points="10 8 16 12 10 16 10 8"/>
-  </svg>
-);
-
-// Pyrefly particles data
-const pyreflies = [
-  { left: '10%', delay: '0s', duration: '12s' },
-  { left: '20%', delay: '2s', duration: '14s' },
-  { left: '30%', delay: '4s', duration: '16s' },
-  { left: '40%', delay: '1s', duration: '13s' },
-  { left: '50%', delay: '3s', duration: '15s' },
-  { left: '60%', delay: '5s', duration: '11s' },
-  { left: '70%', delay: '2.5s', duration: '17s' },
-  { left: '80%', delay: '4.5s', duration: '14s' },
-  { left: '90%', delay: '1.5s', duration: '12s' },
-  { left: '15%', delay: '6s', duration: '18s' },
-  { left: '35%', delay: '7s', duration: '13s' },
-  { left: '55%', delay: '8s', duration: '15s' },
-  { left: '75%', delay: '9s', duration: '16s' },
-  { left: '85%', delay: '10s', duration: '14s' },
-  { left: '25%', delay: '11s', duration: '17s' },
-];
-
 export default function Home() {
+  const [typedText, setTypedText] = useState('');
+  const [showSecondLine, setShowSecondLine] = useState(false);
+  const [secondLineText, setSecondLineText] = useState('');
+  const [blinkDots, setBlinkDots] = useState(true);
+  const [introComplete, setIntroComplete] = useState(false);
+
+  const firstLine = "Life's not a game";
+  const secondLine = "but it should be!";
+
   useEffect(() => {
-    // Start hero animations
-    const timeout = setTimeout(() => {
-      document.querySelectorAll('.hero .animate-fade-in').forEach(el => {
-        (el as HTMLElement).style.animationPlayState = 'running';
-      });
+    let charIndex = 0;
+    let dotBlinks = 0;
+
+    // Type first line
+    const typeFirstLine = setInterval(() => {
+      if (charIndex < firstLine.length) {
+        setTypedText(firstLine.slice(0, charIndex + 1));
+        charIndex++;
+      } else {
+        clearInterval(typeFirstLine);
+        // Start blinking dots
+        const blinkInterval = setInterval(() => {
+          dotBlinks++;
+          setBlinkDots(prev => !prev);
+          if (dotBlinks >= 6) {
+            clearInterval(blinkInterval);
+            setShowSecondLine(true);
+            // Type second line
+            let secondCharIndex = 0;
+            const typeSecondLine = setInterval(() => {
+              if (secondCharIndex < secondLine.length) {
+                setSecondLineText(secondLine.slice(0, secondCharIndex + 1));
+                secondCharIndex++;
+              } else {
+                clearInterval(typeSecondLine);
+                // Mark intro complete after delay
+                setTimeout(() => setIntroComplete(true), 1500);
+              }
+            }, 80);
+          }
+        }, 300);
+      }
     }, 100);
 
-    // Intersection observer for scroll animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          (entry.target as HTMLElement).style.animationPlayState = 'running';
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.animate-fade-in').forEach(el => {
-      (el as HTMLElement).style.animationPlayState = 'paused';
-      observer.observe(el);
-    });
-
-    return () => {
-      clearTimeout(timeout);
-      observer.disconnect();
-    };
+    return () => clearInterval(typeFirstLine);
   }, []);
 
   return (
     <>
-      {/* Background */}
-      <div className="bg-gradient" />
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-      {/* Pyrefly Particles */}
-      <div className="pyreflies">
-        {pyreflies.map((p, i) => (
-          <div
-            key={i}
-            className="pyrefly"
-            style={{
-              left: p.left,
-              animationDelay: p.delay,
-              animationDuration: p.duration,
-            }}
-          />
-        ))}
-      </div>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
 
-      {/* Navigation */}
-      <nav>
-        <div className="nav-inner">
-          <div className="nav-content glass">
-            <div className="nav-logo">
-              <Logo />
-              <span className="font-display">gamify.it.com</span>
-            </div>
-            <div className="nav-links">
-              <a href="#products">Realms</a>
-              <a href="#features">Abilities</a>
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="btn-primary nav-cta">
-                    Sign In
-                  </button>
-                </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <a
-                  href="https://gamify-fitness.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary nav-cta"
-                >
-                  gamify.fitness
-                </a>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-10 h-10"
-                    }
-                  }}
-                />
-              </SignedIn>
-            </div>
-          </div>
-        </div>
-      </nav>
+        html {
+          scroll-behavior: smooth;
+        }
 
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <div className="hero-content">
-            <div className="hero-badge animate-fade-in" style={{ opacity: 0 }}>
-              Testing
-            </div>
+        body {
+          background: #0a0a0a;
+        }
 
-            <h1 className="animate-fade-in delay-100" style={{ opacity: 0 }}>
-              Transform Your <strong>Reality</strong><br />Into Adventure
-            </h1>
+        .crt-wrapper {
+          background: #1a1a1a;
+          position: relative;
+          overflow: hidden;
+        }
 
-            <p className="hero-subtitle animate-fade-in delay-200" style={{ opacity: 0 }}>
-              Where everyday tasks become epic quests. Earn experience, unlock achievements, and level up your life through the power of play.
-            </p>
+        /* CRT Scanlines */
+        .crt-wrapper::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.15),
+            rgba(0, 0, 0, 0.15) 1px,
+            transparent 1px,
+            transparent 2px
+          );
+          pointer-events: none;
+          z-index: 1000;
+        }
 
-            <div className="hero-buttons animate-fade-in delay-300" style={{ opacity: 0 }}>
-              <a
-                href="https://gamify-fitness.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-              >
-                <PlayIcon />
-                Start Your Journey
-              </a>
-              <a href="#products" className="btn-secondary">
-                Explore Realms
-              </a>
-            </div>
+        /* CRT Vignette */
+        .crt-wrapper::after {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(
+            ellipse at center,
+            transparent 0%,
+            transparent 60%,
+            rgba(0, 0, 0, 0.4) 100%
+          );
+          pointer-events: none;
+          z-index: 999;
+        }
 
-            <div className="hero-stats animate-fade-in delay-400" style={{ opacity: 0 }}>
-              <div className="hero-stat">
-                <div className="hero-stat-value font-display">3</div>
-                <div className="hero-stat-label">Realms</div>
+        /* Screen flicker animation */
+        @keyframes flicker {
+          0% { opacity: 0.97; }
+          50% { opacity: 1; }
+          100% { opacity: 0.98; }
+        }
+
+        /* Typing cursor blink */
+        @keyframes cursor-blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+
+        .page-content {
+          color: #fff;
+          font-family: 'Press Start 2P', monospace;
+          animation: flicker 0.15s infinite;
+        }
+
+        /* CRT TV Intro Section */
+        .crt-intro {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          position: relative;
+        }
+
+        .crt-screen {
+          max-width: 800px;
+          text-align: center;
+        }
+
+        .typing-text {
+          font-size: clamp(1rem, 4vw, 1.75rem);
+          line-height: 2;
+          color: #00ff00;
+          text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .typing-cursor {
+          display: inline-block;
+          width: 0.6em;
+          height: 1.2em;
+          background: #00ff00;
+          margin-left: 0.2em;
+          animation: cursor-blink 0.8s infinite;
+          vertical-align: middle;
+          box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .dots {
+          color: #00ff00;
+          text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .second-line {
+          display: block;
+          margin-top: 0.5rem;
+          color: #FFD700;
+          text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .scroll-hint {
+          position: absolute;
+          bottom: 2rem;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 0.5rem;
+          color: #666;
+          animation: bounce 2s infinite;
+          opacity: 0;
+          transition: opacity 0.5s;
+        }
+
+        .scroll-hint.visible {
+          opacity: 1;
+        }
+
+        @keyframes bounce {
+          0%, 100% { transform: translateX(-50%) translateY(0); }
+          50% { transform: translateX(-50%) translateY(-10px); }
+        }
+
+        .scroll-arrow {
+          display: block;
+          margin-top: 0.5rem;
+          font-size: 1rem;
+        }
+
+        /* Navigation */
+        .retro-nav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 100;
+          padding: 1rem;
+        }
+
+        .nav-bar {
+          max-width: 1000px;
+          margin: 0 auto;
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 8px;
+          padding: 0.75rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 4px 0 #1a1a1a;
+        }
+
+        .nav-logo {
+          font-size: 0.7rem;
+          color: #FFD700;
+          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+        }
+
+        .nav-links {
+          display: none;
+          align-items: center;
+          gap: 1.5rem;
+        }
+
+        .nav-links a {
+          font-size: 0.5rem;
+          color: #888;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+          color: #FFD700;
+          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+        }
+
+        @media (min-width: 768px) {
+          .nav-links {
+            display: flex;
+          }
+        }
+
+        .nav-btn {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.45rem;
+          padding: 0.5rem 1rem;
+          background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+          border: 2px solid #CC8800;
+          border-radius: 4px;
+          color: #1a1a1a;
+          cursor: pointer;
+          box-shadow: 0 3px 0 #996600;
+          transition: all 0.1s;
+        }
+
+        .nav-btn:hover {
+          transform: translateY(1px);
+          box-shadow: 0 2px 0 #996600;
+        }
+
+        .nav-btn-secondary {
+          background: transparent;
+          border-color: #FFD700;
+          color: #FFD700;
+          box-shadow: none;
+        }
+
+        /* Section styling */
+        .retro-section {
+          padding: 6rem 1.5rem;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+
+        .section-header {
+          text-align: center;
+          margin-bottom: 3rem;
+        }
+
+        .section-label {
+          font-size: 0.5rem;
+          color: #FFD700;
+          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+          margin-bottom: 1rem;
+        }
+
+        .section-title {
+          font-size: clamp(1rem, 3vw, 1.5rem);
+          font-weight: normal;
+          margin-bottom: 1rem;
+          text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .section-subtitle {
+          font-size: 0.55rem;
+          color: #888;
+          line-height: 2;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        /* Hero stats */
+        .hero-stats {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          margin-top: 3rem;
+          flex-wrap: wrap;
+        }
+
+        .stat-card {
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 8px;
+          padding: 1.5rem 2rem;
+          text-align: center;
+          box-shadow: 0 4px 0 #1a1a1a;
+          min-width: 120px;
+        }
+
+        .stat-value {
+          font-size: 1.5rem;
+          color: #FFD700;
+          text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+          margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+          font-size: 0.5rem;
+          color: #888;
+        }
+
+        /* Product cards */
+        .products-grid {
+          display: grid;
+          gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+          .products-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        .product-card {
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 8px;
+          padding: 1.5rem;
+          box-shadow: 0 4px 0 #1a1a1a;
+          transition: all 0.2s;
+        }
+
+        .product-card:hover {
+          transform: translateY(-4px);
+          border-color: #FFD700;
+          box-shadow: 0 8px 0 #1a1a1a, 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .product-icon {
+          font-size: 2rem;
+          margin-bottom: 1rem;
+        }
+
+        .product-name {
+          font-size: 0.7rem;
+          color: #fff;
+          margin-bottom: 0.25rem;
+        }
+
+        .product-domain {
+          font-size: 0.5rem;
+          color: #FFD700;
+          margin-bottom: 1rem;
+        }
+
+        .product-desc {
+          font-size: 0.5rem;
+          color: #888;
+          line-height: 2;
+          margin-bottom: 1rem;
+        }
+
+        .product-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.45rem;
+          color: #00ff00;
+          margin-bottom: 1rem;
+        }
+
+        .status-dot {
+          width: 6px;
+          height: 6px;
+          background: #00ff00;
+          border-radius: 50%;
+          box-shadow: 0 0 8px #00ff00;
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .product-btn {
+          display: block;
+          width: 100%;
+          padding: 0.75rem;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          text-align: center;
+          text-decoration: none;
+          background: #3a3a3a;
+          border: 2px solid #4a4a4a;
+          border-radius: 4px;
+          color: #fff;
+          cursor: pointer;
+          box-shadow: 0 3px 0 #222;
+          transition: all 0.1s;
+        }
+
+        .product-btn:hover {
+          background: #4a4a4a;
+          transform: translateY(1px);
+          box-shadow: 0 2px 0 #222;
+        }
+
+        /* Features grid */
+        .features-grid {
+          display: grid;
+          gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+          .features-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+
+        .feature-card {
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 8px;
+          padding: 1.5rem;
+          text-align: center;
+          box-shadow: 0 4px 0 #1a1a1a;
+        }
+
+        .feature-icon {
+          font-size: 1.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .feature-title {
+          font-size: 0.55rem;
+          color: #fff;
+          margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+          font-size: 0.45rem;
+          color: #888;
+          line-height: 1.8;
+        }
+
+        /* CTA section */
+        .cta-section {
+          text-align: center;
+          padding: 4rem 2rem;
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 8px;
+          box-shadow: 0 4px 0 #1a1a1a;
+          margin: 0 1.5rem;
+          max-width: 800px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .cta-title {
+          font-size: clamp(0.9rem, 2.5vw, 1.25rem);
+          margin-bottom: 1rem;
+        }
+
+        .cta-subtitle {
+          font-size: 0.55rem;
+          color: #888;
+          margin-bottom: 2rem;
+        }
+
+        .cta-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem 2rem;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.55rem;
+          text-decoration: none;
+          background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+          border: 2px solid #CC8800;
+          border-radius: 8px;
+          color: #1a1a1a;
+          cursor: pointer;
+          box-shadow: 0 4px 0 #996600;
+          transition: all 0.1s;
+        }
+
+        .cta-btn:hover {
+          transform: translateY(2px);
+          box-shadow: 0 2px 0 #996600;
+        }
+
+        /* Footer */
+        .retro-footer {
+          padding: 3rem 1.5rem;
+          text-align: center;
+          border-top: 2px solid #2d2d2d;
+          margin-top: 4rem;
+        }
+
+        .footer-logo {
+          font-size: 0.6rem;
+          color: #FFD700;
+          margin-bottom: 1.5rem;
+        }
+
+        .footer-links {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .footer-links a {
+          font-size: 0.5rem;
+          color: #666;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+          color: #FFD700;
+        }
+
+        .footer-copyright {
+          font-size: 0.45rem;
+          color: #444;
+        }
+      `}</style>
+
+      <div className="crt-wrapper">
+        <div className="page-content">
+          {/* Navigation */}
+          <nav className="retro-nav">
+            <div className="nav-bar">
+              <span className="nav-logo">gamify.it.com</span>
+              <div className="nav-links">
+                <a href="#realms">Realms</a>
+                <a href="#abilities">Abilities</a>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="nav-btn">Sign In</button>
+                  </SignInButton>
+                </SignedOut>
+                <SignedIn>
+                  <a
+                    href="https://gamify-fitness.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-btn nav-btn-secondary"
+                  >
+                    Play Now
+                  </a>
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8"
+                      }
+                    }}
+                  />
+                </SignedIn>
               </div>
-              <div className="hero-stat">
-                <div className="hero-stat-value font-display">50+</div>
-                <div className="hero-stat-label">Achievements</div>
-              </div>
-              <div className="hero-stat">
-                <div className="hero-stat-value font-display">&infin;</div>
-                <div className="hero-stat-label">Potential</div>
+            </div>
+          </nav>
+
+          {/* CRT TV Intro */}
+          <section className="crt-intro">
+            <div className="crt-screen">
+              <div className="typing-text">
+                {typedText}
+                {!showSecondLine && (
+                  <>
+                    <span className="dots" style={{ opacity: blinkDots ? 1 : 0 }}>...</span>
+                    {typedText.length === firstLine.length && !blinkDots ? null : (
+                      <span className="typing-cursor" />
+                    )}
+                  </>
+                )}
+                {showSecondLine && (
+                  <span className="second-line">
+                    {secondLineText}
+                    {secondLineText.length < secondLine.length && (
+                      <span className="typing-cursor" style={{ background: '#FFD700', boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)' }} />
+                    )}
+                  </span>
+                )}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+            <div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>
+              Scroll to continue
+              <span className="scroll-arrow">▼</span>
+            </div>
+          </section>
 
-      {/* Products */}
-      <section id="products" className="products">
-        <div className="container">
-          <div className="section-header">
-            <p className="section-label font-display">Choose Your Story</p>
-            <h2 className="section-title">Enter the <strong>Apps</strong></h2>
-            <p className="section-subtitle">
-              Each <strong>app</strong> serves a unique purpose in your life: fitness, task management, and travel. Each offers unique challenges and rewards. Where will <strong>your adventure</strong> begin?
-            </p>
-          </div>
-
-          <div className="products-grid">
-            {/* gamify.fitness */}
-            <div className="product-card glass-card">
-              <div className="product-icon fire">
-                <FireIcon />
-              </div>
-              <h3>gamify.fitness</h3>
-              <p className="product-domain">fitness.gamify.it.com</p>
-              <p>
-                Forge your legend through iron and sweat. Every workout becomes a battle, every rep a step toward greatness. Rise through the ranks of strength.
+          {/* Hero Stats */}
+          <section className="retro-section">
+            <div className="section-header">
+              <p className="section-label">WELCOME TO</p>
+              <h2 className="section-title">Transform Your Reality Into Adventure</h2>
+              <p className="section-subtitle">
+                Where everyday tasks become epic quests. Earn experience, unlock achievements, and level up your life through the power of play.
               </p>
-              <div className="product-status live">Testing</div>
-              <div className="product-cta">
+            </div>
+            <div className="hero-stats">
+              <div className="stat-card">
+                <div className="stat-value">3</div>
+                <div className="stat-label">REALMS</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">50+</div>
+                <div className="stat-label">ACHIEVEMENTS</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">∞</div>
+                <div className="stat-label">POTENTIAL</div>
+              </div>
+            </div>
+          </section>
+
+          {/* Products/Realms */}
+          <section id="realms" className="retro-section">
+            <div className="section-header">
+              <p className="section-label">CHOOSE YOUR STORY</p>
+              <h2 className="section-title">Enter the Apps</h2>
+              <p className="section-subtitle">
+                Each app serves a unique purpose in your life. Where will your adventure begin?
+              </p>
+            </div>
+            <div className="products-grid">
+              {/* gamify.fitness */}
+              <div className="product-card">
+                <div className="product-icon">🔥</div>
+                <h3 className="product-name">gamify.fitness</h3>
+                <p className="product-domain">fitness.gamify.it.com</p>
+                <p className="product-desc">
+                  Forge your legend through iron and sweat. Every workout becomes a battle, every rep a step toward greatness.
+                </p>
+                <div className="product-status">
+                  <span className="status-dot" />
+                  TESTING
+                </div>
                 <a
                   href="https://gamify-fitness.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-primary"
+                  className="product-btn"
                 >
                   Enter Realm
                 </a>
               </div>
-            </div>
 
-            {/* Day Quest */}
-            <div className="product-card glass-card">
-              <div className="product-icon nature">
-                <DocumentIcon />
-              </div>
-              <h3>Day Quest</h3>
-              <p className="product-domain">dayquest.gamify.it.com</p>
-              <p>
-                Transform mundane tasks into legendary quests. Defeat the procrastination dragon, collect productivity gems, and master your daily destiny.
-              </p>
-              <div className="product-status live">Testing</div>
-              <div className="product-cta">
+              {/* Day Quest */}
+              <div className="product-card">
+                <div className="product-icon">📋</div>
+                <h3 className="product-name">Day Quest</h3>
+                <p className="product-domain">dayquest.gamify.it.com</p>
+                <p className="product-desc">
+                  Transform mundane tasks into legendary quests. Defeat the procrastination dragon and master your daily destiny.
+                </p>
+                <div className="product-status">
+                  <span className="status-dot" />
+                  TESTING
+                </div>
                 <a
                   href="https://gamify-today.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-primary"
+                  className="product-btn"
                 >
                   Enter Realm
                 </a>
               </div>
-            </div>
 
-            {/* World Map */}
-            <div className="product-card glass-card">
-              <div className="product-icon arcane">
-                <CompassIcon />
-              </div>
-              <h3>Explorer</h3>
-              <p className="product-domain">gamify.travel</p>
-              <p>
-                Uncover hidden realms in your own neighborhood. Every location holds secrets, every journey earns experience. The world awaits your discovery.
-              </p>
-              <div className="product-status live">Preview</div>
-              <div className="product-cta">
-                <a
-                  href="/travel"
-                  className="btn-primary"
-                >
+              {/* Explorer */}
+              <div className="product-card">
+                <div className="product-icon">🧭</div>
+                <h3 className="product-name">Explorer</h3>
+                <p className="product-domain">gamify.travel</p>
+                <p className="product-desc">
+                  Uncover hidden realms in your own neighborhood. Every location holds secrets, every journey earns experience.
+                </p>
+                <div className="product-status">
+                  <span className="status-dot" style={{ background: '#FFD700', boxShadow: '0 0 8px #FFD700' }} />
+                  <span style={{ color: '#FFD700' }}>PREVIEW</span>
+                </div>
+                <a href="/travel" className="product-btn">
                   Learn More
                 </a>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Features */}
-      <section id="features" className="features">
-        <div className="container">
-          <div className="section-header">
-            <p className="section-label font-display">Power Up</p>
-            <h2 className="section-title">Unlock Your <strong>Abilities</strong></h2>
-            <p className="section-subtitle">Every action builds toward something greater</p>
-          </div>
-
-          <div className="features-grid">
-            <div className="feature-card glass-card">
-              <div className="feature-icon">
-                <StarIcon />
-              </div>
-              <h4>Earn XP</h4>
-              <p>Every action rewards experience points toward your next level</p>
+          {/* Features/Abilities */}
+          <section id="abilities" className="retro-section">
+            <div className="section-header">
+              <p className="section-label">POWER UP</p>
+              <h2 className="section-title">Unlock Your Abilities</h2>
+              <p className="section-subtitle">Every action builds toward something greater</p>
             </div>
-
-            <div className="feature-card glass-card">
-              <div className="feature-icon">
-                <MedalIcon />
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">⭐</div>
+                <h4 className="feature-title">Earn XP</h4>
+                <p className="feature-desc">Every action rewards experience points toward your next level</p>
               </div>
-              <h4>Achievements</h4>
-              <p>Unlock badges and trophies as you conquer new challenges</p>
-            </div>
-
-            <div className="feature-card glass-card">
-              <div className="feature-icon">
-                <ChartIcon />
+              <div className="feature-card">
+                <div className="feature-icon">🏆</div>
+                <h4 className="feature-title">Achievements</h4>
+                <p className="feature-desc">Unlock badges and trophies as you conquer new challenges</p>
               </div>
-              <h4>Track Progress</h4>
-              <p>Visualize your growth with beautiful stats and insights</p>
-            </div>
-
-            <div className="feature-card glass-card">
-              <div className="feature-icon">
-                <CheckCircleIcon />
+              <div className="feature-card">
+                <div className="feature-icon">📊</div>
+                <h4 className="feature-title">Track Progress</h4>
+                <p className="feature-desc">Visualize your growth with beautiful stats and insights</p>
               </div>
-              <h4>Build Habits</h4>
-              <p>Form lasting routines through the power of positive reinforcement</p>
+              <div className="feature-card">
+                <div className="feature-icon">✅</div>
+                <h4 className="feature-title">Build Habits</h4>
+                <p className="feature-desc">Form lasting routines through positive reinforcement</p>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* CTA */}
-      <section className="cta">
-        <div className="container">
-          <div className="cta-inner">
-            <div className="cta-card glass-card">
-              <h2>Ready to <strong>Level Up</strong>?</h2>
-              <p>Your adventure awaits. Start with gamify.fitness.</p>
+          {/* CTA */}
+          <section className="retro-section">
+            <div className="cta-section">
+              <h2 className="cta-title">Ready to Level Up?</h2>
+              <p className="cta-subtitle">Your adventure awaits. Start with gamify.fitness.</p>
               <a
                 href="https://gamify-fitness.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-primary"
+                className="cta-btn"
               >
-                <PlayCircleIcon />
-                Begin Your Quest
+                ▶ Begin Your Quest
               </a>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Footer */}
-      <footer>
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-logo">
-              <Logo />
-              <span className="font-display">gamify.it.com</span>
-            </div>
-
+          {/* Footer */}
+          <footer className="retro-footer">
+            <div className="footer-logo">gamify.it.com</div>
             <div className="footer-links">
               <a
                 href="https://gamify-fitness.vercel.app"
@@ -409,15 +789,14 @@ export default function Home() {
               >
                 gamify.fitness
               </a>
-              <a href="#products">All Realms</a>
+              <a href="#realms">All Realms</a>
             </div>
-
             <p className="footer-copyright">
-              &copy; {new Date().getFullYear()} gamify.it.com &middot; Level Up Your Life
+              © {new Date().getFullYear()} gamify.it.com · Level Up Your Life
             </p>
-          </div>
+          </footer>
         </div>
-      </footer>
+      </div>
     </>
   );
 }
