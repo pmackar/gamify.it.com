@@ -1,226 +1,465 @@
-import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
-import {
-  Compass,
-  MapPin,
-  Trophy,
-  Globe,
-  Flame,
-  ArrowRight,
-  Star,
-} from "lucide-react";
+'use client';
 
-export default async function LandingPage() {
-  const session = await getServerSession(authOptions);
+import Link from 'next/link';
+import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
+import { LoginModal } from '@/components/LoginModal';
 
-  // Redirect to dashboard if already logged in
-  if (session) {
-    redirect("/dashboard");
-  }
+const videos = [
+  '/8-bit city road/8-bit city road_front.mp4',
+  '/8-bit city road/8-bit city road_side.mp4',
+  '/8-bit city road/8-bit city road_back.mp4',
+];
 
-  return (
-    <div className="min-h-screen bg-gray-950">
-      {/* Background gradient */}
-      <div className="fixed inset-0 bg-gradient-to-br from-cyan-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
+// Game Icons
+const DumbbellIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="10" width="4" height="12" fill="#FF6B6B"/>
+    <rect x="8" y="8" width="4" height="16" fill="#CC5555"/>
+    <rect x="12" y="14" width="8" height="4" fill="#888"/>
+    <rect x="20" y="8" width="4" height="16" fill="#CC5555"/>
+    <rect x="24" y="10" width="4" height="12" fill="#FF6B6B"/>
+  </svg>
+);
 
-      {/* Navigation */}
-      <nav className="relative z-10 border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center">
-                <Compass className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-lg text-white">gamify.travel</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="https://gamify.it.com"
-                className="text-gray-400 hover:text-white text-sm"
-              >
-                gamify.it.com
-              </Link>
-              <Link
-                href="/login"
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+const ChecklistIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="4" width="24" height="24" fill="#5CC9F5"/>
+    <rect x="6" y="6" width="20" height="20" fill="#2D8AB5"/>
+    <rect x="8" y="10" width="4" height="4" fill="#7FD954"/>
+    <rect x="14" y="10" width="10" height="4" fill="white"/>
+    <rect x="8" y="18" width="4" height="4" fill="white"/>
+    <rect x="14" y="18" width="10" height="4" fill="white"/>
+  </svg>
+);
 
-      {/* Hero */}
-      <section className="relative z-10 py-20 sm:py-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-cyan-400 text-sm mb-8">
-            <Star className="w-4 h-4" />
-            Part of the gamify.it ecosystem
-          </div>
+const PlaneIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="14" y="4" width="4" height="8" fill="#5CC9F5"/>
+    <rect x="12" y="12" width="8" height="12" fill="#5CC9F5"/>
+    <rect x="4" y="14" width="8" height="4" fill="#2D8AB5"/>
+    <rect x="20" y="14" width="8" height="4" fill="#2D8AB5"/>
+    <rect x="10" y="24" width="4" height="4" fill="#2D8AB5"/>
+    <rect x="18" y="24" width="4" height="4" fill="#2D8AB5"/>
+  </svg>
+);
 
-          <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6 leading-tight">
-            Turn Your Travels Into
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">
-              Epic Adventures
-            </span>
-          </h1>
+export default function LandingPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [typedText, setTypedText] = useState('');
+  const [showSecondLine, setShowSecondLine] = useState(false);
+  const [secondLineText, setSecondLineText] = useState('');
+  const [blinkDots, setBlinkDots] = useState(true);
+  const [introComplete, setIntroComplete] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoFading, setVideoFading] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
-            Track your travels, earn XP, unlock achievements, and level up your
-            adventures. Every city, every location, every experience becomes
-            part of your journey.
-          </p>
+  const firstLine = "Life's not a game";
+  const secondLine = "but it should be!";
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/login"
-              className="flex items-center gap-2 px-8 py-4 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-medium transition-colors"
-            >
-              Start Your Journey
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="#features"
-              className="px-8 py-4 text-gray-400 hover:text-white transition-colors"
-            >
-              Learn More
-            </Link>
-          </div>
-        </div>
-      </section>
+  // Auth state
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
 
-      {/* Features */}
-      <section id="features" className="relative z-10 py-20 border-t border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Level Up Your Travel Experience
-            </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Every journey becomes an opportunity to grow, explore, and achieve
-            </p>
-          </div>
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <FeatureCard
-              icon={<MapPin className="w-6 h-6" />}
-              title="Track Locations"
-              description="Log every restaurant, bar, attraction, and hidden gem you discover"
-              color="cyan"
-            />
-            <FeatureCard
-              icon={<Globe className="w-6 h-6" />}
-              title="Interactive Map"
-              description="See your travels visualized on a beautiful world map"
-              color="purple"
-            />
-            <FeatureCard
-              icon={<Trophy className="w-6 h-6" />}
-              title="Earn Achievements"
-              description="Unlock badges for milestones like visiting 10 cities or 5 countries"
-              color="yellow"
-            />
-            <FeatureCard
-              icon={<Flame className="w-6 h-6" />}
-              title="Build Streaks"
-              description="Log locations daily to build streaks and earn bonus XP"
-              color="orange"
-            />
-          </div>
-        </div>
-      </section>
+    return () => subscription.unsubscribe();
+  }, []);
 
-      {/* Stats Preview */}
-      <section className="relative z-10 py-20 border-t border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8">
-              <p className="text-4xl font-bold text-cyan-400 mb-2">25+</p>
-              <p className="text-gray-400">Achievements to Unlock</p>
-            </div>
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8">
-              <p className="text-4xl font-bold text-purple-400 mb-2">12</p>
-              <p className="text-gray-400">Location Types to Track</p>
-            </div>
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8">
-              <p className="text-4xl font-bold text-pink-400 mb-2">&infin;</p>
-              <p className="text-gray-400">Adventures Awaiting</p>
-            </div>
-          </div>
-        </div>
-      </section>
+  // Typing animation
+  useEffect(() => {
+    let charIndex = 0;
+    let dotBlinks = 0;
 
-      {/* CTA */}
-      <section className="relative z-10 py-20 border-t border-gray-800/50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Start Your Adventure?
-          </h2>
-          <p className="text-gray-400 mb-8">
-            Join gamify.travel and transform how you experience the world
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all"
-          >
-            Get Started Free
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div>
-      </section>
+    const typeFirstLine = setInterval(() => {
+      if (charIndex < firstLine.length) {
+        setTypedText(firstLine.slice(0, charIndex + 1));
+        charIndex++;
+      } else {
+        clearInterval(typeFirstLine);
+        // Start blinking dots
+        const blinkInterval = setInterval(() => {
+          dotBlinks++;
+          setBlinkDots(prev => !prev);
+          if (dotBlinks >= 6) {
+            clearInterval(blinkInterval);
+            setShowSecondLine(true);
+            // Type second line
+            let secondCharIndex = 0;
+            const typeSecondLine = setInterval(() => {
+              if (secondCharIndex < secondLine.length) {
+                setSecondLineText(secondLine.slice(0, secondCharIndex + 1));
+                secondCharIndex++;
+              } else {
+                clearInterval(typeSecondLine);
+                // Start video AFTER second line completes
+                setTimeout(() => {
+                  setShowVideo(true);
+                  setIntroComplete(true);
+                }, 500);
+              }
+            }, 80);
+          }
+        }, 300);
+      }
+    }, 100);
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-gray-800/50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center">
-                <Compass className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm text-gray-400">gamify.travel</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-gray-500">
-              <Link href="https://gamify.it.com" className="hover:text-white">
-                gamify.it.com
-              </Link>
-              <span>&copy; {new Date().getFullYear()}</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
+    return () => clearInterval(typeFirstLine);
+  }, []);
 
-function FeatureCard({
-  icon,
-  title,
-  description,
-  color,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: "cyan" | "purple" | "yellow" | "orange";
-}) {
-  const colors = {
-    cyan: "bg-cyan-500/10 text-cyan-400",
-    purple: "bg-purple-500/10 text-purple-400",
-    yellow: "bg-yellow-500/10 text-yellow-400",
-    orange: "bg-orange-500/10 text-orange-400",
-  };
+  // Smooth video cycling with crossfade
+  useEffect(() => {
+    if (!showVideo) return;
+
+    const videoInterval = setInterval(() => {
+      setVideoFading(true);
+      setTimeout(() => {
+        setCurrentVideoIndex((prev) => (prev + 1) % videos.length);
+        setVideoFading(false);
+      }, 1000);
+    }, 10000);
+
+    return () => clearInterval(videoInterval);
+  }, [showVideo]);
+
+  // Preload and play videos
+  useEffect(() => {
+    videoRefs.current.forEach((video, index) => {
+      if (video) {
+        video.load();
+        if (index === currentVideoIndex && showVideo) {
+          video.play().catch(() => {});
+        }
+      }
+    });
+  }, [currentVideoIndex, showVideo]);
 
   return (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
-      <div className={`w-12 h-12 rounded-lg ${colors[color]} flex items-center justify-center mb-4`}>
-        {icon}
+    <>
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0a0a0a; }
+
+        .crt-wrapper {
+          background: #1a1a1a;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .crt-wrapper::before {
+          content: '';
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+          pointer-events: none;
+          z-index: 1000;
+        }
+
+        .crt-wrapper::after {
+          content: '';
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: radial-gradient(ellipse at center, transparent 0%, transparent 60%, rgba(0,0,0,0.4) 100%);
+          pointer-events: none;
+          z-index: 999;
+        }
+
+        @keyframes flicker { 0% { opacity: 0.97; } 50% { opacity: 1; } 100% { opacity: 0.98; } }
+        @keyframes cursor-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+        .page-content {
+          color: #fff;
+          font-family: 'Press Start 2P', monospace;
+          animation: flicker 0.15s infinite;
+        }
+
+        .crt-intro {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .video-background {
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          z-index: 0;
+          overflow: hidden;
+        }
+
+        .video-background video {
+          position: absolute;
+          top: 50%; left: 50%;
+          min-width: 100%; min-height: 100%;
+          width: auto; height: auto;
+          transform: translate(-50%, -50%);
+          object-fit: cover;
+          opacity: 0;
+          transition: opacity 1s ease-in-out;
+        }
+
+        .video-background video.active { opacity: 0.5; }
+        .video-background video.fading { opacity: 0; }
+
+        .video-overlay {
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%);
+          z-index: 1;
+        }
+
+        .crt-screen {
+          max-width: 800px;
+          text-align: center;
+          position: relative;
+          z-index: 2;
+        }
+
+        .typing-text {
+          font-size: clamp(1.3rem, 5.2vw, 2.3rem);
+          line-height: 2;
+          color: #00ff00;
+        }
+
+        .typing-cursor {
+          display: inline-block;
+          width: 0.6em; height: 1.2em;
+          background: #00ff00;
+          margin-left: 0.2em;
+          animation: cursor-blink 0.8s infinite;
+          vertical-align: middle;
+          box-shadow: 0 0 10px rgba(0,255,0,0.5);
+        }
+
+        .dots { color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); }
+        .second-line { display: block; margin-top: 0.5rem; color: #FFD700; }
+
+        @keyframes rgb-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .shimmer-text {
+          background: linear-gradient(90deg, #fff 0%, #fff 35%, #ff6b6b 42%, #FFD700 50%, #00ff00 58%, #fff 65%, #fff 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: rgb-shimmer 4s ease-in-out infinite;
+        }
+
+        .scroll-hint {
+          position: absolute;
+          bottom: 2rem; left: 50%;
+          transform: translateX(-50%);
+          font-size: 0.5rem;
+          color: #666;
+          animation: bounce 2s infinite;
+          opacity: 0;
+          transition: opacity 0.5s;
+        }
+        .scroll-hint.visible { opacity: 1; }
+
+        @keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-10px); } }
+        .scroll-arrow { display: block; margin-top: 0.5rem; font-size: 1rem; }
+
+        .retro-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 1rem; }
+
+        .nav-bar {
+          max-width: 1000px;
+          margin: 0 auto;
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 8px;
+          padding: 0.75rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 4px 0 #1a1a1a;
+        }
+
+        .nav-logo {
+          font-size: 0.7rem;
+          color: #FFD700;
+          text-shadow: 0 0 8px rgba(255,215,0,0.5);
+          font-family: 'Press Start 2P', monospace;
+        }
+
+        .nav-btn {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.45rem;
+          padding: 0.5rem 1rem;
+          background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+          border: 2px solid #CC8800;
+          border-radius: 4px;
+          color: #1a1a1a;
+          cursor: pointer;
+          box-shadow: 0 3px 0 #996600;
+          transition: all 0.1s;
+          text-decoration: none;
+        }
+
+        .nav-btn:hover { transform: translateY(1px); box-shadow: 0 2px 0 #996600; }
+
+        .profile-img {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          border: 2px solid #FFD700;
+          box-shadow: 0 0 10px rgba(255,215,0,0.5);
+        }
+
+        .retro-section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .section-header { text-align: center; margin-bottom: 3rem; }
+        .section-label { font-size: 0.5rem; color: #FFD700; margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
+        .section-title { font-size: clamp(0.9rem, 3vw, 1.2rem); color: #fff; margin-bottom: 1rem; font-family: 'Press Start 2P', monospace; line-height: 1.8; }
+        .section-subtitle { font-size: 0.55rem; color: #888; line-height: 2; max-width: 600px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
+
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto; }
+
+        .game-card {
+          background: #2d2d2d;
+          border: 2px solid #3a3a3a;
+          border-radius: 12px;
+          padding: 2rem;
+          text-align: center;
+          transition: all 0.3s;
+          text-decoration: none;
+          display: block;
+        }
+
+        .game-card:hover { transform: translateY(-4px); border-color: #FFD700; box-shadow: 0 8px 0 #1a1a1a, 0 0 20px rgba(255,215,0,0.2); }
+
+        .game-icon { width: 80px; height: 80px; margin: 0 auto 1.5rem; }
+        .game-name { font-size: 0.8rem; color: #FFD700; margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
+        .game-desc { font-size: 0.5rem; color: #888; line-height: 1.8; font-family: 'Press Start 2P', monospace; }
+        .game-domain { font-size: 0.4rem; color: #666; margin-top: 1rem; font-family: 'Press Start 2P', monospace; }
+
+        .retro-footer { padding: 2rem; text-align: center; border-top: 2px solid #2d2d2d; }
+        .footer-text { font-size: 0.5rem; color: #666; font-family: 'Press Start 2P', monospace; }
+      `}</style>
+
+      <div className="crt-wrapper">
+        <div className="page-content">
+          <nav className="retro-nav">
+            <div className="nav-bar">
+              <span className="nav-logo">gamify.it</span>
+              {user ? (
+                <Link href="/profile">
+                  {user.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="Profile" className="profile-img" />
+                  ) : (
+                    <div className="profile-img" style={{ background: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a', fontFamily: "'Press Start 2P', monospace", fontSize: '0.6rem' }}>
+                      {user.email?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </Link>
+              ) : (
+                <button onClick={() => setShowLoginModal(true)} className="nav-btn">LOGIN</button>
+              )}
+            </div>
+          </nav>
+
+          <section className="crt-intro">
+            <div className="video-background">
+              {videos.map((src, index) => (
+                <video
+                  key={src}
+                  ref={(el) => { videoRefs.current[index] = el; }}
+                  className={`${index === currentVideoIndex && showVideo ? 'active' : ''} ${videoFading && index === currentVideoIndex ? 'fading' : ''}`}
+                  muted loop playsInline
+                >
+                  <source src={src} type="video/mp4" />
+                </video>
+              ))}
+              <div className="video-overlay" />
+            </div>
+
+            <div className="crt-screen">
+              <div className="typing-text">
+                {typedText}
+                {!showSecondLine && (
+                  <>
+                    <span className="dots" style={{ opacity: blinkDots ? 1 : 0 }}>...</span>
+                    {typedText.length === firstLine.length && !blinkDots ? null : <span className="typing-cursor" />}
+                  </>
+                )}
+                {showSecondLine && (
+                  <span className="second-line">
+                    {secondLineText}
+                    {secondLineText.length < secondLine.length && (
+                      <span className="typing-cursor" style={{ background: '#FFD700', boxShadow: '0 0 10px rgba(255,215,0,0.5)' }} />
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>
+              Scroll to continue
+              <span className="scroll-arrow">▼</span>
+            </div>
+          </section>
+
+          <section className="retro-section">
+            <div className="section-header">
+              <p className="section-label">CHOOSE YOUR GAME</p>
+              <h2 className="section-title shimmer-text">Play Now</h2>
+              <p className="section-subtitle">Each app serves a unique purpose in your life. Where will your adventure begin?</p>
+            </div>
+
+            <div className="games-grid">
+              <a href="https://gamify-fitness.vercel.app" target="_blank" rel="noopener noreferrer" className="game-card">
+                <DumbbellIcon className="game-icon" />
+                <h3 className="game-name">IRON QUEST</h3>
+                <p className="game-desc">Level up your fitness journey</p>
+                <p className="game-domain">gamify.fitness</p>
+              </a>
+
+              <a href="https://gamify-today.vercel.app" target="_blank" rel="noopener noreferrer" className="game-card">
+                <ChecklistIcon className="game-icon" />
+                <h3 className="game-name">DAY QUEST</h3>
+                <p className="game-desc">Conquer your daily tasks</p>
+                <p className="game-domain">gamify.today</p>
+              </a>
+
+              <a href="/dashboard" className="game-card">
+                <PlaneIcon className="game-icon" />
+                <h3 className="game-name">EXPLORER</h3>
+                <p className="game-desc">Track your travels</p>
+                <p className="game-domain">gamify.travel</p>
+              </a>
+            </div>
+          </section>
+
+          <footer className="retro-footer">
+            <p className="footer-text shimmer-text">Life&apos;s not a game... but it should be!</p>
+            <p className="footer-text" style={{ marginTop: '1rem' }}>© {new Date().getFullYear()} gamify.it</p>
+          </footer>
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm">{description}</p>
-    </div>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          const supabase = createClient();
+          supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+        }}
+      />
+    </>
   );
 }
