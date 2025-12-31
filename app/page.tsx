@@ -738,34 +738,8 @@ export default function Home() {
 
         /* Footer */
         .retro-footer {
-          padding: 3rem 1.5rem;
+          padding: 2rem 1.5rem;
           text-align: center;
-          border-top: 2px solid #2d2d2d;
-        }
-
-        .footer-logo {
-          font-size: 0.6rem;
-          color: var(--rpg-teal, #5fbf8a);
-          margin-bottom: 1.5rem;
-        }
-
-        .footer-links {
-          display: flex;
-          justify-content: center;
-          gap: 2rem;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .footer-links a {
-          font-size: 0.5rem;
-          color: #666;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-
-        .footer-links a:hover {
-          color: var(--rpg-teal, #5fbf8a);
         }
 
         .footer-copyright {
@@ -881,11 +855,6 @@ export default function Home() {
             </div>
           </section>
 
-          {/* RPG Banner */}
-          <div className="rpg-banner">
-            <img src="/rpg/header-banner.png" alt="Pixel art fantasy cityscape" />
-          </div>
-
           {/* Products/Realms */}
           <section id="realms" className="retro-section">
             <div className="section-header">
@@ -897,7 +866,7 @@ export default function Home() {
                 <span className="section-toggle">
                   {expandedSections.realms ? '▾' : '▸'}
                 </span>
-                <h2 className="section-title">Enter the Apps</h2>
+                <h2 className="section-title">Choose your Game</h2>
               </div>
               <p className="section-subtitle">
                 Each app serves a unique purpose in your life. Where will your adventure begin?
@@ -1029,26 +998,10 @@ export default function Home() {
           {/* Progress Bar */}
           <div className="rpg-progress"></div>
 
-          {/* Footer Banner */}
-          <div className="footer-banner">
-            <img src="/rpg/footer.png" alt="Pixel art fantasy scene" />
-          </div>
-
           {/* Footer */}
           <footer className="retro-footer">
-            <div className="footer-logo">gamify.it.com</div>
-            <div className="footer-links">
-              <a
-                href="https://gamify-fitness.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                gamify.fitness
-              </a>
-              <a href="#realms">All Realms</a>
-            </div>
             <p className="footer-copyright">
-              © {new Date().getFullYear()} gamify.it.com · Level Up Your Life
+              © {new Date().getFullYear()} gamify.it.com
             </p>
           </footer>
         </div>
