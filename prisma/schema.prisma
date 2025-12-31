@@ -32,6 +32,9 @@ model User {
   longestStreak Int       @default(0)
   lastActiveDate DateTime?
 
+  // Profile visibility
+  profilePublic Boolean   @default(true)
+
   // Relations
   accounts      Account[]
   sessions      Session[]
@@ -41,6 +44,12 @@ model User {
   visits        Visit[]
   achievements  UserAchievement[]
   photos        Photo[]
+
+  // Multi-user relations
+  locationData     UserLocationData[]
+  reviews          Review[]
+  quests           Quest[]
+  createdLocations Location[]         @relation("LocationCreator")
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -112,6 +121,7 @@ model City {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   neighborhoods Neighborhood[]
   locations     Location[]
+  quests        Quest[]
 
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -138,6 +148,7 @@ model Neighborhood {
   cityId      String
   city        City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
   locations   Location[]
+  quests      Quest[]
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -192,22 +203,39 @@ model Location {
 
   tags           String[]
 
+  // Aggregate stats (computed from reviews)
   avgRating      Float?
   ratingCount    Int           @default(0)
+  reviewCount    Int           @default(0)
+  totalVisits    Int           @default(0)
 
-  userId         String
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Legacy field - will be removed after migration to global locations
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Creator tracking (not ownership - for multi-user)
+  createdById    String?
+  createdBy      User?         @relation("LocationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
   cityId         String
   city           City          @relation(fields: [cityId], references: [id], onDelete: Cascade)
   neighborhoodId String?
   neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id], onDelete: SetNull)
+
+  // Existing relations
   visits         Visit[]
   photos         Photo[]
+
+  // Multi-user relations
+  userData       UserLocationData[]
+  reviews        Review[]
+  questItems     QuestItem[]
 
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@index([userId])
+  @@index([createdById])
   @@index([cityId])
   @@index([neighborhoodId])
   @@index([type])
@@ -303,4 +331,126 @@ model UserAchievement {
 
   @@unique([userId, achievementId])
   @@index([userId])
+}
+
+// ============================================
+// USER LOCATION DATA (Per-user data for each location)
+// ============================================
+
+model UserLocationData {
+  id             String    @id @default(cuid())
+  hotlist        Boolean   @default(false)
+  visited        Boolean   @default(false)
+  personalRating Int?      // 1-10, private to user
+  notes          String?   @db.Text
+  visitCount     Int       @default(0)
+  firstVisitedAt DateTime?
+  lastVisitedAt  DateTime?
+
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, locationId])
+  @@index([userId])
+  @@index([locationId])
+}
+
+// ============================================
+// REVIEWS (Public reviews with moderation)
+// ============================================
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Review {
+  id             String       @id @default(cuid())
+  title          String?
+  content        String       @db.Text
+  rating         Int          // 1-10, contributes to aggregate
+
+  status         ReviewStatus @default(PENDING)
+  moderatedAt    DateTime?
+  moderatedBy    String?
+
+  // Detailed ratings (optional)
+  foodQuality    Int?
+  serviceRating  Int?
+  ambianceRating Int?
+  valueRating    Int?
+
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([authorId])
+  @@index([locationId])
+  @@index([status])
+}
+
+// ============================================
+// QUESTS (Trip Planning)
+// ============================================
+
+enum QuestStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Quest {
+  id                   String        @id @default(cuid())
+  name                 String
+  description          String?       @db.Text
+
+  targetCityId         String?
+  targetCity           City?         @relation(fields: [targetCityId], references: [id], onDelete: SetNull)
+  targetNeighborhoodId String?
+  targetNeighborhood   Neighborhood? @relation(fields: [targetNeighborhoodId], references: [id], onDelete: SetNull)
+
+  startDate            DateTime?
+  endDate              DateTime?
+  status               QuestStatus   @default(PLANNING)
+
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                QuestItem[]
+
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([targetCityId])
+  @@index([targetNeighborhoodId])
+}
+
+model QuestItem {
+  id          String    @id @default(cuid())
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  sortOrder   Int       @default(0)
+  priority    Int       @default(0) // 1=high, 2=medium, 3=low
+  notes       String?   @db.Text
+
+  questId     String
+  quest       Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, locationId])
+  @@index([questId])
+  @@index([locationId])
 }

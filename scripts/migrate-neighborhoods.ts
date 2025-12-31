@@ -18,7 +18,7 @@ async function main() {
       id: true,
       neighborhoodOld: true,
       cityId: true,
-      userId: true,
+      createdById: true,
       latitude: true,
       longitude: true,
     },
@@ -28,19 +28,19 @@ async function main() {
   const neighborhoodMap = new Map<string, {
     name: string;
     cityId: string;
-    userId: string;
+    createdById: string;
     locations: { id: string; lat: number; lng: number }[];
   }>();
 
   for (const loc of locations) {
-    if (!loc.neighborhoodOld) continue;
+    if (!loc.neighborhoodOld || !loc.createdById) continue;
 
     const key = `${loc.cityId}:${loc.neighborhoodOld}`;
     if (!neighborhoodMap.has(key)) {
       neighborhoodMap.set(key, {
         name: loc.neighborhoodOld,
         cityId: loc.cityId,
-        userId: loc.userId,
+        createdById: loc.createdById,
         locations: [],
       });
     }
@@ -72,14 +72,14 @@ async function main() {
     const neighborhood = await prisma.neighborhood.upsert({
       where: {
         userId_cityId_name: {
-          userId: data.userId,
+          userId: data.createdById,
           cityId: data.cityId,
           name: data.name,
         },
       },
       update: {},
       create: {
-        userId: data.userId,
+        userId: data.createdById,
         cityId: data.cityId,
         name: data.name,
         latitude: lat,
