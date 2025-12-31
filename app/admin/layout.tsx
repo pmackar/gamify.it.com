@@ -30,6 +30,12 @@ export default async function AdminLayout({
                 >
                   Reviews
                 </Link>
+                <Link
+                  href="/admin/suggestions"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  Edit Suggestions
+                </Link>
               </nav>
             </div>
             <Link

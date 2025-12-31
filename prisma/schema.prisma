@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // === USER MANAGEMENT ===
@@ -28,13 +27,15 @@ model User {
   level   Int @default(1)
 
   // Relations
-  locationsCreated Location[]
-  userLocationData UserLocationData[]
-  reviews          Review[]
-  reviewFlags      ReviewFlag[]
-  quests           Quest[]
-  questItems       QuestItem[]
-  achievements     UserAchievement[]
+  locationsCreated    Location[]
+  userLocationData    UserLocationData[]
+  reviews             Review[]
+  reviewFlags         ReviewFlag[]
+  quests              Quest[]
+  questItems          QuestItem[]
+  achievements        UserAchievement[]
+  suggestedEdits      LocationEditSuggestion[] @relation("SuggestedEdits")
+  moderatedEdits      LocationEditSuggestion[] @relation("ModeratedEdits")
 
   @@index([clerkId])
   @@index([username])
@@ -63,6 +64,7 @@ model Location {
   photoUrl      String?
   website       String?
   phone         String?
+  hours         String?  @db.Text // Operating hours (e.g., "Mon-Fri 9am-5pm")
 
   // Categorization
   category LocationCategory
@@ -85,6 +87,7 @@ model Location {
   userLocationData UserLocationData[]
   reviews          Review[]
   questItems       QuestItem[]
+  editSuggestions  LocationEditSuggestion[]
 
   @@index([latitude, longitude])
   @@index([city, state])
@@ -123,10 +126,11 @@ model UserLocationData {
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   // User-specific fields (private to this user)
-  hotlist Boolean @default(false)
-  visited Boolean @default(false)
-  rating  Int?    @db.SmallInt // 1-5, null if not rated
-  notes   String? @db.Text
+  hotlist    Boolean @default(false)
+  visited    Boolean @default(false)
+  rating     Int?    @db.SmallInt // 1-5, null if not rated
+  notes      String? @db.Text // "Other Info" - user's private notes
+  priceLevel Int?    @db.SmallInt // 1-4 ($-$$$$), user's perception of cost
 
   // Visit tracking
   firstVisitedAt DateTime?
@@ -141,6 +145,44 @@ model UserLocationData {
   @@index([locationId])
   @@index([userId, hotlist])
   @@index([userId, visited])
+}
+
+// === LOCATION EDIT SUGGESTIONS (MODERATED) ===
+
+model LocationEditSuggestion {
+  id String @id @default(cuid())
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  suggestedById String
+  suggestedBy   User   @relation("SuggestedEdits", fields: [suggestedById], references: [id], onDelete: Cascade)
+
+  // The field being edited and new value
+  field    String // "neighborhood", "hours", "city", "name", "address", etc.
+  oldValue String? @db.Text
+  newValue String  @db.Text
+
+  // Moderation
+  status          EditSuggestionStatus @default(PENDING)
+  moderatedById   String?
+  moderatedBy     User?                @relation("ModeratedEdits", fields: [moderatedById], references: [id])
+  moderatedAt     DateTime?
+  moderationNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([locationId])
+  @@index([suggestedById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum EditSuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // === REVIEWS SYSTEM ===

@@ -3,8 +3,9 @@ import prisma from '@/lib/prisma';
 
 export default async function AdminDashboard() {
   // Fetch stats
-  const [flaggedReviews, totalUsers, totalLocations, totalReviews] = await Promise.all([
+  const [flaggedReviews, pendingSuggestions, totalUsers, totalLocations, totalReviews] = await Promise.all([
     prisma.review.count({ where: { status: 'FLAGGED' } }),
+    prisma.locationEditSuggestion.count({ where: { status: 'PENDING' } }),
     prisma.user.count(),
     prisma.location.count({ where: { isActive: true } }),
     prisma.review.count({ where: { status: 'APPROVED' } }),
@@ -17,6 +18,13 @@ export default async function AdminDashboard() {
       href: '/admin/reviews?status=FLAGGED',
       color: 'text-red-400',
       urgent: flaggedReviews > 0,
+    },
+    {
+      label: 'Pending Suggestions',
+      value: pendingSuggestions,
+      href: '/admin/suggestions',
+      color: 'text-yellow-400',
+      urgent: pendingSuggestions > 0,
     },
     {
       label: 'Total Users',
@@ -76,13 +84,13 @@ export default async function AdminDashboard() {
             </div>
           </Link>
           <Link
-            href="/admin/reviews?status=UNDER_REVIEW"
+            href="/admin/suggestions"
             className="flex items-center gap-3 p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
           >
-            <span className="text-2xl">📋</span>
+            <span className="text-2xl">📝</span>
             <div>
-              <p className="font-medium text-white">Pending Queue</p>
-              <p className="text-sm text-gray-400">Reviews under review</p>
+              <p className="font-medium text-white">Edit Suggestions</p>
+              <p className="text-sm text-gray-400">Review location changes</p>
             </div>
           </Link>
           <Link

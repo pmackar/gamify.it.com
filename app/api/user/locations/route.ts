@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
           visited: ul.visited,
           rating: ul.rating,
           notes: ul.notes,
+          priceLevel: ul.priceLevel,
           visitCount: ul.visitCount,
           firstVisitedAt: ul.firstVisitedAt,
           lastVisitedAt: ul.lastVisitedAt,
