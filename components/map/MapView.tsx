@@ -136,17 +136,21 @@ export default function MapView({
               color: #fbbf24;
             ">★ ${location.avgRating.toFixed(1)}</p>
           ` : ""}
-          <a href="/locations/${location.id}" style="
-            display: inline-block;
-            margin-top: 4px;
-            padding: 6px 12px;
-            background: #0891b2;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-          ">View Details</a>
+          <button
+            onclick="window.dispatchEvent(new CustomEvent('openLocationDetail', { detail: '${location.id}' }))"
+            style="
+              display: inline-block;
+              margin-top: 4px;
+              padding: 6px 12px;
+              background: #0891b2;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              font-size: 12px;
+              font-weight: 500;
+              cursor: pointer;
+            "
+          >View Details</button>
         </div>
       `;
 

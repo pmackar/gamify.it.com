@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import MapView from "@/components/map/MapView";
+import LocationDetailModal from "@/components/map/LocationDetailModal";
 import { Filter, X } from "lucide-react";
 
 interface Location {
@@ -33,12 +33,12 @@ const LOCATION_TYPES = [
 ];
 
 export default function MapPage() {
-  const router = useRouter();
   const [locations, setLocations] = useState<Location[]>([]);
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -56,6 +56,18 @@ export default function MapPage() {
       }
     }
     fetchLocations();
+  }, []);
+
+  // Listen for custom event from map popup
+  useEffect(() => {
+    const handleOpenDetail = (e: CustomEvent<string>) => {
+      setSelectedLocationId(e.detail);
+    };
+
+    window.addEventListener("openLocationDetail", handleOpenDetail as EventListener);
+    return () => {
+      window.removeEventListener("openLocationDetail", handleOpenDetail as EventListener);
+    };
   }, []);
 
   useEffect(() => {
@@ -85,10 +97,6 @@ export default function MapPage() {
     setSelectedTypes([]);
   };
 
-  const handleLocationClick = (locationId: string) => {
-    router.push(`/locations/${locationId}`);
-  };
-
   if (loading) {
     return (
       <div className="h-[calc(100vh-64px)] flex items-center justify-center">
@@ -101,8 +109,13 @@ export default function MapPage() {
     <div className="h-[calc(100vh-64px)] relative">
       <MapView
         locations={filteredLocations}
-        onLocationClick={handleLocationClick}
         className="h-full"
+      />
+
+      {/* Location Detail Modal */}
+      <LocationDetailModal
+        locationId={selectedLocationId}
+        onClose={() => setSelectedLocationId(null)}
       />
 
       {/* Filter Button */}
