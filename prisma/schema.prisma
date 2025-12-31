@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+
+  // Gamification stats
+  level         Int       @default(1)
+  xp            Int       @default(0)
+  xpToNext      Int       @default(100)
+  totalCities   Int       @default(0)
+  totalLocations Int      @default(0)
+  totalVisits   Int       @default(0)
+
+  // Streak tracking
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastActiveDate DateTime?
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  cities        City[]
+  locations     Location[]
+  visits        Visit[]
+  achievements  UserAchievement[]
+  photos        Photo[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// CITIES
+// ============================================
+
+model City {
+  id          String   @id @default(cuid())
+  name        String
+  country     String
+  region      String?
+  countryCode String?
+
+  latitude    Float?
+  longitude   Float?
+
+  firstVisited DateTime?
+  lastVisited  DateTime?
+  visitCount   Int       @default(1)
+
+  notes       String?   @db.Text
+
+  locationCount Int     @default(0)
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations   Location[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, name, country])
+  @@index([userId])
+  @@index([country])
+}
+
+// ============================================
+// LOCATIONS
+// ============================================
+
+enum LocationType {
+  RESTAURANT
+  BAR
+  CAFE
+  ATTRACTION
+  HOTEL
+  SHOP
+  NATURE
+  TRANSPORT
+  MUSEUM
+  BEACH
+  NIGHTLIFE
+  OTHER
+}
+
+model Location {
+  id          String       @id @default(cuid())
+  name        String
+  type        LocationType
+  neighborhood String?
+  cuisine     String?
+
+  address     String?
+  latitude    Float
+  longitude   Float
+
+  blurb       String?      @db.Text
+  description String?      @db.Text
+  website     String?
+  phone       String?
+  hours       String?
+  priceLevel  Int?
+  otherInfo   String?      @db.Text
+
+  visited     Boolean      @default(false)
+  hotlist     Boolean      @default(false)
+
+  tags        String[]
+
+  avgRating   Float?
+  ratingCount Int          @default(0)
+
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cityId      String
+  city        City         @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  visits      Visit[]
+  photos      Photo[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([cityId])
+  @@index([type])
+  @@index([latitude, longitude])
+}
+
+// ============================================
+// VISITS (Check-ins)
+// ============================================
+
+model Visit {
+  id          String   @id @default(cuid())
+  date        DateTime
+
+  overallRating    Int?
+  foodQuality      Int?
+  serviceRating    Int?
+  ambianceRating   Int?
+  valueRating      Int?
+
+  notes       String?  @db.Text
+  highlights  String[]
+
+  xpEarned    Int      @default(0)
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  photos      Photo[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([locationId])
+  @@index([date])
+}
+
+// ============================================
+// PHOTOS
+// ============================================
+
+model Photo {
+  id          String   @id @default(cuid())
+  url         String
+  caption     String?
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  visitId     String?
+  visit       Visit?   @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([locationId])
+  @@index([visitId])
+}
+
+// ============================================
+// ACHIEVEMENTS
+// ============================================
+
+model Achievement {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String
+  icon        String
+  xpReward    Int
+
+  criteria    Json
+
+  category    String
+  tier        Int      @default(1)
+
+  users       UserAchievement[]
+
+  createdAt   DateTime @default(now())
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  unlockedAt    DateTime @default(now())
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
