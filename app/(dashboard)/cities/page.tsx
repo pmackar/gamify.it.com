@@ -39,7 +39,6 @@ export default function CitiesPage() {
     fetchCities();
   }, []);
 
-  // Group cities by country
   const citiesByCountry = cities.reduce((acc, city) => {
     if (!acc[city.country]) {
       acc[city.country] = [];
@@ -51,7 +50,19 @@ export default function CitiesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400" />
+        <div
+          className="w-12 h-12 rounded"
+          style={{
+            border: '4px solid var(--rpg-border)',
+            borderTop: '4px solid var(--rpg-teal)',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -61,34 +72,33 @@ export default function CitiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Cities</h1>
-          <p className="text-gray-400">
+          <h1 className="text-lg mb-2" style={{ color: 'var(--rpg-teal)', textShadow: '0 0 10px var(--rpg-teal-glow)' }}>
+            Cities
+          </h1>
+          <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
             {cities.length} cities across {Object.keys(citiesByCountry).length} countries
           </p>
         </div>
-        <Link
-          href="/locations/new"
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
+        <Link href="/locations/new" className="rpg-btn flex items-center gap-2">
+          <Plus className="w-3 h-3" />
           Add Location
         </Link>
       </div>
 
       {cities.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-800 mb-4">
-            <Building2 className="w-8 h-8 text-gray-600" />
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-lg mb-4"
+            style={{ background: 'var(--rpg-card)', border: '2px solid var(--rpg-border)' }}
+          >
+            <Building2 className="w-8 h-8" style={{ color: 'var(--rpg-muted)' }} />
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">No cities yet</h2>
-          <p className="text-gray-400 mb-6">
+          <h2 className="text-sm mb-2" style={{ color: 'var(--rpg-text)' }}>No cities yet</h2>
+          <p className="text-[0.5rem] mb-6" style={{ color: 'var(--rpg-muted)' }}>
             Start adding locations to see your cities here
           </p>
-          <Link
-            href="/locations/new"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
+          <Link href="/locations/new" className="rpg-btn">
+            <Plus className="w-3 h-3 inline mr-2" />
             Add Your First Location
           </Link>
         </div>
@@ -98,12 +108,13 @@ export default function CitiesPage() {
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([country, countryCities]) => (
               <div key={country}>
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <span className="text-2xl">
-                    {getCountryFlag(country)}
-                  </span>
+                <h2
+                  className="text-[0.7rem] mb-4 flex items-center gap-2"
+                  style={{ color: 'var(--rpg-gold)', textShadow: '0 0 8px var(--rpg-gold-glow)' }}
+                >
+                  <span className="text-xl">{getCountryFlag(country)}</span>
                   {country}
-                  <span className="text-sm font-normal text-gray-500">
+                  <span className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
                     ({countryCities.length} {countryCities.length === 1 ? "city" : "cities"})
                   </span>
                 </h2>
@@ -112,27 +123,32 @@ export default function CitiesPage() {
                     <Link
                       key={city.id}
                       href={`/cities/${city.id}`}
-                      className="group bg-gray-900/50 border border-gray-800 rounded-xl p-5 hover:border-cyan-500/50 transition-all"
+                      className="group rounded-lg p-5 transition-all"
+                      style={{
+                        background: 'var(--rpg-card)',
+                        border: '2px solid var(--rpg-border)',
+                        boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+                      }}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors">
+                          <h3 className="text-[0.65rem] transition-colors" style={{ color: 'var(--rpg-text)' }}>
                             {city.name}
                           </h3>
                           {city.region && (
-                            <p className="text-sm text-gray-500">{city.region}</p>
+                            <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>{city.region}</p>
                           )}
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-cyan-400 transition-colors" />
+                        <ChevronRight className="w-4 h-4" style={{ color: 'var(--rpg-muted)' }} />
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
                         <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
+                          <MapPin className="w-3 h-3" style={{ color: 'var(--rpg-teal)' }} />
                           {city._count.locations} locations
                         </span>
                         {city.lastVisited && (
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
+                            <Calendar className="w-3 h-3" style={{ color: 'var(--rpg-gold)' }} />
                             {new Date(city.lastVisited).toLocaleDateString()}
                           </span>
                         )}
@@ -148,7 +164,6 @@ export default function CitiesPage() {
   );
 }
 
-// Simple function to get country flag emoji from country name
 function getCountryFlag(country: string): string {
   const flagMap: Record<string, string> = {
     "United States": "🇺🇸",

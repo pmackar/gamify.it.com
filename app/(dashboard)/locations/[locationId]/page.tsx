@@ -23,7 +23,6 @@ interface Location {
   id: string;
   name: string;
   type: string;
-  neighborhood?: string;
   cuisine?: string;
   address?: string;
   latitude: number;
@@ -44,6 +43,10 @@ interface Location {
     id: string;
     name: string;
     country: string;
+  };
+  neighborhood?: {
+    id: string;
+    name: string;
   };
   visits: Array<{
     id: string;
@@ -150,13 +153,26 @@ export default function LocationDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link
-        href="/locations"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Locations
-      </Link>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+        <Link href="/cities" className="hover:text-white">
+          Cities
+        </Link>
+        <span>/</span>
+        <Link href={`/cities/${location.city.id}`} className="hover:text-white">
+          {location.city.name}
+        </Link>
+        {location.neighborhood && (
+          <>
+            <span>/</span>
+            <Link href={`/neighborhoods/${location.neighborhood.id}`} className="hover:text-white">
+              {location.neighborhood.name}
+            </Link>
+          </>
+        )}
+        <span>/</span>
+        <span className="text-white truncate max-w-[150px]">{location.name}</span>
+      </div>
 
       {/* Header */}
       <h1 className="text-3xl font-bold text-white mb-4">{location.name}</h1>
@@ -167,10 +183,10 @@ export default function LocationDetailPage() {
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Neighborhood</span>
             <Link
-              href={`/cities/${location.city.id}`}
+              href={`/neighborhoods/${location.neighborhood.id}`}
               className="text-cyan-400 hover:text-cyan-300"
             >
-              {location.neighborhood}
+              {location.neighborhood.name}
             </Link>
           </div>
         )}

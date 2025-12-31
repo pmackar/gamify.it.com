@@ -15,20 +15,24 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const cityId = searchParams.get("cityId");
   const type = searchParams.get("type") as LocationType | null;
+  const noNeighborhood = searchParams.get("noNeighborhood") === "true";
 
   const where: {
     userId: string;
     cityId?: string;
     type?: LocationType;
+    neighborhoodId?: null;
   } = { userId: session.user.id };
 
   if (cityId) where.cityId = cityId;
   if (type) where.type = type;
+  if (noNeighborhood) where.neighborhoodId = null;
 
   const locations = await prisma.location.findMany({
     where,
     include: {
       city: { select: { name: true, country: true } },
+      neighborhood: { select: { id: true, name: true } },
       _count: { select: { visits: true, photos: true } },
     },
     orderBy: { updatedAt: "desc" },

@@ -67,8 +67,8 @@ async function geocodeLocations() {
     // Build search query with available info
     const parts = [location.name];
 
-    if (location.neighborhood) {
-      parts.push(location.neighborhood);
+    if (location.neighborhoodOld) {
+      parts.push(location.neighborhoodOld);
     }
     if (location.address) {
       parts.push(location.address);

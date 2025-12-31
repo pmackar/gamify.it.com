@@ -17,9 +17,9 @@ export default async function DashboardLayout({
 
   return (
     <SessionProvider session={session}>
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen" style={{ background: 'var(--rpg-bg-dark)' }}>
         <Navbar />
-        <main className="pt-16">{children}</main>
+        <main className="pt-14">{children}</main>
       </div>
     </SessionProvider>
   );

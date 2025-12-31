@@ -58,7 +58,6 @@ export default function MapPage() {
     fetchLocations();
   }, []);
 
-  // Listen for custom event from map popup
   useEffect(() => {
     const handleOpenDetail = (e: CustomEvent<string>) => {
       setSelectedLocationId(e.detail);
@@ -71,7 +70,6 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    // Filter out locations at 0,0 (no coordinates)
     const withCoords = locations.filter(
       (loc) => loc.latitude !== 0 || loc.longitude !== 0
     );
@@ -99,20 +97,31 @@ export default function MapPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400" />
+      <div className="h-[calc(100vh-56px)] flex items-center justify-center">
+        <div
+          className="w-12 h-12 rounded"
+          style={{
+            border: '4px solid var(--rpg-border)',
+            borderTop: '4px solid var(--rpg-teal)',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] relative">
+    <div className="h-[calc(100vh-56px)] relative">
       <MapView
         locations={filteredLocations}
         className="h-full"
       />
 
-      {/* Location Detail Modal */}
       <LocationDetailModal
         locationId={selectedLocationId}
         onClose={() => setSelectedLocationId(null)}
@@ -121,16 +130,21 @@ export default function MapPage() {
       {/* Filter Button */}
       <button
         onClick={() => setShowFilters(!showFilters)}
-        className={`absolute top-4 right-4 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-          showFilters || selectedTypes.length > 0
-            ? "bg-cyan-500 text-white"
-            : "bg-gray-900/90 text-gray-300 hover:bg-gray-800"
-        }`}
+        className="absolute top-4 right-4 px-3 py-2 rounded flex items-center gap-2 text-[0.55rem] transition-colors"
+        style={{
+          background: showFilters || selectedTypes.length > 0 ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+          color: showFilters || selectedTypes.length > 0 ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
+          border: '2px solid var(--rpg-border)',
+          boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+        }}
       >
-        <Filter className="w-4 h-4" />
+        <Filter className="w-3 h-3" />
         Filter
         {selectedTypes.length > 0 && (
-          <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+          <span
+            className="px-2 py-0.5 rounded text-[0.45rem]"
+            style={{ background: 'rgba(255,255,255,0.2)' }}
+          >
             {selectedTypes.length}
           </span>
         )}
@@ -138,13 +152,21 @@ export default function MapPage() {
 
       {/* Filter Panel */}
       {showFilters && (
-        <div className="absolute top-16 right-4 bg-gray-900/95 backdrop-blur-sm border border-gray-800 rounded-xl p-4 w-64 max-h-[60vh] overflow-y-auto">
+        <div
+          className="absolute top-16 right-4 rounded-lg p-4 w-56 max-h-[60vh] overflow-y-auto"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-white">Filter by Type</h3>
+            <h3 className="text-[0.6rem]" style={{ color: 'var(--rpg-teal)' }}>Filter by Type</h3>
             {selectedTypes.length > 0 && (
               <button
                 onClick={clearFilters}
-                className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+                className="text-[0.45rem] flex items-center gap-1"
+                style={{ color: 'var(--rpg-muted)' }}
               >
                 <X className="w-3 h-3" />
                 Clear
@@ -161,9 +183,14 @@ export default function MapPage() {
                   type="checkbox"
                   checked={selectedTypes.includes(type)}
                   onChange={() => toggleType(type)}
-                  className="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500"
+                  className="rounded"
+                  style={{
+                    background: 'var(--rpg-bg-dark)',
+                    borderColor: 'var(--rpg-border)',
+                    accentColor: 'var(--rpg-teal)',
+                  }}
                 />
-                <span className="text-sm text-gray-300 group-hover:text-white capitalize">
+                <span className="text-[0.5rem] capitalize" style={{ color: 'var(--rpg-muted)' }}>
                   {type.toLowerCase()}
                 </span>
               </label>
@@ -173,12 +200,19 @@ export default function MapPage() {
       )}
 
       {/* Stats Overlay */}
-      <div className="absolute bottom-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg px-4 py-2 text-sm">
-        <span className="text-gray-400">Showing </span>
-        <span className="text-white font-medium">{filteredLocations.length}</span>
-        <span className="text-gray-400"> locations on map</span>
+      <div
+        className="absolute bottom-4 right-4 rounded-lg px-4 py-2 text-[0.5rem]"
+        style={{
+          background: 'var(--rpg-card)',
+          border: '2px solid var(--rpg-border)',
+          boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <span style={{ color: 'var(--rpg-muted)' }}>Showing </span>
+        <span style={{ color: 'var(--rpg-gold)' }}>{filteredLocations.length}</span>
+        <span style={{ color: 'var(--rpg-muted)' }}> locations on map</span>
         {locations.length - filteredLocations.length > 0 && (
-          <span className="text-gray-500 block text-xs mt-1">
+          <span className="block text-[0.45rem] mt-1" style={{ color: 'var(--rpg-muted)' }}>
             ({locations.length - filteredLocations.length} missing coordinates)
           </span>
         )}

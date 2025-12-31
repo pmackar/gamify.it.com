@@ -36,6 +36,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   cities        City[]
+  neighborhoods Neighborhood[]
   locations     Location[]
   visits        Visit[]
   achievements  UserAchievement[]
@@ -107,16 +108,43 @@ model City {
 
   locationCount Int     @default(0)
 
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locations   Location[]
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  neighborhoods Neighborhood[]
+  locations     Location[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@unique([userId, name, country])
   @@index([userId])
   @@index([country])
+}
+
+// ============================================
+// NEIGHBORHOODS
+// ============================================
+
+model Neighborhood {
+  id          String     @id @default(cuid())
+  name        String
+  description String?    @db.Text
+
+  latitude    Float?
+  longitude   Float?
+
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cityId      String
+  city        City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  locations   Location[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, cityId, name])
+  @@index([userId])
+  @@index([cityId])
 }
 
 // ============================================
@@ -139,44 +167,49 @@ enum LocationType {
 }
 
 model Location {
-  id          String       @id @default(cuid())
-  name        String
-  type        LocationType
-  neighborhood String?
-  cuisine     String?
+  id             String        @id @default(cuid())
+  name           String
+  type           LocationType
+  cuisine        String?
 
-  address     String?
-  latitude    Float
-  longitude   Float
+  // Legacy field - to be removed after migration
+  neighborhoodOld String?      @map("neighborhood")
 
-  blurb       String?      @db.Text
-  description String?      @db.Text
-  website     String?
-  phone       String?
-  hours       String?
-  priceLevel  Int?
-  otherInfo   String?      @db.Text
+  address        String?
+  latitude       Float
+  longitude      Float
 
-  visited     Boolean      @default(false)
-  hotlist     Boolean      @default(false)
+  blurb          String?       @db.Text
+  description    String?       @db.Text
+  website        String?
+  phone          String?
+  hours          String?
+  priceLevel     Int?
+  otherInfo      String?       @db.Text
 
-  tags        String[]
+  visited        Boolean       @default(false)
+  hotlist        Boolean       @default(false)
 
-  avgRating   Float?
-  ratingCount Int          @default(0)
+  tags           String[]
 
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cityId      String
-  city        City         @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  visits      Visit[]
-  photos      Photo[]
+  avgRating      Float?
+  ratingCount    Int           @default(0)
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cityId         String
+  city           City          @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  neighborhoodId String?
+  neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id], onDelete: SetNull)
+  visits         Visit[]
+  photos         Photo[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([userId])
   @@index([cityId])
+  @@index([neighborhoodId])
   @@index([type])
   @@index([latitude, longitude])
 }

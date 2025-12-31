@@ -18,25 +18,38 @@ export default function XPBar({
   const percentage = (currentXP / xpToNext) * 100;
 
   const heights = {
-    sm: "h-1.5",
-    md: "h-2.5",
-    lg: "h-4",
+    sm: "6px",
+    md: "10px",
+    lg: "14px",
   };
 
   return (
     <div className="w-full">
       {showLabel && (
-        <div className="flex justify-between text-sm mb-1.5">
-          <span className="font-bold text-cyan-400">LVL {level}</span>
-          <span className="text-gray-400">
+        <div className="flex justify-between text-[0.5rem] mb-1">
+          <span style={{ color: 'var(--rpg-teal)', textShadow: '0 0 8px var(--rpg-teal-glow)' }}>
+            LVL {level}
+          </span>
+          <span style={{ color: 'var(--rpg-muted)' }}>
             {currentXP.toLocaleString()} / {xpToNext.toLocaleString()} XP
           </span>
         </div>
       )}
-      <div className={`${heights[size]} bg-gray-800 rounded-full overflow-hidden`}>
+      <div
+        className="rounded overflow-hidden"
+        style={{
+          height: heights[size],
+          background: 'var(--rpg-border)',
+          border: '2px solid var(--rpg-border-light)',
+        }}
+      >
         <div
-          className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 ease-out"
-          style={{ width: `${Math.min(percentage, 100)}%` }}
+          className="h-full transition-all duration-500 ease-out"
+          style={{
+            width: `${Math.min(percentage, 100)}%`,
+            background: 'linear-gradient(90deg, var(--rpg-teal) 0%, var(--rpg-gold) 100%)',
+            borderRadius: '2px',
+          }}
         />
       </div>
     </div>

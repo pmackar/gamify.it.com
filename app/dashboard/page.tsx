@@ -68,7 +68,19 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400" />
+        <div
+          className="w-12 h-12 rounded"
+          style={{
+            border: '4px solid var(--rpg-border)',
+            borderTop: '4px solid var(--rpg-teal)',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -77,20 +89,30 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Welcome Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1
+          className="text-lg mb-2"
+          style={{ color: 'var(--rpg-text)', textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}
+        >
           Welcome back, {session?.user?.name?.split(" ")[0] || "Explorer"}!
         </h1>
-        <p className="text-gray-400">
+        <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
           Ready to continue your adventure?
         </p>
       </div>
 
       {/* XP Progress Card */}
-      <div className="bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 border border-gray-800 rounded-2xl p-6 mb-8">
+      <div
+        className="rounded-lg p-6 mb-8"
+        style={{
+          background: 'var(--rpg-card)',
+          border: '2px solid var(--rpg-border)',
+          boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+        }}
+      >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <p className="text-gray-400 text-sm mb-1">Your Progress</p>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-[0.5rem] mb-1" style={{ color: 'var(--rpg-muted)' }}>Your Progress</p>
+            <p className="text-xl" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
               Level {stats?.user.level || 1}
             </p>
           </div>
@@ -108,28 +130,28 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard
-          icon={<Building2 className="w-5 h-5" />}
+          icon={<Building2 className="w-4 h-4" />}
           label="Cities"
           value={stats?.counts.cities || 0}
-          color="cyan"
+          color="teal"
         />
         <StatCard
-          icon={<MapPin className="w-5 h-5" />}
+          icon={<MapPin className="w-4 h-4" />}
           label="Locations"
           value={stats?.counts.locations || 0}
           color="purple"
         />
         <StatCard
-          icon={<Globe className="w-5 h-5" />}
+          icon={<Globe className="w-4 h-4" />}
           label="Countries"
           value={stats?.counts.countries || 0}
-          color="pink"
+          color="cyan"
         />
         <StatCard
-          icon={<Flame className="w-5 h-5" />}
+          icon={<Flame className="w-4 h-4" />}
           label="Day Streak"
           value={stats?.user.currentStreak || 0}
-          color="orange"
+          color="gold"
         />
       </div>
 
@@ -137,37 +159,53 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <Link
           href="/locations/new"
-          className="group bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-cyan-500/50 transition-all"
+          className="group rounded-lg p-5 transition-all"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
-              <Plus className="w-6 h-6" />
+            <div
+              className="w-10 h-10 rounded flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{ background: 'rgba(95, 191, 138, 0.2)', border: '2px solid var(--rpg-teal)' }}
+            >
+              <Plus className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white">Add New Location</h3>
-              <p className="text-sm text-gray-400">
+              <h3 className="text-[0.65rem]" style={{ color: 'var(--rpg-text)' }}>Add New Location</h3>
+              <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
                 Log a place you've visited
               </p>
             </div>
-            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-cyan-400 transition-colors" />
+            <ArrowRight className="w-4 h-4 transition-colors" style={{ color: 'var(--rpg-muted)' }} />
           </div>
         </Link>
 
         <Link
           href="/map"
-          className="group bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-purple-500/50 transition-all"
+          className="group rounded-lg p-5 transition-all"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
-              <Globe className="w-6 h-6" />
+            <div
+              className="w-10 h-10 rounded flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{ background: 'rgba(255, 215, 0, 0.2)', border: '2px solid var(--rpg-gold)' }}
+            >
+              <Globe className="w-5 h-5" style={{ color: 'var(--rpg-gold)' }} />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white">View Map</h3>
-              <p className="text-sm text-gray-400">
+              <h3 className="text-[0.65rem]" style={{ color: 'var(--rpg-text)' }}>View Map</h3>
+              <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
                 See all your travels
               </p>
             </div>
-            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-purple-400 transition-colors" />
+            <ArrowRight className="w-4 h-4 transition-colors" style={{ color: 'var(--rpg-muted)' }} />
           </div>
         </Link>
       </div>
@@ -175,53 +213,73 @@ export default function DashboardPage() {
       {/* Bottom Section */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Achievements Progress */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+        <div
+          className="rounded-lg p-5"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-400" />
+            <h2 className="text-[0.7rem] flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
+              <Trophy className="w-4 h-4" style={{ color: 'var(--rpg-gold)' }} />
               Achievements
             </h2>
             <Link
               href="/achievements"
-              className="text-sm text-cyan-400 hover:text-cyan-300"
+              className="text-[0.5rem] transition-colors"
+              style={{ color: 'var(--rpg-teal)' }}
             >
               View all
             </Link>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-3 rounded overflow-hidden"
+                style={{ background: 'var(--rpg-border)', border: '2px solid var(--rpg-border-light)' }}
+              >
                 <div
-                  className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500"
+                  className="h-full transition-all duration-500"
                   style={{
                     width: `${
                       stats?.achievements
                         ? (stats.achievements.unlocked / stats.achievements.total) * 100
                         : 0
                     }%`,
+                    background: 'linear-gradient(90deg, var(--rpg-gold) 0%, var(--rpg-teal) 100%)',
                   }}
                 />
               </div>
             </div>
-            <span className="text-sm text-gray-400">
+            <span className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
               {stats?.achievements.unlocked || 0} / {stats?.achievements.total || 0}
             </span>
           </div>
-          <p className="mt-3 text-sm text-gray-500">
+          <p className="mt-3 text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
             Keep exploring to unlock more achievements!
           </p>
         </div>
 
         {/* Top Rated Locations */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+        <div
+          className="rounded-lg p-5"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-400" />
+            <h2 className="text-[0.7rem] flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
+              <TrendingUp className="w-4 h-4" style={{ color: 'var(--rpg-teal)' }} />
               Top Rated
             </h2>
             <Link
               href="/locations"
-              className="text-sm text-cyan-400 hover:text-cyan-300"
+              className="text-[0.5rem] transition-colors"
+              style={{ color: 'var(--rpg-teal)' }}
             >
               View all
             </Link>
@@ -231,25 +289,26 @@ export default function DashboardPage() {
               {stats.topLocations.slice(0, 3).map((location) => (
                 <div
                   key={location.id}
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between py-2"
+                  style={{ borderBottom: '1px solid var(--rpg-border)' }}
                 >
                   <div>
-                    <p className="text-white text-sm">{location.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-[0.55rem]" style={{ color: 'var(--rpg-text)' }}>{location.name}</p>
+                    <p className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
                       {location.city.name}, {location.city.country}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 text-yellow-400">
-                    <span className="text-sm font-medium">
+                  <div className="flex items-center gap-1" style={{ color: 'var(--rpg-gold)' }}>
+                    <span className="text-[0.55rem]">
                       {location.avgRating?.toFixed(1)}
                     </span>
-                    <span className="text-xs">★</span>
+                    <span className="text-[0.45rem]">★</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
               No rated locations yet. Start exploring!
             </p>
           )}
@@ -268,22 +327,34 @@ function StatCard({
   icon: React.ReactNode;
   label: string;
   value: number;
-  color: "cyan" | "purple" | "pink" | "orange";
+  color: "teal" | "purple" | "cyan" | "gold";
 }) {
   const colors = {
-    cyan: "bg-cyan-500/10 text-cyan-400",
-    purple: "bg-purple-500/10 text-purple-400",
-    pink: "bg-pink-500/10 text-pink-400",
-    orange: "bg-orange-500/10 text-orange-400",
+    teal: { bg: 'rgba(95, 191, 138, 0.2)', border: 'var(--rpg-teal)', text: 'var(--rpg-teal)' },
+    purple: { bg: 'rgba(168, 85, 247, 0.2)', border: 'var(--rpg-purple)', text: 'var(--rpg-purple)' },
+    cyan: { bg: 'rgba(6, 182, 212, 0.2)', border: 'var(--rpg-cyan)', text: 'var(--rpg-cyan)' },
+    gold: { bg: 'rgba(255, 215, 0, 0.2)', border: 'var(--rpg-gold)', text: 'var(--rpg-gold)' },
   };
 
   return (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-      <div className={`w-10 h-10 rounded-lg ${colors[color]} flex items-center justify-center mb-3`}>
-        {icon}
+    <div
+      className="rounded-lg p-4"
+      style={{
+        background: 'var(--rpg-card)',
+        border: '2px solid var(--rpg-border)',
+        boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+      }}
+    >
+      <div
+        className="w-8 h-8 rounded flex items-center justify-center mb-3"
+        style={{ background: colors[color].bg, border: `2px solid ${colors[color].border}` }}
+      >
+        <span style={{ color: colors[color].text }}>{icon}</span>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
-      <p className="text-sm text-gray-400">{label}</p>
+      <p className="text-lg" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 8px var(--rpg-gold-glow)' }}>
+        {value}
+      </p>
+      <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>{label}</p>
     </div>
   );
 }

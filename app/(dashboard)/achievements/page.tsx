@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy, Filter, X } from "lucide-react";
+import { Trophy } from "lucide-react";
 import AchievementBadge from "@/components/ui/AchievementBadge";
 
 interface Achievement {
@@ -97,7 +97,19 @@ export default function AchievementsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400" />
+        <div
+          className="w-12 h-12 rounded"
+          style={{
+            border: '4px solid var(--rpg-border)',
+            borderTop: '4px solid var(--rpg-gold)',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -107,29 +119,47 @@ export default function AchievementsPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-            <Trophy className="w-6 h-6 text-yellow-400" />
+          <div
+            className="w-12 h-12 rounded-lg flex items-center justify-center"
+            style={{ background: 'rgba(255, 215, 0, 0.2)', border: '2px solid var(--rpg-gold)' }}
+          >
+            <Trophy className="w-6 h-6" style={{ color: 'var(--rpg-gold)' }} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Achievements</h1>
-            <p className="text-gray-400">
+            <h1 className="text-lg" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
+              Achievements
+            </h1>
+            <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
               {unlockedCount} of {totalCount} unlocked
             </p>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+        <div
+          className="rounded-lg p-4"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Overall Progress</span>
-            <span className="text-sm font-medium text-white">
+            <span className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>Overall Progress</span>
+            <span className="text-[0.5rem]" style={{ color: 'var(--rpg-text)' }}>
               {progressPercent.toFixed(0)}%
             </span>
           </div>
-          <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+          <div
+            className="h-3 rounded overflow-hidden"
+            style={{ background: 'var(--rpg-border)', border: '2px solid var(--rpg-border-light)' }}
+          >
             <div
-              className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
+              className="h-full transition-all duration-500"
+              style={{
+                width: `${progressPercent}%`,
+                background: 'linear-gradient(90deg, var(--rpg-gold) 0%, var(--rpg-teal) 100%)',
+              }}
             />
           </div>
         </div>
@@ -139,11 +169,12 @@ export default function AchievementsPage() {
       <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setSelectedCategory(null)}
-          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-            selectedCategory === null
-              ? "bg-cyan-500 text-white"
-              : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
-          }`}
+          className="px-3 py-1.5 rounded text-[0.5rem] transition-colors"
+          style={{
+            background: selectedCategory === null ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+            color: selectedCategory === null ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+            border: `2px solid ${selectedCategory === null ? 'var(--rpg-teal-dark)' : 'var(--rpg-border)'}`,
+          }}
         >
           All
         </button>
@@ -151,11 +182,12 @@ export default function AchievementsPage() {
           <button
             key={cat.value}
             onClick={() => setSelectedCategory(cat.value)}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              selectedCategory === cat.value
-                ? "bg-cyan-500 text-white"
-                : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
-            }`}
+            className="px-3 py-1.5 rounded text-[0.5rem] transition-colors"
+            style={{
+              background: selectedCategory === cat.value ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+              color: selectedCategory === cat.value ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+              border: `2px solid ${selectedCategory === cat.value ? 'var(--rpg-teal-dark)' : 'var(--rpg-border)'}`,
+            }}
           >
             {cat.label}
           </button>
@@ -165,13 +197,14 @@ export default function AchievementsPage() {
       {/* Achievements Grid */}
       {filteredAchievements.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-gray-400">No achievements in this category yet.</p>
+          <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
+            No achievements in this category yet.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {filteredAchievements
             .sort((a, b) => {
-              // Sort by: unlocked first, then by tier, then by name
               const aUnlocked = unlockedCodes.has(a.code) ? 0 : 1;
               const bUnlocked = unlockedCodes.has(b.code) ? 0 : 1;
               if (aUnlocked !== bUnlocked) return aUnlocked - bUnlocked;
@@ -194,7 +227,9 @@ export default function AchievementsPage() {
       {/* Recently Unlocked */}
       {userAchievements.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-white mb-4">Recently Unlocked</h2>
+          <h2 className="text-[0.75rem] mb-4" style={{ color: 'var(--rpg-teal)', textShadow: '0 0 8px var(--rpg-teal-glow)' }}>
+            Recently Unlocked
+          </h2>
           <div className="space-y-3">
             {userAchievements
               .sort((a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
@@ -202,18 +237,23 @@ export default function AchievementsPage() {
               .map((ua) => (
                 <div
                   key={ua.id}
-                  className="flex items-center gap-4 bg-gray-900/50 border border-gray-800 rounded-lg p-4"
+                  className="flex items-center gap-4 rounded-lg p-4"
+                  style={{
+                    background: 'var(--rpg-card)',
+                    border: '2px solid var(--rpg-border)',
+                    boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+                  }}
                 >
-                  <div className="text-2xl">
+                  <div className="text-xl">
                     {ICON_MAP[ua.achievement.icon] || "🏆"}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-white">{ua.achievement.name}</h3>
-                    <p className="text-sm text-gray-400">{ua.achievement.description}</p>
+                    <h3 className="text-[0.6rem]" style={{ color: 'var(--rpg-text)' }}>{ua.achievement.name}</h3>
+                    <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>{ua.achievement.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-cyan-400 font-medium">+{ua.achievement.xpReward} XP</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-[0.55rem]" style={{ color: 'var(--rpg-teal)' }}>+{ua.achievement.xpReward} XP</p>
+                    <p className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
                       {new Date(ua.unlockedAt).toLocaleDateString()}
                     </p>
                   </div>

@@ -5,18 +5,18 @@ import prisma from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ locationId: string }> }
+  { params }: { params: Promise<{ neighborhoodId: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { locationId } = await params;
+  const { neighborhoodId } = await params;
 
-  const location = await prisma.location.findFirst({
+  const neighborhood = await prisma.neighborhood.findFirst({
     where: {
-      id: locationId,
+      id: neighborhoodId,
       userId: session.user.id,
     },
     include: {
@@ -27,32 +27,23 @@ export async function GET(
           country: true,
         },
       },
-      neighborhood: {
+      locations: {
         select: {
           id: true,
           name: true,
+          type: true,
+          avgRating: true,
+          visited: true,
+          hotlist: true,
         },
-      },
-      visits: {
-        orderBy: { date: "desc" },
-        select: {
-          id: true,
-          date: true,
-          overallRating: true,
-          foodQuality: true,
-          serviceRating: true,
-          ambianceRating: true,
-          valueRating: true,
-          notes: true,
-          highlights: true,
-        },
+        orderBy: { name: "asc" },
       },
     },
   });
 
-  if (!location) {
-    return NextResponse.json({ error: "Location not found" }, { status: 404 });
+  if (!neighborhood) {
+    return NextResponse.json({ error: "Neighborhood not found" }, { status: 404 });
   }
 
-  return NextResponse.json(location);
+  return NextResponse.json(neighborhood);
 }
