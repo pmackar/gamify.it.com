@@ -18,6 +18,7 @@ export default function Home() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [videoTurningOn, setVideoTurningOn] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
@@ -36,6 +37,8 @@ export default function Home() {
         // Trigger CRT turn-on effect for video
         setVideoTurningOn(true);
         setTimeout(() => setShowVideo(true), 400);
+        // Mark as loaded after CRT animation completes
+        setTimeout(() => setVideoLoaded(true), 900);
         // Start blinking dots
         const blinkInterval = setInterval(() => {
           dotBlinks++;
@@ -194,8 +197,18 @@ export default function Home() {
           transform: translate(-50%, -50%) scaleY(1);
         }
 
-        /* CRT Turn-on effect */
-        .video-background.crt-on video.active {
+        /* Simple fade for video transitions after initial load */
+        .video-background.loaded video {
+          transition: opacity 0.5s ease-in-out;
+          transform: translate(-50%, -50%) scaleY(1);
+        }
+
+        .video-background.loaded video.active {
+          opacity: 0.5;
+        }
+
+        /* CRT Turn-on effect - only on first load */
+        .video-background.crt-on:not(.loaded) video.active {
           animation: crt-turn-on 0.5s ease-out forwards;
         }
 
@@ -722,7 +735,7 @@ export default function Home() {
           {/* CRT TV Intro */}
           <section className="crt-intro">
             {/* Video Background */}
-            <div className={`video-background ${videoTurningOn ? 'crt-on' : ''}`}>
+            <div className={`video-background ${videoTurningOn ? 'crt-on' : ''} ${videoLoaded ? 'loaded' : ''}`}>
               <div className={`crt-flash ${videoTurningOn ? 'flash' : ''}`} />
               {videos.map((src, index) => (
                 <video
