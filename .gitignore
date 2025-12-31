@@ -41,6 +41,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Large video files
-public/8-bit city road/
+# Large asset packs (keep compressed videos)
 public/arcade-game-pixeled-art-illustration-set-*/
