@@ -1,34 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import {
-  ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
 export const metadata: Metadata = {
-  title: "Gamify.it - Transform your Reality into Adventure",
-  description: "Gamify your daily life with our suite of apps. From fitness to productivity to exploration - level up your everyday activities!",
-  keywords: ["gamification", "fitness tracker", "todo app", "productivity", "games", "lifestyle"],
-  authors: [{ name: "Gamify.it" }],
+  title: "gamify.travel - Turn Your Travels Into Adventure",
+  description: "Track your travels, earn XP, unlock achievements, and level up your adventures. A gamified travel companion that makes every journey an epic quest.",
+  keywords: ["travel", "gamification", "travel tracker", "achievements", "adventure", "explore"],
+  authors: [{ name: "gamify.it" }],
   openGraph: {
-    title: "Gamify.it - Transform your Reality into Adventure",
-    description: "Level up your daily life with gamified apps for fitness, productivity, and exploration.",
+    title: "gamify.travel - Turn Your Travels Into Adventure",
+    description: "Track your travels, earn XP, unlock achievements, and level up your adventures.",
     type: "website",
-    url: "https://gamify.it.com",
+    url: "https://gamify.travel",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gamify.it - Transform your Reality into Adventure",
-    description: "Level up your daily life with gamified apps for fitness, productivity, and exploration.",
+    title: "gamify.travel - Turn Your Travels Into Adventure",
+    description: "Track your travels, earn XP, unlock achievements, and level up your adventures.",
   },
 };
 
@@ -38,17 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        </head>
-        <body className={`${inter.variable} antialiased`}>
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className="dark">
+      <body className="antialiased">
+        {children}
+      </body>
+    </html>
   );
 }

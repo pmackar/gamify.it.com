@@ -1,40 +1,45 @@
-import { auth } from '@clerk/nextjs/server';
-import prisma from './prisma';
+import { NextAuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import prisma from "@/lib/db";
 
-export async function getCurrentUser() {
-  const { userId: clerkId } = await auth();
-
-  if (!clerkId) {
-    return null;
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { clerkId },
-  });
-
-  return user;
-}
-
-export async function requireAuth() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  return user;
-}
-
-export async function requireAdmin() {
-  const user = await requireAuth();
-
-  // Check if user has admin role in Clerk metadata
-  const { sessionClaims } = await auth();
-  const isAdmin = (sessionClaims?.metadata as { role?: string })?.role === 'admin';
-
-  if (!isAdmin) {
-    throw new Error('Admin access required');
-  }
-
-  return user;
-}
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+        // Add gamification data to session
+        const user = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { level: true, xp: true, xpToNext: true, currentStreak: true },
+        });
+        if (user) {
+          session.user.level = user.level;
+          session.user.xp = user.xp;
+          session.user.xpToNext = user.xpToNext;
+          session.user.currentStreak = user.currentStreak;
+        }
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+  },
+  pages: {
+    signIn: "/login",
+  },
+};
