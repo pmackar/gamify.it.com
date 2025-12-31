@@ -44,6 +44,7 @@ const PlaneIcon = ({ className }: { className?: string }) => (
 );
 
 export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [typedText, setTypedText] = useState('');
   const [showSecondLine, setShowSecondLine] = useState(false);
@@ -57,6 +58,11 @@ export default function LandingPage() {
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [crtFlash, setCrtFlash] = useState(false);
+
+  // Prevent SSR flash of content
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -443,9 +449,6 @@ export default function LandingPage() {
           box-shadow: 0 0 20px rgba(255,215,0,0.7);
         }
 
-        .section-hidden { opacity: 0; visibility: hidden; }
-        .section-visible { opacity: 1; visibility: visible; transition: opacity 0.5s ease-in; }
-
         .retro-section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
         .section-header { text-align: center; margin-bottom: 4rem; }
         .section-label {
@@ -682,41 +685,45 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <section className={`retro-section ${introComplete ? 'section-visible' : 'section-hidden'}`}>
-            <div className="section-header">
-              <p className="section-label">CHOOSE YOUR GAME</p>
-              <h2 className="section-title shimmer-text">Play Now</h2>
-              <p className="section-subtitle">Each app serves a unique purpose in your life. Where will your adventure begin?</p>
-            </div>
+          {mounted && (
+            <>
+              <section className="retro-section">
+                <div className="section-header">
+                  <p className="section-label">CHOOSE YOUR GAME</p>
+                  <h2 className="section-title shimmer-text">Play Now</h2>
+                  <p className="section-subtitle">Each app serves a unique purpose in your life. Where will your adventure begin?</p>
+                </div>
 
-            <div className="games-grid">
-              <a href="https://gamify-fitness.vercel.app" target="_blank" rel="noopener noreferrer" className="game-card">
-                <DumbbellIcon className="game-icon" />
-                <h3 className="game-name">IRON QUEST</h3>
-                <p className="game-desc">Level up your fitness journey</p>
-                <p className="game-domain">gamify.fitness</p>
-              </a>
+                <div className="games-grid">
+                  <a href="https://gamify-fitness.vercel.app" target="_blank" rel="noopener noreferrer" className="game-card">
+                    <DumbbellIcon className="game-icon" />
+                    <h3 className="game-name">IRON QUEST</h3>
+                    <p className="game-desc">Level up your fitness journey</p>
+                    <p className="game-domain">gamify.fitness</p>
+                  </a>
 
-              <a href="https://gamify-today.vercel.app" target="_blank" rel="noopener noreferrer" className="game-card">
-                <ChecklistIcon className="game-icon" />
-                <h3 className="game-name">DAY QUEST</h3>
-                <p className="game-desc">Conquer your daily tasks</p>
-                <p className="game-domain">gamify.today</p>
-              </a>
+                  <a href="https://gamify-today.vercel.app" target="_blank" rel="noopener noreferrer" className="game-card">
+                    <ChecklistIcon className="game-icon" />
+                    <h3 className="game-name">DAY QUEST</h3>
+                    <p className="game-desc">Conquer your daily tasks</p>
+                    <p className="game-domain">gamify.today</p>
+                  </a>
 
-              <a href="/dashboard" className="game-card">
-                <PlaneIcon className="game-icon" />
-                <h3 className="game-name">EXPLORER</h3>
-                <p className="game-desc">Track your travels</p>
-                <p className="game-domain">gamify.travel</p>
-              </a>
-            </div>
-          </section>
+                  <a href="/dashboard" className="game-card">
+                    <PlaneIcon className="game-icon" />
+                    <h3 className="game-name">EXPLORER</h3>
+                    <p className="game-desc">Track your travels</p>
+                    <p className="game-domain">gamify.travel</p>
+                  </a>
+                </div>
+              </section>
 
-          <footer className={`retro-footer ${introComplete ? 'section-visible' : 'section-hidden'}`}>
-            <p className="footer-text shimmer-text">Life&apos;s not a game... but it should be!</p>
-            <p className="footer-text" style={{ marginTop: '1rem' }}>© {new Date().getFullYear()} gamify.it.com</p>
-          </footer>
+              <footer className="retro-footer">
+                <p className="footer-text shimmer-text">Life&apos;s not a game... but it should be!</p>
+                <p className="footer-text" style={{ marginTop: '1rem' }}>© {new Date().getFullYear()} gamify.it.com</p>
+              </footer>
+            </>
+          )}
         </div>
       </div>
 
