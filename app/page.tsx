@@ -32,15 +32,9 @@ export default async function LandingPage() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center">
                 <Compass className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-lg text-white">gamify.travel</span>
+              <span className="font-bold text-lg text-white">gamify.it.com</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link
-                href="https://gamify.it.com"
-                className="text-gray-400 hover:text-white text-sm"
-              >
-                gamify.it.com
-              </Link>
               <Link
                 href="/login"
                 className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors border border-gray-700"
@@ -61,17 +55,16 @@ export default async function LandingPage() {
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6 leading-tight">
-            Turn Your Travels Into
+            Gamify Your Life
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">
-              Epic Adventures
+              Level Up Everything
             </span>
           </h1>
 
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
-            Track your travels, earn XP, unlock achievements, and level up your
-            adventures. Every city, every location, every experience becomes
-            part of your journey.
+            Track your fitness, travels, and daily habits. Earn XP, unlock achievements,
+            and level up across all aspects of your life. One profile, endless adventures.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -160,7 +153,7 @@ export default async function LandingPage() {
             Ready to Start Your Adventure?
           </h2>
           <p className="text-gray-400 mb-8">
-            Join gamify.travel and transform how you experience the world
+            Join the gamify.it ecosystem and transform every aspect of your life
           </p>
           <Link
             href="/login"
@@ -180,12 +173,9 @@ export default async function LandingPage() {
               <div className="w-6 h-6 rounded bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center">
                 <Compass className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm text-gray-400">gamify.travel</span>
+              <span className="text-sm text-gray-400">gamify.it.com</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-500">
-              <Link href="https://gamify.it.com" className="hover:text-white">
-                gamify.it.com
-              </Link>
               <span>&copy; {new Date().getFullYear()}</span>
             </div>
           </div>
