@@ -13,6 +13,8 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@clerk/nextjs": "^6.36.5",
     "@prisma/client": "6.19.1",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.89.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
     "mapbox-gl": "^3.17.0",

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
+import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import {
   Compass,
   MapPin,
@@ -13,10 +12,10 @@ import {
 } from "lucide-react";
 
 export default async function LandingPage() {
-  const session = await getServerSession(authOptions);
+  const user = await getUser();
 
   // Redirect to dashboard if already logged in
-  if (session) {
+  if (user) {
     redirect("/dashboard");
   }
 

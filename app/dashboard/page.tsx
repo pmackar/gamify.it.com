@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -41,10 +40,12 @@ interface Stats {
     avgRating: number;
     city: { name: string; country: string };
   }>;
+  character?: {
+    name: string;
+  };
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -93,7 +94,7 @@ export default function DashboardPage() {
           className="text-lg mb-2"
           style={{ color: 'var(--rpg-text)', textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}
         >
-          Welcome back, {session?.user?.name?.split(" ")[0] || "Explorer"}!
+          Welcome back, Explorer!
         </h1>
         <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
           Ready to continue your adventure?
