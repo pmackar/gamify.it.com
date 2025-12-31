@@ -95,22 +95,14 @@ export default function MapView({
       const el = document.createElement("div");
       el.className = "map-marker";
       el.style.cssText = `
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         background-color: ${TYPE_COLORS[location.type] || TYPE_COLORS.OTHER};
-        border: 3px solid white;
+        border: 2px solid white;
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        transition: transform 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       `;
-
-      el.addEventListener("mouseenter", () => {
-        el.style.transform = "scale(1.2)";
-      });
-      el.addEventListener("mouseleave", () => {
-        el.style.transform = "scale(1)";
-      });
 
       const popupContent = `
         <div style="
