@@ -18,9 +18,20 @@ export default function Home() {
   const [showVideo, setShowVideo] = useState(false);
   const [videoTurningOn, setVideoTurningOn] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    realms: true,
+    abilities: true,
+  });
 
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   useEffect(() => {
     let charIndex = 0;
@@ -33,11 +44,6 @@ export default function Home() {
         charIndex++;
       } else {
         clearInterval(typeFirstLine);
-        // Trigger CRT turn-on effect for video
-        setVideoTurningOn(true);
-        setTimeout(() => setShowVideo(true), 400);
-        // Mark as loaded after CRT animation completes
-        setTimeout(() => setVideoLoaded(true), 900);
         // Start blinking dots
         const blinkInterval = setInterval(() => {
           dotBlinks++;
@@ -53,6 +59,11 @@ export default function Home() {
                 secondCharIndex++;
               } else {
                 clearInterval(typeSecondLine);
+                // Trigger CRT turn-on effect for video
+                setVideoTurningOn(true);
+                setTimeout(() => setShowVideo(true), 400);
+                // Mark as loaded after CRT animation completes
+                setTimeout(() => setVideoLoaded(true), 900);
                 // Mark intro complete after delay
                 setTimeout(() => setIntroComplete(true), 1500);
               }
@@ -424,8 +435,8 @@ export default function Home() {
 
         .section-label {
           font-size: 0.5rem;
-          color: #FFD700;
-          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+          color: var(--rpg-teal, #5fbf8a);
+          text-shadow: 0 0 8px rgba(95, 191, 138, 0.5);
           margin-bottom: 1rem;
         }
 
@@ -442,6 +453,58 @@ export default function Home() {
           line-height: 2;
           max-width: 600px;
           margin: 0 auto;
+        }
+
+        /* Collapsible Sections */
+        .collapsible-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .collapsible-header:hover .section-title {
+          text-shadow: 0 0 15px rgba(95, 191, 138, 0.5);
+        }
+
+        .section-toggle {
+          font-size: 0.8rem;
+          color: var(--rpg-teal, #5fbf8a);
+        }
+
+        .section-content {
+          overflow: hidden;
+          transition: max-height 0.4s ease-out, opacity 0.4s ease-out;
+        }
+
+        .section-content.collapsed {
+          max-height: 0;
+          opacity: 0;
+        }
+
+        .section-content.expanded {
+          max-height: 2000px;
+          opacity: 1;
+        }
+
+        /* RPG Banner */
+        .rpg-banner {
+          width: 100%;
+          max-width: 1000px;
+          margin: 0 auto 2rem;
+          padding: 0 1.5rem;
+        }
+
+        .rpg-banner img {
+          width: 100%;
+          height: auto;
+          max-height: 160px;
+          object-fit: cover;
+          border-radius: 8px;
+          image-rendering: pixelated;
+          border: 2px solid #3a3a3a;
         }
 
         /* Hero stats */
@@ -657,17 +720,32 @@ export default function Home() {
           box-shadow: 0 2px 0 #996600;
         }
 
+        /* Footer Banner */
+        .footer-banner {
+          width: 100%;
+          margin-top: 4rem;
+        }
+
+        .footer-banner img {
+          width: 100%;
+          height: auto;
+          max-height: 180px;
+          object-fit: cover;
+          object-position: center;
+          image-rendering: pixelated;
+          display: block;
+        }
+
         /* Footer */
         .retro-footer {
           padding: 3rem 1.5rem;
           text-align: center;
           border-top: 2px solid #2d2d2d;
-          margin-top: 4rem;
         }
 
         .footer-logo {
           font-size: 0.6rem;
-          color: #FFD700;
+          color: var(--rpg-teal, #5fbf8a);
           margin-bottom: 1.5rem;
         }
 
@@ -687,12 +765,25 @@ export default function Home() {
         }
 
         .footer-links a:hover {
-          color: #FFD700;
+          color: var(--rpg-teal, #5fbf8a);
         }
 
         .footer-copyright {
           font-size: 0.45rem;
           color: #444;
+        }
+
+        /* Progress Bar */
+        .rpg-progress {
+          height: 4px;
+          background: linear-gradient(90deg,
+            var(--rpg-teal, #5fbf8a) 0%,
+            var(--rpg-gold, #FFD700) 50%,
+            var(--rpg-teal, #5fbf8a) 100%
+          );
+          max-width: 800px;
+          margin: 0 auto 2rem;
+          border-radius: 2px;
         }
       `}</style>
 
@@ -790,15 +881,29 @@ export default function Home() {
             </div>
           </section>
 
+          {/* RPG Banner */}
+          <div className="rpg-banner">
+            <img src="/rpg/header-banner.png" alt="Pixel art fantasy cityscape" />
+          </div>
+
           {/* Products/Realms */}
           <section id="realms" className="retro-section">
             <div className="section-header">
               <p className="section-label">CHOOSE YOUR STORY</p>
-              <h2 className="section-title">Enter the Apps</h2>
+              <div
+                className="collapsible-header"
+                onClick={() => toggleSection('realms')}
+              >
+                <span className="section-toggle">
+                  {expandedSections.realms ? '▾' : '▸'}
+                </span>
+                <h2 className="section-title">Enter the Apps</h2>
+              </div>
               <p className="section-subtitle">
                 Each app serves a unique purpose in your life. Where will your adventure begin?
               </p>
             </div>
+            <div className={`section-content ${expandedSections.realms ? 'expanded' : 'collapsed'}`}>
             <div className="products-grid">
               {/* gamify.fitness */}
               <div className="product-card">
@@ -861,15 +966,25 @@ export default function Home() {
                 </a>
               </div>
             </div>
+            </div>
           </section>
 
           {/* Features/Abilities */}
           <section id="abilities" className="retro-section">
             <div className="section-header">
               <p className="section-label">POWER UP</p>
-              <h2 className="section-title">Unlock Your Abilities</h2>
+              <div
+                className="collapsible-header"
+                onClick={() => toggleSection('abilities')}
+              >
+                <span className="section-toggle">
+                  {expandedSections.abilities ? '▾' : '▸'}
+                </span>
+                <h2 className="section-title">Unlock Your Abilities</h2>
+              </div>
               <p className="section-subtitle">Every action builds toward something greater</p>
             </div>
+            <div className={`section-content ${expandedSections.abilities ? 'expanded' : 'collapsed'}`}>
             <div className="features-grid">
               <div className="feature-card">
                 <div className="feature-icon">⭐</div>
@@ -892,6 +1007,7 @@ export default function Home() {
                 <p className="feature-desc">Form lasting routines through positive reinforcement</p>
               </div>
             </div>
+            </div>
           </section>
 
           {/* CTA */}
@@ -909,6 +1025,14 @@ export default function Home() {
               </a>
             </div>
           </section>
+
+          {/* Progress Bar */}
+          <div className="rpg-progress"></div>
+
+          {/* Footer Banner */}
+          <div className="footer-banner">
+            <img src="/rpg/footer.png" alt="Pixel art fantasy scene" />
+          </div>
 
           {/* Footer */}
           <footer className="retro-footer">

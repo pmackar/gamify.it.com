@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Large asset packs (keep compressed videos)
 public/arcade-game-pixeled-art-illustration-set-*/
+
+/app/generated/prisma
+public/retro-level-up-text-glitch-2025-12-09-06-23-38-utc.mov

@@ -1,0 +1,308 @@
+// Prisma schema for gamify.travel
+// Database: Supabase PostgreSQL with PostGIS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// === USER MANAGEMENT ===
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  username  String?  @unique
+  email     String?
+  avatarUrl String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Gamification
+  totalXp Int @default(0)
+  level   Int @default(1)
+
+  // Relations
+  locationsCreated Location[]
+  userLocationData UserLocationData[]
+  reviews          Review[]
+  quests           Quest[]
+  questItems       QuestItem[]
+  achievements     UserAchievement[]
+
+  @@index([clerkId])
+  @@index([username])
+}
+
+// === LOCATION SYSTEM ===
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  address     String?
+  city        String?
+  state       String?
+  country     String   @default("USA")
+  postalCode  String?
+  neighborhood String?
+
+  // Coordinates
+  latitude  Float
+  longitude Float
+
+  // External integrations (for importing from Google Places)
+  googlePlaceId String? @unique
+  placeTypes    String[] // e.g., ["restaurant", "food"]
+  photoUrl      String?
+  website       String?
+  phone         String?
+
+  // Categorization
+  category LocationCategory
+  tags     String[]
+
+  // Aggregated statistics (denormalized for performance)
+  totalVisits   Int    @default(0)
+  totalReviews  Int    @default(0)
+  averageRating Float?
+  totalRatings  Int    @default(0)
+
+  // Metadata
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isActive    Boolean  @default(true)
+
+  // Relations
+  userLocationData UserLocationData[]
+  reviews          Review[]
+  questItems       QuestItem[]
+
+  @@index([latitude, longitude])
+  @@index([city, state])
+  @@index([category])
+  @@index([createdById])
+  @@index([isActive])
+}
+
+enum LocationCategory {
+  RESTAURANT
+  CAFE
+  BAR
+  PARK
+  MUSEUM
+  LANDMARK
+  SHOPPING
+  ENTERTAINMENT
+  HISTORIC
+  NATURE
+  HIDDEN_GEM
+  HOTEL
+  BEACH
+  VIEWPOINT
+  OTHER
+}
+
+// === USER-SPECIFIC LOCATION DATA (PRIVATE) ===
+
+model UserLocationData {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  // User-specific fields (private to this user)
+  hotlist Boolean @default(false)
+  visited Boolean @default(false)
+  rating  Int?    @db.SmallInt // 1-5, null if not rated
+  notes   String? @db.Text
+
+  // Visit tracking
+  firstVisitedAt DateTime?
+  lastVisitedAt  DateTime?
+  visitCount     Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, locationId])
+  @@index([userId])
+  @@index([locationId])
+  @@index([userId, hotlist])
+  @@index([userId, visited])
+}
+
+// === REVIEWS SYSTEM ===
+
+model Review {
+  id String @id @default(cuid())
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Content
+  title   String?
+  content String  @db.Text
+  rating  Int     @db.SmallInt // 1-5
+
+  // Moderation
+  status          ReviewStatus @default(APPROVED) // Post-moderation: approved by default
+  flagCount       Int          @default(0)
+  flagReasons     String[]
+  moderatedById   String?
+  moderatedAt     DateTime?
+  moderationNotes String?
+
+  // Engagement
+  helpfulCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([locationId])
+  @@index([authorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ReviewStatus {
+  APPROVED
+  FLAGGED
+  UNDER_REVIEW
+  REJECTED
+  SPAM
+}
+
+// === QUEST SYSTEM ===
+
+model Quest {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Quest details
+  title       String
+  description String? @db.Text
+
+  // Geographic scope (either city/neighborhood OR radius)
+  city         String?
+  neighborhood String?
+  centerLat    Float?
+  centerLng    Float?
+  radiusKm     Float?
+
+  // Status
+  status QuestStatus @default(ACTIVE)
+
+  // Dates
+  startDate   DateTime?
+  endDate     DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items QuestItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([city])
+}
+
+enum QuestStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+model QuestItem {
+  id String @id @default(cuid())
+
+  questId String
+  quest   Quest  @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Item details
+  order Int @default(0)
+  notes String? @db.Text
+
+  // Completion
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([questId, locationId])
+  @@index([questId])
+  @@index([locationId])
+  @@index([userId])
+}
+
+// === ACHIEVEMENTS ===
+
+model Achievement {
+  id String @id @default(cuid())
+
+  key         String @unique // e.g., "first_visit", "explorer_10"
+  name        String
+  description String
+  iconUrl     String?
+
+  category    AchievementCategory
+  requirement Int? // e.g., visit 10 places
+
+  xpReward Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  userAchievements UserAchievement[]
+}
+
+enum AchievementCategory {
+  EXPLORATION
+  SOCIAL
+  QUEST
+  REVIEW
+  MILESTONE
+}
+
+model UserAchievement {
+  id String @id @default(cuid())
+
+  userId        String
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  progress    Int       @default(0)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
