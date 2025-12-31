@@ -107,12 +107,12 @@ export default function MapView({
       const popupContent = `
         <div style="
           font-family: system-ui, -apple-system, sans-serif;
-          padding: 8px;
-          min-width: 150px;
+          padding: 12px;
+          min-width: 180px;
         ">
           <h3 style="
-            margin: 0 0 4px 0;
-            font-size: 14px;
+            margin: 0 0 6px 0;
+            font-size: 15px;
             font-weight: 600;
             color: #fff;
           ">${location.name}</h3>
@@ -124,18 +124,29 @@ export default function MapView({
           ">${location.type.toLowerCase()}</p>
           ${location.city ? `
             <p style="
-              margin: 0;
+              margin: 0 0 8px 0;
               font-size: 11px;
               color: #6b7280;
             ">${location.city.name}, ${location.city.country}</p>
           ` : ""}
           ${location.avgRating ? `
             <p style="
-              margin: 4px 0 0 0;
-              font-size: 12px;
+              margin: 0 0 8px 0;
+              font-size: 13px;
               color: #fbbf24;
             ">★ ${location.avgRating.toFixed(1)}</p>
           ` : ""}
+          <a href="/locations/${location.id}" style="
+            display: inline-block;
+            margin-top: 4px;
+            padding: 6px 12px;
+            background: #0891b2;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+          ">View Details</a>
         </div>
       `;
 
@@ -149,11 +160,6 @@ export default function MapView({
         .setLngLat([location.longitude, location.latitude])
         .setPopup(popup)
         .addTo(map.current!);
-
-      el.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onLocationClick?.(location.id);
-      });
 
       markers.current.push(marker);
     });
