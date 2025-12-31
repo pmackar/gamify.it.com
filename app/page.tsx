@@ -56,6 +56,7 @@ export default function LandingPage() {
   const [showVideo, setShowVideo] = useState(false);
   const [videoFading, setVideoFading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const firstLine = "Life's not a game";
@@ -74,6 +75,13 @@ export default function LandingPage() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    setShowUserMenu(false);
+  };
 
   // Typing animation
   useEffect(() => {
@@ -358,15 +366,27 @@ export default function LandingPage() {
             <div className="nav-bar">
               <span className="nav-logo">gamify.it</span>
               {user ? (
-                <Link href="/profile">
-                  {user.user_metadata?.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt="Profile" className="profile-img" />
-                  ) : (
-                    <div className="profile-img" style={{ background: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a', fontFamily: "'Press Start 2P', monospace", fontSize: '0.6rem' }}>
-                      {user.email?.charAt(0).toUpperCase()}
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    {user.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="Profile" className="profile-img" />
+                    ) : (
+                      <div className="profile-img" style={{ background: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a', fontFamily: "'Press Start 2P', monospace", fontSize: '0.6rem' }}>
+                        {user.email?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+                  {showUserMenu && (
+                    <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: '#2d2d2d', border: '2px solid #3a3a3a', borderRadius: '8px', padding: '0.5rem', minWidth: '120px', boxShadow: '0 4px 0 #1a1a1a' }}>
+                      <div style={{ padding: '0.5rem', color: '#888', fontSize: '0.4rem', borderBottom: '1px solid #3a3a3a', marginBottom: '0.5rem' }}>
+                        {user.email}
+                      </div>
+                      <button onClick={handleSignOut} style={{ width: '100%', padding: '0.5rem', background: 'none', border: 'none', color: '#ff6b6b', fontSize: '0.45rem', fontFamily: "'Press Start 2P', monospace", cursor: 'pointer', textAlign: 'left' }}>
+                        SIGN OUT
+                      </button>
                     </div>
                   )}
-                </Link>
+                </div>
               ) : (
                 <button onClick={() => setShowLoginModal(true)} className="nav-btn">LOGIN</button>
               )}
