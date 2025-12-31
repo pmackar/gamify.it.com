@@ -312,7 +312,15 @@ export default function Home() {
               <p>
                 Uncover hidden realms in your own neighborhood. Every location holds secrets, every journey earns experience. The world awaits your discovery.
               </p>
-              <div className="product-status coming-soon">Coming Soon</div>
+              <div className="product-status live">Preview</div>
+              <div className="product-cta">
+                <a
+                  href="/travel"
+                  className="btn-primary"
+                >
+                  Learn More
+                </a>
+              </div>
             </div>
           </div>
         </div>
