@@ -31,6 +31,7 @@ model User {
   locationsCreated Location[]
   userLocationData UserLocationData[]
   reviews          Review[]
+  reviewFlags      ReviewFlag[]
   quests           Quest[]
   questItems       QuestItem[]
   achievements     UserAchievement[]
@@ -161,7 +162,7 @@ model Review {
   // Moderation
   status          ReviewStatus @default(APPROVED) // Post-moderation: approved by default
   flagCount       Int          @default(0)
-  flagReasons     String[]
+  flagReason      String?      // Reason for flagging (auto or mod)
   moderatedById   String?
   moderatedAt     DateTime?
   moderationNotes String?
@@ -172,10 +173,33 @@ model Review {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
+  flags ReviewFlag[]
+
   @@index([locationId])
   @@index([authorId])
   @@index([status])
   @@index([createdAt])
+}
+
+// User-submitted flags for reviews
+model ReviewFlag {
+  id String @id @default(cuid())
+
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  reason  String // SPAM, INAPPROPRIATE, HARASSMENT, MISINFORMATION, OFF_TOPIC, OTHER
+  details String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([reviewId, userId]) // One flag per user per review
+  @@index([reviewId])
+  @@index([userId])
 }
 
 enum ReviewStatus {
