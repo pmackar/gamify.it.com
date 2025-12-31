@@ -175,12 +175,12 @@ export default function Home() {
               </SignedOut>
               <SignedIn>
                 <a
-                  href="https://iron-quest.vercel.app"
+                  href="https://gamify-fitness.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary nav-cta"
                 >
-                  Iron Quest
+                  gamify.fitness
                 </a>
                 <UserButton
                   appearance={{
@@ -213,7 +213,7 @@ export default function Home() {
 
             <div className="hero-buttons animate-fade-in delay-300" style={{ opacity: 0 }}>
               <a
-                href="https://iron-quest.vercel.app"
+                href="https://gamify-fitness.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
@@ -256,20 +256,20 @@ export default function Home() {
           </div>
 
           <div className="products-grid">
-            {/* Iron Quest */}
+            {/* gamify.fitness */}
             <div className="product-card glass-card">
               <div className="product-icon fire">
                 <FireIcon />
               </div>
-              <h3>Iron Quest</h3>
-              <p className="product-domain">ironquest.gamify.it.com</p>
+              <h3>gamify.fitness</h3>
+              <p className="product-domain">fitness.gamify.it.com</p>
               <p>
                 Forge your legend through iron and sweat. Every workout becomes a battle, every rep a step toward greatness. Rise through the ranks of strength.
               </p>
               <div className="product-status live">Testing</div>
               <div className="product-cta">
                 <a
-                  href="https://iron-quest.vercel.app"
+                  href="https://gamify-fitness.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary"
@@ -369,9 +369,9 @@ export default function Home() {
           <div className="cta-inner">
             <div className="cta-card glass-card">
               <h2>Ready to <strong>Level Up</strong>?</h2>
-              <p>Your adventure awaits. Start with Iron Quest.</p>
+              <p>Your adventure awaits. Start with gamify.fitness.</p>
               <a
-                href="https://iron-quest.vercel.app"
+                href="https://gamify-fitness.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
@@ -395,11 +395,11 @@ export default function Home() {
 
             <div className="footer-links">
               <a
-                href="https://iron-quest.vercel.app"
+                href="https://gamify-fitness.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Iron Quest
+                gamify.fitness
               </a>
               <a href="#products">All Realms</a>
             </div>

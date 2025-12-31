@@ -44,13 +44,13 @@ Edit the text below and send it back to update the website.
 - **Section Title:** Enter the **Apps**
 - **Section Subtitle:** Each **app** serves a unique purpose in your life: fitness, task management, and travel. Each offers unique challenges and rewards. Where will **your adventure** begin?
 
-### Product 1: Iron Quest
-- **Name:** Iron Quest
-- **Domain:** ironquest.gamify.it.com
+### Product 1: gamify.fitness
+- **Name:** gamify.fitness
+- **Domain:** fitness.gamify.it.com
 - **Description:** Forge your legend through iron and sweat. Every workout becomes a battle, every rep a step toward greatness. Rise through the ranks of strength.
 - **Status:** Testing
 - **Button:** Enter Realm
-- **URL:** https://iron-quest.vercel.app
+- **URL:** https://gamify-fitness.vercel.app
 
 ### Product 2: ToDo manager
 - **Name:** Day Quest
@@ -95,7 +95,7 @@ Edit the text below and send it back to update the website.
 ## CTA Section
 
 - **Headline:** Ready to **Level Up**?
-- **Subtitle:** Your adventure awaits. Start with Iron Quest.
+- **Subtitle:** Your adventure awaits. Start with gamify.fitness.
 - **Button:** Begin Your Quest
 
 ---
@@ -103,6 +103,6 @@ Edit the text below and send it back to update the website.
 ## Footer
 
 - **Logo Text:** gamify.it.com
-- **Link 1:** Iron Quest
+- **Link 1:** gamify.fitness
 - **Link 2:** All Realms
 - **Copyright:** © 2025 gamify.it.com · Level Up Your Life
