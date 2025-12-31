@@ -14,7 +14,7 @@ function LoginContent() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`,
+        redirectTo: callbackUrl.startsWith('/') ? `${window.location.origin}${callbackUrl}` : callbackUrl,
       },
     });
   };
