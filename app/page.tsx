@@ -447,6 +447,42 @@ export default function Home() {
           text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
+        /* Shimmer text effect */
+        .shimmer-text {
+          background: linear-gradient(
+            90deg,
+            #fff 0%,
+            #fff 40%,
+            #5fbf8a 45%,
+            #FFD700 50%,
+            #5fbf8a 55%,
+            #fff 60%,
+            #fff 100%
+          );
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+          0% { background-position: 100% 0; }
+          100% { background-position: -100% 0; }
+        }
+
+        .keyword {
+          color: #5fbf8a;
+          -webkit-text-fill-color: #5fbf8a;
+          text-shadow: 0 0 20px rgba(95, 191, 138, 0.5);
+        }
+
+        .keyword-gold {
+          color: #FFD700;
+          -webkit-text-fill-color: #FFD700;
+          text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
         .section-subtitle {
           font-size: 0.55rem;
           color: #888;
@@ -768,8 +804,8 @@ export default function Home() {
             <div className="nav-bar">
               <span className="nav-logo">gamify.it.com</span>
               <div className="nav-links">
-                <a href="#realms">Realms</a>
-                <a href="#abilities">Abilities</a>
+                <a href="#realms">Games</a>
+                <a href="#abilities">Progress</a>
                 <a
                   href="https://gamify-fitness.vercel.app"
                   target="_blank"
@@ -833,8 +869,8 @@ export default function Home() {
           {/* Hero Stats */}
           <section className="retro-section">
             <div className="section-header">
-              <p className="section-label">WELCOME TO</p>
-              <h2 className="section-title">Transform Your Reality Into Adventure</h2>
+              <p className="section-label">Welcome to gamify.it.com</p>
+              <h2 className="section-title shimmer-text">Transform Your Reality Into Adventure</h2>
               <p className="section-subtitle">
                 Where everyday tasks become epic quests. Earn experience, unlock achievements, and level up your life through the power of play.
               </p>
@@ -866,7 +902,7 @@ export default function Home() {
                 <span className="section-toggle">
                   {expandedSections.realms ? '▾' : '▸'}
                 </span>
-                <h2 className="section-title">Choose your Game</h2>
+                <h2 className="section-title shimmer-text">Choose your Game</h2>
               </div>
               <p className="section-subtitle">
                 Each app serves a unique purpose in your life. Where will your adventure begin?
@@ -941,17 +977,8 @@ export default function Home() {
           {/* Features/Abilities */}
           <section id="abilities" className="retro-section">
             <div className="section-header">
-              <p className="section-label">POWER UP</p>
-              <div
-                className="collapsible-header"
-                onClick={() => toggleSection('abilities')}
-              >
-                <span className="section-toggle">
-                  {expandedSections.abilities ? '▾' : '▸'}
-                </span>
-                <h2 className="section-title">Unlock Your Abilities</h2>
-              </div>
-              <p className="section-subtitle">Every action builds toward something greater</p>
+              <p className="section-label">POWER UP!</p>
+              <h2 className="section-title shimmer-text">Every action builds toward something greater</h2>
             </div>
             <div className={`section-content ${expandedSections.abilities ? 'expanded' : 'collapsed'}`}>
             <div className="features-grid">
@@ -982,7 +1009,7 @@ export default function Home() {
           {/* CTA */}
           <section className="retro-section">
             <div className="cta-section">
-              <h2 className="cta-title">Ready to Level Up?</h2>
+              <h2 className="cta-title shimmer-text">Ready to Level Up?</h2>
               <p className="cta-subtitle">Your adventure awaits. Start with gamify.fitness.</p>
               <a
                 href="https://gamify-fitness.vercel.app"
