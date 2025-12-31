@@ -65,11 +65,17 @@ export default function LandingPage() {
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
 
-  // Auth state
+  // Auth state - use getSession() to handle OAuth callback
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+
+    // getSession() detects OAuth params in URL and exchanges them
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      // Clean up URL after OAuth callback
+      if (window.location.hash || window.location.search.includes('code=')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -437,6 +443,9 @@ export default function LandingPage() {
           box-shadow: 0 0 20px rgba(255,215,0,0.7);
         }
 
+        .section-hidden { opacity: 0; visibility: hidden; }
+        .section-visible { opacity: 1; visibility: visible; transition: opacity 0.5s ease-in; }
+
         .retro-section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
         .section-header { text-align: center; margin-bottom: 4rem; }
         .section-label {
@@ -673,7 +682,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <section className="retro-section">
+          <section className={`retro-section ${introComplete ? 'section-visible' : 'section-hidden'}`}>
             <div className="section-header">
               <p className="section-label">CHOOSE YOUR GAME</p>
               <h2 className="section-title shimmer-text">Play Now</h2>
@@ -704,7 +713,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <footer className="retro-footer">
+          <footer className={`retro-footer ${introComplete ? 'section-visible' : 'section-hidden'}`}>
             <p className="footer-text shimmer-text">Life&apos;s not a game... but it should be!</p>
             <p className="footer-text" style={{ marginTop: '1rem' }}>© {new Date().getFullYear()} gamify.it.com</p>
           </footer>
