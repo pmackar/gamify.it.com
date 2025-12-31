@@ -16,6 +16,8 @@ export default function Home() {
   const [blinkDots, setBlinkDots] = useState(true);
   const [introComplete, setIntroComplete] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoTurningOn, setVideoTurningOn] = useState(false);
 
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
@@ -31,6 +33,9 @@ export default function Home() {
         charIndex++;
       } else {
         clearInterval(typeFirstLine);
+        // Trigger CRT turn-on effect for video
+        setVideoTurningOn(true);
+        setTimeout(() => setShowVideo(true), 400);
         // Start blinking dots
         const blinkInterval = setInterval(() => {
           dotBlinks++;
@@ -178,7 +183,7 @@ export default function Home() {
           min-height: 100%;
           width: auto;
           height: auto;
-          transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%) scaleY(0);
           object-fit: cover;
           opacity: 0;
           transition: opacity 1.5s ease-in-out;
@@ -186,11 +191,61 @@ export default function Home() {
 
         .video-background video.active {
           opacity: 0.5;
+          transform: translate(-50%, -50%) scaleY(1);
         }
 
-        .video-background video.first-load {
-          opacity: 0.5;
-          transition: none;
+        /* CRT Turn-on effect */
+        .video-background.crt-on video.active {
+          animation: crt-turn-on 0.5s ease-out forwards;
+        }
+
+        @keyframes crt-turn-on {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scaleY(0.005) scaleX(0.8);
+            filter: brightness(10);
+          }
+          30% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scaleY(0.005) scaleX(0.9);
+            filter: brightness(10);
+          }
+          50% {
+            transform: translate(-50%, -50%) scaleY(1.1) scaleX(1);
+            filter: brightness(2);
+          }
+          70% {
+            transform: translate(-50%, -50%) scaleY(0.95) scaleX(1);
+            filter: brightness(1);
+          }
+          100% {
+            opacity: 0.5;
+            transform: translate(-50%, -50%) scaleY(1) scaleX(1);
+            filter: brightness(1);
+          }
+        }
+
+        /* White flash overlay for CRT effect */
+        .crt-flash {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: white;
+          opacity: 0;
+          z-index: 0;
+          pointer-events: none;
+        }
+
+        .crt-flash.flash {
+          animation: crt-flash 0.3s ease-out;
+        }
+
+        @keyframes crt-flash {
+          0% { opacity: 0; }
+          20% { opacity: 0.8; }
+          100% { opacity: 0; }
         }
 
         .video-overlay {
@@ -211,20 +266,9 @@ export default function Home() {
         }
 
         .typing-text {
-          font-size: clamp(1rem, 4vw, 1.75rem);
+          font-size: clamp(1.3rem, 5.2vw, 2.3rem);
           line-height: 2;
           color: #00ff00;
-          text-shadow:
-            0 0 10px rgba(0, 255, 0, 0.8),
-            0 0 20px rgba(0, 255, 0, 0.5),
-            -2px -2px 0 #000,
-            2px -2px 0 #000,
-            -2px 2px 0 #000,
-            2px 2px 0 #000,
-            -2px 0 0 #000,
-            2px 0 0 #000,
-            0 -2px 0 #000,
-            0 2px 0 #000;
         }
 
         .typing-cursor {
@@ -247,17 +291,6 @@ export default function Home() {
           display: block;
           margin-top: 0.5rem;
           color: #FFD700;
-          text-shadow:
-            0 0 15px rgba(255, 215, 0, 0.8),
-            0 0 30px rgba(255, 215, 0, 0.5),
-            -2px -2px 0 #000,
-            2px -2px 0 #000,
-            -2px 2px 0 #000,
-            2px 2px 0 #000,
-            -2px 0 0 #000,
-            2px 0 0 #000,
-            0 -2px 0 #000,
-            0 2px 0 #000;
         }
 
         .scroll-hint {
@@ -689,11 +722,12 @@ export default function Home() {
           {/* CRT TV Intro */}
           <section className="crt-intro">
             {/* Video Background */}
-            <div className="video-background">
+            <div className={`video-background ${videoTurningOn ? 'crt-on' : ''}`}>
+              <div className={`crt-flash ${videoTurningOn ? 'flash' : ''}`} />
               {videos.map((src, index) => (
                 <video
                   key={src}
-                  className={index === currentVideoIndex ? 'active' : ''}
+                  className={showVideo && index === currentVideoIndex ? 'active' : ''}
                   autoPlay
                   muted
                   loop
