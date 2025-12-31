@@ -1,20 +1,34 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useMapStore } from '@/stores/map-store';
-import { LocationListItem } from '@/types';
 
-// Set Mapbox token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+interface LocationData {
+  id: string;
+  name: string;
+  type: string;
+  latitude: number;
+  longitude: number;
+  avgRating?: number | null;
+  userVisited?: boolean;
+  userHotlist?: boolean;
+  city?: {
+    name: string;
+    country: string;
+  };
+}
+
 interface MapViewProps {
-  locations?: LocationListItem[];
-  onLocationClick?: (location: LocationListItem) => void;
+  locations?: LocationData[];
+  onLocationClick?: (location: LocationData) => void;
   onMapClick?: (lngLat: { lng: number; lat: number }) => void;
   className?: string;
   interactive?: boolean;
+  initialCenter?: [number, number];
+  initialZoom?: number;
 }
 
 export function MapView({
@@ -23,22 +37,13 @@ export function MapView({
   onMapClick,
   className = '',
   interactive = true,
+  initialCenter = [0, 20],
+  initialZoom = 2,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
-
-  const {
-    center,
-    zoom,
-    selectedLocationId,
-    hoveredLocationId,
-    setCenter,
-    setZoom,
-    setBounds,
-    setMapLoaded,
-    selectLocation,
-  } = useMapStore();
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -46,29 +51,10 @@ export function MapView({
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11', // Dark theme to match retro aesthetic
-      center,
-      zoom,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: initialCenter,
+      zoom: initialZoom,
       interactive,
-    });
-
-    map.current.on('load', () => {
-      setMapLoaded(true);
-    });
-
-    map.current.on('moveend', () => {
-      if (!map.current) return;
-      const mapCenter = map.current.getCenter();
-      setCenter([mapCenter.lng, mapCenter.lat]);
-      setZoom(map.current.getZoom());
-
-      const bounds = map.current.getBounds();
-      if (bounds) {
-        setBounds([
-          [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
-          [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
-        ]);
-      }
     });
 
     if (onMapClick) {
@@ -77,10 +63,8 @@ export function MapView({
       });
     }
 
-    // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    // Add geolocation control
     map.current.addControl(
       new mapboxgl.GeolocateControl({
         positionOptions: {
@@ -96,17 +80,16 @@ export function MapView({
       map.current?.remove();
       map.current = null;
     };
-  }, []);
+  }, [initialCenter, initialZoom, interactive, onMapClick]);
 
   // Create marker element
   const createMarkerElement = useCallback(
-    (location: LocationListItem, isSelected: boolean, isHovered: boolean) => {
+    (location: LocationData, isSelected: boolean) => {
       const el = document.createElement('div');
       el.className = 'marker';
 
-      // Determine marker style based on user data
-      const isHotlisted = location.userSpecific?.hotlist;
-      const isVisited = location.userSpecific?.visited;
+      const isHotlisted = location.userHotlist;
+      const isVisited = location.userVisited;
 
       let bgColor = '#FFD700'; // Gold default
       let borderColor = '#CC8800';
@@ -119,11 +102,6 @@ export function MapView({
         borderColor = '#cc0000';
       }
 
-      if (isSelected || isHovered) {
-        el.style.transform = 'scale(1.3)';
-        el.style.zIndex = '10';
-      }
-
       el.style.cssText = `
         width: ${isSelected ? '24px' : '20px'};
         height: ${isSelected ? '24px' : '20px'};
@@ -131,9 +109,9 @@ export function MapView({
         border: 3px solid ${borderColor};
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 0 ${isSelected || isHovered ? '15px' : '8px'} ${bgColor}80;
+        box-shadow: 0 0 ${isSelected ? '15px' : '8px'} ${bgColor}80;
         transition: all 0.2s ease;
-        ${isSelected || isHovered ? 'transform: scale(1.3);' : ''}
+        ${isSelected ? 'transform: scale(1.3); z-index: 10;' : ''}
       `;
 
       return el;
@@ -157,22 +135,27 @@ export function MapView({
     // Add or update markers
     locations.forEach((location) => {
       const isSelected = selectedLocationId === location.id;
-      const isHovered = hoveredLocationId === location.id;
       const existingMarker = markers.current.get(location.id);
 
       if (existingMarker) {
         // Update existing marker
-        const el = createMarkerElement(location, isSelected, isHovered);
-        existingMarker.getElement().replaceWith(el);
+        const el = createMarkerElement(location, isSelected);
+        const oldEl = existingMarker.getElement();
+        oldEl.style.cssText = el.style.cssText;
         existingMarker.setLngLat([location.longitude, location.latitude]);
       } else {
         // Create new marker
-        const el = createMarkerElement(location, isSelected, isHovered);
+        const el = createMarkerElement(location, isSelected);
 
         el.addEventListener('click', (e) => {
           e.stopPropagation();
-          selectLocation(location.id);
+          setSelectedLocationId(location.id);
           onLocationClick?.(location);
+
+          // Dispatch custom event for modal
+          window.dispatchEvent(
+            new CustomEvent('openLocationDetail', { detail: location.id })
+          );
         });
 
         el.addEventListener('mouseenter', () => {
@@ -194,7 +177,7 @@ export function MapView({
         markers.current.set(location.id, marker);
       }
     });
-  }, [locations, selectedLocationId, hoveredLocationId, createMarkerElement, onLocationClick, selectLocation]);
+  }, [locations, selectedLocationId, createMarkerElement, onLocationClick]);
 
   // Fly to selected location
   useEffect(() => {
@@ -209,6 +192,28 @@ export function MapView({
       });
     }
   }, [selectedLocationId, locations]);
+
+  // Fit bounds to all locations on initial load
+  useEffect(() => {
+    if (!map.current || locations.length === 0) return;
+
+    const validLocations = locations.filter(
+      (l) => l.latitude !== 0 || l.longitude !== 0
+    );
+
+    if (validLocations.length === 0) return;
+
+    const bounds = new mapboxgl.LngLatBounds();
+    validLocations.forEach((loc) => {
+      bounds.extend([loc.longitude, loc.latitude]);
+    });
+
+    map.current.fitBounds(bounds, {
+      padding: 50,
+      maxZoom: 12,
+      duration: 1000,
+    });
+  }, [locations.length > 0]);
 
   return (
     <div
