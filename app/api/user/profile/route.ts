@@ -63,13 +63,16 @@ export async function GET() {
           questCount,
           hotlistCount,
         },
-        recentVisits: recentVisits
-          .filter((rv) => rv.location)
-          .map((rv) => ({
-            ...rv.location,
-            visitedAt: rv.lastVisitedAt,
-            visitCount: rv.visitCount,
-          })),
+        recentVisits: (() => {
+          type RecentVisitType = (typeof recentVisits)[number];
+          return recentVisits
+            .filter((rv: RecentVisitType) => rv.location)
+            .map((rv: RecentVisitType) => ({
+              ...rv.location,
+              visitedAt: rv.lastVisitedAt,
+              visitCount: rv.visitCount,
+            }));
+        })(),
       },
     });
   } catch (error) {

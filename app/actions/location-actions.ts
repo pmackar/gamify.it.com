@@ -177,7 +177,7 @@ export async function rateLocation(locationId: string, rating: number) {
   const totalRatings = allRatings.length;
   const averageRating =
     totalRatings > 0
-      ? allRatings.reduce((sum, r) => sum + (r.rating || 0), 0) / totalRatings
+      ? allRatings.reduce((sum: number, r: { rating: number | null }) => sum + (r.rating || 0), 0) / totalRatings
       : null;
 
   await prisma.location.update({
@@ -224,7 +224,7 @@ export async function removeRating(locationId: string) {
     const totalRatings = allRatings.length;
     const averageRating =
       totalRatings > 0
-        ? allRatings.reduce((sum, r) => sum + (r.rating || 0), 0) / totalRatings
+        ? allRatings.reduce((sum: number, r: { rating: number | null }) => sum + (r.rating || 0), 0) / totalRatings
         : null;
 
     await prisma.location.update({

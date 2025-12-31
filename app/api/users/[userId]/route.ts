@@ -73,10 +73,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           reviewCount,
           questCount,
         },
-        visitedLocations: visitedLocations.map((vl) => ({
-          ...vl.location,
-          visitedAt: vl.lastVisitedAt,
-        })),
+        visitedLocations: (() => {
+          type VisitedLocationType = (typeof visitedLocations)[number];
+          return visitedLocations.map((vl: VisitedLocationType) => ({
+            ...vl.location,
+            visitedAt: vl.lastVisitedAt,
+          }));
+        })(),
       },
     });
   } catch (error) {

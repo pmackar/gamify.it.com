@@ -49,15 +49,12 @@ export async function GET(request: NextRequest) {
     const maxLng = lng + lngDelta;
 
     // Query locations within bounding box
-    const where: Parameters<typeof prisma.location.findMany>[0]['where'] = {
-      isActive: true,
+    const where = {
+      isActive: true as const,
       latitude: { gte: minLat, lte: maxLat },
       longitude: { gte: minLng, lte: maxLng },
+      ...(category ? { category } : {}),
     };
-
-    if (category) {
-      where.category = category;
-    }
 
     const locations = await prisma.location.findMany({
       where,
@@ -78,13 +75,15 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate actual distance and filter by radius
+    type LocationType = (typeof locations)[number];
+    type LocationWithDistance = LocationType & { distanceKm: number };
     const locationsWithDistance = locations
-      .map((loc) => ({
+      .map((loc: LocationType): LocationWithDistance => ({
         ...loc,
         distanceKm: calculateDistance(lat, lng, loc.latitude, loc.longitude),
       }))
-      .filter((loc) => loc.distanceKm <= radiusKm)
-      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .filter((loc: LocationWithDistance) => loc.distanceKm <= radiusKm)
+      .sort((a: LocationWithDistance, b: LocationWithDistance) => a.distanceKm - b.distanceKm)
       .slice(0, limit);
 
     // If user is authenticated, enrich with their personal data
@@ -92,7 +91,7 @@ export async function GET(request: NextRequest) {
     let enrichedLocations = locationsWithDistance;
 
     if (user) {
-      const locationIds = locationsWithDistance.map((l) => l.id);
+      const locationIds = locationsWithDistance.map((l: LocationWithDistance) => l.id);
       const userLocationData = await prisma.userLocationData.findMany({
         where: {
           userId: user.id,
@@ -106,9 +105,10 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      const userDataMap = new Map(userLocationData.map((ud) => [ud.locationId, ud]));
+      type UserLocationDataType = (typeof userLocationData)[number];
+      const userDataMap = new Map(userLocationData.map((ud: UserLocationDataType) => [ud.locationId, ud]));
 
-      enrichedLocations = locationsWithDistance.map((loc) => ({
+      enrichedLocations = locationsWithDistance.map((loc: LocationWithDistance) => ({
         ...loc,
         userSpecific: userDataMap.get(loc.id) || null,
       }));

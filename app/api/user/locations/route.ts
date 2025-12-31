@@ -54,9 +54,10 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Filter out inactive locations and transform data
+    type UserLocationDataType = (typeof userLocations)[number];
     const locations = userLocations
-      .filter((ul) => ul.location.isActive)
-      .map((ul) => ({
+      .filter((ul: UserLocationDataType) => ul.location.isActive)
+      .map((ul: UserLocationDataType) => ({
         ...ul.location,
         userSpecific: {
           hotlist: ul.hotlist,

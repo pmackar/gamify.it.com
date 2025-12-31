@@ -4,17 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:travel": "next dev --port 3003",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
-    "@prisma/client": "^7.2.0",
+    "@prisma/client": "6.19.1",
     "date-fns": "^4.1.0",
     "mapbox-gl": "^3.17.0",
     "next": "16.1.1",
-    "prisma": "^7.2.0",
+    "prisma": "6.19.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "svix": "^1.84.1",

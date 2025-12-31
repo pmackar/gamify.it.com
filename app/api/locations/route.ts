@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser, requireAuth } from '@/lib/auth';
-import { CreateLocationInput, LocationCategory } from '@/types';
+import { CreateLocationInput, LocationCategory, LocationCategoryEnum } from '@/types';
 
 // GET /api/locations - List locations with optional filters
 export async function GET(request: NextRequest) {
@@ -14,29 +14,19 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const where: Parameters<typeof prisma.location.findMany>[0]['where'] = {
-      isActive: true,
+    const where = {
+      isActive: true as const,
+      ...(city ? { city: { contains: city, mode: 'insensitive' as const } } : {}),
+      ...(state ? { state: { contains: state, mode: 'insensitive' as const } } : {}),
+      ...(category ? { category } : {}),
+      ...(query ? {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' as const } },
+          { description: { contains: query, mode: 'insensitive' as const } },
+          { address: { contains: query, mode: 'insensitive' as const } },
+        ]
+      } : {}),
     };
-
-    if (city) {
-      where.city = { contains: city, mode: 'insensitive' };
-    }
-
-    if (state) {
-      where.state = { contains: state, mode: 'insensitive' };
-    }
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (query) {
-      where.OR = [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { address: { contains: query, mode: 'insensitive' } },
-      ];
-    }
 
     const [locations, total] = await Promise.all([
       prisma.location.findMany({
@@ -64,10 +54,11 @@ export async function GET(request: NextRequest) {
 
     // If user is authenticated, enrich with their personal data
     const user = await getCurrentUser();
-    let enrichedLocations = locations;
+    type LocationType = (typeof locations)[number];
+    let enrichedLocations: (LocationType & { userSpecific?: unknown })[] = locations;
 
     if (user) {
-      const locationIds = locations.map((l) => l.id);
+      const locationIds = locations.map((l: LocationType) => l.id);
       const userLocationData = await prisma.userLocationData.findMany({
         where: {
           userId: user.id,
@@ -81,9 +72,10 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      const userDataMap = new Map(userLocationData.map((ud) => [ud.locationId, ud]));
+      type UserLocationDataType = (typeof userLocationData)[number];
+      const userDataMap = new Map(userLocationData.map((ud: UserLocationDataType) => [ud.locationId, ud]));
 
-      enrichedLocations = locations.map((loc) => ({
+      enrichedLocations = locations.map((loc: LocationType) => ({
         ...loc,
         userSpecific: userDataMap.get(loc.id) || null,
       }));
@@ -117,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate category
-    const validCategories = Object.values(LocationCategory);
+    const validCategories = Object.values(LocationCategoryEnum);
     if (!validCategories.includes(body.category)) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
     }

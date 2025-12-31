@@ -63,10 +63,12 @@ export function MapView({
       setZoom(map.current.getZoom());
 
       const bounds = map.current.getBounds();
-      setBounds([
-        [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
-        [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
-      ]);
+      if (bounds) {
+        setBounds([
+          [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
+          [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
+        ]);
+      }
     });
 
     if (onMapClick) {
