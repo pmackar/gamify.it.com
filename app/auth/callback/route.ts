@@ -19,6 +19,9 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
+  // Determine redirect destination - use transfer page for PWA code handoff
+  const redirectTo = next === '/' ? '/auth/transfer' : next;
+
   // Handle token_hash (magic link without PKCE)
   if (token_hash && type) {
     try {
@@ -32,7 +35,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
       }
       console.log('Token hash verified successfully');
-      return NextResponse.redirect(new URL(next, requestUrl.origin));
+      return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
     } catch (e) {
       console.error('Token hash exception:', e);
       return NextResponse.redirect(new URL(`/?error=auth_failed`, requestUrl.origin));
@@ -49,7 +52,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
       }
       console.log('Code exchanged successfully');
-      return NextResponse.redirect(new URL(next, requestUrl.origin));
+      return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
     } catch (e) {
       console.error('Callback exception:', e);
       return NextResponse.redirect(new URL(`/?error=auth_failed`, requestUrl.origin));

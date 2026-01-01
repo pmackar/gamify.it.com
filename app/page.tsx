@@ -293,8 +293,9 @@ function SplashIntro() {
 // PWA Login Screen
 function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => void }) {
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [step, setStep] = useState<'email' | 'sent' | 'code'>('email');
   const [error, setError] = useState('');
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
@@ -315,10 +316,42 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
       if (error) {
         setError(error.message);
       } else {
-        setSent(true);
+        setStep('sent');
       }
     } catch (err) {
       console.error('sendLink catch:', err);
+      setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code || code.length !== 6) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/auth/transfer-code?code=${code}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Invalid code');
+        setCode('');
+      } else {
+        // Set the session using the tokens
+        const supabase = createClient();
+        const { error } = await supabase.auth.setSession({
+          access_token: data.accessToken,
+          refresh_token: data.refreshToken,
+        });
+        if (error) {
+          setError(error.message);
+        } else {
+          // Reload to pick up the session
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.error('verifyCode catch:', err);
       setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
     setLoading(false);
@@ -340,16 +373,43 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
               Continue
             </button>
           </div>
-        ) : sent ? (
+        ) : step === 'sent' ? (
           <div className="pwa-login-form">
             <div className="pwa-sent-header">
               <div className="pwa-sent-icon">✉️</div>
               <p className="pwa-sent-text">Check your email!</p>
               <p className="pwa-sent-email">{email}</p>
-              <p className="pwa-sent-hint">Click the link in your email to sign in. You&apos;ll be redirected back here.</p>
+              <p className="pwa-sent-hint">Click the link, then enter the 6-digit code shown on the page.</p>
             </div>
-            <button className="pwa-back-btn" onClick={() => { setSent(false); setError(''); }}>
+            <button className="pwa-code-btn" onClick={() => setStep('code')}>
+              I have a code
+            </button>
+            <button className="pwa-back-btn" onClick={() => { setStep('email'); setError(''); }}>
               ← Use different email
+            </button>
+          </div>
+        ) : step === 'code' ? (
+          <div className="pwa-login-form">
+            <p className="pwa-code-label">Enter the 6-digit code:</p>
+            <form onSubmit={handleVerifyCode}>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                className="pwa-input pwa-code-input"
+                placeholder="000000"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+              />
+              {error && <p className="pwa-error">{error}</p>}
+              <button type="submit" className="pwa-submit-btn" disabled={loading || code.length !== 6}>
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </button>
+            </form>
+            <button className="pwa-back-btn" onClick={() => { setStep('sent'); setCode(''); setError(''); }}>
+              ← Back
             </button>
           </div>
         ) : (
@@ -368,6 +428,9 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
                 {loading ? 'Sending...' : 'Send Magic Link'}
               </button>
             </form>
+            <button className="pwa-code-btn" onClick={() => setStep('code')}>
+              I already have a code
+            </button>
           </div>
         )}
       </div>

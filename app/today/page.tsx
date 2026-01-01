@@ -1352,25 +1352,11 @@ export default function TodayPage() {
         /* Floating quick add */
         .floating-quick-add {
           position: fixed;
-          bottom: 0;
+          bottom: 32px;
           left: 260px;
           right: 0;
           z-index: 100;
-          padding: 0 24px 24px;
-          pointer-events: none;
-        }
-
-        .floating-quick-add::before {
-          content: '';
-          position: absolute;
-          top: -60px;
-          left: 0;
-          right: 0;
-          height: 60px;
-          background: linear-gradient(to bottom,
-            transparent 0%,
-            var(--bg-primary) 100%
-          );
+          padding: 0 32px;
           pointer-events: none;
         }
 
