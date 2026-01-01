@@ -6,6 +6,25 @@ import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES } from '@/lib/
 import { CommandSuggestion, Workout } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 
+interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
+
+const PixelParticles = () => {
+  const [particles, setParticles] = useState<Particle[]>([]);
+  useEffect(() => {
+    const colors = ['#FF6B6B', '#FFD700', '#ff8f8f', '#5CC9F5', '#34c759'];
+    const newParticles: Particle[] = [];
+    for (let i = 0; i < 30; i++) {
+      newParticles.push({ id: i, x: Math.random() * 100, y: Math.random() * 100, size: Math.random() * 3 + 2, color: colors[Math.floor(Math.random() * colors.length)], speed: Math.random() * 20 + 15, opacity: Math.random() * 0.3 + 0.1, delay: Math.random() * 10 });
+    }
+    setParticles(newParticles);
+  }, []);
+  return (
+    <div className="particles-container">
+      {particles.map((p) => (<div key={p.id} className="pixel-particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.size}px`, height: `${p.size}px`, backgroundColor: p.color, opacity: p.opacity, animationDuration: `${p.speed}s`, animationDelay: `${p.delay}s` }} />))}
+    </div>
+  );
+};
+
 export default function FitnessPage() {
   const store = useFitnessStore();
   const [mounted, setMounted] = useState(false);
@@ -387,14 +406,14 @@ export default function FitnessPage() {
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
         .fitness-app {
-          --bg-base: #08080c;
-          --bg-elevated: #0f0f14;
-          --bg-card: #151519;
-          --bg-hover: #1a1a20;
-          --bg-active: #222228;
+          --bg-base: #0a0a0a;
+          --bg-elevated: #121218;
+          --bg-card: rgba(30, 30, 40, 0.6);
+          --bg-hover: rgba(40, 40, 50, 0.8);
+          --bg-active: rgba(50, 50, 60, 0.8);
           --text-primary: #f5f5f7;
           --text-secondary: #8e8e93;
           --text-muted: #5c5c62;
@@ -404,20 +423,42 @@ export default function FitnessPage() {
           --gold: #ffd700;
           --border: rgba(255,255,255,0.06);
           --border-light: rgba(255,255,255,0.1);
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-family: 'Press Start 2P', monospace;
           -webkit-font-smoothing: antialiased;
+          background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%);
+          min-height: 100vh;
+          position: relative;
         }
 
         .fitness-app * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* Subtle background texture */
+        /* CRT Scanlines */
         .fitness-app::before {
           content: '';
           position: fixed;
-          inset: 0;
-          background: radial-gradient(ellipse at 50% 0%, rgba(255,107,107,0.03) 0%, transparent 50%);
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 3px);
           pointer-events: none;
-          z-index: 0;
+          z-index: 1000;
+        }
+
+        /* Pixel Particles */
+        .particles-container {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          pointer-events: none;
+          z-index: 1;
+          overflow: hidden;
+        }
+        .pixel-particle {
+          position: absolute;
+          animation: float-up linear infinite;
+        }
+        @keyframes float-up {
+          0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
         }
 
         /* Main Content */
@@ -426,7 +467,9 @@ export default function FitnessPage() {
           padding-bottom: 200px;
           min-height: 100vh;
           position: relative;
-          z-index: 1;
+          z-index: 2;
+          max-width: 800px;
+          margin: 0 auto;
         }
 
         /* Premium Command Bar */
@@ -462,22 +505,25 @@ export default function FitnessPage() {
         .suggestion {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 10px 12px;
-          border-radius: 12px;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          border-radius: 10px;
           cursor: pointer;
           transition: all 0.15s ease;
+          border: 1px solid transparent;
         }
         .suggestion:hover, .suggestion.selected {
-          background: var(--bg-hover);
+          background: rgba(40, 40, 50, 0.6);
+          border-color: rgba(255, 255, 255, 0.05);
         }
         .suggestion.selected {
           background: var(--accent-glow);
+          border-color: rgba(255, 107, 107, 0.2);
         }
 
         .suggestion-icon {
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -490,21 +536,21 @@ export default function FitnessPage() {
 
         .suggestion-text { flex: 1; min-width: 0; }
         .suggestion-title {
-          font-weight: 500;
-          font-size: 14px;
+          font-size: 0.4rem;
           color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .suggestion-subtitle {
-          font-size: 12px;
+          font-size: 0.3rem;
           color: var(--text-muted);
-          margin-top: 1px;
+          margin-top: 0.25rem;
+          line-height: 1.6;
         }
         .suggestion-meta {
-          font-size: 11px;
-          color: var(--text-secondary);
+          font-size: 0.28rem;
+          color: var(--accent);
           background: var(--bg-card);
           padding: 4px 8px;
           border-radius: 6px;
@@ -513,23 +559,23 @@ export default function FitnessPage() {
 
         .command-input {
           width: 100%;
-          padding: 14px 16px;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: 14px;
+          padding: 1rem;
+          background: rgba(20, 20, 25, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
           color: var(--text-primary);
-          font-size: 15px;
-          font-weight: 500;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
           outline: none;
           transition: all 0.2s;
         }
         .command-input:focus {
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px var(--accent-glow);
+          box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(255, 107, 107, 0.2);
         }
         .command-input::placeholder {
           color: var(--text-muted);
-          font-weight: 400;
+          font-size: 0.35rem;
         }
 
         /* Exercise Pills */
@@ -969,26 +1015,31 @@ export default function FitnessPage() {
 
         /* Workout Cards */
         .workout-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          padding: 16px;
-          margin-bottom: 8px;
+          background: rgba(30, 30, 40, 0.6);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 1rem;
+          margin-bottom: 0.75rem;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s ease;
         }
         .workout-card:hover {
-          background: var(--bg-hover);
-          border-color: var(--border-light);
-          transform: translateY(-1px);
+          background: rgba(40, 40, 50, 0.8);
+          border-color: rgba(255, 107, 107, 0.3);
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 107, 107, 0.1);
         }
         .workout-date {
-          font-size: 12px;
-          color: var(--text-muted);
-          margin-bottom: 4px;
+          font-size: 0.35rem;
+          color: #5fbf8a;
+          margin-bottom: 0.5rem;
+          letter-spacing: 0.1em;
         }
         .workout-summary {
-          font-size: 14px;
+          font-size: 0.4rem;
+          line-height: 1.8;
           color: var(--text-secondary);
         }
         .workout-xp {
@@ -1060,37 +1111,94 @@ export default function FitnessPage() {
         }
 
         /* Home Hero */
+        /* Home Hero - Glass Card */
         .home-hero {
+          padding: 24px 16px 32px;
+        }
+        .hero-card {
+          background: rgba(30, 30, 40, 0.8);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          padding: 2rem;
           text-align: center;
-          padding: 48px 24px 32px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
         .home-icon {
-          font-size: 64px;
-          margin-bottom: 20px;
+          font-size: 48px;
+          margin-bottom: 1rem;
+          filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.3));
         }
         .home-title {
-          font-size: 32px;
-          font-weight: 800;
-          color: var(--text-primary);
-          margin-bottom: 8px;
-          background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          font-size: clamp(0.8rem, 4vw, 1.2rem);
+          color: #fff;
+          margin-bottom: 0.5rem;
+          text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
         }
         .home-subtitle {
-          font-size: 15px;
+          font-size: 0.4rem;
           color: var(--text-secondary);
-          margin-bottom: 32px;
+          margin-bottom: 1.5rem;
+          line-height: 1.8;
+        }
+        .home-stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.75rem;
+          margin-top: 1.5rem;
+        }
+        .home-stat {
+          background: rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+          padding: 0.75rem 0.5rem;
+        }
+        .home-stat-value {
+          font-size: 0.7rem;
+          color: var(--accent);
+          text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        .home-stat-label {
+          font-size: 0.25rem;
+          color: var(--text-muted);
+          margin-top: 0.25rem;
+        }
+
+        /* Section Headers */
+        .section-header {
+          margin-bottom: 1rem;
+          padding: 0 16px;
+        }
+        .section-label {
+          font-size: 0.35rem;
+          color: #5fbf8a;
+          letter-spacing: 0.15em;
+          margin-bottom: 0.5rem;
+          text-shadow: 0 0 10px rgba(95, 191, 138, 0.5);
+        }
+        .section-title {
+          font-size: 0.6rem;
+          background: linear-gradient(90deg, #fff 0%, #fff 35%, #ff6b6b 42%, #FFD700 50%, #00ff00 58%, #fff 65%, #fff 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: rgb-shimmer 4s ease-in-out infinite;
+        }
+        @keyframes rgb-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
         }
 
         .recent-section {
           padding: 0 16px;
         }
         .recent-header {
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-muted);
+          font-size: 0.35rem;
+          color: #5fbf8a;
+          letter-spacing: 0.15em;
+          text-shadow: 0 0 10px rgba(95, 191, 138, 0.5);
           text-transform: uppercase;
           letter-spacing: 0.5px;
           margin-bottom: 12px;
@@ -1236,7 +1344,8 @@ export default function FitnessPage() {
         }
       `}</style>
 
-      <div className="fitness-app min-h-screen text-white" style={{ background: '#08080c' }}>
+      <div className="fitness-app text-white">
+        <PixelParticles />
         {/* Main Content */}
         <main className="content-area">
 
@@ -1578,14 +1687,33 @@ export default function FitnessPage() {
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
               <div className="home-hero">
-                <div className="home-icon">🏋️</div>
-                <h1 className="home-title">Iron Quest</h1>
-                <p className="home-subtitle">Level up your fitness journey</p>
+                <div className="hero-card">
+                  <div className="home-icon">🏋️</div>
+                  <h1 className="home-title">IRON QUEST</h1>
+                  <p className="home-subtitle">Turn every rep into XP</p>
+                  <div className="home-stats">
+                    <div className="home-stat">
+                      <div className="home-stat-value">{store.profile.level}</div>
+                      <div className="home-stat-label">LEVEL</div>
+                    </div>
+                    <div className="home-stat">
+                      <div className="home-stat-value">{store.profile.totalWorkouts}</div>
+                      <div className="home-stat-label">WORKOUTS</div>
+                    </div>
+                    <div className="home-stat">
+                      <div className="home-stat-value" style={{ color: '#FFD700' }}>{store.profile.xp.toLocaleString()}</div>
+                      <div className="home-stat-label">TOTAL XP</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {store.workouts.length > 0 && (
                 <div className="recent-section">
-                  <div className="recent-header">Recent Workouts</div>
+                  <div className="section-header">
+                    <p className="section-label">// RECENT ACTIVITY</p>
+                    <h2 className="section-title">Your Workouts</h2>
+                  </div>
                   {store.workouts.slice(0, 3).map(workout => (
                     <div
                       key={workout.id}
