@@ -329,12 +329,13 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     setError('');
     try {
       const supabase = createClient();
+      console.log('Verifying OTP:', { email: email.toLowerCase().trim(), token: otp.trim(), tokenLength: otp.trim().length });
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.toLowerCase().trim(),
         token: otp.trim(),
-        type: 'magiclink'
+        type: 'email'
       });
-      console.log('verifyOtp response:', { data, error });
+      console.log('verifyOtp response:', { data, error, errorCode: error?.code, errorStatus: error?.status });
       if (error) {
         setError(`${error.message}`);
         setOtp('');
