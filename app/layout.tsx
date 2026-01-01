@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { RetroNavBar } from "@/components/RetroNavBar";
 
 export const metadata: Metadata = {
   title: "gamify.it.com - Life's Not a Game, But It Should Be",
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased">
+        <RetroNavBar />
         {children}
       </body>
     </html>

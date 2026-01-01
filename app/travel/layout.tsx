@@ -1,16 +1,11 @@
-'use client';
-
-import { NavBar } from "@/components/NavBar";
-
 export default function TravelLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen" style={{ background: '#1a1a1a' }}>
-      <NavBar />
-      <main style={{ paddingTop: '80px' }}>{children}</main>
+    <div className="min-h-screen" style={{ background: '#1a1a1a', paddingTop: '80px' }}>
+      <main>{children}</main>
     </div>
   );
 }

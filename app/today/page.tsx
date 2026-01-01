@@ -533,9 +533,16 @@ export default function TodayPage() {
         .today-app {
           display: flex;
           min-height: 100vh;
+          padding-top: 80px;
           background: var(--bg-primary);
           color: var(--text-primary);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        @media (max-width: 768px) {
+          .today-app {
+            padding-top: 0;
+          }
         }
 
         .today-sidebar {

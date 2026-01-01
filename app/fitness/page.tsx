@@ -414,7 +414,7 @@ export default function FitnessPage() {
         }
 
         .content-area {
-          padding-top: calc(60px + env(safe-area-inset-top, 0px));
+          padding-top: calc(90px + env(safe-area-inset-top, 0px));
           padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
           min-height: 100vh;
           overflow-y: auto;
