@@ -2007,6 +2007,216 @@ export default function TodayPage() {
             display: block;
           }
         }
+
+        /* Hide mobile FAB on desktop */
+        .mobile-fab {
+          display: none;
+        }
+
+        /* ==========================================
+           MOBILE REDESIGN - Clean, Touch-Friendly UI
+           ========================================== */
+        @media (max-width: 768px) {
+          /* App container */
+          .today-app {
+            padding-top: 0;
+            min-height: 100vh;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+          }
+
+          /* Main content area */
+          .today-main {
+            padding-bottom: 90px;
+          }
+
+          /* Header - Clean and minimal */
+          .main-header {
+            padding: 16px 16px;
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            z-index: 50;
+            border-bottom: 1px solid var(--border);
+          }
+
+          .header-title {
+            font-size: 20px;
+          }
+
+          .header-subtitle {
+            font-size: 12px;
+            margin-top: 2px;
+          }
+
+          .header-actions {
+            gap: 6px;
+          }
+
+          .header-actions .btn {
+            padding: 8px 12px;
+            font-size: 12px;
+          }
+
+          .header-actions .btn-ghost {
+            display: none;
+          }
+
+          .header-actions .btn-primary {
+            display: none;
+          }
+
+          /* Task list */
+          .task-list {
+            padding: 12px 16px 100px;
+          }
+
+          .task-card {
+            padding: 14px 0;
+          }
+
+          .task-title {
+            font-size: 15px;
+          }
+
+          .task-meta {
+            font-size: 11px;
+            gap: 6px;
+          }
+
+          .task-checkbox {
+            width: 22px;
+            height: 22px;
+          }
+
+          /* Empty state */
+          .empty-state {
+            padding: 60px 20px;
+          }
+
+          .empty-state-icon {
+            font-size: 48px;
+          }
+
+          .empty-state p {
+            font-size: 14px;
+          }
+
+          /* Mobile Bottom Navigation - Redesigned */
+          .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
+            z-index: 150;
+          }
+
+          .mobile-nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 4px;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.15s ease;
+          }
+
+          .mobile-nav-btn.active {
+            color: var(--accent);
+          }
+
+          .mobile-nav-icon {
+            font-size: 22px;
+          }
+
+          /* Floating Action Button (FAB) for Add Task */
+          .mobile-fab {
+            display: flex !important;
+            position: fixed;
+            bottom: calc(80px + env(safe-area-inset-bottom, 0));
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: 300;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+            cursor: pointer;
+            z-index: 160;
+            transition: all 0.2s ease;
+          }
+
+          .mobile-fab:active {
+            transform: scale(0.92);
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+          }
+
+          /* Mobile panels - slide up from bottom */
+          .mobile-panel {
+            border-radius: 16px 16px 0 0;
+            padding: 16px;
+            max-height: 70vh;
+          }
+
+          .mobile-panel-header {
+            margin-bottom: 12px;
+          }
+
+          .mobile-panel-title {
+            font-size: 16px;
+          }
+
+          .mobile-panel-item {
+            padding: 12px;
+            font-size: 14px;
+            border-radius: 8px;
+          }
+
+          /* Modals on mobile */
+          .modal {
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            max-height: 100%;
+            border-radius: 0;
+            margin: 0;
+          }
+
+          .modal-header {
+            padding: 16px;
+          }
+
+          .modal-body {
+            padding: 16px;
+          }
+
+          .modal-footer {
+            padding: 16px;
+          }
+
+          .form-input,
+          .form-textarea,
+          .form-select {
+            font-size: 16px;
+            padding: 12px;
+          }
+        }
       `}</style>
 
       <div className="today-app">
@@ -2386,87 +2596,34 @@ export default function TodayPage() {
             <span className="mobile-nav-icon">📅</span>
             Today
           </button>
-          <button className="mobile-nav-btn" onClick={() => openTaskModal()}>
-            <span className="mobile-nav-icon">➕</span>
-            Add
+          <button
+            className={`mobile-nav-btn ${store.currentView === 'upcoming' ? 'active' : ''}`}
+            onClick={() => store.setView('upcoming')}
+          >
+            <span className="mobile-nav-icon">📆</span>
+            Upcoming
           </button>
           <button
-            className={`mobile-nav-btn ${mobilePanel === 'projects' ? 'active' : ''}`}
-            onClick={() => setMobilePanel(mobilePanel === 'projects' ? null : 'projects')}
+            className={`mobile-nav-btn ${store.currentView === 'completed' ? 'active' : ''}`}
+            onClick={() => store.setView('completed')}
           >
-            <span className="mobile-nav-icon">📁</span>
-            Projects
+            <span className="mobile-nav-icon">✅</span>
+            Done
           </button>
           <button
-            className={`mobile-nav-btn ${mobilePanel === 'profile' ? 'active' : ''}`}
-            onClick={() => setMobilePanel(mobilePanel === 'profile' ? null : 'profile')}
+            className="mobile-nav-btn"
+            onClick={() => setShowStatsModal(true)}
           >
-            <span className="mobile-nav-icon">👤</span>
-            Profile
+            <span className="mobile-nav-icon">📊</span>
+            Stats
           </button>
         </nav>
 
-        {/* Mobile Panel Overlay */}
-        <div
-          className={`mobile-panel-overlay ${mobilePanel ? 'active' : ''}`}
-          onClick={() => setMobilePanel(null)}
-        />
+        {/* Mobile FAB - Floating Add Button */}
+        <button className="mobile-fab" onClick={() => openTaskModal()}>
+          +
+        </button>
 
-        {/* Mobile Projects Panel */}
-        <div className={`mobile-panel ${mobilePanel === 'projects' ? 'active' : ''}`}>
-          <div className="mobile-panel-header">
-            <span className="mobile-panel-title">Projects</span>
-            <button className="mobile-panel-close" onClick={() => setMobilePanel(null)}>×</button>
-          </div>
-          {store.projects.map((project) => (
-            <div
-              key={project.id}
-              className="mobile-panel-item"
-              onClick={() => {
-                store.setView(`project-${project.id}`);
-                setMobilePanel(null);
-              }}
-            >
-              📁 {project.name}
-            </div>
-          ))}
-          <div className="mobile-panel-item" onClick={() => { openProjectModal(); setMobilePanel(null); }}>
-            ➕ New Project
-          </div>
-        </div>
-
-        {/* Mobile Profile Panel */}
-        <div className={`mobile-panel ${mobilePanel === 'profile' ? 'active' : ''}`}>
-          <div className="mobile-panel-header">
-            <span className="mobile-panel-title">Profile</span>
-            <button className="mobile-panel-close" onClick={() => setMobilePanel(null)}>×</button>
-          </div>
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <div style={{ fontSize: 48 }}>{rankInfo.icon}</div>
-            <div style={{ fontSize: 24, fontWeight: 700, marginTop: 8 }}>
-              Level {store.profile.level}
-            </div>
-            <div style={{ color: 'var(--text-tertiary)' }}>{rankInfo.rank}</div>
-            <div className="xp-bar" style={{ margin: '16px 0' }}>
-              <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
-            </div>
-            <div style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>
-              {store.profile.xp} / {store.profile.xp_to_next} XP
-            </div>
-          </div>
-          <div className="mobile-panel-item" onClick={() => { setShowStatsModal(true); setMobilePanel(null); }}>
-            📊 View Stats & Achievements
-          </div>
-          <div className="mobile-panel-item" onClick={() => { store.setView('completed'); setMobilePanel(null); }}>
-            ✅ Completed Tasks
-          </div>
-          <div
-            className="mobile-panel-item"
-            onClick={() => store.setTheme(store.theme === 'light' ? 'dark' : 'light')}
-          >
-            {store.theme === 'light' ? '🌙' : '☀️'} {store.theme === 'light' ? 'Dark' : 'Light'} Mode
-          </div>
-        </div>
       </div>
 
       {/* Task Modal */}
