@@ -83,6 +83,18 @@ export default function TodayPage() {
     setSelectedTaskIndex(-1);
   }, [store.currentView]);
 
+  // Get filtered tasks for keyboard navigation
+  const getFilteredTasksForNav = useCallback(() => {
+    return store.getFilteredTasks();
+  }, [store]);
+
+  // Get selected task
+  const getSelectedTask = useCallback(() => {
+    const tasks = getFilteredTasksForNav();
+    if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.length) return null;
+    return tasks[selectedTaskIndex];
+  }, [getFilteredTasksForNav, selectedTaskIndex]);
+
   // Keyboard shortcuts
   useEffect(() => {
     if (!mounted) return;
@@ -90,6 +102,7 @@ export default function TodayPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMeta = e.metaKey || e.ctrlKey;
       const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName);
+      const key = e.key.toLowerCase();
 
       // Command palette shortcuts
       if (showCommandPalette) {
@@ -101,7 +114,7 @@ export default function TodayPage() {
       }
 
       // Open command palette
-      if (isMeta && e.key === 'k') {
+      if (isMeta && key === 'k') {
         e.preventDefault();
         setShowCommandPalette(true);
         setCommandQuery('');
@@ -109,19 +122,49 @@ export default function TodayPage() {
         return;
       }
 
+      // ⌘↵ to save in modals
+      if (isMeta && e.key === 'Enter') {
+        if (showTaskModal) {
+          e.preventDefault();
+          saveTask();
+          return;
+        }
+        if (showProjectModal) {
+          e.preventDefault();
+          saveProject();
+          return;
+        }
+        if (showCategoryModal) {
+          e.preventDefault();
+          saveCategory();
+          return;
+        }
+      }
+
       // Close modals
       if (e.key === 'Escape') {
+        if (showShortcutsModal) {
+          setShowShortcutsModal(false);
+          return;
+        }
         setShowTaskModal(false);
         setShowProjectModal(false);
         setShowCategoryModal(false);
         setShowStatsModal(false);
+        setSelectedTaskIndex(-1);
         return;
       }
 
       if (isInput) return;
 
-      // Navigation shortcuts
-      switch (e.key.toLowerCase()) {
+      // Check if any modal is open
+      const isModalOpen = showTaskModal || showProjectModal || showCategoryModal || showStatsModal || showShortcutsModal;
+      if (isModalOpen) return;
+
+      const tasks = getFilteredTasksForNav();
+
+      // Navigation and action shortcuts
+      switch (key) {
         case '1':
         case 'i':
           e.preventDefault();
@@ -138,12 +181,10 @@ export default function TodayPage() {
           store.setView('upcoming');
           break;
         case '4':
-        case 'd':
           e.preventDefault();
           store.setView('completed');
           break;
         case '5':
-        case 's':
           e.preventDefault();
           setShowStatsModal(true);
           break;
@@ -163,12 +204,54 @@ export default function TodayPage() {
           e.preventDefault();
           openCategoryModal();
           break;
+        case '?':
+          e.preventDefault();
+          setShowShortcutsModal(true);
+          break;
+        // Task navigation
+        case 'j':
+        case 'arrowdown':
+          e.preventDefault();
+          if (tasks.length > 0) {
+            setSelectedTaskIndex(prev => Math.min(prev + 1, tasks.length - 1));
+          }
+          break;
+        case 'k':
+        case 'arrowup':
+          e.preventDefault();
+          if (tasks.length > 0) {
+            setSelectedTaskIndex(prev => prev <= 0 ? 0 : prev - 1);
+          }
+          break;
+        // Task actions on selected
+        case ' ':
+          e.preventDefault();
+          const taskToToggle = getSelectedTask();
+          if (taskToToggle) {
+            handleToggleComplete(taskToToggle.id);
+          }
+          break;
+        case 'e':
+          e.preventDefault();
+          const taskToEdit = getSelectedTask();
+          if (taskToEdit) {
+            openTaskModal(taskToEdit);
+          }
+          break;
+        case 'backspace':
+        case 'delete':
+          e.preventDefault();
+          const taskToDelete = getSelectedTask();
+          if (taskToDelete) {
+            handleDeleteTask(taskToDelete.id);
+          }
+          break;
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [mounted, showCommandPalette, store]);
+  }, [mounted, showCommandPalette, showTaskModal, showProjectModal, showCategoryModal, showStatsModal, showShortcutsModal, store, getFilteredTasksForNav, getSelectedTask]);
 
   // Theme effect - sync with navbar
   useEffect(() => {
@@ -461,14 +544,16 @@ export default function TodayPage() {
 
   // Commands for palette
   const commands = [
-    { id: 'inbox', title: 'Go to Inbox', icon: '📥', category: 'Navigation', action: () => store.setView('inbox') },
-    { id: 'today', title: 'Go to Today', icon: '📅', category: 'Navigation', action: () => store.setView('today') },
-    { id: 'upcoming', title: 'Go to Upcoming', icon: '📆', category: 'Navigation', action: () => store.setView('upcoming') },
-    { id: 'completed', title: 'Go to Completed', icon: '✅', category: 'Navigation', action: () => store.setView('completed') },
-    { id: 'stats', title: 'View Stats', icon: '📊', category: 'Navigation', action: () => setShowStatsModal(true) },
-    { id: 'new-task', title: 'New Task', icon: '➕', category: 'Create', action: () => openTaskModal() },
-    { id: 'new-project', title: 'New Project', icon: '📁', category: 'Create', action: () => openProjectModal() },
-    { id: 'new-category', title: 'New Category', icon: '🏷️', category: 'Create', action: () => openCategoryModal() },
+    { id: 'inbox', title: 'Go to Inbox', icon: '📥', shortcut: '1/I', category: 'Navigation', action: () => store.setView('inbox') },
+    { id: 'today', title: 'Go to Today', icon: '📅', shortcut: '2/T', category: 'Navigation', action: () => store.setView('today') },
+    { id: 'upcoming', title: 'Go to Upcoming', icon: '📆', shortcut: '3/U', category: 'Navigation', action: () => store.setView('upcoming') },
+    { id: 'completed', title: 'Go to Completed', icon: '✅', shortcut: '4', category: 'Navigation', action: () => store.setView('completed') },
+    { id: 'stats', title: 'View Stats', icon: '📊', shortcut: '5', category: 'Navigation', action: () => setShowStatsModal(true) },
+    { id: 'new-task', title: 'Quick Add Task', icon: '✨', shortcut: 'N', category: 'Create', action: () => quickAddRef.current?.focus() },
+    { id: 'full-task', title: 'Full Task Modal', icon: '➕', shortcut: 'A', category: 'Create', action: () => openTaskModal() },
+    { id: 'new-project', title: 'New Project', icon: '📁', shortcut: 'P', category: 'Create', action: () => openProjectModal() },
+    { id: 'new-category', title: 'New Category', icon: '🏷️', shortcut: 'C', category: 'Create', action: () => openCategoryModal() },
+    { id: 'shortcuts', title: 'Keyboard Shortcuts', icon: '⌨️', shortcut: '?', category: 'Help', action: () => setShowShortcutsModal(true) },
     { id: 'theme-light', title: 'Light Theme', icon: '☀️', category: 'Theme', action: () => store.setTheme('light') },
     { id: 'theme-dark', title: 'Dark Theme', icon: '🌙', category: 'Theme', action: () => store.setTheme('dark') }
   ];
@@ -841,6 +926,58 @@ export default function TodayPage() {
           color: var(--text-tertiary);
         }
 
+        .quick-add-hints {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 12px;
+          padding: 8px 0 0;
+          opacity: 0;
+          transform: translateY(-4px);
+          transition: all 0.2s ease;
+        }
+
+        .quick-add-container:focus-within .quick-add-hints {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .hint-group {
+          display: flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+
+        .hint-sep {
+          color: var(--border);
+          font-size: 11px;
+        }
+
+        .kbd {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 5px;
+          font-size: 10px;
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          font-weight: 500;
+          color: var(--text-secondary);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+          .quick-add-hints {
+            display: none;
+          }
+        }
+
         .task-list {
           flex: 1;
           overflow-y: auto;
@@ -888,6 +1025,12 @@ export default function TodayPage() {
 
         .task-card.priority-low {
           border-left: 3px solid var(--success);
+        }
+
+        .task-card.keyboard-selected {
+          border-color: var(--accent);
+          background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
         }
 
         .task-checkbox {
@@ -1175,6 +1318,15 @@ export default function TodayPage() {
           font-size: 14px;
         }
 
+        .command-item-shortcut {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          background: var(--bg-secondary);
+          padding: 3px 8px;
+          border-radius: 4px;
+          border: 1px solid var(--border);
+        }
+
         /* Stats Modal */
         .stats-grid {
           display: grid;
@@ -1243,6 +1395,57 @@ export default function TodayPage() {
           font-size: 12px;
           color: var(--accent);
           font-weight: 600;
+        }
+
+        /* Shortcuts Modal */
+        .shortcuts-modal {
+          max-width: 600px;
+        }
+
+        .shortcuts-content {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 24px;
+        }
+
+        @media (max-width: 600px) {
+          .shortcuts-content {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .shortcuts-section {
+          background: var(--bg-tertiary);
+          border-radius: 12px;
+          padding: 16px;
+        }
+
+        .shortcuts-section-title {
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--text-tertiary);
+          margin-bottom: 12px;
+        }
+
+        .shortcut-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 0;
+          font-size: 13px;
+        }
+
+        .shortcut-keys {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--text-tertiary);
+        }
+
+        .shortcut-keys .kbd {
+          min-width: 22px;
         }
 
         /* Toast */
@@ -1580,11 +1783,16 @@ export default function TodayPage() {
               ref={quickAddRef}
               type="text"
               className="quick-add-input"
-              placeholder="Press N to add a task... (use @project #category !priority ~difficulty today)"
+              placeholder="Press N to add a task... @project #category !priority ~difficulty today"
               value={quickAddValue}
               onChange={(e) => setQuickAddValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  openTaskModal();
+                  quickAddRef.current?.blur();
+                }
+                if (e.key === 'Enter' && !e.shiftKey && !(e.metaKey || e.ctrlKey)) {
                   e.preventDefault();
                   handleQuickAdd();
                 }
@@ -1594,6 +1802,16 @@ export default function TodayPage() {
                 }
               }}
             />
+            <div className="quick-add-hints">
+              <div className="hint-group"><span className="kbd">↵</span> add</div>
+              <div className="hint-group"><span className="kbd">⌘</span><span className="kbd">↵</span> modal</div>
+              <div className="hint-group"><span className="kbd">Esc</span> cancel</div>
+              <div className="hint-sep">|</div>
+              <div className="hint-group"><span className="kbd">@</span> project</div>
+              <div className="hint-group"><span className="kbd">#</span> category</div>
+              <div className="hint-group"><span className="kbd">!</span> priority</div>
+              <div className="hint-group"><span className="kbd">~</span> difficulty</div>
+            </div>
           </div>
 
           <div className="task-list">
@@ -1609,18 +1827,20 @@ export default function TodayPage() {
                 </p>
               </div>
             ) : (
-              filteredTasks.map((task) => {
+              filteredTasks.map((task, index) => {
                 const project = store.projects.find((p) => p.id === task.project_id);
                 const dueInfo = formatDueDate(task.due_date);
                 const xpPreview = calculateXPPreview(task, store.profile.current_streak);
                 const tierInfo = TIERS[task.tier];
+                const isSelected = index === selectedTaskIndex;
 
                 return (
                   <div
                     key={task.id}
+                    ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                     className={`task-card ${task.is_completed ? 'completed' : ''} ${
                       task.priority ? `priority-${task.priority.toLowerCase()}` : ''
-                    }`}
+                    } ${isSelected ? 'keyboard-selected' : ''}`}
                   >
                     <div
                       className={`task-checkbox ${task.is_completed ? 'checked' : ''}`}
@@ -2069,8 +2289,53 @@ export default function TodayPage() {
                 >
                   <span className="command-item-icon">{cmd.icon}</span>
                   <span className="command-item-title">{cmd.title}</span>
+                  {cmd.shortcut && <span className="command-item-shortcut">{cmd.shortcut}</span>}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Modal */}
+      {showShortcutsModal && (
+        <div className="modal-overlay" onClick={() => setShowShortcutsModal(false)}>
+          <div className="modal shortcuts-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Keyboard Shortcuts</h2>
+              <button className="modal-close" onClick={() => setShowShortcutsModal(false)}>×</button>
+            </div>
+            <div className="shortcuts-content">
+              <div className="shortcuts-section">
+                <h3 className="shortcuts-section-title">Navigation</h3>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">1</span> or <span className="kbd">I</span></span><span>Inbox</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">2</span> or <span className="kbd">T</span></span><span>Today</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">3</span> or <span className="kbd">U</span></span><span>Upcoming</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">4</span></span><span>Completed</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">5</span></span><span>Stats</span></div>
+              </div>
+              <div className="shortcuts-section">
+                <h3 className="shortcuts-section-title">Task Actions</h3>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">J</span> / <span className="kbd">↓</span></span><span>Select next task</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">K</span> / <span className="kbd">↑</span></span><span>Select previous task</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">Space</span></span><span>Toggle complete</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">E</span></span><span>Edit task</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">⌫</span></span><span>Delete task</span></div>
+              </div>
+              <div className="shortcuts-section">
+                <h3 className="shortcuts-section-title">Create</h3>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">N</span></span><span>Quick add task</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">A</span></span><span>Full task modal</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">P</span></span><span>New project</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">C</span></span><span>New category</span></div>
+              </div>
+              <div className="shortcuts-section">
+                <h3 className="shortcuts-section-title">General</h3>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">⌘</span><span className="kbd">K</span></span><span>Command palette</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">⌘</span><span className="kbd">↵</span></span><span>Save (in modal)</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">Esc</span></span><span>Close / Cancel</span></div>
+                <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">?</span></span><span>Show this help</span></div>
+              </div>
             </div>
           </div>
         </div>

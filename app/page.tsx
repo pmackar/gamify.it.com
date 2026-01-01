@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { RetroNavBar } from '@/components/RetroNavBar';
 import { useAchievements } from '@/components/AchievementPopup';
 import type { User } from '@supabase/supabase-js';
@@ -294,66 +293,32 @@ function SplashIntro() {
 // PWA Login Screen
 function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => void }) {
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
     setError('');
     try {
-      // Use standard Supabase client (not SSR) for OTP flow
-      const supabase = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOtp({
         email: email.toLowerCase().trim(),
-        options: { shouldCreateUser: true }
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
       });
       if (error) {
         setError(error.message);
       } else {
-        setStep('otp');
+        setSent(true);
       }
     } catch (err) {
-      console.error('sendOtp catch:', err);
-      setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
-    }
-    setLoading(false);
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp || otp.length < 6) return;
-    setLoading(true);
-    setError('');
-    try {
-      // Use standard Supabase client (not SSR) for OTP flow
-      const supabase = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-      console.log('Verifying OTP:', { email: email.toLowerCase().trim(), token: otp.trim(), tokenLength: otp.trim().length });
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.toLowerCase().trim(),
-        token: otp.trim(),
-        type: 'email'
-      });
-      console.log('verifyOtp response:', { data, error, errorCode: error?.code, errorStatus: error?.status });
-      if (error) {
-        setError(`${error.message}`);
-        setOtp('');
-      } else if (data.session) {
-        // Refresh the page to pick up the new session
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error('verifyOtp catch:', err);
+      console.error('sendLink catch:', err);
       setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
     setLoading(false);
@@ -375,38 +340,21 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
               Continue
             </button>
           </div>
-        ) : step === 'otp' ? (
+        ) : sent ? (
           <div className="pwa-login-form">
-            <div className="pwa-otp-header">
+            <div className="pwa-sent-header">
               <div className="pwa-sent-icon">✉️</div>
-              <p className="pwa-otp-text">Enter the code from your email</p>
-              <p className="pwa-otp-email">{email}</p>
-              <p className="pwa-otp-hint">(look for the 8-digit code)</p>
+              <p className="pwa-sent-text">Check your email!</p>
+              <p className="pwa-sent-email">{email}</p>
+              <p className="pwa-sent-hint">Click the link in your email to sign in. You&apos;ll be redirected back here.</p>
             </div>
-            <form onSubmit={handleVerifyOtp}>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={8}
-                className="pwa-input pwa-otp-input"
-                placeholder="00000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                autoFocus
-              />
-              {error && <p className="pwa-error">{error}</p>}
-              <button type="submit" className="pwa-submit-btn" disabled={loading || otp.length < 6}>
-                {loading ? 'Verifying...' : 'Verify Code'}
-              </button>
-            </form>
-            <button className="pwa-back-btn" onClick={() => { setStep('email'); setOtp(''); setError(''); }}>
+            <button className="pwa-back-btn" onClick={() => { setSent(false); setError(''); }}>
               ← Use different email
             </button>
           </div>
         ) : (
           <div className="pwa-login-form">
-            <form onSubmit={handleSendOtp}>
+            <form onSubmit={handleSendLink}>
               <input
                 type="email"
                 className="pwa-input"
@@ -417,7 +365,7 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
               />
               {error && <p className="pwa-error">{error}</p>}
               <button type="submit" className="pwa-submit-btn" disabled={loading}>
-                {loading ? 'Sending...' : 'Send Login Code'}
+                {loading ? 'Sending...' : 'Send Magic Link'}
               </button>
             </form>
           </div>
@@ -549,34 +497,30 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
           opacity: 0.7;
           cursor: not-allowed;
         }
-        .pwa-otp-header {
+        .pwa-sent-header {
           text-align: center;
           margin-bottom: 1.5rem;
         }
         .pwa-sent-icon {
-          font-size: 2rem;
-          margin-bottom: 0.75rem;
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
         }
-        .pwa-otp-text {
-          font-size: 0.75rem;
-          color: #888;
-          margin-bottom: 0.25rem;
+        .pwa-sent-text {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.7rem;
+          color: #5fbf8a;
+          margin-bottom: 0.5rem;
         }
-        .pwa-otp-email {
+        .pwa-sent-email {
           font-size: 0.85rem;
           color: #FFD700;
           word-break: break-all;
+          margin-bottom: 1rem;
         }
-        .pwa-otp-hint {
-          font-size: 0.65rem;
-          color: #666;
-          margin-top: 0.5rem;
-        }
-        .pwa-otp-input {
-          text-align: center;
-          font-size: 1.25rem !important;
-          letter-spacing: 0.3rem;
-          font-family: monospace !important;
+        .pwa-sent-hint {
+          font-size: 0.7rem;
+          color: #888;
+          line-height: 1.6;
         }
         .pwa-error {
           font-size: 0.7rem;
@@ -589,7 +533,7 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
           border: none;
           color: #666;
           font-size: 0.75rem;
-          margin-top: 1rem;
+          margin-top: 1.5rem;
           cursor: pointer;
           transition: color 0.2s;
         }
