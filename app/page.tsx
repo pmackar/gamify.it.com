@@ -603,6 +603,33 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
         .pwa-back-btn:hover {
           color: #888;
         }
+        .pwa-code-btn {
+          background: transparent;
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          border-radius: 10px;
+          padding: 0.75rem 1rem;
+          font-size: 0.85rem;
+          color: #FFD700;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 1rem;
+          width: 100%;
+        }
+        .pwa-code-btn:hover {
+          background: rgba(255, 215, 0, 0.1);
+          border-color: rgba(255, 215, 0, 0.5);
+        }
+        .pwa-code-label {
+          font-size: 0.85rem;
+          color: #aaa;
+          margin-bottom: 1rem;
+        }
+        .pwa-code-input {
+          text-align: center;
+          font-size: 1.5rem !important;
+          letter-spacing: 0.5rem;
+          font-family: 'SF Mono', monospace !important;
+        }
         .pwa-welcome {
           font-size: 0.75rem;
           color: #888;
