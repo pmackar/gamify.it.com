@@ -319,7 +319,7 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp || otp.length !== 6) return;
+    if (!otp || otp.length < 6) return;
     setLoading(true);
     setError('');
     const supabase = createClient();
@@ -357,22 +357,22 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
               <div className="pwa-sent-icon">✉️</div>
               <p className="pwa-otp-text">Enter the code from your email</p>
               <p className="pwa-otp-email">{email}</p>
-              <p className="pwa-otp-hint">(look for the 6-digit number)</p>
+              <p className="pwa-otp-hint">(look for the 8-digit code)</p>
             </div>
             <form onSubmit={handleVerifyOtp}>
               <input
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={6}
+                maxLength={8}
                 className="pwa-input pwa-otp-input"
-                placeholder="000000"
+                placeholder="00000000"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 autoFocus
               />
               {error && <p className="pwa-error">{error}</p>}
-              <button type="submit" className="pwa-submit-btn" disabled={loading || otp.length !== 6}>
+              <button type="submit" className="pwa-submit-btn" disabled={loading || otp.length < 6}>
                 {loading ? 'Verifying...' : 'Verify Code'}
               </button>
             </form>
@@ -550,8 +550,8 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
         }
         .pwa-otp-input {
           text-align: center;
-          font-size: 1.5rem !important;
-          letter-spacing: 0.5rem;
+          font-size: 1.25rem !important;
+          letter-spacing: 0.3rem;
           font-family: monospace !important;
         }
         .pwa-error {
