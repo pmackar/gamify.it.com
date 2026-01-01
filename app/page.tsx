@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { RetroNavBar } from '@/components/RetroNavBar';
+import { useAchievements } from '@/components/AchievementPopup';
 import type { User } from '@supabase/supabase-js';
 
 const videos = [
@@ -37,10 +38,24 @@ const LifeIcon = ({ className }: { className?: string }) => (<svg className={cla
 
 const XPBar = ({ current, max, color }: { current: number; max: number; color: string }) => (<div className="xp-bar-container"><div className="xp-bar-bg"><div className="xp-bar-fill" style={{ width: `${(current / max) * 100}%`, background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`, boxShadow: `0 0 8px ${color}60` }} /></div><span className="xp-bar-text">{current.toLocaleString()} / {max.toLocaleString()} XP</span></div>);
 
+// Sample achievements for testing
+const TEST_ACHIEVEMENTS = [
+  { code: 'first_steps', name: 'First Steps', description: 'Log your first location', icon: 'footprints', xpReward: 100, category: 'exploration', tier: 1 },
+  { code: 'explorer', name: 'Explorer', description: 'Visit 10 unique locations', icon: 'compass', xpReward: 250, category: 'exploration', tier: 2 },
+  { code: 'globetrotter', name: 'Globetrotter', description: 'Visit 100 unique locations', icon: 'globe', xpReward: 1000, category: 'exploration', tier: 3 },
+  { code: 'international', name: 'International', description: 'Visit 10 different countries', icon: 'earth', xpReward: 2000, category: 'exploration', tier: 4 },
+];
+
 // Logged-in Dashboard Component
 function Dashboard({ user }: { user: User }) {
   const [totalXP] = useState(12450);
   const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player';
+  const { showAchievement } = useAchievements();
+
+  const testAchievement = () => {
+    const randomAchievement = TEST_ACHIEVEMENTS[Math.floor(Math.random() * TEST_ACHIEVEMENTS.length)];
+    showAchievement(randomAchievement);
+  };
 
   return (
     <>
@@ -123,9 +138,10 @@ function Dashboard({ user }: { user: User }) {
                 <div className="stat-value" style={{ color: '#5CC9F5' }}>3</div>
                 <div className="stat-label">GAMES ACTIVE</div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={testAchievement} style={{ cursor: 'pointer' }}>
                 <div className="stat-value" style={{ color: '#5fbf8a' }}>24</div>
                 <div className="stat-label">ACHIEVEMENTS</div>
+                <div style={{ fontSize: '0.3rem', color: '#666', marginTop: '0.5rem' }}>CLICK TO TEST</div>
               </div>
             </div>
           </section>
