@@ -2194,7 +2194,7 @@ export default function TodayPage() {
           .quick-add-container {
             display: flex !important;
             position: fixed;
-            bottom: calc(52px + max(4px, env(safe-area-inset-bottom, 0)));
+            bottom: calc(60px + env(safe-area-inset-bottom, 0));
             left: 12px;
             right: 12px;
             padding: 0;
