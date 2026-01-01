@@ -541,7 +541,7 @@ export default function TodayPage() {
 
         @media (max-width: 768px) {
           .today-app {
-            padding-top: 0;
+            padding-top: 56px;
           }
         }
 

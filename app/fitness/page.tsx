@@ -1266,9 +1266,9 @@ export default function FitnessPage() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .content-area { padding-top: 16px; }
-          .content-area.has-workout { padding-top: 80px; }
-          .workout-status { top: 16px; }
+          .content-area { padding-top: 60px; }
+          .content-area.has-workout { padding-top: 120px; }
+          .workout-status { top: 56px; }
         }
       `}</style>
 

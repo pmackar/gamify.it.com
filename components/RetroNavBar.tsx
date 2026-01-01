@@ -473,10 +473,51 @@ export function RetroNavBar() {
           50% { opacity: 0.4; transform: scale(0.9); }
         }
 
-        /* Hide on mobile - apps have their own navigation */
+        /* Mobile responsive - same nav everywhere */
         @media (max-width: 768px) {
           .global-nav {
-            display: none;
+            padding: 8px 12px;
+          }
+
+          .global-nav-inner {
+            padding: 6px 12px;
+            border-radius: 12px;
+          }
+
+          .nav-logo {
+            font-size: 8px;
+          }
+
+          .nav-app-link {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+          }
+
+          .nav-app-link svg {
+            width: 18px;
+            height: 18px;
+          }
+
+          .nav-login-btn {
+            font-size: 6px;
+            padding: 6px 10px;
+          }
+
+          .nav-avatar,
+          .nav-avatar-placeholder {
+            width: 28px;
+            height: 28px;
+          }
+
+          .nav-avatar-placeholder {
+            font-size: 9px;
+          }
+
+          .nav-dropdown,
+          .nav-login-dropdown {
+            right: -8px;
+            min-width: 200px;
           }
         }
       `}</style>
