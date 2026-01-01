@@ -406,7 +406,7 @@ export default function FitnessPage() {
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         .fitness-app {
           --bg-base: #0a0a0a;
@@ -416,14 +416,16 @@ export default function FitnessPage() {
           --bg-active: rgba(50, 50, 60, 0.8);
           --text-primary: #f5f5f7;
           --text-secondary: #8e8e93;
-          --text-muted: #5c5c62;
+          --text-muted: #6b7280;
           --accent: #ff6b6b;
           --accent-glow: rgba(255, 107, 107, 0.15);
           --success: #34c759;
           --gold: #ffd700;
           --border: rgba(255,255,255,0.06);
           --border-light: rgba(255,255,255,0.1);
-          font-family: 'Press Start 2P', monospace;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 16px;
+          line-height: 1.5;
           -webkit-font-smoothing: antialiased;
           background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%);
           min-height: 100vh;
@@ -538,20 +540,21 @@ export default function FitnessPage() {
 
         .suggestion-text { flex: 1; min-width: 0; }
         .suggestion-title {
-          font-size: 0.4rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
           color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .suggestion-subtitle {
-          font-size: 0.3rem;
+          font-size: 0.8125rem;
           color: var(--text-muted);
-          margin-top: 0.25rem;
-          line-height: 1.6;
+          margin-top: 2px;
         }
         .suggestion-meta {
-          font-size: 0.28rem;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--accent);
           background: var(--bg-card);
           padding: 4px 8px;
@@ -561,23 +564,24 @@ export default function FitnessPage() {
 
         .command-input {
           width: 100%;
-          padding: 1rem;
+          padding: 14px 16px;
           background: rgba(20, 20, 25, 0.8);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 12px;
           color: var(--text-primary);
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.4rem;
+          font-family: inherit;
+          font-size: 1rem;
+          font-weight: 500;
           outline: none;
           transition: all 0.2s;
         }
         .command-input:focus {
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(255, 107, 107, 0.2);
+          box-shadow: 0 0 0 3px var(--accent-glow);
         }
         .command-input::placeholder {
           color: var(--text-muted);
-          font-size: 0.35rem;
+          font-weight: 400;
         }
 
         /* Exercise Pills */
@@ -1030,18 +1034,17 @@ export default function FitnessPage() {
         .workout-card:hover {
           background: rgba(40, 40, 50, 0.8);
           border-color: rgba(255, 107, 107, 0.3);
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 107, 107, 0.1);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
         .workout-date {
-          font-size: 0.35rem;
-          color: #5fbf8a;
-          margin-bottom: 0.5rem;
-          letter-spacing: 0.1em;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: var(--accent);
+          margin-bottom: 4px;
         }
         .workout-summary {
-          font-size: 0.4rem;
-          line-height: 1.8;
+          font-size: 0.9375rem;
           color: var(--text-secondary);
         }
         .workout-xp {
@@ -1128,43 +1131,45 @@ export default function FitnessPage() {
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
         .home-icon {
-          font-size: 48px;
+          font-size: 56px;
           margin-bottom: 1rem;
           filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.3));
         }
         .home-title {
-          font-size: clamp(0.8rem, 4vw, 1.2rem);
+          font-size: 1.75rem;
+          font-weight: 700;
           color: #fff;
           margin-bottom: 0.5rem;
-          text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
         }
         .home-subtitle {
-          font-size: 0.4rem;
+          font-size: 1rem;
           color: var(--text-secondary);
           margin-bottom: 1.5rem;
-          line-height: 1.8;
         }
         .home-stats {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 0.75rem;
+          gap: 12px;
           margin-top: 1.5rem;
         }
         .home-stat {
           background: rgba(0, 0, 0, 0.3);
           border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-          padding: 0.75rem 0.5rem;
+          border-radius: 12px;
+          padding: 1rem 0.75rem;
         }
         .home-stat-value {
-          font-size: 0.7rem;
+          font-size: 1.5rem;
+          font-weight: 700;
           color: var(--accent);
-          text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
         }
         .home-stat-label {
-          font-size: 0.25rem;
+          font-size: 0.6875rem;
+          font-weight: 600;
           color: var(--text-muted);
-          margin-top: 0.25rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-top: 4px;
         }
 
         /* Section Headers */
@@ -1173,34 +1178,28 @@ export default function FitnessPage() {
           padding: 0 16px;
         }
         .section-label {
-          font-size: 0.35rem;
-          color: #5fbf8a;
-          letter-spacing: 0.15em;
-          margin-bottom: 0.5rem;
-          text-shadow: 0 0 10px rgba(95, 191, 138, 0.5);
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--accent);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 4px;
         }
         .section-title {
-          font-size: 0.6rem;
-          background: linear-gradient(90deg, #fff 0%, #fff 35%, #ff6b6b 42%, #FFD700 50%, #00ff00 58%, #fff 65%, #fff 100%);
-          background-size: 200% 100%;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: rgb-shimmer 4s ease-in-out infinite;
-        }
-        @keyframes rgb-shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--text-primary);
         }
 
         .recent-section {
           padding: 0 16px;
         }
         .recent-header {
-          font-size: 0.35rem;
-          color: #5fbf8a;
-          letter-spacing: 0.15em;
-          text-shadow: 0 0 10px rgba(95, 191, 138, 0.5);
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--accent);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           margin-bottom: 12px;
@@ -1713,7 +1712,7 @@ export default function FitnessPage() {
               {store.workouts.length > 0 && (
                 <div className="recent-section">
                   <div className="section-header">
-                    <p className="section-label">// RECENT ACTIVITY</p>
+                    <p className="section-label">Recent Activity</p>
                     <h2 className="section-title">Your Workouts</h2>
                   </div>
                   {store.workouts.slice(0, 3).map(workout => (
