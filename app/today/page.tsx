@@ -81,6 +81,12 @@ export default function TodayPage() {
   useEffect(() => {
     setMounted(true);
     store.loadState();
+
+    // Default to dark theme on mobile if no theme was previously saved
+    const savedTheme = localStorage.getItem('gamify-theme');
+    if (!savedTheme && window.innerWidth <= 768) {
+      store.setTheme('dark');
+    }
   }, []);
 
   // Reset selection when view changes
