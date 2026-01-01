@@ -1349,131 +1349,170 @@ export default function TodayPage() {
           color: var(--danger);
         }
 
-        /* Floating quick add */
-        .floating-quick-add {
+        /* Floating quick add - gamify-today style */
+        .quick-add-container {
           position: fixed;
-          bottom: 32px;
-          left: 260px;
+          bottom: 24px;
+          left: 280px;
           right: 0;
-          z-index: 100;
-          padding: 0 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0 24px;
           pointer-events: none;
+          z-index: 200;
         }
 
         @media (max-width: 768px) {
-          .floating-quick-add {
+          .quick-add-container {
             display: none;
           }
         }
 
-        .floating-quick-add-inner {
-          max-width: 600px;
-          margin: 0 auto;
+        .quick-add-wrapper {
+          position: relative;
           display: flex;
           align-items: center;
           gap: 12px;
-          pointer-events: auto;
+          width: 100%;
+          max-width: 600px;
+          padding: 12px 16px;
           background: var(--bg-primary);
-          padding: 14px 20px;
-          border-radius: 12px;
-          border: 1px solid var(--border);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          border: 2px solid var(--bg-tertiary);
+          border-radius: 14px;
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+          pointer-events: auto;
+          transition: all 0.15s ease;
         }
 
-        [data-theme="dark"] .floating-quick-add-inner,
-        [data-theme="terminal"] .floating-quick-add-inner {
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        .quick-add-wrapper:focus-within {
+          border-color: var(--accent);
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 0 4px rgba(249, 115, 22, 0.15);
         }
 
-        .floating-quick-add-icon {
+        [data-theme="dark"] .quick-add-wrapper,
+        [data-theme="terminal"] .quick-add-wrapper {
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .quick-add-icon {
           color: var(--accent);
           font-size: 16px;
-          opacity: 0.7;
+          opacity: 0.8;
         }
 
-        .floating-quick-add-input {
+        .quick-add-input {
           flex: 1;
           border: none;
           background: transparent;
           font-size: 14px;
           color: var(--text-primary);
           outline: none;
-          padding: 2px 0;
         }
 
-        .floating-quick-add-input::placeholder {
+        .quick-add-input::placeholder {
           color: var(--text-tertiary);
         }
 
-        /* Suggestions popup */
-        .suggestions-popup {
+        /* Autocomplete dropdown - above input */
+        .quick-add-autocomplete {
           position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 600px;
-          margin-bottom: 8px;
+          bottom: calc(100% + 8px);
+          left: 0;
+          right: 0;
           background: var(--bg-primary);
           border: 1px solid var(--border);
           border-radius: 12px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
           overflow: hidden;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(8px);
+          transition: all 0.15s ease;
+          pointer-events: none;
+        }
+
+        .quick-add-autocomplete.visible {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
           pointer-events: auto;
         }
 
-        .suggestion-item {
+        .autocomplete-item {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 16px;
+          padding: 10px 14px;
           cursor: pointer;
           transition: background 0.1s ease;
         }
 
-        .suggestion-item:hover,
-        .suggestion-item.selected {
-          background: var(--bg-tertiary);
+        .autocomplete-item:hover {
+          background: var(--bg-secondary);
         }
 
-        .suggestion-icon {
+        .autocomplete-item.selected {
+          background: var(--accent);
+          color: white;
+        }
+
+        .autocomplete-icon {
           font-size: 16px;
+          width: 24px;
+          text-align: center;
         }
 
-        .suggestion-label {
+        .autocomplete-label {
           flex: 1;
           font-size: 14px;
-          color: var(--text-primary);
+          font-weight: 500;
         }
 
-        .suggestion-type {
+        .autocomplete-value {
+          font-family: monospace;
           font-size: 11px;
-          text-transform: uppercase;
           color: var(--text-tertiary);
-          background: var(--bg-secondary);
-          padding: 2px 8px;
-          border-radius: 4px;
         }
 
-        .suggestions-hint {
+        .autocomplete-item.selected .autocomplete-value {
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Keyboard hints below input */
+        .quick-add-hints {
           display: flex;
           justify-content: center;
-          gap: 16px;
-          padding: 8px 16px;
-          background: var(--bg-secondary);
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 8px;
           font-size: 11px;
           color: var(--text-tertiary);
-          border-top: 1px solid var(--border);
+          opacity: 0;
+          transition: opacity 0.15s ease;
+          pointer-events: none;
         }
 
-        .suggestions-hint kbd {
-          display: inline-block;
-          padding: 1px 5px;
+        .quick-add-wrapper:focus-within + .quick-add-hints {
+          opacity: 1;
+        }
+
+        .quick-add-hint-group {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .quick-add-hints .kbd {
+          padding: 2px 5px;
           font-size: 10px;
           background: var(--bg-tertiary);
           border: 1px solid var(--border);
           border-radius: 3px;
-          margin-right: 4px;
+        }
+
+        .hint-divider {
+          color: var(--border);
         }
 
         /* Modals */
@@ -2232,94 +2271,98 @@ export default function TodayPage() {
             )}
           </div>
 
-          {/* Floating Quick Add (desktop only) */}
-          <div className="floating-quick-add">
-            {/* Suggestions popup */}
-            {suggestions.length > 0 && (
-              <div className="suggestions-popup">
-                {suggestions.map((suggestion, index) => (
-                  <div
-                    key={`${suggestion.type}-${suggestion.value}`}
-                    className={`suggestion-item ${index === suggestionIndex ? 'selected' : ''}`}
-                    onClick={() => selectSuggestion(suggestion)}
-                  >
-                    <span className="suggestion-icon">{suggestion.icon}</span>
-                    <span className="suggestion-label">{suggestion.label}</span>
-                    <span className="suggestion-type">{suggestion.type}</span>
-                  </div>
-                ))}
-                <div className="suggestions-hint">
-                  <span><kbd>↑↓</kbd> navigate</span>
-                  <span><kbd>↵</kbd> select</span>
-                  <span><kbd>esc</kbd> close</span>
-                </div>
-              </div>
-            )}
-            <div className="floating-quick-add-inner">
-              <span className="floating-quick-add-icon">✨</span>
-              <input
-                ref={quickAddRef}
-                type="text"
-                className="floating-quick-add-input"
-                placeholder="Press N to add a task..."
-                value={quickAddValue}
-                onChange={(e) => {
-                  setQuickAddValue(e.target.value);
-                  updateSuggestions(e.target.value, e.target.selectionStart || 0);
-                }}
-                onKeyDown={(e) => {
-                  // Handle suggestions navigation
-                  if (suggestions.length > 0) {
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setSuggestionIndex(i => Math.min(i + 1, suggestions.length - 1));
-                      return;
-                    }
-                    if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      setSuggestionIndex(i => Math.max(i - 1, 0));
-                      return;
-                    }
-                    if (e.key === 'Enter' || e.key === 'Tab') {
-                      e.preventDefault();
-                      selectSuggestion(suggestions[suggestionIndex]);
-                      return;
-                    }
-                    if (e.key === 'Escape') {
-                      e.preventDefault();
-                      setSuggestions([]);
-                      setActiveToken(null);
-                      return;
-                    }
-                  }
+        </main>
 
-                  // Normal input handling
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        {/* Floating Quick Add - gamify-today style */}
+        <div className="quick-add-container">
+          <div className="quick-add-wrapper">
+            {/* Autocomplete dropdown */}
+            <div className={`quick-add-autocomplete ${suggestions.length > 0 ? 'visible' : ''}`}>
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={`${suggestion.type}-${suggestion.value}`}
+                  className={`autocomplete-item ${index === suggestionIndex ? 'selected' : ''}`}
+                  onClick={() => selectSuggestion(suggestion)}
+                >
+                  <span className="autocomplete-icon">{suggestion.icon}</span>
+                  <span className="autocomplete-label">{suggestion.label}</span>
+                  <span className="autocomplete-value">{suggestion.type === 'project' ? '@' : suggestion.type === 'category' ? '#' : suggestion.type === 'priority' ? '!' : suggestion.type === 'difficulty' ? '~' : '^'}{suggestion.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <span className="quick-add-icon">✨</span>
+            <input
+              ref={quickAddRef}
+              type="text"
+              className="quick-add-input"
+              placeholder="Press N to add a task..."
+              value={quickAddValue}
+              onChange={(e) => {
+                setQuickAddValue(e.target.value);
+                updateSuggestions(e.target.value, e.target.selectionStart || 0);
+              }}
+              onKeyDown={(e) => {
+                // Handle suggestions navigation
+                if (suggestions.length > 0) {
+                  if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    openTaskModal();
-                    quickAddRef.current?.blur();
+                    setSuggestionIndex(i => Math.min(i + 1, suggestions.length - 1));
+                    return;
                   }
-                  if (e.key === 'Enter' && !e.shiftKey && !(e.metaKey || e.ctrlKey)) {
+                  if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    handleQuickAdd();
+                    setSuggestionIndex(i => Math.max(i - 1, 0));
+                    return;
+                  }
+                  if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    selectSuggestion(suggestions[suggestionIndex]);
+                    return;
                   }
                   if (e.key === 'Escape') {
-                    setQuickAddValue('');
-                    setSuggestions([]);
-                    quickAddRef.current?.blur();
-                  }
-                }}
-                onBlur={() => {
-                  // Delay to allow click on suggestion
-                  setTimeout(() => {
+                    e.preventDefault();
                     setSuggestions([]);
                     setActiveToken(null);
-                  }, 150);
-                }}
-              />
-            </div>
+                    return;
+                  }
+                }
+
+                // Normal input handling
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  openTaskModal();
+                  quickAddRef.current?.blur();
+                }
+                if (e.key === 'Enter' && !e.shiftKey && !(e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  handleQuickAdd();
+                }
+                if (e.key === 'Escape') {
+                  setQuickAddValue('');
+                  setSuggestions([]);
+                  quickAddRef.current?.blur();
+                }
+              }}
+              onBlur={() => {
+                // Delay to allow click on suggestion
+                setTimeout(() => {
+                  setSuggestions([]);
+                  setActiveToken(null);
+                }, 150);
+              }}
+            />
           </div>
-        </main>
+          <div className="quick-add-hints">
+            <div className="quick-add-hint-group"><span className="kbd">↵</span> add</div>
+            <div className="quick-add-hint-group"><span className="kbd">⌘↵</span> modal</div>
+            <span className="hint-divider">|</span>
+            <div className="quick-add-hint-group"><span className="kbd">@</span> project</div>
+            <div className="quick-add-hint-group"><span className="kbd">#</span> category</div>
+            <div className="quick-add-hint-group"><span className="kbd">!</span> priority</div>
+            <div className="quick-add-hint-group"><span className="kbd">~</span> difficulty</div>
+          </div>
+        </div>
 
         {/* Mobile Navigation */}
         <nav className="mobile-nav">
