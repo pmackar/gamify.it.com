@@ -1315,9 +1315,16 @@ export default function TodayPage() {
           bottom: 24px;
           left: 50%;
           transform: translateX(-50%);
-          width: 100%;
+          width: calc(100% - 32px);
           max-width: 400px;
           z-index: 100;
+          padding: 0 16px;
+        }
+
+        @media (max-width: 768px) {
+          .floating-quick-add {
+            display: none;
+          }
         }
 
         @media (min-width: 769px) {
@@ -1861,32 +1868,63 @@ export default function TodayPage() {
         {/* Sidebar */}
         <aside className="today-sidebar">
           <div className="sidebar-header">
-            <div className="user-card">
-              <div className="user-avatar">
-                <div className="avatar-glow" />
-                <div className="level-ring">
-                  <svg className="level-ring-svg" viewBox="0 0 56 56">
-                    <circle className="level-ring-bg" cx="28" cy="28" r="26" />
-                    <circle
-                      className="level-ring-progress"
-                      cx="28"
-                      cy="28"
-                      r="26"
-                      style={{ strokeDashoffset: 163 - (163 * xpPercent / 100) }}
-                    />
-                  </svg>
+            <div className="character-card">
+              <div className="character-top">
+                <div className="character-avatar">
+                  {rankInfo.icon}
+                  <span className="level-badge">{store.profile.level}</span>
                 </div>
-                <div className="avatar-inner">{rankInfo.icon}</div>
-                <span className="level-badge">{store.profile.level}</span>
+                <div className="character-info">
+                  <div className="character-rank">{rankInfo.rank.toUpperCase()}</div>
+                  <div className="character-title">Task Warrior</div>
+                </div>
               </div>
-              <div className="user-info">
-                <div style={{ fontWeight: 600 }}>{store.profile.name}</div>
-                <div className="user-rank">{rankInfo.rank}</div>
+
+              <div className="xp-section">
+                <div className="xp-label">
+                  <span>EXPERIENCE</span>
+                  <span className="xp-value">{store.profile.xp} / {store.profile.xp_to_next}</span>
+                </div>
                 <div className="xp-bar">
                   <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
                 </div>
-                <div className="xp-text">
-                  {store.profile.xp} / {store.profile.xp_to_next} XP • 🔥 {store.profile.current_streak}
+              </div>
+
+              <div className="theme-pills">
+                <button
+                  className={`theme-pill ${store.theme === 'light' ? 'active' : ''}`}
+                  onClick={() => store.setTheme('light')}
+                >
+                  ☀️ Light
+                </button>
+                <button
+                  className={`theme-pill ${store.theme === 'dark' ? 'active' : ''}`}
+                  onClick={() => store.setTheme('dark')}
+                >
+                  🌙 Dark
+                </button>
+                <button
+                  className={`theme-pill ${store.theme === 'terminal' ? 'active' : ''}`}
+                  onClick={() => store.setTheme('terminal')}
+                >
+                  💻 Term
+                </button>
+              </div>
+
+              <div className="stat-badges">
+                <div className="stat-badge">
+                  <span className="stat-badge-icon">🔥</span>
+                  <div>
+                    <div className="stat-badge-value">{store.profile.current_streak}</div>
+                    <div className="stat-badge-label">Streak</div>
+                  </div>
+                </div>
+                <div className="stat-badge">
+                  <span className="stat-badge-icon">✅</span>
+                  <div>
+                    <div className="stat-badge-value">{todayCount}</div>
+                    <div className="stat-badge-label">Today</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2002,6 +2040,17 @@ export default function TodayPage() {
               ))}
             </div>
           </nav>
+
+          <div className="sidebar-footer">
+            <button className="sidebar-footer-item" onClick={() => setShowStatsModal(true)}>
+              <span className="sidebar-footer-icon">📊</span>
+              Stats & Achievements
+            </button>
+            <button className="sidebar-footer-item" onClick={() => setShowShortcutsModal(true)}>
+              <span className="sidebar-footer-icon">⌨️</span>
+              Keyboard Shortcuts
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}
@@ -2117,6 +2166,31 @@ export default function TodayPage() {
                 );
               })
             )}
+          </div>
+
+          {/* Floating Quick Add (desktop only) */}
+          <div className="floating-quick-add">
+            <div className="floating-quick-add-inner">
+              <span className="floating-quick-add-icon">✨</span>
+              <input
+                type="text"
+                className="floating-quick-add-input"
+                placeholder="Quick add a task..."
+                value={quickAddValue}
+                onChange={(e) => setQuickAddValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleQuickAdd();
+                  }
+                  if (e.key === 'Escape') {
+                    setQuickAddValue('');
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
+              <span className="kbd">↵</span>
+            </div>
           </div>
         </main>
 
