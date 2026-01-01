@@ -533,7 +533,7 @@ export default function TodayPage() {
         .today-app {
           display: flex;
           min-height: 100vh;
-          padding-top: 80px;
+          padding-top: 66px;
           background: var(--bg-primary);
           color: var(--text-primary);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
