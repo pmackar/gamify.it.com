@@ -496,9 +496,11 @@ export default function FitnessPage() {
 
         .suggestions {
           margin-bottom: 8px;
-          max-height: 280px;
+          max-height: 168px; /* ~3 items visible */
           overflow-y: auto;
+          overflow-x: hidden;
           scrollbar-width: none;
+          overscroll-behavior: contain;
         }
         .suggestions::-webkit-scrollbar { display: none; }
 
@@ -1758,17 +1760,19 @@ export default function FitnessPage() {
               className="command-input"
               placeholder={(() => {
                 if (addingGoal) return 'Search exercise for goal...';
+                // Active workout but viewing different screen
+                if (store.currentWorkout && store.currentView !== 'workout') {
+                  return 'Resume workout...';
+                }
+                // In workout view
                 if (store.currentWorkout && store.currentView === 'workout') {
                   const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
                   if (currentEx) {
-                    const lastSet = currentEx.sets[currentEx.sets.length - 1];
-                    const w = lastSet?.weight || store.records[currentEx.id] || 135;
-                    const r = lastSet?.reps || 8;
-                    return `Type ${w}x${r} to log · weight:reps:rpe`;
+                    return `${currentEx.name}: log weight:reps`;
                   }
-                  return 'Search exercise to add...';
+                  return 'Add exercise or finish workout...';
                 }
-                return 'Press n to start · type to search';
+                return 'What do you want to do?';
               })()}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
