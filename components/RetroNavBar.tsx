@@ -6,6 +6,13 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
+interface UserProfile {
+  level: number;
+  xp: number;
+  xpInCurrentLevel: number;
+  xpToNextLevel: number;
+}
+
 // Refined pixel art icons - smaller, crisper
 const DumbbellIcon = ({ active }: { active?: boolean }) => (
   <svg width="20" height="20" viewBox="0 0 64 64" fill="none" style={{ opacity: active ? 1 : 0.6 }}>
@@ -49,6 +56,7 @@ const LifeIcon = () => (
 export function RetroNavBar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated' | 'error'>('loading');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
@@ -81,11 +89,31 @@ export function RetroNavBar() {
         setAuthStatus('authenticated');
       } else {
         setUser(null);
+        setUserProfile(null);
         setAuthStatus('unauthenticated');
       }
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch user profile when authenticated
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+
+    fetch('/api/profile')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.character) {
+          setUserProfile({
+            level: data.character.level,
+            xp: data.character.xp,
+            xpInCurrentLevel: data.character.xpInCurrentLevel,
+            xpToNextLevel: data.character.xpToNextLevel,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [authStatus]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -290,6 +318,47 @@ export function RetroNavBar() {
         .nav-avatar-placeholder:hover {
           box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
           transform: scale(1.05);
+        }
+
+        .nav-user-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .nav-level-xp {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        }
+
+        .nav-level-badge {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 7px;
+          background: linear-gradient(180deg, #FFD700 0%, #E6A000 100%);
+          color: #1a1a1a;
+          padding: 3px 8px;
+          border-radius: 6px;
+          box-shadow: 0 2px 0 #996600;
+          white-space: nowrap;
+        }
+
+        .nav-xp-bar {
+          width: 60px;
+          height: 6px;
+          background: rgba(0, 0, 0, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+          overflow: hidden;
+        }
+
+        .nav-xp-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+          border-radius: 2px;
+          transition: width 0.3s ease;
+          box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
         }
 
         .nav-dropdown {
@@ -516,6 +585,10 @@ export function RetroNavBar() {
             right: -8px;
             min-width: 200px;
           }
+
+          .nav-level-xp {
+            display: none;
+          }
         }
       `}</style>
 
@@ -542,26 +615,51 @@ export function RetroNavBar() {
             {authStatus === 'loading' && <div className="nav-loading" />}
 
             {authStatus === 'authenticated' && user && (
-              <div style={{ position: 'relative' }} className="nav-dropdown-zone">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                >
-                  {user.user_metadata?.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt="" className="nav-avatar" />
-                  ) : (
-                    <div className="nav-avatar-placeholder">
-                      {user.email?.charAt(0).toUpperCase()}
+              <div className="nav-user-info">
+                {userProfile && (
+                  <div className="nav-level-xp">
+                    <div className="nav-level-badge">LVL {userProfile.level}</div>
+                    <div className="nav-xp-bar">
+                      <div
+                        className="nav-xp-fill"
+                        style={{
+                          width: `${Math.min(100, (userProfile.xpInCurrentLevel / userProfile.xpToNextLevel) * 100)}%`
+                        }}
+                      />
                     </div>
-                  )}
-                </button>
-                {showUserMenu && (
-                  <div className="nav-dropdown">
-                    <div className="nav-dropdown-email">{user.email}</div>
-                    <Link href="/account" className="nav-dropdown-item">PROFILE</Link>
-                    <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>
                   </div>
                 )}
+                <div style={{ position: 'relative' }} className="nav-dropdown-zone">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  >
+                    {user.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="" className="nav-avatar" />
+                    ) : (
+                      <div className="nav-avatar-placeholder">
+                        {user.email?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+                  {showUserMenu && (
+                    <div className="nav-dropdown">
+                      <div className="nav-dropdown-email">{user.email}</div>
+                      {userProfile && (
+                        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
+                          <div style={{ fontSize: '8px', color: '#FFD700', fontFamily: "'Press Start 2P', monospace", marginBottom: '4px' }}>
+                            {userProfile.xp.toLocaleString()} XP
+                          </div>
+                          <div style={{ fontSize: '7px', color: '#666', fontFamily: "'Press Start 2P', monospace" }}>
+                            {userProfile.xpInCurrentLevel} / {userProfile.xpToNextLevel} to next
+                          </div>
+                        </div>
+                      )}
+                      <Link href="/account" className="nav-dropdown-item">PROFILE</Link>
+                      <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

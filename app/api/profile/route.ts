@@ -2,56 +2,55 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/db";
 
+// Calculate XP progress within current level
+function calculateXPProgress(totalXp: number, level: number) {
+  let xpUsed = 0;
+  let xpNeeded = 100;
+
+  // Sum XP for all previous levels
+  for (let i = 1; i < level; i++) {
+    xpUsed += xpNeeded;
+    xpNeeded = Math.floor(xpNeeded * 1.5);
+  }
+
+  const xpInCurrentLevel = totalXp - xpUsed;
+  const xpToNextLevel = xpNeeded;
+
+  return { xpInCurrentLevel, xpToNextLevel };
+}
+
 export async function GET() {
   try {
     const user = await requireAuth();
 
-    // Find the Prisma user by email for legacy data access
-    const prismaUser = await prisma.user.findFirst({
-      where: { email: user.email },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        bio: true,
-        totalXp: true,
-        level: true,
-        createdAt: true,
-      },
-    });
+    // Get stats from new schema
+    const [locationsCount, achievementsCount] = await Promise.all([
+      prisma.travel_locations.count({
+        where: { user_id: user.id },
+      }),
+      prisma.user_achievements.count({
+        where: { user_id: user.id, is_completed: true },
+      }),
+    ]);
 
-    // Get stats from UserLocationData
-    const stats = prismaUser
-      ? await Promise.all([
-          prisma.userLocationData.count({
-            where: { userId: prismaUser.id, visited: true },
-          }),
-          prisma.review.count({
-            where: { authorId: prismaUser.id },
-          }),
-          prisma.userAchievement.count({
-            where: { userId: prismaUser.id, isCompleted: true },
-          }),
-        ])
-      : [0, 0, 0];
-
-    const [visitedCount, reviewsCount, achievementsCount] = stats;
+    const totalXp = user.totalXP || 0;
+    const level = user.mainLevel || 1;
+    const { xpInCurrentLevel, xpToNextLevel } = calculateXPProgress(totalXp, level);
 
     return NextResponse.json({
       character: {
-        name: user.display_name || user.username || "Traveler",
+        name: user.name || "Traveler",
         email: user.email,
-        avatar: user.avatar_url,
-        level: user.main_level || 1,
-        xp: user.total_xp || 0,
-        currentStreak: user.current_streak || 0,
-        longestStreak: user.longest_streak || 0,
-        memberSince: user.created_at,
+        avatar: user.image,
+        level,
+        xp: totalXp,
+        xpInCurrentLevel,
+        xpToNextLevel,
+        currentStreak: user.currentStreak || 0,
+        longestStreak: user.longestStreak || 0,
       },
       stats: {
-        locations: visitedCount,
-        reviews: reviewsCount,
+        locations: locationsCount,
         achievements: achievementsCount,
       },
     });
