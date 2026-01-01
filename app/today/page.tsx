@@ -1312,13 +1312,13 @@ export default function TodayPage() {
         /* Floating quick add */
         .floating-quick-add {
           position: fixed;
-          bottom: 24px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: calc(100% - 32px);
-          max-width: 400px;
+          bottom: 0;
+          left: 260px;
+          right: 0;
           z-index: 100;
-          padding: 0 16px;
+          background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 40%);
+          padding: 40px 24px 24px;
+          pointer-events: none;
         }
 
         @media (max-width: 768px) {
@@ -1327,21 +1327,13 @@ export default function TodayPage() {
           }
         }
 
-        @media (min-width: 769px) {
-          .floating-quick-add {
-            left: calc(260px + (100% - 260px) / 2);
-          }
-        }
-
         .floating-quick-add-inner {
-          background: var(--bg-primary);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          padding: 12px 16px;
+          max-width: 500px;
+          margin: 0 auto;
           display: flex;
           align-items: center;
           gap: 12px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          pointer-events: auto;
         }
 
         .floating-quick-add-icon {
@@ -1352,10 +1344,17 @@ export default function TodayPage() {
         .floating-quick-add-input {
           flex: 1;
           border: none;
+          border-bottom: 2px solid var(--border);
           background: transparent;
           font-size: 14px;
           color: var(--text-primary);
           outline: none;
+          padding: 8px 0;
+          transition: border-color 0.15s ease;
+        }
+
+        .floating-quick-add-input:focus {
+          border-color: var(--accent);
         }
 
         .floating-quick-add-input::placeholder {
