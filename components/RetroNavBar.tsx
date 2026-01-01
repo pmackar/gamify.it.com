@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
@@ -53,7 +53,18 @@ const LifeIcon = () => (
   </svg>
 );
 
-export function RetroNavBar() {
+export interface AppMenuItem {
+  label: string;
+  href: string;
+  icon?: React.ReactNode;
+}
+
+export interface RetroNavBarProps {
+  appMenuItems?: AppMenuItem[];
+  children?: React.ReactNode;
+}
+
+export function RetroNavBar({ appMenuItems, children }: RetroNavBarProps = {}) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -255,6 +266,48 @@ export function RetroNavBar() {
         .nav-app-link.disabled {
           cursor: default;
           pointer-events: none;
+        }
+
+        .nav-center {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex: 1;
+          justify-content: center;
+        }
+
+        .nav-menu-items {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .nav-menu-link {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: #888;
+          text-decoration: none;
+          padding: 8px 12px;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+        }
+
+        .nav-menu-link:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-menu-link.active {
+          color: #FFD700;
+          background: rgba(255, 215, 0, 0.1);
+        }
+
+        .nav-menu-icon {
+          font-size: 0.9rem;
         }
 
         .nav-auth {
@@ -589,6 +642,19 @@ export function RetroNavBar() {
           .nav-level-xp {
             display: none;
           }
+
+          .nav-menu-link {
+            font-size: 0.35rem;
+            padding: 6px 8px;
+          }
+
+          .nav-menu-icon {
+            font-size: 0.8rem;
+          }
+
+          .nav-center {
+            display: none;
+          }
         }
       `}</style>
 
@@ -596,20 +662,41 @@ export function RetroNavBar() {
         <div className="global-nav-inner">
           <Link href="/" className="nav-logo">GAMIFY.IT</Link>
 
-          <div className="nav-apps">
-            <Link href="/fitness" className={`nav-app-link ${isFitness ? 'active' : ''}`} title="Iron Quest">
-              <DumbbellIcon active={isFitness} />
-            </Link>
-            <Link href="/today" className={`nav-app-link ${isToday ? 'active' : ''}`} title="Day Quest">
-              <ChecklistIcon active={isToday} />
-            </Link>
-            <Link href="/travel" className={`nav-app-link ${isTravel ? 'active' : ''}`} title="Explorer">
-              <PlaneIcon active={isTravel} />
-            </Link>
-            <div className="nav-app-link disabled" title="Coming Soon">
-              <LifeIcon />
+          {/* Center section: App menu items if provided, otherwise app icons */}
+          {(appMenuItems || children) ? (
+            <div className="nav-center">
+              {appMenuItems && (
+                <div className="nav-menu-items">
+                  {appMenuItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`nav-menu-link ${pathname === item.href ? 'active' : ''}`}
+                    >
+                      {item.icon && <span className="nav-menu-icon">{item.icon}</span>}
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {children}
             </div>
-          </div>
+          ) : (
+            <div className="nav-apps">
+              <Link href="/fitness" className={`nav-app-link ${isFitness ? 'active' : ''}`} title="Iron Quest">
+                <DumbbellIcon active={isFitness} />
+              </Link>
+              <Link href="/today" className={`nav-app-link ${isToday ? 'active' : ''}`} title="Day Quest">
+                <ChecklistIcon active={isToday} />
+              </Link>
+              <Link href="/travel" className={`nav-app-link ${isTravel ? 'active' : ''}`} title="Explorer">
+                <PlaneIcon active={isTravel} />
+              </Link>
+              <div className="nav-app-link disabled" title="Coming Soon">
+                <LifeIcon />
+              </div>
+            </div>
+          )}
 
           <div className="nav-auth">
             {authStatus === 'loading' && <div className="nav-loading" />}
