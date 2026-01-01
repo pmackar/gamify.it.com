@@ -304,15 +304,20 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     if (!email) return;
     setLoading(true);
     setError('');
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true }
-    });
-    if (error) {
-      setError(error.message);
-    } else {
-      setStep('otp');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase().trim(),
+        options: { shouldCreateUser: true }
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        setStep('otp');
+      }
+    } catch (err) {
+      console.error('sendOtp catch:', err);
+      setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
     setLoading(false);
   };
@@ -322,16 +327,21 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     if (!otp || otp.length < 6) return;
     setLoading(true);
     setError('');
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email.toLowerCase().trim(),
-      token: otp.trim(),
-      type: 'email'
-    });
-    console.log('verifyOtp response:', { data, error });
-    if (error) {
-      setError(`${error.message}`);
-      setOtp('');
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.toLowerCase().trim(),
+        token: otp.trim(),
+        type: 'email'
+      });
+      console.log('verifyOtp response:', { data, error });
+      if (error) {
+        setError(`${error.message}`);
+        setOtp('');
+      }
+    } catch (err) {
+      console.error('verifyOtp catch:', err);
+      setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
     setLoading(false);
   };
