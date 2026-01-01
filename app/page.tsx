@@ -605,19 +605,20 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
   );
 }
 
+// Detect PWA mode synchronously (safe for SSR)
+const getIsPWA = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(display-mode: standalone)').matches
+    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+};
+
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [isPWA, setIsPWA] = useState(false);
-  const [showLaunch, setShowLaunch] = useState(true);
+  const [isPWA] = useState(getIsPWA);
+  const [showLaunch, setShowLaunch] = useState(getIsPWA);
 
   useEffect(() => {
-    // Detect if running as PWA
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIsPWA(isStandalone);
-    setShowLaunch(isStandalone); // Only show launch screen for PWA
-
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -632,8 +633,8 @@ export default function LandingPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Show loading state while checking auth
-  if (!authChecked) {
+  // Show loading state while checking auth (skip for PWA - show launch screen immediately)
+  if (!authChecked && !isPWA) {
     return (
       <>
         <style jsx global>{`
