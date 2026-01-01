@@ -6,41 +6,30 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code');
   const error_param = requestUrl.searchParams.get('error');
   const next = requestUrl.searchParams.get('next') || '/';
-  const isPopup = !requestUrl.searchParams.has('next');
 
+  // Handle error from OAuth provider
   if (error_param) {
-    if (isPopup) {
-      return new NextResponse(`<!DOCTYPE html><html><body><script>window.close();</script></body></html>`, { headers: { 'Content-Type': 'text/html' } });
-    }
-    return NextResponse.redirect(new URL(`/login?error=${error_param}`, requestUrl.origin));
+    console.error('Auth callback error:', error_param);
+    return NextResponse.redirect(new URL(`/?error=${error_param}`, requestUrl.origin));
   }
 
+  // Exchange code for session (magic links use PKCE flow)
   if (code) {
     try {
       const supabase = await createClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
-        console.error('Supabase auth error:', error.message, error);
-        if (isPopup) {
-          return new NextResponse(`<!DOCTYPE html><html><body><script>window.close();</script></body></html>`, { headers: { 'Content-Type': 'text/html' } });
-        }
-        return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+        console.error('Supabase auth error:', error.message);
+        return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
       }
-      if (isPopup) {
-        return new NextResponse(`<!DOCTYPE html><html><body><script>window.close();</script></body></html>`, { headers: { 'Content-Type': 'text/html' } });
-      }
+      // Success! Redirect to home or next page
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     } catch (e) {
       console.error('Callback exception:', e);
-      if (isPopup) {
-        return new NextResponse(`<!DOCTYPE html><html><body><script>window.close();</script></body></html>`, { headers: { 'Content-Type': 'text/html' } });
-      }
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(String(e))}`, requestUrl.origin));
+      return NextResponse.redirect(new URL(`/?error=auth_failed`, requestUrl.origin));
     }
   }
 
-  if (isPopup) {
-    return new NextResponse(`<!DOCTYPE html><html><body><script>window.close();</script></body></html>`, { headers: { 'Content-Type': 'text/html' } });
-  }
-  return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin));
+  // No code provided - redirect home
+  return NextResponse.redirect(new URL('/', requestUrl.origin));
 }
