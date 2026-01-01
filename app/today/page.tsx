@@ -1079,61 +1079,6 @@ export default function TodayPage() {
           background: var(--bg-tertiary);
         }
 
-        .quick-add-container {
-          padding: 16px 24px;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .quick-add-input {
-          width: 100%;
-          padding: 12px 16px;
-          border: 2px solid var(--border);
-          border-radius: 10px;
-          font-size: 14px;
-          background: var(--bg-primary);
-          color: var(--text-primary);
-          outline: none;
-          transition: border-color 0.15s ease;
-        }
-
-        .quick-add-input:focus {
-          border-color: var(--accent);
-        }
-
-        .quick-add-input::placeholder {
-          color: var(--text-tertiary);
-        }
-
-        .quick-add-hints {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          padding: 8px 0 0;
-          opacity: 0;
-          transform: translateY(-4px);
-          transition: all 0.2s ease;
-        }
-
-        .quick-add-container:focus-within .quick-add-hints {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .hint-group {
-          display: flex;
-          align-items: center;
-          gap: 3px;
-          font-size: 11px;
-          color: var(--text-tertiary);
-        }
-
-        .hint-sep {
-          color: var(--border);
-          font-size: 11px;
-        }
-
         .kbd {
           display: inline-flex;
           align-items: center;
@@ -1148,12 +1093,6 @@ export default function TodayPage() {
           background: var(--bg-tertiary);
           border: 1px solid var(--border);
           border-radius: 4px;
-        }
-
-        @media (max-width: 768px) {
-          .quick-add-hints {
-            display: none;
-          }
         }
 
         .task-list {
@@ -1316,8 +1255,21 @@ export default function TodayPage() {
           left: 260px;
           right: 0;
           z-index: 100;
-          background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 50%, var(--bg-primary) 100%);
-          padding: 60px 24px 24px;
+          padding: 0 24px 24px;
+          pointer-events: none;
+        }
+
+        .floating-quick-add::before {
+          content: '';
+          position: absolute;
+          top: -60px;
+          left: 0;
+          right: 0;
+          height: 60px;
+          background: linear-gradient(to bottom,
+            transparent 0%,
+            var(--bg-primary) 100%
+          );
           pointer-events: none;
         }
 
@@ -1328,21 +1280,28 @@ export default function TodayPage() {
         }
 
         .floating-quick-add-inner {
-          max-width: 500px;
+          max-width: 600px;
           margin: 0 auto;
           display: flex;
           align-items: center;
           gap: 12px;
           pointer-events: auto;
-          background: var(--bg-secondary);
-          padding: 12px 16px;
+          background: var(--bg-primary);
+          padding: 14px 20px;
           border-radius: 12px;
           border: 1px solid var(--border);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .floating-quick-add-inner,
+        [data-theme="terminal"] .floating-quick-add-inner {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .floating-quick-add-icon {
           color: var(--accent);
-          font-size: 18px;
+          font-size: 16px;
+          opacity: 0.7;
         }
 
         .floating-quick-add-input {
@@ -1352,7 +1311,7 @@ export default function TodayPage() {
           font-size: 14px;
           color: var(--text-primary);
           outline: none;
-          padding: 4px 0;
+          padding: 2px 0;
         }
 
         .floating-quick-add-input::placeholder {
@@ -2067,42 +2026,6 @@ export default function TodayPage() {
             </div>
           </header>
 
-          <div className="quick-add-container">
-            <input
-              ref={quickAddRef}
-              type="text"
-              className="quick-add-input"
-              placeholder="Press N to add a task... @project #category !priority ~difficulty today"
-              value={quickAddValue}
-              onChange={(e) => setQuickAddValue(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                  e.preventDefault();
-                  openTaskModal();
-                  quickAddRef.current?.blur();
-                }
-                if (e.key === 'Enter' && !e.shiftKey && !(e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  handleQuickAdd();
-                }
-                if (e.key === 'Escape') {
-                  setQuickAddValue('');
-                  quickAddRef.current?.blur();
-                }
-              }}
-            />
-            <div className="quick-add-hints">
-              <div className="hint-group"><span className="kbd">↵</span> add</div>
-              <div className="hint-group"><span className="kbd">⌘</span><span className="kbd">↵</span> modal</div>
-              <div className="hint-group"><span className="kbd">Esc</span> cancel</div>
-              <div className="hint-sep">|</div>
-              <div className="hint-group"><span className="kbd">@</span> project</div>
-              <div className="hint-group"><span className="kbd">#</span> category</div>
-              <div className="hint-group"><span className="kbd">!</span> priority</div>
-              <div className="hint-group"><span className="kbd">~</span> difficulty</div>
-            </div>
-          </div>
-
           <div className="task-list">
             {filteredTasks.length === 0 ? (
               <div className="empty-state">
@@ -2170,23 +2093,28 @@ export default function TodayPage() {
             <div className="floating-quick-add-inner">
               <span className="floating-quick-add-icon">✨</span>
               <input
+                ref={quickAddRef}
                 type="text"
                 className="floating-quick-add-input"
-                placeholder="Quick add a task..."
+                placeholder="Press N to add a task..."
                 value={quickAddValue}
                 onChange={(e) => setQuickAddValue(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    openTaskModal();
+                    quickAddRef.current?.blur();
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey && !(e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
                     handleQuickAdd();
                   }
                   if (e.key === 'Escape') {
                     setQuickAddValue('');
-                    (e.target as HTMLInputElement).blur();
+                    quickAddRef.current?.blur();
                   }
                 }}
               />
-              <span className="kbd">↵</span>
             </div>
           </div>
         </main>
