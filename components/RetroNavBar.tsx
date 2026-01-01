@@ -183,7 +183,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           left: 0;
           right: 0;
           z-index: 9999;
-          padding: 10px 16px;
+          padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
           pointer-events: none;
         }
 
@@ -814,7 +814,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         /* Mobile responsive - same nav everywhere */
         @media (max-width: 768px) {
           .global-nav {
-            padding: 8px 12px;
+            padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
           }
 
           .global-nav-inner {
