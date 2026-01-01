@@ -4,10 +4,12 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout } from '@/lib/fitness/types';
+import { useNavBar } from '@/components/NavBarContext';
 
 export default function FitnessPage() {
   const store = useFitnessStore();
   const [mounted, setMounted] = useState(false);
+  const { setCenterContent } = useNavBar();
   const [query, setQuery] = useState('');
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [showSetPanel, setShowSetPanel] = useState(false);
@@ -81,6 +83,37 @@ export default function FitnessPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [store.currentWorkout, store.currentView]);
+
+  const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+
+  // Update navbar content during workout
+  useEffect(() => {
+    if (store.currentWorkout && store.currentView === 'workout') {
+      const totalSets = store.currentWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+      setCenterContent(
+        <div className="nav-workout-status">
+          <div className="nav-workout-timer">
+            <span className="nav-workout-dot" />
+            {formatTime(store.workoutSeconds)}
+          </div>
+          <span className="nav-workout-sets">{totalSets} sets</span>
+          <button
+            className="nav-workout-finish"
+            onClick={() => setShowSaveModal(true)}
+          >
+            FINISH
+          </button>
+        </div>
+      );
+    } else {
+      setCenterContent(null);
+    }
+  }, [store.currentWorkout, store.currentView, store.workoutSeconds, setCenterContent]);
+
+  // Clean up navbar content on unmount
+  useEffect(() => {
+    return () => setCenterContent(null);
+  }, [setCenterContent]);
 
   const getTotalSets = () => {
     if (!store.currentWorkout) return 0;
@@ -347,7 +380,6 @@ export default function FitnessPage() {
     else if (e.key === 'Enter' && suggestions[selectedSuggestion]) { e.preventDefault(); executeCommand(suggestions[selectedSuggestion]); }
   };
 
-  const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   if (!mounted) return <div className="min-h-screen" style={{ background: '#08080c' }} />;
@@ -388,68 +420,6 @@ export default function FitnessPage() {
           z-index: 0;
         }
 
-        /* Floating Status Pill - Only shows during workout */
-        .workout-status {
-          position: fixed;
-          top: 76px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          background: rgba(15,15,20,0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid var(--border-light);
-          border-radius: 100px;
-          padding: 8px 20px;
-          z-index: 40;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-        }
-
-        .status-timer {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          background: var(--success);
-          border-radius: 50%;
-          animation: pulse 2s infinite;
-          box-shadow: 0 0 8px var(--success);
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(0.9); }
-        }
-
-        .status-sets {
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-
-        .status-finish {
-          padding: 6px 14px;
-          background: var(--success);
-          border: none;
-          border-radius: 100px;
-          color: white;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .status-finish:hover {
-          transform: scale(1.05);
-          box-shadow: 0 0 20px rgba(52,199,89,0.4);
-        }
-
         /* Main Content */
         .content-area {
           padding-top: 70px;
@@ -457,10 +427,6 @@ export default function FitnessPage() {
           min-height: 100vh;
           position: relative;
           z-index: 1;
-        }
-
-        .content-area.has-workout {
-          padding-top: 130px;
         }
 
         /* Premium Command Bar */
@@ -1267,28 +1233,12 @@ export default function FitnessPage() {
         /* Responsive */
         @media (max-width: 768px) {
           .content-area { padding-top: 60px; }
-          .content-area.has-workout { padding-top: 120px; }
-          .workout-status { top: 56px; }
         }
       `}</style>
 
       <div className="fitness-app min-h-screen text-white" style={{ background: '#08080c' }}>
-        {/* Floating Workout Status */}
-        {store.currentWorkout && store.currentView === 'workout' && (
-          <div className="workout-status">
-            <div className="status-timer">
-              <span className="status-dot" />
-              {formatTime(store.workoutSeconds)}
-            </div>
-            <span className="status-sets">{getTotalSets()} sets</span>
-            <button className="status-finish" onClick={() => setShowSaveModal(true)}>
-              Finish
-            </button>
-          </div>
-        )}
-
         {/* Main Content */}
-        <main className={`content-area ${store.currentWorkout && store.currentView === 'workout' ? 'has-workout' : ''}`}>
+        <main className="content-area">
 
           {/* Workout View */}
           {store.currentView === 'workout' && store.currentWorkout && (

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
+import { useNavBarContent } from './NavBarContext';
 
 interface UserProfile {
   level: number;
@@ -101,6 +102,9 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
   // Use prop if provided, otherwise use detected theme
   const theme = themeProp ?? detectedTheme;
+
+  // Get content from context (set by app pages like Fitness)
+  const contextContent = useNavBarContent();
 
   const isFitness = pathname.startsWith('/fitness');
   const isToday = pathname.startsWith('/today');
@@ -772,6 +776,63 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           50% { opacity: 0.4; transform: scale(0.9); }
         }
 
+        /* Workout status in navbar */
+        .nav-workout-status {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 4px 12px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 100px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-workout-timer {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 8px;
+          color: #fff;
+        }
+
+        .nav-workout-dot {
+          width: 6px;
+          height: 6px;
+          background: #34c759;
+          border-radius: 50%;
+          animation: nav-workout-pulse 2s infinite;
+          box-shadow: 0 0 6px #34c759;
+        }
+
+        @keyframes nav-workout-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(0.85); }
+        }
+
+        .nav-workout-sets {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 7px;
+          color: #888;
+        }
+
+        .nav-workout-finish {
+          padding: 4px 10px;
+          background: #34c759;
+          border: none;
+          border-radius: 100px;
+          color: white;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .nav-workout-finish:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 12px rgba(52, 199, 89, 0.4);
+        }
+
         /* Mobile responsive - same nav everywhere */
         @media (max-width: 768px) {
           .global-nav {
@@ -842,8 +903,8 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         <div className="global-nav-inner">
           <Link href="/" className="nav-logo">GAMIFY.IT</Link>
 
-          {/* Center section: App menu items if provided, otherwise app icons */}
-          {(appMenuItems || children) ? (
+          {/* Center section: App menu items, context content, or app icons */}
+          {(appMenuItems || children || contextContent) ? (
             <div className="nav-center">
               {appMenuItems && (
                 <div className="nav-menu-items">
@@ -860,6 +921,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                 </div>
               )}
               {children}
+              {contextContent}
             </div>
           ) : (
             <div className="nav-apps">

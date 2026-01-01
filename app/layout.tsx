@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { RetroNavBar } from "@/components/RetroNavBar";
 import { AchievementProvider } from "@/components/AchievementPopup";
+import { NavBarProvider } from "@/components/NavBarContext";
 
 export const metadata: Metadata = {
   title: "gamify.it.com - Life's Not a Game, But It Should Be",
@@ -29,10 +30,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased">
-        <AchievementProvider>
-          <RetroNavBar />
-          {children}
-        </AchievementProvider>
+        <NavBarProvider>
+          <AchievementProvider>
+            <RetroNavBar />
+            {children}
+          </AchievementProvider>
+        </NavBarProvider>
       </body>
     </html>
   );
