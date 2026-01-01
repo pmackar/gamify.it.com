@@ -25,6 +25,19 @@ const PixelParticles = () => {
   );
 };
 
+const MUSCLE_CATEGORIES = [
+  { id: 'chest', name: 'Chest', icon: '🫁' },
+  { id: 'back', name: 'Back', icon: '🔙' },
+  { id: 'shoulders', name: 'Shoulders', icon: '🎯' },
+  { id: 'biceps', name: 'Biceps', icon: '💪' },
+  { id: 'triceps', name: 'Triceps', icon: '🦾' },
+  { id: 'quads', name: 'Quads', icon: '🦵' },
+  { id: 'hamstrings', name: 'Hamstrings', icon: '🦿' },
+  { id: 'glutes', name: 'Glutes', icon: '🍑' },
+  { id: 'calves', name: 'Calves', icon: '🦶' },
+  { id: 'core', name: 'Core', icon: '🎯' },
+];
+
 export default function FitnessPage() {
   const store = useFitnessStore();
   const [mounted, setMounted] = useState(false);
@@ -42,6 +55,8 @@ export default function FitnessPage() {
   const [addingGoal, setAddingGoal] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [searchingExercises, setSearchingExercises] = useState(false);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -189,23 +204,7 @@ export default function FitnessPage() {
       }
 
       if (!q) {
-        // If searching exercises, show exercise list
-        if (searchingExercises) {
-          const exercises = [...EXERCISES, ...store.customExercises].slice(0, 8);
-          for (const ex of exercises) {
-            const inWorkout = store.currentWorkout.exercises.some(e => e.id === ex.id);
-            results.push({
-              type: inWorkout ? 'select-exercise' : 'add-exercise-quick',
-              id: ex.id,
-              title: ex.name,
-              subtitle: inWorkout ? 'Already added' : ex.muscle,
-              icon: inWorkout ? '✓' : '➕'
-            });
-          }
-          results.push({ type: 'cancel-search', id: 'cancel-search', title: 'Back', subtitle: 'Return to menu', icon: '←' });
-          return results;
-        }
-        results.push({ type: 'add-exercise', id: 'add', title: 'Add Exercise', subtitle: 'Search and add', icon: '➕' });
+        results.push({ type: 'add-exercise', id: 'add', title: 'Add Exercise', subtitle: 'Browse by muscle', icon: '➕' });
         results.push({ type: 'finish', id: 'finish', title: 'Finish Workout', subtitle: `${getTotalSets()} sets logged`, icon: '✅' });
         results.push({ type: 'cancel-workout', id: 'cancel', title: 'Cancel', subtitle: 'Discard workout', icon: '✕' });
         return results;
@@ -297,21 +296,16 @@ export default function FitnessPage() {
         if (suggestion.weight && suggestion.reps) store.logSet(suggestion.weight, suggestion.reps, suggestion.rpe);
         break;
       case 'add-exercise':
-        // Focus input and show exercise search
-        setSearchingExercises(true);
-        inputRef.current?.focus();
-        setInputFocused(true);
-        return; // Don't clear query
+        // Show fullscreen exercise picker
+        setShowExercisePicker(true);
+        setSelectedCategory(null);
+        break;
       case 'add-exercise-quick':
         store.addExerciseToWorkout(suggestion.id);
         setSearchingExercises(false);
         break;
       case 'new-exercise':
         store.addCustomExercise(suggestion.id);
-        setSearchingExercises(false);
-        break;
-      case 'cancel-search':
-        setSearchingExercises(false);
         break;
       case 'select-exercise':
         const idx = store.currentWorkout?.exercises.findIndex(e => e.id === suggestion.id);
@@ -1241,6 +1235,166 @@ export default function FitnessPage() {
           margin-bottom: 12px;
         }
 
+        /* Exercise Picker Modal */
+        .exercise-picker-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.9);
+          backdrop-filter: blur(8px);
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+          padding: env(safe-area-inset-top, 20px) 0 env(safe-area-inset-bottom, 20px);
+        }
+
+        .exercise-picker-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px 20px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .exercise-picker-back {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 18px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .exercise-picker-back:hover {
+          background: var(--bg-hover);
+        }
+
+        .exercise-picker-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .exercise-picker-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+        }
+
+        .category-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+
+        .category-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 24px 16px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .category-card:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-light);
+          transform: translateY(-2px);
+        }
+
+        .category-card:active {
+          transform: translateY(0);
+        }
+
+        .category-icon {
+          font-size: 32px;
+          margin-bottom: 8px;
+        }
+
+        .category-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .category-count {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 4px;
+        }
+
+        .exercise-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .exercise-item {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .exercise-item:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-light);
+        }
+
+        .exercise-item.in-workout {
+          border-color: var(--accent);
+          background: var(--accent-glow);
+        }
+
+        .exercise-item-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-active);
+          border-radius: 10px;
+          font-size: 18px;
+        }
+
+        .exercise-item.in-workout .exercise-item-icon {
+          background: var(--accent);
+          color: white;
+        }
+
+        .exercise-item-info {
+          flex: 1;
+        }
+
+        .exercise-item-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+
+        .exercise-item-equipment {
+          font-size: 12px;
+          color: var(--text-muted);
+          text-transform: capitalize;
+        }
+
+        .exercise-item-check {
+          color: var(--accent);
+          font-size: 18px;
+        }
+
         /* Toast */
         .toast {
           position: fixed;
@@ -1906,6 +2060,83 @@ export default function FitnessPage() {
                 <button className="modal-btn secondary" onClick={() => handleFinishWorkout(false)}>Skip</button>
                 <button className="modal-btn primary" onClick={() => handleFinishWorkout(true)}>Save</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Exercise Picker Modal */}
+        {showExercisePicker && (
+          <div className="exercise-picker-overlay">
+            <div className="exercise-picker-header">
+              <button
+                className="exercise-picker-back"
+                onClick={() => {
+                  if (selectedCategory) {
+                    setSelectedCategory(null);
+                  } else {
+                    setShowExercisePicker(false);
+                  }
+                }}
+              >
+                {selectedCategory ? '←' : '×'}
+              </button>
+              <div className="exercise-picker-title">
+                {selectedCategory
+                  ? MUSCLE_CATEGORIES.find(c => c.id === selectedCategory)?.name
+                  : 'Add Exercise'}
+              </div>
+            </div>
+            <div className="exercise-picker-content">
+              {!selectedCategory ? (
+                <div className="category-grid">
+                  {MUSCLE_CATEGORIES.map((category) => {
+                    const count = [...EXERCISES, ...store.customExercises].filter(
+                      ex => ex.muscle === category.id
+                    ).length;
+                    return (
+                      <div
+                        key={category.id}
+                        className="category-card"
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <div className="category-icon">{category.icon}</div>
+                        <div className="category-name">{category.name}</div>
+                        <div className="category-count">{count} exercises</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="exercise-list">
+                  {[...EXERCISES, ...store.customExercises]
+                    .filter(ex => ex.muscle === selectedCategory)
+                    .map((exercise) => {
+                      const inWorkout = store.currentWorkout?.exercises.some(e => e.id === exercise.id);
+                      return (
+                        <div
+                          key={exercise.id}
+                          className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
+                          onClick={() => {
+                            if (!inWorkout) {
+                              store.addExerciseToWorkout(exercise.id);
+                            }
+                            setShowExercisePicker(false);
+                            setSelectedCategory(null);
+                          }}
+                        >
+                          <div className="exercise-item-icon">
+                            {inWorkout ? '✓' : MUSCLE_CATEGORIES.find(c => c.id === selectedCategory)?.icon}
+                          </div>
+                          <div className="exercise-item-info">
+                            <div className="exercise-item-name">{exercise.name}</div>
+                            <div className="exercise-item-equipment">{exercise.equipment}</div>
+                          </div>
+                          {inWorkout && <div className="exercise-item-check">Added</div>}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           </div>
         )}
