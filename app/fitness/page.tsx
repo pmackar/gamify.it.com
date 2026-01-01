@@ -1378,7 +1378,7 @@ export default function FitnessPage() {
                               key={setIdx}
                               className={`set-badge ${set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
                             >
-                              {set.weight}×{set.reps}
+                              {set.weight}×{set.reps}{set.rpe ? ` @${set.rpe}` : ''}
                             </span>
                           ))
                         )}
@@ -1483,6 +1483,7 @@ export default function FitnessPage() {
                 store.startWorkout();
                 workout.exercises.forEach(ex => store.addExerciseToWorkout(ex.id));
               }}
+              onDelete={(workoutId) => store.deleteWorkout(workoutId)}
             />
           )}
 
@@ -1869,12 +1870,14 @@ function WorkoutDetailView({
   workout,
   records,
   onBack,
-  onRepeat
+  onRepeat,
+  onDelete
 }: {
   workout: Workout;
   records: Record<string, number>;
   onBack: () => void;
   onRepeat: (workout: Workout) => void;
+  onDelete: (workoutId: string) => void;
 }) {
   if (!workout) return null;
 
@@ -1937,7 +1940,7 @@ function WorkoutDetailView({
                   fontWeight: 500
                 }}
               >
-                {set.weight}×{set.reps}
+                {set.weight}×{set.reps}{set.rpe ? ` @${set.rpe}` : ''}
               </span>
             ))}
           </div>
@@ -1961,6 +1964,29 @@ function WorkoutDetailView({
         }}
       >
         Repeat This Workout
+      </button>
+
+      <button
+        onClick={() => {
+          if (confirm('Are you sure you want to delete this workout? This cannot be undone.')) {
+            onDelete(workout.id);
+          }
+        }}
+        style={{
+          width: '100%',
+          padding: '12px',
+          background: 'transparent',
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          color: 'var(--text-muted)',
+          fontWeight: 500,
+          fontSize: '13px',
+          cursor: 'pointer',
+          marginTop: '10px',
+          transition: 'all 0.2s'
+        }}
+      >
+        Delete This Workout
       </button>
     </div>
   );

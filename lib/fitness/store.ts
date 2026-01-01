@@ -80,6 +80,7 @@ interface FitnessStore extends FitnessState {
   // Data management
   importWorkouts: (workouts: Workout[]) => void;
   eraseAllData: () => void;
+  deleteWorkout: (workoutId: string) => void;
 }
 
 const defaultProfile: Profile = {
@@ -516,6 +517,15 @@ export const useFitnessStore = create<FitnessStore>()(
         });
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
         get().showToast('All data erased');
+      },
+
+      deleteWorkout: (workoutId: string) => {
+        set((state) => ({
+          workouts: state.workouts.filter(w => w.id !== workoutId),
+          currentView: 'history',
+          selectedWorkoutId: null
+        }));
+        get().showToast('Workout deleted');
       }
     }),
     {
