@@ -37,6 +37,11 @@ export default function FitnessPage() {
     };
   }, [store.currentWorkout, store.currentView]);
 
+  const getTotalSets = () => {
+    if (!store.currentWorkout) return 0;
+    return store.currentWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+  };
+
   const getSuggestions = useCallback((): CommandSuggestion[] => {
     const q = query.toLowerCase().trim();
     const results: CommandSuggestion[] = [];
@@ -153,11 +158,6 @@ export default function FitnessPage() {
   }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises]);
 
   const suggestions = getSuggestions();
-
-  const getTotalSets = () => {
-    if (!store.currentWorkout) return 0;
-    return store.currentWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
-  };
 
   const executeCommand = (suggestion: CommandSuggestion) => {
     switch (suggestion.type) {
