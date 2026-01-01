@@ -1,317 +1,361 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  MapPin,
+  Building2,
+  Globe,
+  Flame,
+  Trophy,
+  Plus,
+  ArrowRight,
+  TrendingUp,
+} from "lucide-react";
+import XPBar from "@/components/ui/XPBar";
 
-export default function TravelPage() {
+interface Stats {
+  user: {
+    level: number;
+    xp: number;
+    xpToNext: number;
+    currentStreak: number;
+    longestStreak: number;
+  };
+  counts: {
+    cities: number;
+    locations: number;
+    visits: number;
+    countries: number;
+    recentVisits: number;
+  };
+  achievements: {
+    unlocked: number;
+    total: number;
+  };
+  topLocations: Array<{
+    id: string;
+    name: string;
+    type: string;
+    avgRating: number;
+    city: { name: string; country: string };
+  }>;
+  character?: {
+    name: string;
+  };
+}
+
+export default function TravelDashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch("/api/stats");
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div
+          className="w-12 h-12 rounded"
+          style={{
+            border: '4px solid var(--rpg-border)',
+            borderTop: '4px solid var(--rpg-teal)',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Welcome Section */}
+      <div className="mb-8">
+        <h1
+          className="text-lg mb-2"
+          style={{ color: 'var(--rpg-text)', textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}
+        >
+          Welcome back, Explorer!
+        </h1>
+        <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
+          Ready to continue your adventure?
+        </p>
+      </div>
 
-        * {
-          box-sizing: border-box;
-        }
-
-        body {
-          margin: 0;
-          padding: 0;
-          background: #0a0a0a;
-        }
-
-        .crt-wrapper {
-          min-height: 100vh;
-          background: #1a1a1a;
-          position: relative;
-          overflow: hidden;
-        }
-
-        /* CRT Scanlines */
-        .crt-wrapper::before {
-          content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: repeating-linear-gradient(
-            0deg,
-            rgba(0, 0, 0, 0.15),
-            rgba(0, 0, 0, 0.15) 1px,
-            transparent 1px,
-            transparent 2px
-          );
-          pointer-events: none;
-          z-index: 1000;
-        }
-
-        /* CRT Vignette */
-        .crt-wrapper::after {
-          content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: radial-gradient(
-            ellipse at center,
-            transparent 0%,
-            transparent 60%,
-            rgba(0, 0, 0, 0.4) 100%
-          );
-          pointer-events: none;
-          z-index: 999;
-        }
-
-        /* Screen flicker animation */
-        @keyframes flicker {
-          0% { opacity: 0.97; }
-          50% { opacity: 1; }
-          100% { opacity: 0.98; }
-        }
-
-        .travel-page {
-          min-height: 100vh;
-          color: #fff;
-          font-family: 'Press Start 2P', monospace;
-          padding: 2rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          animation: flicker 0.15s infinite;
-        }
-
-        .travel-content {
-          width: 100%;
-          max-width: 1000px;
-        }
-
-        .travel-logo {
-          width: 64px;
-          height: 64px;
-          margin-bottom: 1rem;
-          image-rendering: pixelated;
-          filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.5));
-        }
-
-        .pixel-icon {
-          width: 24px;
-          height: 24px;
-          image-rendering: pixelated;
-        }
-
-        .pixel-icon-sm {
-          width: 20px;
-          height: 20px;
-          image-rendering: pixelated;
-        }
-
-        .travel-title {
-          font-size: 1.75rem;
-          margin-bottom: 1.5rem;
-          font-weight: normal;
-          letter-spacing: -1px;
-          text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-
-        .travel-hero {
-          width: 100%;
-          aspect-ratio: 16/9;
-          background: #2a2a2a;
-          border-radius: 8px;
-          margin-bottom: 1.5rem;
-          overflow: hidden;
-          position: relative;
-          border: 3px solid #333;
-          box-shadow:
-            0 0 0 1px #1a1a1a,
-            0 0 20px rgba(0, 0, 0, 0.5),
-            inset 0 0 60px rgba(0, 0, 0, 0.3);
-        }
-
-        .travel-hero img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          image-rendering: pixelated;
-        }
-
-        .travel-cards {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          width: 100%;
-        }
-
-        .travel-card {
-          background: #2d2d2d;
-          border-radius: 8px;
-          padding: 1.5rem;
-          border: 2px solid #3a3a3a;
-          box-shadow:
-            0 4px 0 #1a1a1a,
-            0 0 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .travel-card-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1rem;
-        }
-
-        .travel-card-header h2 {
-          font-size: 1rem;
-          font-weight: normal;
-          margin: 0;
-          text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
-        }
-
-        .travel-card p {
-          font-size: 0.6rem;
-          line-height: 2;
-          color: #aaa;
-          margin: 0;
-        }
-
-        .game-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .game-list li {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 0;
-          font-size: 0.6rem;
-          border-bottom: 1px solid #3a3a3a;
-        }
-
-        .game-list li:last-child {
-          border-bottom: none;
-        }
-
-        .game-list li a {
-          color: #fff;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-
-        .game-list li a:hover {
-          color: #FFD700;
-          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-        }
-
-        .travel-back {
-          display: inline-block;
-          margin-top: 2rem;
-          color: #666;
-          text-decoration: none;
-          font-size: 0.55rem;
-          transition: color 0.2s;
-        }
-
-        .travel-back:hover {
-          color: #FFD700;
-          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-        }
-
-        /* Pixel corners decoration */
-        .pixel-border {
-          position: relative;
-        }
-
-        .pixel-border::before,
-        .pixel-border::after {
-          content: '';
-          position: absolute;
-          width: 8px;
-          height: 8px;
-          background: #FFD700;
-        }
-
-        .pixel-border::before {
-          top: -4px;
-          left: -4px;
-        }
-
-        .pixel-border::after {
-          bottom: -4px;
-          right: -4px;
-        }
-
-        @media (max-width: 768px) {
-          .travel-page {
-            padding: 1rem;
-          }
-
-          .travel-title {
-            font-size: 1.25rem;
-          }
-
-          .travel-cards {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-
-      <div className="crt-wrapper">
-        <div className="travel-page">
-          <div className="travel-content">
-            {/* Pixel Trophy Logo */}
-            <img src="/travel/trophy.png" alt="Trophy" className="travel-logo" />
-
-            <h1 className="travel-title">gamify.travel</h1>
-
-            {/* Hero Image */}
-            <div className="travel-hero pixel-border">
-              <img src="/travel/splash.png" alt="Pixel art adventurers overlooking a fantasy landscape" />
-            </div>
-
-            {/* Cards */}
-            <div className="travel-cards">
-              {/* About Card */}
-              <div className="travel-card">
-                <div className="travel-card-header">
-                  <img src="/travel/star.png" alt="" className="pixel-icon" />
-                  <h2>About</h2>
-                </div>
-                <p>
-                  Create your avatar, gain experience, level up, and
-                  find achievements in a gamified version of our world.
-                </p>
-              </div>
-
-              {/* Current Games Card */}
-              <div className="travel-card">
-                <div className="travel-card-header">
-                  <img src="/travel/star.png" alt="" className="pixel-icon" />
-                  <h2>Current Games</h2>
-                </div>
-                <ul className="game-list">
-                  <li>
-                    <img src="/travel/crown.png" alt="" className="pixel-icon-sm" />
-                    <a href="https://gamifytravel.vercel.app" target="_blank" rel="noopener noreferrer">
-                      gamify.philly
-                    </a>
-                  </li>
-                  <li>
-                    <img src="/travel/chest.png" alt="" className="pixel-icon-sm" />
-                    <a href="https://gamifytravel.vercel.app" target="_blank" rel="noopener noreferrer">
-                      Secrets of the Schuylkill
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <Link href="/" className="travel-back">
-              &larr; Back to gamify.it
-            </Link>
+      {/* XP Progress Card */}
+      <div
+        className="rounded-lg p-6 mb-8"
+        style={{
+          background: 'var(--rpg-card)',
+          border: '2px solid var(--rpg-border)',
+          boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-[0.5rem] mb-1" style={{ color: 'var(--rpg-muted)' }}>Your Progress</p>
+            <p className="text-xl" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
+              Level {stats?.user.level || 1}
+            </p>
+          </div>
+          <div className="flex-1 max-w-md">
+            <XPBar
+              level={stats?.user.level || 1}
+              currentXP={stats?.user.xp || 0}
+              xpToNext={stats?.user.xpToNext || 100}
+              size="lg"
+            />
           </div>
         </div>
       </div>
-    </>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          icon={<Building2 className="w-4 h-4" />}
+          label="Cities"
+          value={stats?.counts.cities || 0}
+          color="teal"
+        />
+        <StatCard
+          icon={<MapPin className="w-4 h-4" />}
+          label="Locations"
+          value={stats?.counts.locations || 0}
+          color="purple"
+        />
+        <StatCard
+          icon={<Globe className="w-4 h-4" />}
+          label="Countries"
+          value={stats?.counts.countries || 0}
+          color="cyan"
+        />
+        <StatCard
+          icon={<Flame className="w-4 h-4" />}
+          label="Day Streak"
+          value={stats?.user.currentStreak || 0}
+          color="gold"
+        />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <Link
+          href="/travel/locations/new"
+          className="group rounded-lg p-5 transition-all"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-10 h-10 rounded flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{ background: 'rgba(95, 191, 138, 0.2)', border: '2px solid var(--rpg-teal)' }}
+            >
+              <Plus className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-[0.65rem]" style={{ color: 'var(--rpg-text)' }}>Add New Location</h3>
+              <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+                Log a place you've visited
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 transition-colors" style={{ color: 'var(--rpg-muted)' }} />
+          </div>
+        </Link>
+
+        <Link
+          href="/travel/map"
+          className="group rounded-lg p-5 transition-all"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-10 h-10 rounded flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{ background: 'rgba(255, 215, 0, 0.2)', border: '2px solid var(--rpg-gold)' }}
+            >
+              <Globe className="w-5 h-5" style={{ color: 'var(--rpg-gold)' }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-[0.65rem]" style={{ color: 'var(--rpg-text)' }}>View Map</h3>
+              <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+                See all your travels
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 transition-colors" style={{ color: 'var(--rpg-muted)' }} />
+          </div>
+        </Link>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Achievements Progress */}
+        <div
+          className="rounded-lg p-5"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[0.7rem] flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
+              <Trophy className="w-4 h-4" style={{ color: 'var(--rpg-gold)' }} />
+              Achievements
+            </h2>
+            <Link
+              href="/travel/achievements"
+              className="text-[0.5rem] transition-colors"
+              style={{ color: 'var(--rpg-teal)' }}
+            >
+              View all
+            </Link>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div
+                className="h-3 rounded overflow-hidden"
+                style={{ background: 'var(--rpg-border)', border: '2px solid var(--rpg-border-light)' }}
+              >
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${
+                      stats?.achievements
+                        ? (stats.achievements.unlocked / stats.achievements.total) * 100
+                        : 0
+                    }%`,
+                    background: 'linear-gradient(90deg, var(--rpg-gold) 0%, var(--rpg-teal) 100%)',
+                  }}
+                />
+              </div>
+            </div>
+            <span className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+              {stats?.achievements.unlocked || 0} / {stats?.achievements.total || 0}
+            </span>
+          </div>
+          <p className="mt-3 text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+            Keep exploring to unlock more achievements!
+          </p>
+        </div>
+
+        {/* Top Rated Locations */}
+        <div
+          className="rounded-lg p-5"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[0.7rem] flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
+              <TrendingUp className="w-4 h-4" style={{ color: 'var(--rpg-teal)' }} />
+              Top Rated
+            </h2>
+            <Link
+              href="/travel/locations"
+              className="text-[0.5rem] transition-colors"
+              style={{ color: 'var(--rpg-teal)' }}
+            >
+              View all
+            </Link>
+          </div>
+          {stats?.topLocations && stats.topLocations.length > 0 ? (
+            <div className="space-y-3">
+              {stats.topLocations.slice(0, 3).map((location) => (
+                <div
+                  key={location.id}
+                  className="flex items-center justify-between py-2"
+                  style={{ borderBottom: '1px solid var(--rpg-border)' }}
+                >
+                  <div>
+                    <p className="text-[0.55rem]" style={{ color: 'var(--rpg-text)' }}>{location.name}</p>
+                    <p className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
+                      {location.city.name}, {location.city.country}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1" style={{ color: 'var(--rpg-gold)' }}>
+                    <span className="text-[0.55rem]">
+                      {location.avgRating?.toFixed(1)}
+                    </span>
+                    <span className="text-[0.45rem]">★</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+              No rated locations yet. Start exploring!
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  color: "teal" | "purple" | "cyan" | "gold";
+}) {
+  const colors = {
+    teal: { bg: 'rgba(95, 191, 138, 0.2)', border: 'var(--rpg-teal)', text: 'var(--rpg-teal)' },
+    purple: { bg: 'rgba(168, 85, 247, 0.2)', border: 'var(--rpg-purple)', text: 'var(--rpg-purple)' },
+    cyan: { bg: 'rgba(6, 182, 212, 0.2)', border: 'var(--rpg-cyan)', text: 'var(--rpg-cyan)' },
+    gold: { bg: 'rgba(255, 215, 0, 0.2)', border: 'var(--rpg-gold)', text: 'var(--rpg-gold)' },
+  };
+
+  return (
+    <div
+      className="rounded-lg p-4"
+      style={{
+        background: 'var(--rpg-card)',
+        border: '2px solid var(--rpg-border)',
+        boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+      }}
+    >
+      <div
+        className="w-8 h-8 rounded flex items-center justify-center mb-3"
+        style={{ background: colors[color].bg, border: `2px solid ${colors[color].border}` }}
+      >
+        <span style={{ color: colors[color].text }}>{icon}</span>
+      </div>
+      <p className="text-lg" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 8px var(--rpg-gold-glow)' }}>
+        {value}
+      </p>
+      <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>{label}</p>
+    </div>
   );
 }

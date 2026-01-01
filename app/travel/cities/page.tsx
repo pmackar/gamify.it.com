@@ -79,7 +79,7 @@ export default function CitiesPage() {
             {cities.length} cities across {Object.keys(citiesByCountry).length} countries
           </p>
         </div>
-        <Link href="/locations/new" className="rpg-btn flex items-center gap-2">
+        <Link href="/travel/locations/new" className="rpg-btn flex items-center gap-2">
           <Plus className="w-3 h-3" />
           Add Location
         </Link>
@@ -97,7 +97,7 @@ export default function CitiesPage() {
           <p className="text-[0.5rem] mb-6" style={{ color: 'var(--rpg-muted)' }}>
             Start adding locations to see your cities here
           </p>
-          <Link href="/locations/new" className="rpg-btn">
+          <Link href="/travel/locations/new" className="rpg-btn">
             <Plus className="w-3 h-3 inline mr-2" />
             Add Your First Location
           </Link>
@@ -122,7 +122,7 @@ export default function CitiesPage() {
                   {countryCities.map((city) => (
                     <Link
                       key={city.id}
-                      href={`/cities/${city.id}`}
+                      href={`/travel/cities/${city.id}`}
                       className="group rounded-lg p-5 transition-all"
                       style={{
                         background: 'var(--rpg-card)',

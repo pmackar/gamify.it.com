@@ -136,7 +136,7 @@ export default function NewLocationPage() {
 
       // Redirect after showing success
       setTimeout(() => {
-        router.push(`/locations/${data.location.id}`);
+        router.push(`/travel/locations/${data.location.id}`);
       }, 2000);
     } catch (error) {
       console.error("Error creating location:", error);
@@ -172,7 +172,7 @@ export default function NewLocationPage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link
-          href="/locations"
+          href="/travel/locations"
           className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />

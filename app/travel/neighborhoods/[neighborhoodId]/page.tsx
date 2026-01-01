@@ -95,11 +95,11 @@ export default function NeighborhoodDetailPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/cities" className="hover:text-white">
+        <Link href="/travel/cities" className="hover:text-white">
           Cities
         </Link>
         <span>/</span>
-        <Link href={`/cities/${neighborhood.city.id}`} className="hover:text-white">
+        <Link href={`/travel/cities/${neighborhood.city.id}`} className="hover:text-white">
           {neighborhood.city.name}
         </Link>
         <span>/</span>
@@ -110,7 +110,7 @@ export default function NeighborhoodDetailPage() {
       <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">{neighborhood.name}</h1>
         <Link
-          href={`/cities/${neighborhood.city.id}`}
+          href={`/travel/cities/${neighborhood.city.id}`}
           className="text-gray-400 hover:text-cyan-400 flex items-center gap-1"
         >
           <MapPin className="w-4 h-4" />
@@ -160,7 +160,7 @@ export default function NeighborhoodDetailPage() {
               {byType[type].map((location) => (
                 <Link
                   key={location.id}
-                  href={`/locations/${location.id}`}
+                  href={`/travel/locations/${location.id}`}
                   className="block bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
                 >
                   <div className="flex items-center justify-between">

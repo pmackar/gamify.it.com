@@ -238,13 +238,13 @@ export default function ProfilePage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
-        <StatCard icon={Globe} label="Countries" value={stats.countries} color="var(--rpg-cyan)" href="/cities" />
-        <StatCard icon={Building2} label="Cities" value={stats.cities} color="var(--rpg-purple)" href="/cities" />
-        <StatCard icon={Home} label="Neighborhoods" value={stats.neighborhoods} color="var(--rpg-teal)" href="/neighborhoods" />
-        <StatCard icon={MapPin} label="Locations" value={stats.locations} color="var(--rpg-gold)" href="/locations" />
-        <StatCard icon={CheckSquare} label="Visited" value={stats.visited} color="#22c55e" href="/locations?visited=true" />
-        <StatCard icon={Heart} label="Hotlist" value={stats.hotlist} color="#ef4444" href="/locations?hotlist=true" />
-        <StatCard icon={Star} label="Reviews" value={stats.reviews} color="#f59e0b" href="/stats" />
+        <StatCard icon={Globe} label="Countries" value={stats.countries} color="var(--rpg-cyan)" href="/travel/cities" />
+        <StatCard icon={Building2} label="Cities" value={stats.cities} color="var(--rpg-purple)" href="/travel/cities" />
+        <StatCard icon={Home} label="Neighborhoods" value={stats.neighborhoods} color="var(--rpg-teal)" href="/travel/neighborhoods" />
+        <StatCard icon={MapPin} label="Locations" value={stats.locations} color="var(--rpg-gold)" href="/travel/locations" />
+        <StatCard icon={CheckSquare} label="Visited" value={stats.visited} color="#22c55e" href="/travel/locations?visited=true" />
+        <StatCard icon={Heart} label="Hotlist" value={stats.hotlist} color="#ef4444" href="/travel/locations?hotlist=true" />
+        <StatCard icon={Star} label="Reviews" value={stats.reviews} color="#f59e0b" href="/travel/stats" />
         <StatCard
           icon={TrendingUp}
           label="Avg Rating"
@@ -257,7 +257,7 @@ export default function ProfilePage() {
           label="Achievements"
           value={`${achievements.unlocked}/${achievements.total}`}
           color="var(--rpg-gold)"
-          href="/achievements"
+          href="/travel/achievements"
         />
       </div>
 
@@ -285,7 +285,7 @@ export default function ProfilePage() {
                 return (
                   <Link
                     key={item.type}
-                    href={`/locations?type=${item.type.toLowerCase()}`}
+                    href={`/travel/locations?type=${item.type.toLowerCase()}`}
                     className="flex items-center gap-3 p-2 -mx-2 rounded-lg transition-colors hover:bg-gray-800/50"
                   >
                     <Icon className={`w-5 h-5 ${colorClass}`} />
@@ -328,7 +328,7 @@ export default function ProfilePage() {
               Achievements
             </h2>
             <Link
-              href="/achievements"
+              href="/travel/achievements"
               className="text-sm"
               style={{ color: "var(--rpg-gold)" }}
             >
@@ -389,7 +389,7 @@ export default function ProfilePage() {
                 return (
                   <Link
                     key={location.id}
-                    href={`/locations/${location.id}`}
+                    href={`/travel/locations/${location.id}`}
                     className="flex items-center gap-3 p-3 rounded-lg transition-colors"
                     style={{
                       background: "var(--rpg-bg-dark)",

@@ -167,7 +167,7 @@ function LocationsContent() {
             {locations.length} places you've been
           </p>
         </div>
-        <Link href="/locations/new" className="rpg-btn flex items-center justify-center gap-2">
+        <Link href="/travel/locations/new" className="rpg-btn flex items-center justify-center gap-2">
           <Plus className="w-3 h-3" />
           Add Location
         </Link>
@@ -285,7 +285,7 @@ function LocationsContent() {
               : "Try adjusting your filters or search query"}
           </p>
           {locations.length === 0 && (
-            <Link href="/locations/new" className="rpg-btn">
+            <Link href="/travel/locations/new" className="rpg-btn">
               <Plus className="w-3 h-3 inline mr-2" />
               Add Your First Location
             </Link>
@@ -296,7 +296,7 @@ function LocationsContent() {
           {filteredLocations.map((location) => (
             <Link
               key={location.id}
-              href={`/locations/${location.id}`}
+              href={`/travel/locations/${location.id}`}
               className="group rounded-lg p-5 transition-all"
               style={{
                 background: 'var(--rpg-card)',

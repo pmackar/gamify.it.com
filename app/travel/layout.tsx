@@ -2,7 +2,7 @@
 
 import { NavBar } from "@/components/NavBar";
 
-export default function DashboardLayout({
+export default function TravelLayout({
   children,
 }: {
   children: React.ReactNode;

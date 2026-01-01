@@ -90,7 +90,7 @@ export default function CityDetailPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
-        href="/cities"
+        href="/travel/cities"
         className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -139,7 +139,7 @@ export default function CityDetailPage() {
         {neighborhoods.map((neighborhood) => (
           <Link
             key={neighborhood.id}
-            href={`/neighborhoods/${neighborhood.id}`}
+            href={`/travel/neighborhoods/${neighborhood.id}`}
             className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-cyan-500/50 transition-colors"
           >
             <h3 className="font-medium text-white">{neighborhood.name}</h3>
@@ -168,7 +168,7 @@ export default function CityDetailPage() {
             {locationsWithoutNeighborhood.map((location) => (
               <Link
                 key={location.id}
-                href={`/locations/${location.id}`}
+                href={`/travel/locations/${location.id}`}
                 className="block bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
               >
                 <div className="flex items-center justify-between">
