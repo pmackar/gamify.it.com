@@ -631,13 +631,18 @@ export default function LandingPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setAuthChecked(true);
-      if (window.location.hash || window.location.search.includes('code=')) {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+        setAuthChecked(true);
+        if (window.location.hash || window.location.search.includes('code=')) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      })
+      .catch((err) => {
+        console.error('getSession error:', err);
+        setAuthChecked(true); // Don't block on error
+      });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
