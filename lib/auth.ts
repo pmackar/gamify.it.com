@@ -11,55 +11,47 @@ export async function getSupabaseUser(): Promise<User | null> {
 
 // Get or create profile for a user
 export async function getProfile(supabaseUser: User) {
-  // Try to find existing profile
-  let profile = await prisma.profiles.findUnique({
+  // Use upsert to avoid race conditions
+  const profile = await prisma.profiles.upsert({
     where: { id: supabaseUser.id },
+    update: {
+      // Update avatar if changed
+      avatar_url: supabaseUser.user_metadata?.avatar_url,
+    },
+    create: {
+      id: supabaseUser.id,
+      email: supabaseUser.email!,
+      display_name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0],
+      avatar_url: supabaseUser.user_metadata?.avatar_url,
+    },
     include: {
       app_profiles: true,
     },
   });
-
-  // Create profile if doesn't exist
-  if (!profile) {
-    profile = await prisma.profiles.create({
-      data: {
-        id: supabaseUser.id,
-        email: supabaseUser.email!,
-        display_name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0],
-        avatar_url: supabaseUser.user_metadata?.avatar_url,
-      },
-      include: {
-        app_profiles: true,
-      },
-    });
-  }
 
   return profile;
 }
 
 // Get or create travel app profile
 export async function getTravelProfile(userId: string) {
-  let appProfile = await prisma.app_profiles.findUnique({
+  // Use upsert to avoid race conditions
+  const appProfile = await prisma.app_profiles.upsert({
     where: {
       user_id_app_id: {
         user_id: userId,
         app_id: 'travel',
       },
     },
+    update: {},
+    create: {
+      user_id: userId,
+      app_id: 'travel',
+      xp: 0,
+      level: 1,
+      xp_to_next: 100,
+      stats: {},
+    },
   });
-
-  if (!appProfile) {
-    appProfile = await prisma.app_profiles.create({
-      data: {
-        user_id: userId,
-        app_id: 'travel',
-        xp: 0,
-        level: 1,
-        xp_to_next: 100,
-        stats: {},
-      },
-    });
-  }
 
   return appProfile;
 }
