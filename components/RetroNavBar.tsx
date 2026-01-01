@@ -2,17 +2,37 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { useNavBarContent, useNavBarTheme } from './NavBarContext';
+import { useXP, XPState } from './XPContext';
 
-interface UserProfile {
-  level: number;
-  xp: number;
-  xpInCurrentLevel: number;
-  xpToNextLevel: number;
-}
+// Compact XP bar for when app content is active
+const CompactXPBar = ({ xp }: { xp: XPState }) => (
+  <div className="nav-xp-compact">
+    <span className="nav-level-compact">L{xp.level}</span>
+    <div className="nav-xp-mini-bar">
+      <div
+        className="nav-xp-mini-fill"
+        style={{ width: `${Math.min(100, (xp.xpInCurrentLevel / xp.xpToNextLevel) * 100)}%` }}
+      />
+    </div>
+  </div>
+);
+
+// Full XP display
+const FullXPBar = ({ xp }: { xp: XPState }) => (
+  <div className="nav-level-xp">
+    <div className="nav-level-badge">LVL {xp.level}</div>
+    <div className="nav-xp-bar">
+      <div
+        className="nav-xp-fill"
+        style={{ width: `${Math.min(100, (xp.xpInCurrentLevel / xp.xpToNextLevel) * 100)}%` }}
+      />
+    </div>
+  </div>
+);
 
 // Refined pixel art icons - smaller, crisper
 const DumbbellIcon = ({ active }: { active?: boolean }) => (
@@ -69,8 +89,8 @@ export interface RetroNavBarProps {
 export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroNavBarProps = {}) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated' | 'error'>('loading');
+  const { xp: userProfile } = useXP();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
   const [email, setEmail] = useState('');
@@ -109,31 +129,11 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         setAuthStatus('authenticated');
       } else {
         setUser(null);
-        setUserProfile(null);
         setAuthStatus('unauthenticated');
       }
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  // Fetch user profile when authenticated
-  useEffect(() => {
-    if (authStatus !== 'authenticated') return;
-
-    fetch('/api/profile')
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.character) {
-          setUserProfile({
-            level: data.character.level,
-            xp: data.character.xp,
-            xpInCurrentLevel: data.character.xpInCurrentLevel,
-            xpToNextLevel: data.character.xpToNextLevel,
-          });
-        }
-      })
-      .catch(() => {});
-  }, [authStatus]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -550,7 +550,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         .nav-level-xp {
           display: flex;
           flex-direction: column;
-          align-items: flex-end;
+          align-items: center;
           gap: 4px;
         }
 
@@ -580,6 +580,47 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           border-radius: 2px;
           transition: width 0.3s ease;
           box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Compact XP bar for when app content is active */
+        .nav-xp-compact {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 100px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-level-compact {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 7px;
+          color: #FFD700;
+          white-space: nowrap;
+        }
+
+        .nav-xp-mini-bar {
+          width: 32px;
+          height: 4px;
+          background: rgba(0, 0, 0, 0.4);
+          border-radius: 2px;
+          overflow: hidden;
+        }
+
+        .nav-xp-mini-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+          border-radius: 2px;
+          transition: width 0.3s ease;
+        }
+
+        /* App content wrapper */
+        .nav-app-content {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          max-width: 100%;
         }
 
         .nav-dropdown {
@@ -889,8 +930,43 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
             min-width: 200px;
           }
 
+          /* Mobile XP - compact version always */
           .nav-level-xp {
-            display: none;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 4px;
+          }
+
+          .nav-level-badge {
+            font-size: 5px;
+            padding: 2px 5px;
+          }
+
+          .nav-xp-bar {
+            width: 28px;
+            height: 4px;
+          }
+
+          /* Compact XP adjustments for mobile */
+          .nav-xp-compact {
+            padding: 2px 6px;
+            gap: 4px;
+          }
+
+          .nav-level-compact {
+            font-size: 5px;
+          }
+
+          .nav-xp-mini-bar {
+            width: 20px;
+            height: 3px;
+          }
+
+          /* App content on mobile */
+          .nav-app-content {
+            flex: 1;
+            max-width: 55%;
           }
 
           .nav-menu-link {
@@ -904,6 +980,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
           .nav-center {
             flex: 1;
+            gap: 6px;
           }
 
           /* Hide menu items on mobile but keep workout/today headers */
@@ -933,23 +1010,33 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
             display: none;
           }
 
+          .nav-today-btn {
+            font-size: 5px;
+            padding: 3px 6px;
+          }
+
+          .nav-today-stats {
+            font-size: 9px;
+            padding: 2px 5px;
+          }
+
           /* Mobile workout header */
           .nav-workout-status {
             padding: 3px 8px;
-            gap: 8px;
+            gap: 6px;
           }
 
           .nav-workout-timer {
-            font-size: 7px;
+            font-size: 6px;
           }
 
           .nav-workout-sets {
-            font-size: 6px;
+            font-size: 5px;
           }
 
           .nav-workout-finish {
             font-size: 5px;
-            padding: 3px 8px;
+            padding: 3px 6px;
           }
         }
       `}</style>
@@ -975,46 +1062,43 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
             </div>
           </div>
 
-          {/* Center section: App menu items or context content */}
-          {(appMenuItems || children || contextContent) && (
-            <div className="nav-center">
-              {appMenuItems && (
-                <div className="nav-menu-items">
-                  {appMenuItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`nav-menu-link ${pathname === item.href ? 'active' : ''}`}
-                    >
-                      {item.icon && <span className="nav-menu-icon">{item.icon}</span>}
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {children}
-              {contextContent}
-            </div>
-          )}
+          {/* Center section: XP bar + app content */}
+          <div className="nav-center">
+            {/* XP display - compact when app content present, full otherwise */}
+            {userProfile && (
+              contextContent ? <CompactXPBar xp={userProfile} /> : <FullXPBar xp={userProfile} />
+            )}
+
+            {/* App-specific content from context */}
+            {contextContent && (
+              <div className="nav-app-content">
+                {contextContent}
+              </div>
+            )}
+
+            {/* Legacy menu items support */}
+            {appMenuItems && (
+              <div className="nav-menu-items">
+                {appMenuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`nav-menu-link ${pathname === item.href ? 'active' : ''}`}
+                  >
+                    {item.icon && <span className="nav-menu-icon">{item.icon}</span>}
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+            {children}
+          </div>
 
           <div className="nav-auth">
             {authStatus === 'loading' && <div className="nav-loading" />}
 
             {authStatus === 'authenticated' && user && (
               <div className="nav-user-info">
-                {userProfile && (
-                  <div className="nav-level-xp">
-                    <div className="nav-level-badge">LVL {userProfile.level}</div>
-                    <div className="nav-xp-bar">
-                      <div
-                        className="nav-xp-fill"
-                        style={{
-                          width: `${Math.min(100, (userProfile.xpInCurrentLevel / userProfile.xpToNextLevel) * 100)}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
                 <div style={{ position: 'relative' }} className="nav-dropdown-zone">
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}

@@ -12,6 +12,7 @@ import {
   WorkoutTemplate,
   ViewType
 } from './types';
+import { dispatchXPUpdate } from '@/components/XPContext';
 import {
   DEFAULT_TEMPLATES,
   MILESTONES,
@@ -395,6 +396,9 @@ export const useFitnessStore = create<FitnessStore>()(
 
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
         get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
+
+        // Update navbar XP display
+        dispatchXPUpdate();
       },
 
       cancelWorkout: () => {
