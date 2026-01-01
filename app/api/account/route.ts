@@ -55,7 +55,7 @@ export async function GET() {
       name: 'Iron Quest',
       icon: '💪',
       color: '#FF6B6B',
-      url: 'https://fitness.gamify.it.com',
+      url: '/fitness',
       profile: appProfiles?.find(p => p.app_id === 'fitness'),
     },
     {
@@ -71,7 +71,7 @@ export async function GET() {
       name: 'Day Quest',
       icon: '✅',
       color: '#7FD954',
-      url: 'https://today.gamify.it.com',
+      url: '/today',
       profile: appProfiles?.find(p => p.app_id === 'today'),
     },
   ];
