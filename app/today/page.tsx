@@ -676,10 +676,9 @@ export default function TodayPage() {
         }
 
         .user-avatar {
-          width: 48px;
-          height: 48px;
+          width: 56px;
+          height: 56px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--accent), #8b5cf6);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -687,17 +686,80 @@ export default function TodayPage() {
           position: relative;
         }
 
+        .avatar-glow {
+          position: absolute;
+          inset: -4px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--accent), #8b5cf6);
+          opacity: 0.3;
+          filter: blur(8px);
+          animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.05); }
+        }
+
+        .avatar-inner {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--accent), #8b5cf6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          position: relative;
+          z-index: 2;
+        }
+
+        .level-ring {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+        }
+
+        .level-ring-svg {
+          width: 100%;
+          height: 100%;
+          transform: rotate(-90deg);
+        }
+
+        .level-ring-bg {
+          fill: none;
+          stroke: var(--bg-tertiary);
+          stroke-width: 4;
+        }
+
+        .level-ring-progress {
+          fill: none;
+          stroke: var(--accent);
+          stroke-width: 4;
+          stroke-linecap: round;
+          stroke-dasharray: 163;
+          stroke-dashoffset: 163;
+          transition: stroke-dashoffset 0.5s ease-out;
+          filter: drop-shadow(0 0 4px var(--accent));
+        }
+
         .level-badge {
           position: absolute;
-          bottom: -4px;
-          right: -4px;
-          background: var(--accent);
+          bottom: -2px;
+          right: -2px;
+          background: linear-gradient(135deg, var(--accent), #8b5cf6);
           color: white;
           font-size: 10px;
           font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 10px;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           border: 2px solid var(--bg-secondary);
+          z-index: 3;
+          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
         }
 
         .user-info {
@@ -1633,7 +1695,20 @@ export default function TodayPage() {
           <div className="sidebar-header">
             <div className="user-card">
               <div className="user-avatar">
-                {rankInfo.icon}
+                <div className="avatar-glow" />
+                <div className="level-ring">
+                  <svg className="level-ring-svg" viewBox="0 0 56 56">
+                    <circle className="level-ring-bg" cx="28" cy="28" r="26" />
+                    <circle
+                      className="level-ring-progress"
+                      cx="28"
+                      cy="28"
+                      r="26"
+                      style={{ strokeDashoffset: 163 - (163 * xpPercent / 100) }}
+                    />
+                  </svg>
+                </div>
+                <div className="avatar-inner">{rankInfo.icon}</div>
                 <span className="level-badge">{store.profile.level}</span>
               </div>
               <div className="user-info">
@@ -1643,7 +1718,7 @@ export default function TodayPage() {
                   <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
                 </div>
                 <div className="xp-text">
-                  {store.profile.xp} / {store.profile.xp_to_next} XP
+                  {store.profile.xp} / {store.profile.xp_to_next} XP • 🔥 {store.profile.current_streak}
                 </div>
               </div>
             </div>
