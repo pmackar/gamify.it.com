@@ -55,7 +55,7 @@ export async function GET() {
       name: 'Iron Quest',
       icon: '💪',
       color: '#FF6B6B',
-      url: 'https://gamify-fitness.vercel.app',
+      url: 'https://fitness.gamify.it.com',
       profile: appProfiles?.find(p => p.app_id === 'fitness'),
     },
     {
@@ -63,7 +63,7 @@ export async function GET() {
       name: 'Explorer',
       icon: '✈️',
       color: '#5CC9F5',
-      url: '/dashboard',
+      url: 'https://travel.gamify.it.com',
       profile: appProfiles?.find(p => p.app_id === 'travel'),
     },
     {
@@ -71,7 +71,7 @@ export async function GET() {
       name: 'Day Quest',
       icon: '✅',
       color: '#7FD954',
-      url: 'https://gamify-today.vercel.app',
+      url: 'https://today.gamify.it.com',
       profile: appProfiles?.find(p => p.app_id === 'today'),
     },
   ];

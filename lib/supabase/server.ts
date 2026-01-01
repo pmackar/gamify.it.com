@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+// Shared cookie domain for SSO across all gamify.it.com subdomains
+const COOKIE_DOMAIN = '.gamify.it.com';
+
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -15,7 +18,12 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, {
+                ...options,
+                domain: COOKIE_DOMAIN,
+                sameSite: 'lax',
+                secure: true,
+              })
             );
           } catch {
             // The `setAll` method was called from a Server Component.
