@@ -63,7 +63,7 @@ export async function GET() {
       name: 'Explorer',
       icon: '✈️',
       color: '#5CC9F5',
-      url: 'https://travel.gamify.it.com',
+      url: '/travel',
       profile: appProfiles?.find(p => p.app_id === 'travel'),
     },
     {
