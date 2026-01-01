@@ -332,7 +332,7 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.toLowerCase().trim(),
         token: otp.trim(),
-        type: 'email'
+        type: 'magiclink'
       });
       console.log('verifyOtp response:', { data, error });
       if (error) {
