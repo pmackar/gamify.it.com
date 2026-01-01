@@ -59,6 +59,11 @@ export default function TodayPage() {
   const [quickAddValue, setQuickAddValue] = useState('');
   const quickAddRef = useRef<HTMLInputElement>(null);
 
+  // Autocomplete for quick add
+  const [suggestions, setSuggestions] = useState<Array<{ type: string; value: string; label: string; icon?: string }>>([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [activeToken, setActiveToken] = useState<{ type: string; start: number; query: string } | null>(null);
+
   // Command palette
   const [commandQuery, setCommandQuery] = useState('');
   const [commandIndex, setCommandIndex] = useState(0);
@@ -265,6 +270,102 @@ export default function TodayPage() {
   useEffect(() => {
     return () => setNavBarTheme('dark');
   }, [setNavBarTheme]);
+
+  // Autocomplete logic for quick add
+  const updateSuggestions = useCallback((value: string, cursorPos: number) => {
+    // Find the token at cursor position
+    const beforeCursor = value.slice(0, cursorPos);
+
+    // Check for tokens: @ (project), # (category), ! (priority), ~ (difficulty), ^ (tier)
+    const tokenMatch = beforeCursor.match(/[@#!~^](\S*)$/);
+
+    if (!tokenMatch) {
+      setSuggestions([]);
+      setActiveToken(null);
+      return;
+    }
+
+    const tokenChar = tokenMatch[0][0];
+    const query = tokenMatch[1].toLowerCase();
+    const tokenStart = beforeCursor.lastIndexOf(tokenChar);
+
+    let newSuggestions: Array<{ type: string; value: string; label: string; icon?: string }> = [];
+
+    if (tokenChar === '@') {
+      // Project suggestions
+      newSuggestions = store.projects
+        .filter(p => p.name.toLowerCase().includes(query))
+        .map(p => ({ type: 'project', value: p.name.replace(/\s+/g, '-'), label: p.name, icon: '📁' }));
+      setActiveToken({ type: 'project', start: tokenStart, query });
+    } else if (tokenChar === '#') {
+      // Category suggestions
+      newSuggestions = store.categories
+        .filter(c => c.name.toLowerCase().includes(query))
+        .map(c => ({ type: 'category', value: c.name.replace(/\s+/g, '-'), label: c.name, icon: '🏷️' }));
+      setActiveToken({ type: 'category', start: tokenStart, query });
+    } else if (tokenChar === '!') {
+      // Priority suggestions
+      const priorities = [
+        { value: 'high', label: 'High Priority', icon: '🔴' },
+        { value: 'medium', label: 'Medium Priority', icon: '🟡' },
+        { value: 'low', label: 'Low Priority', icon: '🟢' }
+      ];
+      newSuggestions = priorities
+        .filter(p => p.label.toLowerCase().includes(query) || p.value.includes(query))
+        .map(p => ({ type: 'priority', ...p }));
+      setActiveToken({ type: 'priority', start: tokenStart, query });
+    } else if (tokenChar === '~') {
+      // Difficulty suggestions
+      const difficulties = [
+        { value: 'easy', label: 'Easy (1x XP)', icon: '😊' },
+        { value: 'medium', label: 'Medium (1.5x XP)', icon: '😐' },
+        { value: 'hard', label: 'Hard (2x XP)', icon: '😤' },
+        { value: 'epic', label: 'Epic (3x XP)', icon: '🔥' }
+      ];
+      newSuggestions = difficulties
+        .filter(d => d.label.toLowerCase().includes(query) || d.value.includes(query))
+        .map(d => ({ type: 'difficulty', ...d }));
+      setActiveToken({ type: 'difficulty', start: tokenStart, query });
+    } else if (tokenChar === '^') {
+      // Tier suggestions
+      const tiers = [
+        { value: 'quick', label: 'Quick Task (1x)', icon: '⚡' },
+        { value: 'standard', label: 'Standard Task (2x)', icon: '📋' },
+        { value: 'major', label: 'Major Task (3x)', icon: '🎯' }
+      ];
+      newSuggestions = tiers
+        .filter(t => t.label.toLowerCase().includes(query) || t.value.includes(query))
+        .map(t => ({ type: 'tier', ...t }));
+      setActiveToken({ type: 'tier', start: tokenStart, query });
+    }
+
+    setSuggestions(newSuggestions);
+    setSuggestionIndex(0);
+  }, [store.projects, store.categories]);
+
+  const selectSuggestion = useCallback((suggestion: typeof suggestions[0]) => {
+    if (!activeToken || !quickAddRef.current) return;
+
+    const input = quickAddRef.current;
+    const value = quickAddValue;
+    const tokenChar = value[activeToken.start];
+
+    // Replace the token with the selected value
+    const before = value.slice(0, activeToken.start);
+    const after = value.slice(input.selectionStart || value.length);
+    const newValue = `${before}${tokenChar}${suggestion.value} ${after.trimStart()}`;
+
+    setQuickAddValue(newValue);
+    setSuggestions([]);
+    setActiveToken(null);
+
+    // Move cursor after the inserted value
+    setTimeout(() => {
+      const newPos = before.length + 1 + suggestion.value.length + 1;
+      input.setSelectionRange(newPos, newPos);
+      input.focus();
+    }, 0);
+  }, [activeToken, quickAddValue]);
 
   const openTaskModal = (task?: Task) => {
     if (task) {
@@ -1318,18 +1419,75 @@ export default function TodayPage() {
           color: var(--text-tertiary);
         }
 
-        .task-delete-btn {
-          background: none;
-          border: none;
-          padding: 4px 8px;
-          cursor: pointer;
-          font-size: 14px;
-          opacity: 0.5;
-          transition: opacity 0.15s ease;
+        /* Suggestions popup */
+        .suggestions-popup {
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100%;
+          max-width: 600px;
+          margin-bottom: 8px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          overflow: hidden;
+          pointer-events: auto;
         }
 
-        .task-delete-btn:hover {
-          opacity: 1;
+        .suggestion-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          cursor: pointer;
+          transition: background 0.1s ease;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+          background: var(--bg-tertiary);
+        }
+
+        .suggestion-icon {
+          font-size: 16px;
+        }
+
+        .suggestion-label {
+          flex: 1;
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+
+        .suggestion-type {
+          font-size: 11px;
+          text-transform: uppercase;
+          color: var(--text-tertiary);
+          background: var(--bg-secondary);
+          padding: 2px 8px;
+          border-radius: 4px;
+        }
+
+        .suggestions-hint {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          padding: 8px 16px;
+          background: var(--bg-secondary);
+          font-size: 11px;
+          color: var(--text-tertiary);
+          border-top: 1px solid var(--border);
+        }
+
+        .suggestions-hint kbd {
+          display: inline-block;
+          padding: 1px 5px;
+          font-size: 10px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 3px;
+          margin-right: 4px;
         }
 
         /* Modals */
@@ -2090,6 +2248,27 @@ export default function TodayPage() {
 
           {/* Floating Quick Add (desktop only) */}
           <div className="floating-quick-add">
+            {/* Suggestions popup */}
+            {suggestions.length > 0 && (
+              <div className="suggestions-popup">
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={`${suggestion.type}-${suggestion.value}`}
+                    className={`suggestion-item ${index === suggestionIndex ? 'selected' : ''}`}
+                    onClick={() => selectSuggestion(suggestion)}
+                  >
+                    <span className="suggestion-icon">{suggestion.icon}</span>
+                    <span className="suggestion-label">{suggestion.label}</span>
+                    <span className="suggestion-type">{suggestion.type}</span>
+                  </div>
+                ))}
+                <div className="suggestions-hint">
+                  <span><kbd>↑↓</kbd> navigate</span>
+                  <span><kbd>↵</kbd> select</span>
+                  <span><kbd>esc</kbd> close</span>
+                </div>
+              </div>
+            )}
             <div className="floating-quick-add-inner">
               <span className="floating-quick-add-icon">✨</span>
               <input
@@ -2098,8 +2277,37 @@ export default function TodayPage() {
                 className="floating-quick-add-input"
                 placeholder="Press N to add a task..."
                 value={quickAddValue}
-                onChange={(e) => setQuickAddValue(e.target.value)}
+                onChange={(e) => {
+                  setQuickAddValue(e.target.value);
+                  updateSuggestions(e.target.value, e.target.selectionStart || 0);
+                }}
                 onKeyDown={(e) => {
+                  // Handle suggestions navigation
+                  if (suggestions.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSuggestionIndex(i => Math.min(i + 1, suggestions.length - 1));
+                      return;
+                    }
+                    if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSuggestionIndex(i => Math.max(i - 1, 0));
+                      return;
+                    }
+                    if (e.key === 'Enter' || e.key === 'Tab') {
+                      e.preventDefault();
+                      selectSuggestion(suggestions[suggestionIndex]);
+                      return;
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setSuggestions([]);
+                      setActiveToken(null);
+                      return;
+                    }
+                  }
+
+                  // Normal input handling
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                     e.preventDefault();
                     openTaskModal();
@@ -2111,8 +2319,16 @@ export default function TodayPage() {
                   }
                   if (e.key === 'Escape') {
                     setQuickAddValue('');
+                    setSuggestions([]);
                     quickAddRef.current?.blur();
                   }
+                }}
+                onBlur={() => {
+                  // Delay to allow click on suggestion
+                  setTimeout(() => {
+                    setSuggestions([]);
+                    setActiveToken(null);
+                  }, 150);
                 }}
               />
             </div>
