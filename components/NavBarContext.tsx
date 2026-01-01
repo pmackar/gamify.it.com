@@ -5,15 +5,18 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 interface NavBarContextValue {
   centerContent: ReactNode | null;
   setCenterContent: (content: ReactNode | null) => void;
+  theme: 'dark' | 'light';
+  setTheme: (theme: 'dark' | 'light') => void;
 }
 
 const NavBarContext = createContext<NavBarContextValue | null>(null);
 
 export function NavBarProvider({ children }: { children: ReactNode }) {
   const [centerContent, setCenterContent] = useState<ReactNode | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   return (
-    <NavBarContext.Provider value={{ centerContent, setCenterContent }}>
+    <NavBarContext.Provider value={{ centerContent, setCenterContent, theme, setTheme }}>
       {children}
     </NavBarContext.Provider>
   );
@@ -30,4 +33,9 @@ export function useNavBar() {
 export function useNavBarContent() {
   const context = useContext(NavBarContext);
   return context?.centerContent ?? null;
+}
+
+export function useNavBarTheme() {
+  const context = useContext(NavBarContext);
+  return context?.theme ?? 'dark';
 }

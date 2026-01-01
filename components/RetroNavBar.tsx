@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import { useNavBarContent } from './NavBarContext';
+import { useNavBarContent, useNavBarTheme } from './NavBarContext';
 
 interface UserProfile {
   level: number;
@@ -76,35 +76,13 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
   const [email, setEmail] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [detectedTheme, setDetectedTheme] = useState<'dark' | 'light'>('dark');
 
-  // Auto-detect theme from document data-theme attribute
-  useEffect(() => {
-    const updateTheme = () => {
-      const docTheme = document.documentElement.getAttribute('data-theme');
-      setDetectedTheme(docTheme === 'light' ? 'light' : 'dark');
-    };
-
-    updateTheme();
-
-    // Watch for theme changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'data-theme') {
-          updateTheme();
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, { attributes: true });
-    return () => observer.disconnect();
-  }, []);
-
-  // Use prop if provided, otherwise use detected theme
-  const theme = themeProp ?? detectedTheme;
-
-  // Get content from context (set by app pages like Fitness)
+  // Get content and theme from context (set by app pages)
   const contextContent = useNavBarContent();
+  const contextTheme = useNavBarTheme();
+
+  // Use prop if provided, otherwise use context theme (defaults to dark)
+  const theme = themeProp ?? contextTheme;
 
   const isFitness = pathname.startsWith('/fitness');
   const isToday = pathname.startsWith('/today');

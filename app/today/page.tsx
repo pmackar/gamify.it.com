@@ -12,10 +12,12 @@ import {
   ACHIEVEMENTS,
   getRankForLevel
 } from '@/lib/today/data';
+import { useNavBar } from '@/components/NavBarContext';
 
 export default function TodayPage() {
   const store = useTodayStore();
   const [mounted, setMounted] = useState(false);
+  const { setTheme: setNavBarTheme } = useNavBar();
 
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -157,12 +159,18 @@ export default function TodayPage() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mounted, showCommandPalette, store]);
 
-  // Theme effect
+  // Theme effect - sync with navbar
   useEffect(() => {
     if (mounted) {
       document.documentElement.setAttribute('data-theme', store.theme);
+      setNavBarTheme(store.theme);
     }
-  }, [mounted, store.theme]);
+  }, [mounted, store.theme, setNavBarTheme]);
+
+  // Reset navbar theme on unmount
+  useEffect(() => {
+    return () => setNavBarTheme('dark');
+  }, [setNavBarTheme]);
 
   const openTaskModal = (task?: Task) => {
     if (task) {
