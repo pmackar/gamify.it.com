@@ -61,8 +61,8 @@ export default function LandingPage() {
   useEffect(() => { const supabase = createClient(); supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); if (window.location.hash || window.location.search.includes('code=')) { window.history.replaceState({}, '', window.location.pathname); } }); const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); }); return () => subscription.unsubscribe(); }, []);
   useEffect(() => { if (introComplete) { const target = 12450; const duration = 2000; const steps = 60; const increment = target / steps; let current = 0; const interval = setInterval(() => { current += increment; if (current >= target) { setTotalXP(target); clearInterval(interval); } else { setTotalXP(Math.floor(current)); } }, duration / steps); return () => clearInterval(interval); } }, [introComplete]);
   const handleSignOut = async () => { const supabase = createClient(); await supabase.auth.signOut(); setUser(null); setShowUserMenu(false); };
-  const handleGoogleSignIn = async () => { const supabase = createClient(); await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); };
-  const handleEmailLogin = async (e: React.FormEvent) => { e.preventDefault(); setLoginLoading(true); const supabase = createClient(); const { error } = await supabase.auth.signInWithPassword({ email, password }); setLoginLoading(false); if (error) { alert(`Login error: ${error.message}`); } else { setShowLoginDropdown(false); } };
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const handleMagicLink = async (e: React.FormEvent) => { e.preventDefault(); setLoginLoading(true); const supabase = createClient(); const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } }); setLoginLoading(false); if (error) { alert(`Error: ${error.message}`); } else { setMagicLinkSent(true); } };
   useEffect(() => { videos.forEach((src) => { const video = document.createElement('video'); video.preload = 'auto'; video.src = src; video.load(); }); }, []);
   useEffect(() => { if (primaryVideoRef.current) { primaryVideoRef.current.src = videos[0]; primaryVideoRef.current.load(); } if (secondaryVideoRef.current) { secondaryVideoRef.current.src = videos[1]; secondaryVideoRef.current.load(); } }, []);
   useEffect(() => { if (!showVideo) return; const cycleInterval = setInterval(() => { const nextIdx = (currentVideoIndex + 1) % videos.length; const nextVideo = primaryActive ? secondaryVideoRef.current : primaryVideoRef.current; if (nextVideo) { nextVideo.src = videos[nextIdx]; nextVideo.load(); nextVideo.play().catch(() => {}); } setPrimaryActive(!primaryActive); setCurrentVideoIndex(nextIdx); }, 15000); return () => clearInterval(cycleInterval); }, [showVideo, currentVideoIndex, primaryActive]);
@@ -179,6 +179,56 @@ export default function LandingPage() {
       <div className="crt-wrapper">
         <PixelParticles />
         <div className="page-content">
+          {/* Fixed Header */}
+          <nav className="retro-nav">
+            <div className="nav-bar">
+              <span className="nav-logo">GAMIFY.IT.COM</span>
+              {user ? (
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    {user.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="Profile" className="profile-img" />
+                    ) : (
+                      <div className="profile-img" style={{ background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a1a', fontFamily: "'Press Start 2P', monospace", fontSize: '0.6rem' }}>
+                        {user.email?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+                  {showUserMenu && (
+                    <div className="dropdown-menu">
+                      <div className="dropdown-email">{user.email}</div>
+                      <button onClick={handleSignOut} className="dropdown-btn">SIGN OUT</button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => { setShowLoginDropdown(!showLoginDropdown); setMagicLinkSent(false); }} className="nav-btn">LOGIN</button>
+                  {showLoginDropdown && (
+                    <div className="login-dropdown">
+                      {magicLinkSent ? (
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>✉️</div>
+                          <p style={{ fontSize: '0.4rem', color: '#5fbf8a', marginBottom: '0.5rem', fontFamily: "'Press Start 2P', monospace" }}>CHECK YOUR EMAIL!</p>
+                          <p style={{ fontSize: '0.32rem', color: '#888', fontFamily: "'Press Start 2P', monospace", lineHeight: '1.8' }}>Click the magic link we sent to {email}</p>
+                          <button onClick={() => { setMagicLinkSent(false); setEmail(''); }} style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: 'none', border: '1px solid #3a3a3a', borderRadius: '4px', color: '#888', fontFamily: "'Press Start 2P', monospace", fontSize: '0.3rem', cursor: 'pointer' }}>USE DIFFERENT EMAIL</button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="login-label">Enter your email</p>
+                          <form onSubmit={handleMagicLink}>
+                            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '0.6rem', marginBottom: '0.75rem', background: '#1a1a1a', border: '2px solid #3a3a3a', borderRadius: '4px', color: '#fff', fontFamily: "'Press Start 2P', monospace", fontSize: '0.32rem', boxSizing: 'border-box' }} />
+                            <button type="submit" disabled={loginLoading} style={{ width: '100%', padding: '0.7rem', background: loginLoading ? '#666' : 'linear-gradient(180deg, #FFD700 0%, #FFA500 100%)', border: '2px solid #CC8800', borderRadius: '4px', color: '#1a1a1a', fontFamily: "'Press Start 2P', monospace", fontSize: '0.35rem', cursor: loginLoading ? 'wait' : 'pointer', boxShadow: '0 3px 0 #996600' }}>{loginLoading ? 'SENDING...' : 'SEND MAGIC LINK'}</button>
+                          </form>
+                          <p style={{ fontSize: '0.28rem', color: '#666', marginTop: '0.75rem', textAlign: 'center', fontFamily: "'Press Start 2P', monospace", lineHeight: '1.6' }}>No password needed!</p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </nav>
           <section className="crt-intro" style={{ paddingTop: '66px' }}><div className="video-background"><video ref={primaryVideoRef} className={`video-primary ${showVideo && primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" /><video ref={secondaryVideoRef} className={`video-secondary ${showVideo && !primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" /><div className={`video-flash ${crtFlash ? 'active' : ''}`} /><div className="video-overlay" /></div><div className="crt-screen"><div className="typing-line typing-line-first">{typedText}{!showSecondLine && (<><span className="dots" style={{ opacity: blinkDots ? 1 : 0 }}>...</span>{typedText.length === firstLine.length && !blinkDots ? null : <span className="typing-cursor" />}</>)}</div>{showSecondLine && (<div className="typing-line typing-line-second">{secondLineText}{secondLineText.length < secondLine.length && <span className="typing-cursor" />}</div>)}</div><div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>SCROLL TO BEGIN<span className="scroll-arrow">&#9660;</span></div></section>
           <section className="retro-section section-visible"><div className="section-header"><p className="section-label">// SELECT YOUR QUEST</p><h2 className="section-title shimmer-text">Choose Your Adventure</h2><p className="section-subtitle">Each app gamifies a different aspect of your life. Complete quests, earn XP, and level up across all domains.</p></div><div className="games-grid"><a href="/fitness" className="game-card fitness"><span className="game-card-badge test">TEST</span><DumbbellIcon className="game-icon" /><h3 className="game-name">IRON QUEST</h3><p className="game-tagline">Turn every rep into XP</p><XPBar current={4250} max={5000} color="#FF6B6B" /><p className="game-domain">/fitness</p></a><a href="/today" className="game-card tasks"><span className="game-card-badge test">TEST</span><ChecklistIcon className="game-icon" /><h3 className="game-name">DAY QUEST</h3><p className="game-tagline">Conquer your daily missions</p><XPBar current={6800} max={10000} color="#5CC9F5" /><p className="game-domain">/today</p></a><a href="/travel" className="game-card travel"><span className="game-card-badge test">TEST</span><PlaneIcon className="game-icon" /><h3 className="game-name">EXPLORER</h3><p className="game-tagline">Map your adventures</p><XPBar current={0} max={3000} color="#5fbf8a" /><p className="game-domain">/travel</p></a><div className="game-card life" style={{ cursor: 'default', opacity: 0.7 }}><span className="game-card-badge coming-soon">SOON</span><LifeIcon className="game-icon" /><h3 className="game-name">LIFE TRACKER</h3><p className="game-tagline">Gamify everything else</p><XPBar current={0} max={1000} color="#a855f7" /><p className="game-domain">gamify.life</p></div></div></section>
           <section className="retro-section section-visible"><div className="section-header"><p className="section-label">// HOW IT WORKS</p><h2 className="section-title shimmer-text">Level Up Your Life</h2></div><div className="features-grid"><div className="feature-card"><div className="feature-icon">&#x2694;&#xFE0F;</div><h3 className="feature-title">DEFINE YOUR QUESTS</h3><p className="feature-desc">Want to run a marathon? Learn a language? Try every hotdog brand? Your goals become epic quests.</p></div><div className="feature-card"><div className="feature-icon">&#x2728;</div><h3 className="feature-title">EARN EXPERIENCE</h3><p className="feature-desc">Complete objectives to earn XP. Watch your character grow stronger with every accomplishment.</p></div><div className="feature-card"><div className="feature-icon">&#x1F3C6;</div><h3 className="feature-title">UNLOCK ACHIEVEMENTS</h3><p className="feature-desc">Collect badges and trophies. Share your progress and compete with friends.</p></div></div></section>

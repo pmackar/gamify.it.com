@@ -112,20 +112,23 @@ export default function FitnessPage() {
 
     if (store.currentWorkout && store.currentView === 'workout') {
       const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
-      const setMatch = query.match(/^(\d+\.?\d*)\s*[xX\*\-×\s]\s*(\d+)(?:\s*[@:]\s*(\d+\.?\d*))?$/);
+      // Delimiters: x X * - × + , : ; ! or whitespace
+      // Format: weight [delim] reps [delim] rpe (optional)
+      const delimPattern = '[xX\\*\\-×\\+,:;!\\s]';
+      const setMatch = query.match(new RegExp(`^(\\d+\\.?\\d*)\\s*${delimPattern}\\s*(\\d+)(?:\\s*${delimPattern}\\s*(\\d+\\.?\\d*))?$`));
 
       if (setMatch && currentEx) {
         const weight = parseFloat(setMatch[1]);
         const reps = parseInt(setMatch[2]);
         const rpe = setMatch[3] ? parseFloat(setMatch[3]) : undefined;
-        const rpeDisplay = rpe ? ` @ ${rpe}` : '';
+        const rpeDisplay = rpe ? ` @ RPE ${rpe}` : '';
         results.push({
           type: 'log-set-direct',
           id: currentEx.id,
           title: `${weight} × ${reps}${rpeDisplay}`,
-          subtitle: `Log set for ${currentEx.name}`,
+          subtitle: `Press Enter to log for ${currentEx.name}`,
           icon: '💪',
-          meta: `${currentEx.sets.length} sets`,
+          meta: `Set ${currentEx.sets.length + 1}`,
           weight, reps, rpe
         });
         return results;
@@ -139,8 +142,8 @@ export default function FitnessPage() {
           results.push({
             type: 'log-set-hint',
             id: currentEx.id,
-            title: `Type: ${weight} x ${reps}`,
-            subtitle: `Log set for ${currentEx.name}`,
+            title: `${currentEx.name}`,
+            subtitle: `Type ${weight}x${reps} and press Enter`,
             icon: '💪',
             meta: `${currentEx.sets.length} sets`
           });
@@ -1675,13 +1678,20 @@ export default function FitnessPage() {
               ref={inputRef}
               type="text"
               className="command-input"
-              placeholder={
-                store.currentWorkout && store.currentView === 'workout'
-                  ? store.currentWorkout.exercises[store.currentExerciseIndex]
-                    ? `Log set: 135 x 8`
-                    : 'Search exercise...'
-                  : 'What would you like to do?'
-              }
+              placeholder={(() => {
+                if (addingGoal) return 'Search exercise for goal...';
+                if (store.currentWorkout && store.currentView === 'workout') {
+                  const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+                  if (currentEx) {
+                    const lastSet = currentEx.sets[currentEx.sets.length - 1];
+                    const w = lastSet?.weight || store.records[currentEx.id] || 135;
+                    const r = lastSet?.reps || 8;
+                    return `Type ${w}x${r} to log · weight:reps:rpe`;
+                  }
+                  return 'Search exercise to add...';
+                }
+                return 'Press n to start · type to search';
+              })()}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
               onKeyDown={handleKeyDown}
