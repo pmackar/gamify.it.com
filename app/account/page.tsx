@@ -93,8 +93,17 @@ export default function AccountPage() {
 
   useEffect(() => {
     fetch('/api/account')
-      .then(res => res.json())
-      .then(setData)
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            window.location.href = '/';
+            return null;
+          }
+          throw new Error('Failed to load account');
+        }
+        return res.json();
+      })
+      .then(data => data && setData(data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -107,11 +116,11 @@ export default function AccountPage() {
     );
   }
 
-  if (!data) {
+  if (!data || !data.user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p style={{ color: '#888', fontFamily: "'Press Start 2P', monospace", fontSize: '0.7rem' }}>
-          Failed to load account data
+          Please sign in to view your account
         </p>
       </div>
     );
