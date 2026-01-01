@@ -67,10 +67,21 @@ export default function TodayPage() {
   // Mobile panel
   const [mobilePanel, setMobilePanel] = useState<'projects' | 'categories' | 'profile' | null>(null);
 
+  // Task selection for keyboard navigation
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState(-1);
+
+  // Shortcuts modal
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
   useEffect(() => {
     setMounted(true);
     store.loadState();
   }, []);
+
+  // Reset selection when view changes
+  useEffect(() => {
+    setSelectedTaskIndex(-1);
+  }, [store.currentView]);
 
   // Keyboard shortcuts
   useEffect(() => {

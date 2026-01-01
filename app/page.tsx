@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { RetroNavBar } from '@/components/RetroNavBar';
 import { useAchievements } from '@/components/AchievementPopup';
 import type { User } from '@supabase/supabase-js';
@@ -305,7 +306,11 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     setLoading(true);
     setError('');
     try {
-      const supabase = createClient();
+      // Use standard Supabase client (not SSR) for OTP flow
+      const supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
       const { error } = await supabase.auth.signInWithOtp({
         email: email.toLowerCase().trim(),
         options: { shouldCreateUser: true }
@@ -328,7 +333,11 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     setLoading(true);
     setError('');
     try {
-      const supabase = createClient();
+      // Use standard Supabase client (not SSR) for OTP flow
+      const supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
       console.log('Verifying OTP:', { email: email.toLowerCase().trim(), token: otp.trim(), tokenLength: otp.trim().length });
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.toLowerCase().trim(),
@@ -339,6 +348,9 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
       if (error) {
         setError(`${error.message}`);
         setOtp('');
+      } else if (data.session) {
+        // Refresh the page to pick up the new session
+        window.location.reload();
       }
     } catch (err) {
       console.error('verifyOtp catch:', err);
