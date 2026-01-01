@@ -40,6 +40,8 @@ export default function FitnessPage() {
   const [campaignForm, setCampaignForm] = useState({ title: '', description: '', targetDate: '' });
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [addingGoal, setAddingGoal] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [searchingExercises, setSearchingExercises] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -187,21 +189,23 @@ export default function FitnessPage() {
       }
 
       if (!q) {
-        if (currentEx) {
-          const lastSet = currentEx.sets[currentEx.sets.length - 1];
-          const weight = lastSet?.weight || store.records[currentEx.id] || 135;
-          const reps = lastSet?.reps || 8;
-          results.push({
-            type: 'log-set-hint',
-            id: currentEx.id,
-            title: `${currentEx.name}`,
-            subtitle: `Type ${weight}x${reps} and press Enter`,
-            icon: '💪',
-            meta: `${currentEx.sets.length} sets`
-          });
+        // If searching exercises, show exercise list
+        if (searchingExercises) {
+          const exercises = [...EXERCISES, ...store.customExercises].slice(0, 8);
+          for (const ex of exercises) {
+            const inWorkout = store.currentWorkout.exercises.some(e => e.id === ex.id);
+            results.push({
+              type: inWorkout ? 'select-exercise' : 'add-exercise-quick',
+              id: ex.id,
+              title: ex.name,
+              subtitle: inWorkout ? 'Already added' : ex.muscle,
+              icon: inWorkout ? '✓' : '➕'
+            });
+          }
+          results.push({ type: 'cancel-search', id: 'cancel-search', title: 'Back', subtitle: 'Return to menu', icon: '←' });
+          return results;
         }
         results.push({ type: 'add-exercise', id: 'add', title: 'Add Exercise', subtitle: 'Search and add', icon: '➕' });
-        results.push({ type: 'history', id: 'history', title: 'History', subtitle: 'Past workouts', icon: '📋' });
         results.push({ type: 'finish', id: 'finish', title: 'Finish Workout', subtitle: `${getTotalSets()} sets logged`, icon: '✅' });
         results.push({ type: 'cancel-workout', id: 'cancel', title: 'Cancel', subtitle: 'Discard workout', icon: '✕' });
         return results;
@@ -274,7 +278,7 @@ export default function FitnessPage() {
     }
 
     return results.slice(0, 8);
-  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, addingGoal]);
+  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, addingGoal, searchingExercises]);
 
   const suggestions = getSuggestions();
 
@@ -292,9 +296,23 @@ export default function FitnessPage() {
       case 'log-set-direct':
         if (suggestion.weight && suggestion.reps) store.logSet(suggestion.weight, suggestion.reps, suggestion.rpe);
         break;
-      case 'log-set-hint': openSetPanel(); return;
-      case 'add-exercise-quick': store.addExerciseToWorkout(suggestion.id); break;
-      case 'new-exercise': store.addCustomExercise(suggestion.id); break;
+      case 'add-exercise':
+        // Focus input and show exercise search
+        setSearchingExercises(true);
+        inputRef.current?.focus();
+        setInputFocused(true);
+        return; // Don't clear query
+      case 'add-exercise-quick':
+        store.addExerciseToWorkout(suggestion.id);
+        setSearchingExercises(false);
+        break;
+      case 'new-exercise':
+        store.addCustomExercise(suggestion.id);
+        setSearchingExercises(false);
+        break;
+      case 'cancel-search':
+        setSearchingExercises(false);
+        break;
       case 'select-exercise':
         const idx = store.currentWorkout?.exercises.findIndex(e => e.id === suggestion.id);
         if (idx !== undefined && idx >= 0) store.selectExercise(idx);
@@ -494,17 +512,35 @@ export default function FitnessPage() {
           border-radius: 20px;
           padding: 12px;
           box-shadow: 0 -4px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02) inset;
+          transition: all 0.2s ease;
+        }
+        .command-bar-inner.collapsed {
+          padding: 8px;
+          border-radius: 16px;
+        }
+        .command-bar-inner.collapsed .command-input {
+          padding: 12px 16px;
         }
 
         .suggestions {
           margin-bottom: 8px;
-          max-height: 168px; /* ~3 items visible */
+          max-height: 116px; /* ~2 items visible */
           overflow-y: auto;
           overflow-x: hidden;
-          scrollbar-width: none;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,255,255,0.3) transparent;
           overscroll-behavior: contain;
+          position: relative;
         }
-        .suggestions::-webkit-scrollbar { display: none; }
+        .suggestions::-webkit-scrollbar { width: 4px; }
+        .suggestions::-webkit-scrollbar-track { background: transparent; }
+        .suggestions::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.3);
+          border-radius: 2px;
+        }
+        .suggestions::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.5);
+        }
 
         .suggestion {
           display: flex;
@@ -1364,7 +1400,14 @@ export default function FitnessPage() {
                   <div
                     key={exercise.id + idx}
                     className={`exercise-pill ${idx === store.currentExerciseIndex ? 'active' : ''}`}
-                    onClick={() => store.selectExercise(idx)}
+                    onClick={() => {
+                      store.selectExercise(idx);
+                      // Open set panel for this exercise
+                      const lastSet = exercise.sets[exercise.sets.length - 1];
+                      setSetWeight(lastSet?.weight || store.records[exercise.id] || 135);
+                      setSetReps(lastSet?.reps || 8);
+                      setShowSetPanel(true);
+                    }}
                   >
                     <div className="exercise-number">{idx + 1}</div>
                     <div className="exercise-info">
@@ -1737,29 +1780,32 @@ export default function FitnessPage() {
 
         {/* Command Bar */}
         <div className="command-bar">
-          <div className="command-bar-inner">
-            <div className="suggestions">
-              {suggestions.map((suggestion, idx) => (
-                <div
-                  key={suggestion.id + idx}
-                  className={`suggestion ${idx === selectedSuggestion ? 'selected' : ''}`}
-                  onClick={() => executeCommand(suggestion)}
-                >
-                  <div className="suggestion-icon">{suggestion.icon}</div>
-                  <div className="suggestion-text">
-                    <div className="suggestion-title">{suggestion.title}</div>
-                    <div className="suggestion-subtitle">{suggestion.subtitle}</div>
+          <div className={`command-bar-inner ${inputFocused || query ? 'expanded' : 'collapsed'}`}>
+            {(inputFocused || query) && (
+              <div className="suggestions">
+                {suggestions.map((suggestion, idx) => (
+                  <div
+                    key={suggestion.id + idx}
+                    className={`suggestion ${idx === selectedSuggestion ? 'selected' : ''}`}
+                    onMouseDown={(e) => { e.preventDefault(); executeCommand(suggestion); }}
+                  >
+                    <div className="suggestion-icon">{suggestion.icon}</div>
+                    <div className="suggestion-text">
+                      <div className="suggestion-title">{suggestion.title}</div>
+                      <div className="suggestion-subtitle">{suggestion.subtitle}</div>
+                    </div>
+                    {suggestion.meta && <div className="suggestion-meta">{suggestion.meta}</div>}
                   </div>
-                  {suggestion.meta && <div className="suggestion-meta">{suggestion.meta}</div>}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             <input
               ref={inputRef}
               type="text"
               className="command-input"
               placeholder={(() => {
                 if (addingGoal) return 'Search exercise for goal...';
+                if (searchingExercises) return 'Search exercises...';
                 // Active workout but viewing different screen
                 if (store.currentWorkout && store.currentView !== 'workout') {
                   return 'Resume workout...';
@@ -1768,15 +1814,20 @@ export default function FitnessPage() {
                 if (store.currentWorkout && store.currentView === 'workout') {
                   const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
                   if (currentEx) {
-                    return `${currentEx.name}: log weight:reps`;
+                    const lastSet = currentEx.sets[currentEx.sets.length - 1];
+                    const weight = lastSet?.weight || store.records[currentEx.id] || 135;
+                    const reps = lastSet?.reps || 8;
+                    return `Log set: ${weight}x${reps}`;
                   }
-                  return 'Add exercise or finish workout...';
+                  return 'Search exercises...';
                 }
                 return 'What do you want to do?';
               })()}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
               onKeyDown={handleKeyDown}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => { setInputFocused(false); setSearchingExercises(false); }}
             />
           </div>
         </div>

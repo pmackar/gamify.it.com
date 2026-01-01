@@ -93,6 +93,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
   const { xp: userProfile } = useXP();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
+  const [showAppsMenu, setShowAppsMenu] = useState(false);
   const [email, setEmail] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -166,6 +167,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
       if (!target.closest('.nav-dropdown-zone')) {
         setShowUserMenu(false);
         setShowLoginDropdown(false);
+        setShowAppsMenu(false);
       }
     };
     document.addEventListener('click', handleClick);
@@ -375,6 +377,70 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         .nav-logo:hover {
           filter: brightness(1.2);
           text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .nav-logo-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+        }
+
+        .nav-apps-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 0;
+          background: rgba(24, 24, 32, 0.95);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 8px;
+          min-width: 180px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          z-index: 10000;
+        }
+
+        .nav-apps-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 10px 12px;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 8px;
+          color: #ccc;
+          background: none;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          text-align: left;
+          text-decoration: none;
+          transition: all 0.15s ease;
+        }
+
+        .nav-apps-dropdown-item:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+        }
+
+        .nav-apps-dropdown-item.active {
+          background: rgba(255, 215, 0, 0.1);
+          color: #FFD700;
+        }
+
+        .nav-apps-dropdown-item.disabled {
+          opacity: 0.4;
+          cursor: default;
+          pointer-events: none;
+        }
+
+        .nav-apps-dropdown-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
         }
 
         .nav-left {
@@ -1043,32 +1109,44 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
       <nav className={`global-nav ${theme === 'light' ? 'theme-light' : ''}`}>
         <div className="global-nav-inner">
-          {/* Left section: Logo + App icons */}
+          {/* Left section: Logo with apps dropdown */}
           <div className="nav-left">
-            <Link href="/" className="nav-logo">G.IT</Link>
-            <div className="nav-apps">
-              <Link href="/fitness" className={`nav-app-link ${isFitness ? 'active' : ''}`} title="Iron Quest">
-                <DumbbellIcon active={isFitness} />
-              </Link>
-              <Link href="/today" className={`nav-app-link ${isToday ? 'active' : ''}`} title="Day Quest">
-                <ChecklistIcon active={isToday} />
-              </Link>
-              <Link href="/travel" className={`nav-app-link ${isTravel ? 'active' : ''}`} title="Explorer">
-                <PlaneIcon active={isTravel} />
-              </Link>
-              <div className="nav-app-link disabled" title="Coming Soon">
-                <LifeIcon />
-              </div>
+            <div style={{ position: 'relative' }} className="nav-dropdown-zone">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowAppsMenu(!showAppsMenu); }}
+                className="nav-logo-btn"
+              >
+                <span className="nav-logo">G.IT</span>
+              </button>
+              {showAppsMenu && (
+                <div className="nav-apps-dropdown">
+                  <Link href="/" className="nav-apps-dropdown-item" onClick={() => setShowAppsMenu(false)}>
+                    <span className="nav-apps-dropdown-icon">🏠</span>
+                    HOME
+                  </Link>
+                  <Link href="/fitness" className={`nav-apps-dropdown-item ${isFitness ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                    <span className="nav-apps-dropdown-icon"><DumbbellIcon active={isFitness} /></span>
+                    IRON QUEST
+                  </Link>
+                  <Link href="/today" className={`nav-apps-dropdown-item ${isToday ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                    <span className="nav-apps-dropdown-icon"><ChecklistIcon active={isToday} /></span>
+                    DAY QUEST
+                  </Link>
+                  <Link href="/travel" className={`nav-apps-dropdown-item ${isTravel ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                    <span className="nav-apps-dropdown-icon"><PlaneIcon active={isTravel} /></span>
+                    EXPLORER
+                  </Link>
+                  <div className="nav-apps-dropdown-item disabled">
+                    <span className="nav-apps-dropdown-icon"><LifeIcon /></span>
+                    LIFE (SOON)
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Center section: XP bar + app content */}
+          {/* Center section: app content only */}
           <div className="nav-center">
-            {/* XP display - compact when app content present, full otherwise */}
-            {userProfile && (
-              contextContent ? <CompactXPBar xp={userProfile} /> : <FullXPBar xp={userProfile} />
-            )}
-
             {/* App-specific content from context */}
             {contextContent && (
               <div className="nav-app-content">
@@ -1116,11 +1194,20 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                     <div className="nav-dropdown">
                       <div className="nav-dropdown-email">{user.email}</div>
                       {userProfile && (
-                        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
-                          <div style={{ fontSize: '8px', color: '#FFD700', fontFamily: "'Press Start 2P', monospace", marginBottom: '4px' }}>
-                            {userProfile.xp.toLocaleString()} XP
+                        <div style={{ padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div className="nav-level-badge">LVL {userProfile.level}</div>
+                            <div style={{ fontSize: '9px', color: '#FFD700', fontFamily: "'Press Start 2P', monospace" }}>
+                              {userProfile.xp.toLocaleString()} XP
+                            </div>
                           </div>
-                          <div style={{ fontSize: '7px', color: '#666', fontFamily: "'Press Start 2P', monospace" }}>
+                          <div className="nav-xp-bar" style={{ width: '100%' }}>
+                            <div
+                              className="nav-xp-fill"
+                              style={{ width: `${Math.min(100, (userProfile.xpInCurrentLevel / userProfile.xpToNextLevel) * 100)}%` }}
+                            />
+                          </div>
+                          <div style={{ fontSize: '7px', color: '#666', fontFamily: "'Press Start 2P', monospace", marginTop: '6px', textAlign: 'center' }}>
                             {userProfile.xpInCurrentLevel} / {userProfile.xpToNextLevel} to next
                           </div>
                         </div>
