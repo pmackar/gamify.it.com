@@ -105,6 +105,8 @@ export async function GET() {
         appId: ua.achievement?.app_id,
         completedAt: ua.completed_at,
         xpReward: ua.achievement?.xp_reward,
+        tier: ua.achievement?.tier || 1,
+        category: ua.achievement?.category || 'general',
       })) || [],
     },
     memberSince: profile?.created_at || user.created_at,

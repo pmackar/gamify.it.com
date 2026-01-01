@@ -3,6 +3,41 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+// Icon mapping for achievements
+const ICON_MAP: Record<string, string> = {
+  footprints: '👣', compass: '🧭', map: '🗺️', globe: '🌍', building: '🏢',
+  buildings: '🏙️', sparkles: '✨', plane: '✈️', airplane: '🛩️', earth: '🌎',
+  utensils: '🍴', star: '⭐', 'chef-hat': '👨‍🍳', beer: '🍺', cocktail: '🍸',
+  tree: '🌲', mountain: '⛰️', flame: '🔥', fire: '🔥', trophy: '🏆',
+  medal: '🏅', crown: '👑', landmark: '🏛️', camera: '📷', 'umbrella-beach': '🏖️',
+  waves: '🌊', dumbbell: '💪', zap: '⚡', 'map-pin': '📍', 'check-circle': '✅',
+  layers: '📚',
+};
+
+function getIcon(icon: string): string {
+  return ICON_MAP[icon] || '🎖️';
+}
+
+function getTierColor(tier: number): string {
+  switch (tier) {
+    case 1: return '#5fbf8a';
+    case 2: return '#5CC9F5';
+    case 3: return '#a855f7';
+    case 4: return '#FFD700';
+    default: return '#888';
+  }
+}
+
+function getTierName(tier: number): string {
+  switch (tier) {
+    case 1: return 'COMMON';
+    case 2: return 'RARE';
+    case 3: return 'EPIC';
+    case 4: return 'LEGENDARY';
+    default: return '';
+  }
+}
+
 interface AccountData {
   user: {
     id: string;
@@ -44,6 +79,8 @@ interface AccountData {
       appId: string;
       completedAt: string;
       xpReward: number;
+      tier: number;
+      category: string;
     }>;
   };
   memberSince: string;
@@ -52,6 +89,7 @@ interface AccountData {
 export default function AccountPage() {
   const [data, setData] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
 
   useEffect(() => {
     fetch('/api/account')
@@ -335,6 +373,269 @@ export default function AccountPage() {
           color: #888;
         }
 
+        .achievements-row {
+          display: flex;
+          gap: 1rem;
+          overflow-x: auto;
+          padding: 0.5rem 0;
+          scrollbar-width: thin;
+          scrollbar-color: #3a3a3a #1a1a1a;
+        }
+
+        .achievements-row::-webkit-scrollbar {
+          height: 6px;
+        }
+
+        .achievements-row::-webkit-scrollbar-track {
+          background: #1a1a1a;
+          border-radius: 3px;
+        }
+
+        .achievements-row::-webkit-scrollbar-thumb {
+          background: #3a3a3a;
+          border-radius: 3px;
+        }
+
+        .achievement-card {
+          flex-shrink: 0;
+          width: 120px;
+          background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%);
+          border: 2px solid #3a3a3a;
+          border-radius: 12px;
+          padding: 1rem;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .achievement-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .achievement-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+        }
+
+        .achievement-card-icon {
+          width: 56px;
+          height: 56px;
+          margin: 0 auto 0.75rem;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.8rem;
+        }
+
+        .achievement-card-name {
+          font-size: 0.4rem;
+          color: #fff;
+          line-height: 1.4;
+          margin-bottom: 0.25rem;
+        }
+
+        .achievement-card-tier {
+          font-size: 0.28rem;
+          padding: 0.15rem 0.3rem;
+          border-radius: 3px;
+          display: inline-block;
+        }
+
+        .view-all-btn {
+          flex-shrink: 0;
+          width: 120px;
+          background: linear-gradient(180deg, #1a1a1a 0%, #151515 100%);
+          border: 2px dashed #3a3a3a;
+          border-radius: 12px;
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.25s ease;
+        }
+
+        .view-all-btn:hover {
+          border-color: #FFD700;
+          background: linear-gradient(180deg, #2a2a2a 0%, #252525 100%);
+        }
+
+        .view-all-icon {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .view-all-text {
+          font-size: 0.4rem;
+          color: #888;
+        }
+
+        /* Achievements Modal */
+        .achievements-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.85);
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          backdrop-filter: blur(8px);
+        }
+
+        .achievements-modal {
+          background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%);
+          border: 3px solid #3a3a3a;
+          border-radius: 20px;
+          max-width: 900px;
+          width: 100%;
+          max-height: 80vh;
+          overflow-y: auto;
+          position: relative;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .achievements-modal::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #5fbf8a, #5CC9F5, #a855f7, #FFD700);
+          border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.5rem 2rem;
+          border-bottom: 1px solid #3a3a3a;
+          position: sticky;
+          top: 0;
+          background: #2d2d2d;
+          z-index: 1;
+        }
+
+        .modal-title {
+          font-size: 0.9rem;
+          color: #FFD700;
+          text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .modal-close {
+          width: 36px;
+          height: 36px;
+          background: rgba(255, 255, 255, 0.1);
+          border: none;
+          border-radius: 8px;
+          color: #888;
+          font-size: 1.5rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .modal-close:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #fff;
+        }
+
+        .modal-content {
+          padding: 2rem;
+        }
+
+        .achievement-tier-section {
+          margin-bottom: 2rem;
+        }
+
+        .tier-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .tier-label {
+          font-size: 0.55rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+        }
+
+        .tier-count {
+          font-size: 0.4rem;
+          color: #666;
+        }
+
+        .tier-achievements-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .modal-achievement-card {
+          background: #1a1a1a;
+          border: 2px solid #3a3a3a;
+          border-radius: 12px;
+          padding: 1rem;
+          display: flex;
+          gap: 1rem;
+          transition: all 0.2s ease;
+        }
+
+        .modal-achievement-card:hover {
+          border-color: #555;
+        }
+
+        .modal-achievement-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+
+        .modal-achievement-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .modal-achievement-name {
+          font-size: 0.45rem;
+          color: #fff;
+          margin-bottom: 0.25rem;
+        }
+
+        .modal-achievement-desc {
+          font-size: 0.35rem;
+          color: #888;
+          line-height: 1.6;
+          margin-bottom: 0.5rem;
+        }
+
+        .modal-achievement-xp {
+          font-size: 0.35rem;
+          color: #FFD700;
+        }
+
         .member-since {
           text-align: center;
           font-size: 0.45rem;
@@ -433,35 +734,113 @@ export default function AccountPage() {
         </div>
 
         {/* Achievements Section */}
-        {data.achievements.list.length > 0 && (
-          <>
-            <h2 className="section-title">ACHIEVEMENTS</h2>
-            <div className="achievements-list">
-              {data.achievements.list.slice(0, 8).map(achievement => (
-                <div key={achievement.id} className="achievement-badge">
-                  <div className="achievement-icon">
-                    {achievement.icon === 'dumbbell' ? '💪' :
-                     achievement.icon === 'fire' ? '🔥' :
-                     achievement.icon === 'trophy' ? '🏆' :
-                     achievement.icon === 'zap' ? '⚡' :
-                     achievement.icon === 'crown' ? '👑' :
-                     achievement.icon === 'map-pin' ? '📍' :
-                     achievement.icon === 'compass' ? '🧭' :
-                     achievement.icon === 'globe' ? '🌍' :
-                     achievement.icon === 'star' ? '⭐' :
-                     achievement.icon === 'check-circle' ? '✅' :
-                     achievement.icon === 'layers' ? '📚' :
-                     '🎮'}
+        {data.achievements.list.length > 0 && (() => {
+          // Sort by tier (highest first), then by date
+          const sortedAchievements = [...data.achievements.list].sort((a, b) => {
+            if ((b.tier || 1) !== (a.tier || 1)) return (b.tier || 1) - (a.tier || 1);
+            return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
+          });
+
+          // Group by tier for modal
+          const tierGroups = sortedAchievements.reduce((acc, ach) => {
+            const tier = ach.tier || 1;
+            if (!acc[tier]) acc[tier] = [];
+            acc[tier].push(ach);
+            return acc;
+          }, {} as Record<number, typeof sortedAchievements>);
+
+          return (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h2 className="section-title" style={{ marginBottom: 0 }}>ACHIEVEMENTS</h2>
+                <span style={{ fontSize: '0.45rem', color: '#888' }}>{data.achievements.total} Unlocked</span>
+              </div>
+              <div className="achievements-row">
+                {sortedAchievements.slice(0, 6).map(achievement => {
+                  const tierColor = getTierColor(achievement.tier || 1);
+                  return (
+                    <div
+                      key={achievement.id}
+                      className="achievement-card"
+                      style={{ borderColor: tierColor }}
+                      onClick={() => setShowAllAchievements(true)}
+                    >
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: tierColor }} />
+                      <div
+                        className="achievement-card-icon"
+                        style={{ background: `${tierColor}20`, border: `2px solid ${tierColor}50` }}
+                      >
+                        {getIcon(achievement.icon)}
+                      </div>
+                      <div className="achievement-card-name">{achievement.name}</div>
+                      <div
+                        className="achievement-card-tier"
+                        style={{ background: `${tierColor}30`, color: tierColor }}
+                      >
+                        {getTierName(achievement.tier || 1)}
+                      </div>
+                    </div>
+                  );
+                })}
+                {data.achievements.total > 6 && (
+                  <div className="view-all-btn" onClick={() => setShowAllAchievements(true)}>
+                    <div className="view-all-icon">🏆</div>
+                    <div className="view-all-text">View All<br />({data.achievements.total})</div>
                   </div>
-                  <div>
-                    <div className="achievement-name">{achievement.name}</div>
-                    <div className="achievement-desc">{achievement.description}</div>
+                )}
+              </div>
+
+              {/* Achievements Modal */}
+              {showAllAchievements && (
+                <div className="achievements-modal-overlay" onClick={() => setShowAllAchievements(false)}>
+                  <div className="achievements-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <h3 className="modal-title">ALL ACHIEVEMENTS</h3>
+                      <button className="modal-close" onClick={() => setShowAllAchievements(false)}>×</button>
+                    </div>
+                    <div className="modal-content">
+                      {[4, 3, 2, 1].map(tier => {
+                        const tierAchievements = tierGroups[tier];
+                        if (!tierAchievements?.length) return null;
+                        const tierColor = getTierColor(tier);
+                        return (
+                          <div key={tier} className="achievement-tier-section">
+                            <div className="tier-header">
+                              <span
+                                className="tier-label"
+                                style={{ background: `${tierColor}30`, color: tierColor }}
+                              >
+                                {getTierName(tier)}
+                              </span>
+                              <span className="tier-count">{tierAchievements.length} unlocked</span>
+                            </div>
+                            <div className="tier-achievements-grid">
+                              {tierAchievements.map(ach => (
+                                <div key={ach.id} className="modal-achievement-card" style={{ borderColor: `${tierColor}50` }}>
+                                  <div
+                                    className="modal-achievement-icon"
+                                    style={{ background: `${tierColor}20`, border: `2px solid ${tierColor}50` }}
+                                  >
+                                    {getIcon(ach.icon)}
+                                  </div>
+                                  <div className="modal-achievement-info">
+                                    <div className="modal-achievement-name">{ach.name}</div>
+                                    <div className="modal-achievement-desc">{ach.description}</div>
+                                    <div className="modal-achievement-xp">+{ach.xpReward} XP</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+              )}
+            </>
+          );
+        })()}
 
         {/* Member Since */}
         <p className="member-since">
