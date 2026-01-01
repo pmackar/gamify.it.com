@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { RetroNavBar } from '@/components/RetroNavBar';
 import type { User } from '@supabase/supabase-js';
 
 const videos = [
@@ -36,8 +37,106 @@ const LifeIcon = ({ className }: { className?: string }) => (<svg className={cla
 
 const XPBar = ({ current, max, color }: { current: number; max: number; color: string }) => (<div className="xp-bar-container"><div className="xp-bar-bg"><div className="xp-bar-fill" style={{ width: `${(current / max) * 100}%`, background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`, boxShadow: `0 0 8px ${color}60` }} /></div><span className="xp-bar-text">{current.toLocaleString()} / {max.toLocaleString()} XP</span></div>);
 
-export default function LandingPage() {
-  const [user, setUser] = useState<User | null>(null);
+// Logged-in Dashboard Component
+function Dashboard({ user }: { user: User }) {
+  const [totalXP] = useState(12450);
+  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player';
+
+  return (
+    <>
+      <RetroNavBar />
+      <div className="dashboard-wrapper">
+        <PixelParticles />
+        <div className="dashboard-content">
+          {/* Welcome Header */}
+          <section className="welcome-section">
+            <div className="welcome-card">
+              <div className="welcome-avatar">
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt={displayName} />
+                ) : (
+                  <div className="avatar-placeholder">{displayName.charAt(0).toUpperCase()}</div>
+                )}
+                <div className="level-badge">LVL 12</div>
+              </div>
+              <div className="welcome-info">
+                <p className="welcome-label">WELCOME BACK</p>
+                <h1 className="welcome-name">{displayName}</h1>
+                <div className="xp-display">
+                  <span className="xp-value">{totalXP.toLocaleString()}</span>
+                  <span className="xp-label">TOTAL XP</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Games Grid */}
+          <section className="games-section">
+            <div className="section-header">
+              <p className="section-label">// SELECT YOUR QUEST</p>
+              <h2 className="section-title shimmer-text">Choose Your Adventure</h2>
+            </div>
+            <div className="games-grid">
+              <a href="/fitness" className="game-card fitness">
+                <span className="game-card-badge test">TEST</span>
+                <DumbbellIcon className="game-icon" />
+                <h3 className="game-name">IRON QUEST</h3>
+                <p className="game-tagline">Turn every rep into XP</p>
+                <XPBar current={4250} max={5000} color="#FF6B6B" />
+                <p className="game-domain">/fitness</p>
+              </a>
+              <a href="/today" className="game-card tasks">
+                <span className="game-card-badge test">TEST</span>
+                <ChecklistIcon className="game-icon" />
+                <h3 className="game-name">DAY QUEST</h3>
+                <p className="game-tagline">Conquer your daily missions</p>
+                <XPBar current={6800} max={10000} color="#5CC9F5" />
+                <p className="game-domain">/today</p>
+              </a>
+              <a href="/travel" className="game-card travel">
+                <span className="game-card-badge test">TEST</span>
+                <PlaneIcon className="game-icon" />
+                <h3 className="game-name">EXPLORER</h3>
+                <p className="game-tagline">Map your adventures</p>
+                <XPBar current={0} max={3000} color="#5fbf8a" />
+                <p className="game-domain">/travel</p>
+              </a>
+              <div className="game-card life" style={{ cursor: 'default', opacity: 0.7 }}>
+                <span className="game-card-badge coming-soon">SOON</span>
+                <LifeIcon className="game-icon" />
+                <h3 className="game-name">LIFE TRACKER</h3>
+                <p className="game-tagline">Gamify everything else</p>
+                <XPBar current={0} max={1000} color="#a855f7" />
+                <p className="game-domain">gamify.life</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Quick Stats */}
+          <section className="stats-section">
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-value" style={{ color: '#FF6B6B' }}>7</div>
+                <div className="stat-label">DAY STREAK</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value" style={{ color: '#5CC9F5' }}>3</div>
+                <div className="stat-label">GAMES ACTIVE</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value" style={{ color: '#5fbf8a' }}>24</div>
+                <div className="stat-label">ACHIEVEMENTS</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Splash/Intro for non-logged-in users
+function SplashIntro() {
   const [typedText, setTypedText] = useState('');
   const [showSecondLine, setShowSecondLine] = useState(false);
   const [secondLineText, setSecondLineText] = useState('');
@@ -46,19 +145,168 @@ export default function LandingPage() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [crtFlash, setCrtFlash] = useState(false);
-  const [totalXP, setTotalXP] = useState(0);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
   const [primaryActive, setPrimaryActive] = useState(true);
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
 
-  useEffect(() => { const supabase = createClient(); supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); if (window.location.hash || window.location.search.includes('code=')) { window.history.replaceState({}, '', window.location.pathname); } }); const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); }); return () => subscription.unsubscribe(); }, []);
-  useEffect(() => { if (introComplete) { const target = 12450; const duration = 2000; const steps = 60; const increment = target / steps; let current = 0; const interval = setInterval(() => { current += increment; if (current >= target) { setTotalXP(target); clearInterval(interval); } else { setTotalXP(Math.floor(current)); } }, duration / steps); return () => clearInterval(interval); } }, [introComplete]);
   useEffect(() => { videos.forEach((src) => { const video = document.createElement('video'); video.preload = 'auto'; video.src = src; video.load(); }); }, []);
   useEffect(() => { if (primaryVideoRef.current) { primaryVideoRef.current.src = videos[0]; primaryVideoRef.current.load(); } if (secondaryVideoRef.current) { secondaryVideoRef.current.src = videos[1]; secondaryVideoRef.current.load(); } }, []);
   useEffect(() => { if (!showVideo) return; const cycleInterval = setInterval(() => { const nextIdx = (currentVideoIndex + 1) % videos.length; const nextVideo = primaryActive ? secondaryVideoRef.current : primaryVideoRef.current; if (nextVideo) { nextVideo.src = videos[nextIdx]; nextVideo.load(); nextVideo.play().catch(() => {}); } setPrimaryActive(!primaryActive); setCurrentVideoIndex(nextIdx); }, 15000); return () => clearInterval(cycleInterval); }, [showVideo, currentVideoIndex, primaryActive]);
   useEffect(() => { let charIndex = 0; let dotBlinks = 0; const typeFirstLine = setInterval(() => { if (charIndex < firstLine.length) { setTypedText(firstLine.slice(0, charIndex + 1)); charIndex++; } else { clearInterval(typeFirstLine); const blinkInterval = setInterval(() => { dotBlinks++; setBlinkDots((prev) => !prev); if (dotBlinks >= 6) { clearInterval(blinkInterval); setShowSecondLine(true); let secondCharIndex = 0; const typeSecondLine = setInterval(() => { if (secondCharIndex < secondLine.length) { setSecondLineText(secondLine.slice(0, secondCharIndex + 1)); secondCharIndex++; } else { clearInterval(typeSecondLine); setTimeout(() => { setCrtFlash(true); setTimeout(() => { setShowVideo(true); primaryVideoRef.current?.play().catch(() => {}); setCrtFlash(false); setIntroComplete(true); }, 300); }, 500); } }, 80); } }, 300); } }, 100); return () => clearInterval(typeFirstLine); }, []);
+
+  return (
+    <div className="crt-wrapper">
+      <PixelParticles />
+      <div className="page-content">
+        <section className="crt-intro" style={{ paddingTop: '66px' }}>
+          <div className="video-background">
+            <video ref={primaryVideoRef} className={`video-primary ${showVideo && primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" />
+            <video ref={secondaryVideoRef} className={`video-secondary ${showVideo && !primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" />
+            <div className={`video-flash ${crtFlash ? 'active' : ''}`} />
+            <div className="video-overlay" />
+          </div>
+          <div className="crt-screen">
+            <div className="typing-line typing-line-first">
+              {typedText}
+              {!showSecondLine && (
+                <>
+                  <span className="dots" style={{ opacity: blinkDots ? 1 : 0 }}>...</span>
+                  {typedText.length === firstLine.length && !blinkDots ? null : <span className="typing-cursor" />}
+                </>
+              )}
+            </div>
+            {showSecondLine && (
+              <div className="typing-line typing-line-second">
+                {secondLineText}
+                {secondLineText.length < secondLine.length && <span className="typing-cursor" />}
+              </div>
+            )}
+          </div>
+          <div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>
+            SCROLL TO BEGIN
+            <span className="scroll-arrow">&#9660;</span>
+          </div>
+        </section>
+
+        <section className="retro-section section-visible">
+          <div className="section-header">
+            <p className="section-label">// SELECT YOUR QUEST</p>
+            <h2 className="section-title shimmer-text">Choose Your Adventure</h2>
+            <p className="section-subtitle">Each app gamifies a different aspect of your life. Complete quests, earn XP, and level up across all domains.</p>
+          </div>
+          <div className="games-grid">
+            <a href="/fitness" className="game-card fitness">
+              <span className="game-card-badge test">TEST</span>
+              <DumbbellIcon className="game-icon" />
+              <h3 className="game-name">IRON QUEST</h3>
+              <p className="game-tagline">Turn every rep into XP</p>
+              <XPBar current={4250} max={5000} color="#FF6B6B" />
+              <p className="game-domain">/fitness</p>
+            </a>
+            <a href="/today" className="game-card tasks">
+              <span className="game-card-badge test">TEST</span>
+              <ChecklistIcon className="game-icon" />
+              <h3 className="game-name">DAY QUEST</h3>
+              <p className="game-tagline">Conquer your daily missions</p>
+              <XPBar current={6800} max={10000} color="#5CC9F5" />
+              <p className="game-domain">/today</p>
+            </a>
+            <a href="/travel" className="game-card travel">
+              <span className="game-card-badge test">TEST</span>
+              <PlaneIcon className="game-icon" />
+              <h3 className="game-name">EXPLORER</h3>
+              <p className="game-tagline">Map your adventures</p>
+              <XPBar current={0} max={3000} color="#5fbf8a" />
+              <p className="game-domain">/travel</p>
+            </a>
+            <div className="game-card life" style={{ cursor: 'default', opacity: 0.7 }}>
+              <span className="game-card-badge coming-soon">SOON</span>
+              <LifeIcon className="game-icon" />
+              <h3 className="game-name">LIFE TRACKER</h3>
+              <p className="game-tagline">Gamify everything else</p>
+              <XPBar current={0} max={1000} color="#a855f7" />
+              <p className="game-domain">gamify.life</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="retro-section section-visible">
+          <div className="section-header">
+            <p className="section-label">// HOW IT WORKS</p>
+            <h2 className="section-title shimmer-text">Level Up Your Life</h2>
+          </div>
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">&#x2694;&#xFE0F;</div>
+              <h3 className="feature-title">DEFINE YOUR QUESTS</h3>
+              <p className="feature-desc">Want to run a marathon? Learn a language? Try every hotdog brand? Your goals become epic quests.</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">&#x2728;</div>
+              <h3 className="feature-title">EARN EXPERIENCE</h3>
+              <p className="feature-desc">Complete objectives to earn XP. Watch your character grow stronger with every accomplishment.</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">&#x1F3C6;</div>
+              <h3 className="feature-title">UNLOCK ACHIEVEMENTS</h3>
+              <p className="feature-desc">Collect badges and trophies. Share your progress and compete with friends.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="retro-section section-visible">
+          <div className="about-content">
+            <p className="section-label">// ABOUT</p>
+            <h2 className="section-title shimmer-text" style={{ marginBottom: '2rem' }}>Why Gamify?</h2>
+            <p className="about-text">We believe <span className="about-highlight">life should feel like an adventure</span>. Our suite of apps transforms mundane tasks into epic quests, boring routines into rewarding challenges, and everyday accomplishments into <span className="about-highlight">legendary achievements</span>.</p>
+            <p className="about-text">Whether you&apos;re hitting the gym, checking off your to-do list, or exploring new places — every action earns XP that contributes to your <span className="about-highlight">unified profile</span>.</p>
+          </div>
+        </section>
+
+        <footer className="retro-footer section-visible">
+          <p className="footer-tagline shimmer-text">Life&apos;s not a game... but it should be!</p>
+          <p className="footer-text">&copy; {new Date().getFullYear()} GAMIFY.IT.COM — ALL RIGHTS RESERVED</p>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+export default function LandingPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+      if (window.location.hash || window.location.search.includes('code=')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show loading state while checking auth
+  if (!authChecked) {
+    return (
+      <>
+        <style jsx global>{`
+          body { background: #0a0a0a; }
+        `}</style>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid #333', borderTopColor: '#FFD700', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -66,12 +314,48 @@ export default function LandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0a0a0a; overflow-x: hidden; }
+
+        /* Particles */
         .particles-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; overflow: hidden; }
         .pixel-particle { position: absolute; image-rendering: pixelated; animation: float-up linear infinite; }
         @keyframes float-up { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
+
+        /* CRT Effects */
         .crt-wrapper { background: linear-gradient(180deg, #0a0a0a 0%, #151515 50%, #0a0a0a 100%); position: relative; overflow: hidden; min-height: 100vh; }
         .crt-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
         .crt-wrapper::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0,0,0,0.5) 100%); pointer-events: none; z-index: 999; }
+
+        /* Dashboard Wrapper */
+        .dashboard-wrapper { background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%); position: relative; min-height: 100vh; }
+        .dashboard-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
+        .dashboard-content { position: relative; z-index: 2; padding: 80px 2rem 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
+
+        /* Welcome Section */
+        .welcome-section { margin-bottom: 3rem; }
+        .welcome-card { background: rgba(30, 30, 40, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 2rem; display: flex; align-items: center; gap: 2rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+        .welcome-avatar { position: relative; flex-shrink: 0; }
+        .welcome-avatar img { width: 80px; height: 80px; border-radius: 16px; border: 3px solid #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+        .welcome-avatar .avatar-placeholder { width: 80px; height: 80px; border-radius: 16px; border: 3px solid #FFD700; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #1a1a1a; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+        .level-badge { position: absolute; bottom: -8px; right: -8px; background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%); border: 2px solid #CC8800; border-radius: 8px; padding: 0.3rem 0.5rem; font-size: 0.45rem; color: #1a1a1a; font-weight: bold; box-shadow: 0 2px 0 #996600; }
+        .welcome-info { flex: 1; }
+        .welcome-label { font-size: 0.4rem; color: #5fbf8a; letter-spacing: 0.2em; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(95, 191, 138, 0.5); }
+        .welcome-name { font-size: clamp(0.9rem, 3vw, 1.4rem); color: #fff; margin-bottom: 1rem; text-shadow: 0 0 20px rgba(255, 255, 255, 0.1); }
+        .xp-display { display: inline-flex; align-items: baseline; gap: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 10px; padding: 0.6rem 1rem; }
+        .xp-value { font-size: 1rem; color: #FFD700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+        .xp-label { font-size: 0.35rem; color: #888; }
+
+        /* Games Section */
+        .games-section { margin-bottom: 3rem; }
+
+        /* Stats Section */
+        .stats-section { margin-bottom: 2rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .stat-card { background: rgba(30, 30, 40, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1.25rem; text-align: center; transition: all 0.3s ease; }
+        .stat-card:hover { border-color: rgba(255, 215, 0, 0.3); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1); }
+        .stat-value { font-size: 1.5rem; margin-bottom: 0.5rem; text-shadow: 0 0 15px currentColor; }
+        .stat-label { font-size: 0.4rem; color: #888; }
+
+        /* Shared Styles */
         @keyframes subtle-flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.985; } }
         @keyframes cursor-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
         .page-content { color: #fff; font-family: 'Press Start 2P', monospace; animation: subtle-flicker 4s infinite; position: relative; z-index: 2; }
@@ -142,19 +426,21 @@ export default function LandingPage() {
         .retro-footer { padding: 4rem 2rem; text-align: center; border-top: 1px solid #1a1a1a; background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%); }
         .footer-tagline { font-size: 0.5rem; margin-bottom: 1.25rem; }
         .footer-text { font-size: 0.38rem; color: #444; font-family: 'Press Start 2P', monospace; }
-        @media (max-width: 768px) { .games-grid { gap: 1rem; } .game-card { padding: 1.25rem 1rem 1rem; } .game-icon { width: 48px; height: 48px; } .game-name { font-size: 0.6rem; } .retro-section { padding: 4rem 1.25rem; } .crt-intro { padding-top: 56px; } }
+
+        @media (max-width: 768px) {
+          .games-grid { gap: 1rem; }
+          .game-card { padding: 1.25rem 1rem 1rem; }
+          .game-icon { width: 48px; height: 48px; }
+          .game-name { font-size: 0.6rem; }
+          .retro-section { padding: 4rem 1.25rem; }
+          .crt-intro { padding-top: 56px; }
+          .welcome-card { flex-direction: column; text-align: center; gap: 1.5rem; }
+          .stats-grid { grid-template-columns: 1fr; }
+          .dashboard-content { padding: 70px 1rem 2rem; }
+        }
       `}</style>
 
-      <div className="crt-wrapper">
-        <PixelParticles />
-        <div className="page-content">
-          <section className="crt-intro" style={{ paddingTop: '66px' }}><div className="video-background"><video ref={primaryVideoRef} className={`video-primary ${showVideo && primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" /><video ref={secondaryVideoRef} className={`video-secondary ${showVideo && !primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" /><div className={`video-flash ${crtFlash ? 'active' : ''}`} /><div className="video-overlay" /></div><div className="crt-screen"><div className="typing-line typing-line-first">{typedText}{!showSecondLine && (<><span className="dots" style={{ opacity: blinkDots ? 1 : 0 }}>...</span>{typedText.length === firstLine.length && !blinkDots ? null : <span className="typing-cursor" />}</>)}</div>{showSecondLine && (<div className="typing-line typing-line-second">{secondLineText}{secondLineText.length < secondLine.length && <span className="typing-cursor" />}</div>)}{introComplete && user && (<div style={{ marginTop: '2rem', padding: '1rem 2rem', background: 'rgba(95,191,138,0.2)', border: '2px solid #5fbf8a', borderRadius: '8px', boxShadow: '0 0 20px rgba(95,191,138,0.3)' }}><p style={{ fontSize: '0.5rem', color: '#5fbf8a', fontFamily: "'Press Start 2P', monospace", textShadow: '0 0 10px rgba(95,191,138,0.5)' }}>✓ YOU ARE LOGGED IN</p><p style={{ fontSize: '0.35rem', color: '#888', fontFamily: "'Press Start 2P', monospace", marginTop: '0.5rem' }}>{user.email}</p></div>)}</div><div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>SCROLL TO BEGIN<span className="scroll-arrow">&#9660;</span></div></section>
-          <section className="retro-section section-visible"><div className="section-header"><p className="section-label">// SELECT YOUR QUEST</p><h2 className="section-title shimmer-text">Choose Your Adventure</h2><p className="section-subtitle">Each app gamifies a different aspect of your life. Complete quests, earn XP, and level up across all domains.</p></div><div className="games-grid"><a href="/fitness" className="game-card fitness"><span className="game-card-badge test">TEST</span><DumbbellIcon className="game-icon" /><h3 className="game-name">IRON QUEST</h3><p className="game-tagline">Turn every rep into XP</p><XPBar current={4250} max={5000} color="#FF6B6B" /><p className="game-domain">/fitness</p></a><a href="/today" className="game-card tasks"><span className="game-card-badge test">TEST</span><ChecklistIcon className="game-icon" /><h3 className="game-name">DAY QUEST</h3><p className="game-tagline">Conquer your daily missions</p><XPBar current={6800} max={10000} color="#5CC9F5" /><p className="game-domain">/today</p></a><a href="/travel" className="game-card travel"><span className="game-card-badge test">TEST</span><PlaneIcon className="game-icon" /><h3 className="game-name">EXPLORER</h3><p className="game-tagline">Map your adventures</p><XPBar current={0} max={3000} color="#5fbf8a" /><p className="game-domain">/travel</p></a><div className="game-card life" style={{ cursor: 'default', opacity: 0.7 }}><span className="game-card-badge coming-soon">SOON</span><LifeIcon className="game-icon" /><h3 className="game-name">LIFE TRACKER</h3><p className="game-tagline">Gamify everything else</p><XPBar current={0} max={1000} color="#a855f7" /><p className="game-domain">gamify.life</p></div></div></section>
-          <section className="retro-section section-visible"><div className="section-header"><p className="section-label">// HOW IT WORKS</p><h2 className="section-title shimmer-text">Level Up Your Life</h2></div><div className="features-grid"><div className="feature-card"><div className="feature-icon">&#x2694;&#xFE0F;</div><h3 className="feature-title">DEFINE YOUR QUESTS</h3><p className="feature-desc">Want to run a marathon? Learn a language? Try every hotdog brand? Your goals become epic quests.</p></div><div className="feature-card"><div className="feature-icon">&#x2728;</div><h3 className="feature-title">EARN EXPERIENCE</h3><p className="feature-desc">Complete objectives to earn XP. Watch your character grow stronger with every accomplishment.</p></div><div className="feature-card"><div className="feature-icon">&#x1F3C6;</div><h3 className="feature-title">UNLOCK ACHIEVEMENTS</h3><p className="feature-desc">Collect badges and trophies. Share your progress and compete with friends.</p></div></div></section>
-          <section className="retro-section section-visible"><div className="about-content"><p className="section-label">// ABOUT</p><h2 className="section-title shimmer-text" style={{ marginBottom: '2rem' }}>Why Gamify?</h2><p className="about-text">We believe <span className="about-highlight">life should feel like an adventure</span>. Our suite of apps transforms mundane tasks into epic quests, boring routines into rewarding challenges, and everyday accomplishments into <span className="about-highlight">legendary achievements</span>.</p><p className="about-text">Whether you&apos;re hitting the gym, checking off your to-do list, or exploring new places — every action earns XP that contributes to your <span className="about-highlight">unified profile</span>.</p>{user && (<div className="total-xp-display"><span className="total-xp-label">YOUR TOTAL XP</span><span className="total-xp-value">{totalXP.toLocaleString()}</span></div>)}</div></section>
-          <footer className="retro-footer section-visible"><p className="footer-tagline shimmer-text">Life&apos;s not a game... but it should be!</p><p className="footer-text">&copy; {new Date().getFullYear()} GAMIFY.IT.COM — ALL RIGHTS RESERVED</p></footer>
-        </div>
-      </div>
+      {user ? <Dashboard user={user} /> : <SplashIntro />}
     </>
   );
 }
