@@ -1405,15 +1405,27 @@ export default function TodayPage() {
         .quick-add-input {
           flex: 1;
           border: none;
-          background: transparent;
+          background: transparent !important;
           font-size: 14px;
           color: var(--text-primary);
           outline: none;
           caret-color: var(--accent);
+          -webkit-appearance: none;
+          -webkit-text-fill-color: var(--text-primary);
         }
 
         .quick-add-input::placeholder {
           color: var(--text-tertiary);
+          -webkit-text-fill-color: var(--text-tertiary);
+          opacity: 1;
+        }
+
+        .quick-add-input:-webkit-autofill,
+        .quick-add-input:-webkit-autofill:hover,
+        .quick-add-input:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 1000px var(--bg-primary) inset !important;
+          -webkit-text-fill-color: var(--text-primary) !important;
+          background-color: transparent !important;
         }
 
         /* Autocomplete dropdown - above input */
@@ -1579,19 +1591,39 @@ export default function TodayPage() {
         .form-select,
         .form-textarea {
           width: 100%;
-          padding: 10px 12px;
+          padding: 12px 14px;
           border: 1px solid var(--border);
-          border-radius: 8px;
+          border-radius: 10px;
           font-size: 14px;
-          background: var(--bg-primary);
+          background-color: var(--bg-secondary) !important;
           color: var(--text-primary);
           outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          -webkit-appearance: none;
+          -webkit-text-fill-color: var(--text-primary);
+        }
+
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+          color: var(--text-tertiary);
+          -webkit-text-fill-color: var(--text-tertiary);
         }
 
         .form-input:focus,
         .form-select:focus,
         .form-textarea:focus {
           border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+        }
+
+        .form-input:-webkit-autofill,
+        .form-input:-webkit-autofill:hover,
+        .form-input:-webkit-autofill:focus,
+        .form-textarea:-webkit-autofill,
+        .form-textarea:-webkit-autofill:hover,
+        .form-textarea:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 1000px var(--bg-secondary) inset !important;
+          -webkit-text-fill-color: var(--text-primary) !important;
         }
 
         .form-textarea {
@@ -2065,9 +2097,9 @@ export default function TodayPage() {
             display: none;
           }
 
-          /* Task list */
+          /* Task list - space for nav + quick add */
           .task-list {
-            padding: 12px 16px 100px;
+            padding: 12px 16px calc(120px + env(safe-area-inset-bottom, 0));
           }
 
           .task-card {
@@ -2101,7 +2133,7 @@ export default function TodayPage() {
             font-size: 14px;
           }
 
-          /* Mobile Bottom Navigation - Redesigned */
+          /* Mobile Bottom Navigation - Compact */
           .mobile-nav {
             position: fixed;
             bottom: 0;
@@ -2111,9 +2143,9 @@ export default function TodayPage() {
             border-top: 1px solid var(--border);
             display: flex;
             justify-content: space-around;
-            padding: 8px 0;
-            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
-            z-index: 150;
+            padding: 4px 0;
+            padding-bottom: max(4px, env(safe-area-inset-bottom, 0));
+            z-index: 9999;
           }
 
           .mobile-nav-btn {
@@ -2121,12 +2153,12 @@ export default function TodayPage() {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px 4px;
+            gap: 2px;
+            padding: 6px 4px;
             background: none;
             border: none;
             color: var(--text-tertiary);
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 500;
             cursor: pointer;
             transition: color 0.15s ease;
@@ -2137,34 +2169,46 @@ export default function TodayPage() {
           }
 
           .mobile-nav-icon {
-            font-size: 22px;
+            font-size: 18px;
           }
 
-          /* Floating Action Button (FAB) for Add Task */
-          .mobile-fab {
+          /* Mobile Quick Add - Floating bar */
+          .quick-add-container {
             display: flex !important;
             position: fixed;
-            bottom: calc(80px + env(safe-area-inset-bottom, 0));
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 28px;
-            font-weight: 300;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
-            cursor: pointer;
-            z-index: 160;
-            transition: all 0.2s ease;
+            bottom: calc(52px + max(4px, env(safe-area-inset-bottom, 0)));
+            left: 12px;
+            right: 12px;
+            padding: 0;
+            z-index: 9998;
           }
 
-          .mobile-fab:active {
-            transform: scale(0.92);
-            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+          .quick-add-wrapper {
+            max-width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+          }
+
+          .quick-add-icon {
+            font-size: 14px;
+          }
+
+          .quick-add-input {
+            font-size: 14px;
+          }
+
+          .quick-add-hints {
+            display: none;
+          }
+
+          .quick-add-autocomplete {
+            bottom: calc(100% + 6px);
+            border-radius: 10px;
+          }
+
+          /* Hide FAB on mobile - using quick add bar instead */
+          .mobile-fab {
+            display: none !important;
           }
 
           /* Mobile panels - slide up from bottom */

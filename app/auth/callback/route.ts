@@ -7,9 +7,14 @@ export async function GET(request: Request) {
   const token_hash = requestUrl.searchParams.get('token_hash');
   const type = requestUrl.searchParams.get('type');
   const error_param = requestUrl.searchParams.get('error');
-  const next = requestUrl.searchParams.get('next') || '/';
 
-  console.log('Auth callback params:', { code: !!code, token_hash: !!token_hash, type, error: error_param });
+  console.log('Auth callback params:', {
+    code: !!code,
+    token_hash: !!token_hash,
+    type,
+    error: error_param,
+    fullUrl: request.url
+  });
 
   // Handle error from OAuth provider
   if (error_param) {
@@ -19,8 +24,8 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
-  // Determine redirect destination - use transfer page for PWA code handoff
-  const redirectTo = next === '/' ? '/auth/transfer' : next;
+  // Always redirect to transfer page after successful auth
+  const redirectTo = '/auth/transfer';
 
   // Handle token_hash (magic link without PKCE)
   if (token_hash && type) {
@@ -34,7 +39,7 @@ export async function GET(request: Request) {
         console.error('Token hash verification error:', error.message);
         return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
       }
-      console.log('Token hash verified successfully');
+      console.log('Token hash verified, redirecting to:', redirectTo);
       return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
     } catch (e) {
       console.error('Token hash exception:', e);
@@ -51,7 +56,7 @@ export async function GET(request: Request) {
         console.error('Supabase auth error:', error.message);
         return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
       }
-      console.log('Code exchanged successfully');
+      console.log('Code exchanged, redirecting to:', redirectTo);
       return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
     } catch (e) {
       console.error('Callback exception:', e);
