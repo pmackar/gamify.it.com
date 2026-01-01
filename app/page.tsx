@@ -290,11 +290,311 @@ function SplashIntro() {
   );
 }
 
+// PWA Login Screen
+function PWALogin() {
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [error, setError] = useState('');
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    setError('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true }
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      setStep('otp');
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp || otp.length !== 6) return;
+    setLoading(true);
+    setError('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'email'
+    });
+    if (error) {
+      setError('Invalid code. Please try again.');
+      setOtp('');
+    }
+    setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
+    });
+  };
+
+  return (
+    <div className="pwa-login">
+      <PixelParticles />
+      <div className="pwa-login-content">
+        <div className="pwa-logo">G</div>
+        <h1 className="pwa-title">GAMIFY.IT</h1>
+        <p className="pwa-subtitle">Life&apos;s not a game...<br />but it should be!</p>
+
+        {step === 'otp' ? (
+          <div className="pwa-login-form">
+            <div className="pwa-otp-header">
+              <div className="pwa-sent-icon">✉️</div>
+              <p className="pwa-otp-text">Enter the 6-digit code sent to</p>
+              <p className="pwa-otp-email">{email}</p>
+            </div>
+            <form onSubmit={handleVerifyOtp}>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                className="pwa-input pwa-otp-input"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+              />
+              {error && <p className="pwa-error">{error}</p>}
+              <button type="submit" className="pwa-submit-btn" disabled={loading || otp.length !== 6}>
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </button>
+            </form>
+            <button className="pwa-back-btn" onClick={() => { setStep('email'); setOtp(''); setError(''); }}>
+              ← Use different email
+            </button>
+          </div>
+        ) : (
+          <div className="pwa-login-form">
+            <button className="pwa-google-btn" onClick={handleGoogleLogin}>
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            <div className="pwa-divider">
+              <span>or</span>
+            </div>
+
+            <form onSubmit={handleSendOtp}>
+              <input
+                type="email"
+                className="pwa-input"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {error && <p className="pwa-error">{error}</p>}
+              <button type="submit" className="pwa-submit-btn" disabled={loading}>
+                {loading ? 'Sending...' : 'Send Login Code'}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        .pwa-login {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          padding-top: calc(2rem + env(safe-area-inset-top, 0px));
+          position: relative;
+        }
+        .pwa-login-content {
+          text-align: center;
+          z-index: 10;
+          width: 100%;
+          max-width: 320px;
+        }
+        .pwa-logo {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 1.5rem;
+          background: linear-gradient(135deg, #1a1a2e 0%, #0a0a0a 100%);
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 2.5rem;
+          background: linear-gradient(135deg, #ff6b6b, #ffd700, #5fbf8a);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .pwa-title {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 1.25rem;
+          color: #fff;
+          margin-bottom: 0.75rem;
+        }
+        .pwa-subtitle {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: #888;
+          line-height: 2;
+          margin-bottom: 2.5rem;
+        }
+        .pwa-login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .pwa-google-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          width: 100%;
+          padding: 1rem;
+          background: #fff;
+          border: none;
+          border-radius: 12px;
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 1rem;
+          font-weight: 500;
+          color: #333;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .pwa-google-btn:hover {
+          background: #f5f5f5;
+          transform: translateY(-2px);
+        }
+        .pwa-divider {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          color: #555;
+          font-size: 0.75rem;
+        }
+        .pwa-divider::before,
+        .pwa-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .pwa-input {
+          width: 100%;
+          padding: 1rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          font-size: 1rem;
+          color: #fff;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .pwa-input:focus {
+          border-color: #FFD700;
+          box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+        .pwa-input::placeholder {
+          color: #666;
+        }
+        .pwa-submit-btn {
+          width: 100%;
+          padding: 1rem;
+          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+          border: none;
+          border-radius: 12px;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: #1a1a1a;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .pwa-submit-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+        }
+        .pwa-submit-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        .pwa-otp-header {
+          text-align: center;
+          margin-bottom: 1.5rem;
+        }
+        .pwa-sent-icon {
+          font-size: 2rem;
+          margin-bottom: 0.75rem;
+        }
+        .pwa-otp-text {
+          font-size: 0.75rem;
+          color: #888;
+          margin-bottom: 0.25rem;
+        }
+        .pwa-otp-email {
+          font-size: 0.85rem;
+          color: #FFD700;
+          word-break: break-all;
+        }
+        .pwa-otp-input {
+          text-align: center;
+          font-size: 1.5rem !important;
+          letter-spacing: 0.5rem;
+          font-family: monospace !important;
+        }
+        .pwa-error {
+          font-size: 0.7rem;
+          color: #ff6b6b;
+          text-align: center;
+          margin: 0.5rem 0;
+        }
+        .pwa-back-btn {
+          background: none;
+          border: none;
+          color: #666;
+          font-size: 0.75rem;
+          margin-top: 1rem;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .pwa-back-btn:hover {
+          color: #888;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
+    // Detect if running as PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIsPWA(isStandalone);
+
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -456,7 +756,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {user ? <Dashboard user={user} /> : <SplashIntro />}
+      {isPWA && !user ? <PWALogin /> : user ? <Dashboard user={user} /> : <SplashIntro />}
     </>
   );
 }
