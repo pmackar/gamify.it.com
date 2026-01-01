@@ -9,160 +9,172 @@ datasource db {
 }
 
 // ============================================
-// USER & AUTH
+// UNIFIED CORE TABLES (existing)
 // ============================================
 
-model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  image         String?
-  emailVerified DateTime?
-
-  // Gamification stats
-  level         Int       @default(1)
-  xp            Int       @default(0)
-  xpToNext      Int       @default(100)
-  totalCities   Int       @default(0)
-  totalLocations Int      @default(0)
-  totalVisits   Int       @default(0)
-
-  // Streak tracking
-  currentStreak Int       @default(0)
-  longestStreak Int       @default(0)
-  lastActiveDate DateTime?
-
-  // Profile visibility
-  profilePublic Boolean   @default(true)
+/// Global user profile - shared across all apps
+model profiles {
+  id                 String              @id @db.Uuid
+  email              String              @unique
+  username           String?             @unique
+  display_name       String?
+  avatar_url         String?
+  bio                String?
+  total_xp           Int?                @default(0)
+  main_level         Int?                @default(1)
+  current_streak     Int?                @default(0)
+  longest_streak     Int?                @default(0)
+  last_activity_date DateTime?           @db.Date
+  legacy_prisma_id   String?
+  legacy_clerk_id    String?
+  created_at         DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?           @default(now()) @db.Timestamptz(6)
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  cities        City[]
-  neighborhoods Neighborhood[]
-  locations     Location[]
-  visits        Visit[]
-  achievements  UserAchievement[]
-  photos        Photo[]
+  app_profiles       app_profiles[]
+  user_achievements  user_achievements[]
 
-  // Multi-user relations
-  locationData     UserLocationData[]
-  reviews          Review[]
-  quests           Quest[]
-  createdLocations Location[]         @relation("LocationCreator")
+  // Travel relations
+  travel_cities        travel_cities[]
+  travel_neighborhoods travel_neighborhoods[]
+  travel_locations     travel_locations[]
+  travel_visits        travel_visits[]
+  travel_photos        travel_photos[]
+  travel_reviews       travel_reviews[]
+  travel_quests        travel_quests[]
+  travel_user_location_data travel_user_location_data[]
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@index([email])
+  @@index([email], map: "idx_profiles_email")
+  @@index([username], map: "idx_profiles_username")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+/// Per-app XP and level tracking
+model app_profiles {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  app_id     String    // 'travel', 'fitness', 'today'
+  xp         Int?      @default(0)
+  level      Int?      @default(1)
+  xp_to_next Int?      @default(100)
+  stats      Json?     @default("{}")
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profiles   profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@unique([user_id, app_id])
+  @@index([app_id], map: "idx_app_profiles_app_id")
+  @@index([user_id], map: "idx_app_profiles_user_id")
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+/// Unified achievements across all apps
+model achievements {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code              String              @unique
+  app_id            String              // 'travel', 'fitness', 'today', 'global'
+  name              String
+  description       String
+  icon              String?
+  xp_reward         Int?                @default(0)
+  category          String
+  tier              Int?                @default(1)
+  criteria          Json                @default("{}")
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
 
-  @@index([userId])
+  user_achievements user_achievements[]
+
+  @@index([app_id], map: "idx_achievements_app_id")
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+/// User achievement progress and completion
+model user_achievements {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String       @db.Uuid
+  achievement_id String       @db.Uuid
+  progress       Int?         @default(0)
+  is_completed   Boolean?     @default(false)
+  completed_at   DateTime?    @db.Timestamptz(6)
+  created_at     DateTime?    @default(now()) @db.Timestamptz(6)
 
-  @@unique([identifier, token])
+  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade)
+  profiles       profiles     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, achievement_id])
+  @@index([user_id], map: "idx_user_achievements_user_id")
+}
+
+/// Generic user data storage (for today app)
+model user_data {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @unique @db.Uuid
+  data       Json
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// Today app specific data
+model gamify_today_data {
+  user_id    String    @id @db.Uuid
+  data       Json      @default("{}")
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
 }
 
 // ============================================
-// CITIES
+// TRAVEL APP TABLES
 // ============================================
 
-model City {
-  id          String   @id @default(cuid())
-  name        String
-  country     String
-  region      String?
-  countryCode String?
+model travel_cities {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  country       String
+  region        String?
+  country_code  String?
+  latitude      Float?
+  longitude     Float?
+  first_visited DateTime? @db.Timestamptz(6)
+  last_visited  DateTime? @db.Timestamptz(6)
+  visit_count   Int       @default(1)
+  notes         String?
+  location_count Int      @default(0)
 
-  latitude    Float?
-  longitude   Float?
+  user_id       String    @db.Uuid
+  user          profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  firstVisited DateTime?
-  lastVisited  DateTime?
-  visitCount   Int       @default(1)
+  neighborhoods travel_neighborhoods[]
+  locations     travel_locations[]
+  quests        travel_quests[]
 
-  notes       String?   @db.Text
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
 
-  locationCount Int     @default(0)
-
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  neighborhoods Neighborhood[]
-  locations     Location[]
-  quests        Quest[]
-
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  @@unique([userId, name, country])
-  @@index([userId])
+  @@unique([user_id, name, country])
+  @@index([user_id])
   @@index([country])
 }
 
-// ============================================
-// NEIGHBORHOODS
-// ============================================
-
-model Neighborhood {
-  id          String     @id @default(cuid())
+model travel_neighborhoods {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String
-  description String?    @db.Text
-
+  description String?
   latitude    Float?
   longitude   Float?
 
-  userId      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cityId      String
-  city        City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  locations   Location[]
-  quests      Quest[]
+  user_id     String     @db.Uuid
+  user        profiles   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  city_id     String     @db.Uuid
+  city        travel_cities @relation(fields: [city_id], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  locations   travel_locations[]
+  quests      travel_quests[]
 
-  @@unique([userId, cityId, name])
-  @@index([userId])
-  @@index([cityId])
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime   @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, city_id, name])
+  @@index([user_id])
+  @@index([city_id])
 }
 
-// ============================================
-// LOCATIONS
-// ============================================
-
-enum LocationType {
+enum travel_location_type {
   RESTAURANT
   BAR
   CAFE
@@ -177,280 +189,205 @@ enum LocationType {
   OTHER
 }
 
-model Location {
-  id             String        @id @default(cuid())
+model travel_locations {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name           String
-  type           LocationType
+  type           travel_location_type
   cuisine        String?
-
-  // Legacy field - to be removed after migration
-  neighborhoodOld String?      @map("neighborhood")
-
   address        String?
   latitude       Float
   longitude      Float
-
-  blurb          String?       @db.Text
-  description    String?       @db.Text
+  blurb          String?
+  description    String?
   website        String?
   phone          String?
   hours          String?
-  priceLevel     Int?
-  otherInfo      String?       @db.Text
-
-  visited        Boolean       @default(false)
-  hotlist        Boolean       @default(false)
-
+  price_level    Int?
+  other_info     String?
+  visited        Boolean             @default(false)
+  hotlist        Boolean             @default(false)
   tags           String[]
 
-  // Aggregate stats (computed from reviews)
-  avgRating      Float?
-  ratingCount    Int           @default(0)
-  reviewCount    Int           @default(0)
-  totalVisits    Int           @default(0)
+  // Aggregate stats
+  avg_rating     Float?
+  rating_count   Int                 @default(0)
+  review_count   Int                 @default(0)
+  total_visits   Int                 @default(0)
 
-  // Legacy field - will be removed after migration to global locations
-  userId         String?
-  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Owner/creator
+  user_id        String?             @db.Uuid
+  user           profiles?           @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
-  // Creator tracking (not ownership - for multi-user)
-  createdById    String?
-  createdBy      User?         @relation("LocationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  city_id        String              @db.Uuid
+  city           travel_cities       @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  neighborhood_id String?            @db.Uuid
+  neighborhood   travel_neighborhoods? @relation(fields: [neighborhood_id], references: [id], onDelete: SetNull)
 
-  cityId         String
-  city           City          @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  neighborhoodId String?
-  neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id], onDelete: SetNull)
+  visits         travel_visits[]
+  photos         travel_photos[]
+  user_data      travel_user_location_data[]
+  reviews        travel_reviews[]
+  quest_items    travel_quest_items[]
 
-  // Existing relations
-  visits         Visit[]
-  photos         Photo[]
+  created_at     DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime            @default(now()) @db.Timestamptz(6)
 
-  // Multi-user relations
-  userData       UserLocationData[]
-  reviews        Review[]
-  questItems     QuestItem[]
-
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@index([userId])
-  @@index([createdById])
-  @@index([cityId])
-  @@index([neighborhoodId])
+  @@index([user_id])
+  @@index([city_id])
+  @@index([neighborhood_id])
   @@index([type])
   @@index([latitude, longitude])
 }
 
-// ============================================
-// VISITS (Check-ins)
-// ============================================
+model travel_visits {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date            DateTime         @db.Timestamptz(6)
+  overall_rating  Int?
+  food_quality    Int?
+  service_rating  Int?
+  ambiance_rating Int?
+  value_rating    Int?
+  notes           String?
+  highlights      String[]
+  xp_earned       Int              @default(0)
 
-model Visit {
-  id          String   @id @default(cuid())
-  date        DateTime
+  user_id         String           @db.Uuid
+  user            profiles         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  location_id     String           @db.Uuid
+  location        travel_locations @relation(fields: [location_id], references: [id], onDelete: Cascade)
 
-  overallRating    Int?
-  foodQuality      Int?
-  serviceRating    Int?
-  ambianceRating   Int?
-  valueRating      Int?
+  photos          travel_photos[]
 
-  notes       String?  @db.Text
-  highlights  String[]
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime         @default(now()) @db.Timestamptz(6)
 
-  xpEarned    Int      @default(0)
-
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationId  String
-  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  photos      Photo[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-  @@index([locationId])
+  @@index([user_id])
+  @@index([location_id])
   @@index([date])
 }
 
-// ============================================
-// PHOTOS
-// ============================================
-
-model Photo {
-  id          String   @id @default(cuid())
+model travel_photos {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   url         String
   caption     String?
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationId  String?
-  location    Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  visitId     String?
-  visit       Visit?   @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  user_id     String            @db.Uuid
+  user        profiles          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  location_id String?           @db.Uuid
+  location    travel_locations? @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  visit_id    String?           @db.Uuid
+  visit       travel_visits?    @relation(fields: [visit_id], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  created_at  DateTime          @default(now()) @db.Timestamptz(6)
 
-  @@index([userId])
-  @@index([locationId])
-  @@index([visitId])
+  @@index([user_id])
+  @@index([location_id])
+  @@index([visit_id])
 }
 
-// ============================================
-// ACHIEVEMENTS
-// ============================================
+/// Per-user data for each location (hotlist, personal notes, etc.)
+model travel_user_location_data {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hotlist         Boolean          @default(false)
+  visited         Boolean          @default(false)
+  personal_rating Int?
+  notes           String?
+  visit_count     Int              @default(0)
+  first_visited_at DateTime?       @db.Timestamptz(6)
+  last_visited_at  DateTime?       @db.Timestamptz(6)
 
-model Achievement {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String
-  icon        String
-  xpReward    Int
+  user_id         String           @db.Uuid
+  user            profiles         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  location_id     String           @db.Uuid
+  location        travel_locations @relation(fields: [location_id], references: [id], onDelete: Cascade)
 
-  criteria    Json
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime         @default(now()) @db.Timestamptz(6)
 
-  category    String
-  tier        Int      @default(1)
-
-  users       UserAchievement[]
-
-  createdAt   DateTime @default(now())
+  @@unique([user_id, location_id])
+  @@index([user_id])
+  @@index([location_id])
 }
 
-model UserAchievement {
-  id            String   @id @default(cuid())
-  unlockedAt    DateTime @default(now())
-
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievementId String
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, achievementId])
-  @@index([userId])
-}
-
-// ============================================
-// USER LOCATION DATA (Per-user data for each location)
-// ============================================
-
-model UserLocationData {
-  id             String    @id @default(cuid())
-  hotlist        Boolean   @default(false)
-  visited        Boolean   @default(false)
-  personalRating Int?      // 1-10, private to user
-  notes          String?   @db.Text
-  visitCount     Int       @default(0)
-  firstVisitedAt DateTime?
-  lastVisitedAt  DateTime?
-
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationId     String
-  location       Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  @@unique([userId, locationId])
-  @@index([userId])
-  @@index([locationId])
-}
-
-// ============================================
-// REVIEWS (Public reviews with moderation)
-// ============================================
-
-enum ReviewStatus {
+enum travel_review_status {
   PENDING
   APPROVED
   REJECTED
 }
 
-model Review {
-  id             String       @id @default(cuid())
-  title          String?
-  content        String       @db.Text
-  rating         Int          // 1-10, contributes to aggregate
+model travel_reviews {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String?
+  content         String
+  rating          Int
+  status          travel_review_status @default(PENDING)
+  moderated_at    DateTime?           @db.Timestamptz(6)
+  moderated_by    String?
+  food_quality    Int?
+  service_rating  Int?
+  ambiance_rating Int?
+  value_rating    Int?
 
-  status         ReviewStatus @default(PENDING)
-  moderatedAt    DateTime?
-  moderatedBy    String?
+  author_id       String              @db.Uuid
+  author          profiles            @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  location_id     String              @db.Uuid
+  location        travel_locations    @relation(fields: [location_id], references: [id], onDelete: Cascade)
 
-  // Detailed ratings (optional)
-  foodQuality    Int?
-  serviceRating  Int?
-  ambianceRating Int?
-  valueRating    Int?
+  created_at      DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime            @default(now()) @db.Timestamptz(6)
 
-  authorId       String
-  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  locationId     String
-  location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([authorId])
-  @@index([locationId])
+  @@index([author_id])
+  @@index([location_id])
   @@index([status])
 }
 
-// ============================================
-// QUESTS (Trip Planning)
-// ============================================
-
-enum QuestStatus {
+enum travel_quest_status {
   PLANNING
   ACTIVE
   COMPLETED
   ARCHIVED
 }
 
-model Quest {
-  id                   String        @id @default(cuid())
-  name                 String
-  description          String?       @db.Text
+model travel_quests {
+  id                     String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                   String
+  description            String?
+  target_city_id         String?               @db.Uuid
+  target_city            travel_cities?        @relation(fields: [target_city_id], references: [id], onDelete: SetNull)
+  target_neighborhood_id String?               @db.Uuid
+  target_neighborhood    travel_neighborhoods? @relation(fields: [target_neighborhood_id], references: [id], onDelete: SetNull)
+  start_date             DateTime?             @db.Timestamptz(6)
+  end_date               DateTime?             @db.Timestamptz(6)
+  status                 travel_quest_status   @default(PLANNING)
 
-  targetCityId         String?
-  targetCity           City?         @relation(fields: [targetCityId], references: [id], onDelete: SetNull)
-  targetNeighborhoodId String?
-  targetNeighborhood   Neighborhood? @relation(fields: [targetNeighborhoodId], references: [id], onDelete: SetNull)
+  user_id                String                @db.Uuid
+  user                   profiles              @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  startDate            DateTime?
-  endDate              DateTime?
-  status               QuestStatus   @default(PLANNING)
+  items                  travel_quest_items[]
 
-  userId               String
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items                QuestItem[]
+  created_at             DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime              @default(now()) @db.Timestamptz(6)
 
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-
-  @@index([userId])
+  @@index([user_id])
   @@index([status])
-  @@index([targetCityId])
-  @@index([targetNeighborhoodId])
+  @@index([target_city_id])
+  @@index([target_neighborhood_id])
 }
 
-model QuestItem {
-  id          String    @id @default(cuid())
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  sortOrder   Int       @default(0)
-  priority    Int       @default(0) // 1=high, 2=medium, 3=low
-  notes       String?   @db.Text
+model travel_quest_items {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  completed    Boolean          @default(false)
+  completed_at DateTime?        @db.Timestamptz(6)
+  sort_order   Int              @default(0)
+  priority     Int              @default(0)
+  notes        String?
 
-  questId     String
-  quest       Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
-  locationId  String
-  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  quest_id     String           @db.Uuid
+  quest        travel_quests    @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  location_id  String           @db.Uuid
+  location     travel_locations @relation(fields: [location_id], references: [id], onDelete: Cascade)
 
-  @@unique([questId, locationId])
-  @@index([questId])
-  @@index([locationId])
+  @@unique([quest_id, location_id])
+  @@index([quest_id])
+  @@index([location_id])
 }

@@ -1,117 +1,107 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 export async function GET() {
   try {
-    const user = await requireAuth();
-
-    // Find the Prisma user by email for legacy data access
-    const prismaUser = await prisma.user.findFirst({
-      where: { email: user.email },
-    });
-
-    if (!prismaUser) {
-      return NextResponse.json({
-        user: {
-          level: user.main_level || 1,
-          xp: user.total_xp || 0,
-          currentStreak: user.current_streak || 0,
-          longestStreak: user.longest_streak || 0,
-          memberSince: user.created_at,
-        },
-        counts: {
-          cities: 0,
-          locations: 0,
-          visits: 0,
-          countries: 0,
-          recentVisits: 0,
-        },
-        achievements: {
-          unlocked: 0,
-          total: 0,
-        },
-        locationsByType: [],
-        topLocations: [],
-        visitsByMonth: {},
-      });
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get stats from actual schema
-    const [visitedCount, reviewsCount, achievementsCount, totalAchievements] =
-      await Promise.all([
-        prisma.userLocationData.count({
-          where: { userId: prismaUser.id, visited: true },
-        }),
-        prisma.review.count({
-          where: { authorId: prismaUser.id },
-        }),
-        prisma.userAchievement.count({
-          where: { userId: prismaUser.id, isCompleted: true },
-        }),
-        prisma.achievement.count(),
-      ]);
-
-    // Get unique cities
-    const cities = await prisma.userLocationData.findMany({
-      where: {
-        userId: prismaUser.id,
-        visited: true,
-      },
-      include: {
-        location: {
-          select: {
-            city: true,
-            country: true,
-            category: true,
-          },
+    // Get travel stats
+    const [
+      citiesCount,
+      locationsCount,
+      visitsCount,
+      achievementsCount,
+      totalAchievements,
+    ] = await Promise.all([
+      prisma.travel_cities.count({
+        where: { user_id: user.id },
+      }),
+      prisma.travel_locations.count({
+        where: { user_id: user.id },
+      }),
+      prisma.travel_visits.count({
+        where: { user_id: user.id },
+      }),
+      prisma.user_achievements.count({
+        where: {
+          user_id: user.id,
+          is_completed: true,
+          achievements: { app_id: 'travel' },
         },
-      },
+      }),
+      prisma.achievements.count({
+        where: { app_id: 'travel' },
+      }),
+    ]);
+
+    // Get unique countries
+    const cities = await prisma.travel_cities.findMany({
+      where: { user_id: user.id },
+      select: { country: true },
+    });
+    const uniqueCountries = new Set(cities.map((c) => c.country));
+
+    // Get locations by type
+    const locationsByType = await prisma.travel_locations.groupBy({
+      by: ['type'],
+      where: { user_id: user.id },
+      _count: { type: true },
     });
 
-    type LocationData = { city: string; country: string; category: string };
-    const uniqueCities = new Set(
-      cities.map((c) => c.location.city).filter(Boolean)
-    );
-    const uniqueCountries = new Set(cities.map((c) => c.location.country));
-
-    // Group by category
-    const categoryCount: Record<string, number> = {};
-    cities.forEach((c) => {
-      const cat = c.location.category;
-      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+    // Get top rated locations
+    const topLocations = await prisma.travel_locations.findMany({
+      where: {
+        user_id: user.id,
+        avg_rating: { not: null },
+      },
+      orderBy: { avg_rating: 'desc' },
+      take: 5,
+      include: {
+        city: {
+          select: { name: true, country: true },
+        },
+      },
     });
 
     return NextResponse.json({
       user: {
-        level: user.main_level || 1,
-        xp: user.total_xp || 0,
-        currentStreak: user.current_streak || 0,
-        longestStreak: user.longest_streak || 0,
-        memberSince: user.created_at,
+        level: user.travel.level,
+        xp: user.travel.xp,
+        xpToNext: user.travel.xpToNext,
+        currentStreak: user.currentStreak,
+        longestStreak: user.longestStreak,
       },
       counts: {
-        cities: uniqueCities.size,
-        locations: visitedCount,
-        visits: visitedCount,
+        cities: citiesCount,
+        locations: locationsCount,
+        visits: visitsCount,
         countries: uniqueCountries.size,
-        reviews: reviewsCount,
+        recentVisits: 0,
       },
       achievements: {
         unlocked: achievementsCount,
         total: totalAchievements,
       },
-      locationsByType: Object.entries(categoryCount).map(([type, count]) => ({
-        type,
-        count,
+      locationsByType: locationsByType.map((item) => ({
+        type: item.type,
+        count: item._count.type,
       })),
-      topLocations: [],
-      visitsByMonth: {},
+      topLocations: topLocations.map((loc) => ({
+        id: loc.id,
+        name: loc.name,
+        type: loc.type,
+        avgRating: loc.avg_rating,
+        city: {
+          name: loc.city.name,
+          country: loc.city.country,
+        },
+      })),
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
     console.error("Error fetching stats:", error);
     return NextResponse.json(
       { error: "Failed to fetch stats" },

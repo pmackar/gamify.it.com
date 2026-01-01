@@ -5,16 +5,46 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'error';
+
 export function NavBar() {
   const [user, setUser] = useState<User | null>(null);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
+  const [authError, setAuthError] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          setAuthStatus('error');
+          setAuthError(error.message);
+          console.error('Auth error:', error);
+        } else if (session?.user) {
+          setUser(session.user);
+          setAuthStatus('authenticated');
+        } else {
+          setAuthStatus('unauthenticated');
+        }
+      })
+      .catch((err) => {
+        setAuthStatus('error');
+        setAuthError(err.message);
+        console.error('Auth error:', err);
+      });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setUser(session.user);
+        setAuthStatus('authenticated');
+      } else {
+        setUser(null);
+        setAuthStatus('unauthenticated');
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -28,12 +58,31 @@ export function NavBar() {
 
   const handleGoogleSignIn = async () => {
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.href,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (error) {
+      alert(`Login error: ${error.message}`);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoginLoading(false);
+    if (error) {
+      alert(`Login error: ${error.message}`);
+    } else {
+      setShowLoginDropdown(false);
+    }
   };
 
   return (
@@ -98,7 +147,35 @@ export function NavBar() {
       <nav className="gamify-nav">
         <div className="gamify-nav-bar">
           <Link href="/" className="gamify-nav-logo">gamify.it.com</Link>
-          {user ? (
+
+          {/* Auth Status Indicator */}
+          {authStatus === 'loading' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: '#FFD700',
+                animation: 'pulse 1s infinite'
+              }} />
+              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.4rem', color: '#888' }}>
+                CHECKING...
+              </span>
+              <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+            </div>
+          )}
+
+          {authStatus === 'error' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: '#ff4444'
+              }} />
+              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.35rem', color: '#ff4444' }}>
+                AUTH ERROR: {authError}
+              </span>
+            </div>
+          )}
+
+          {authStatus === 'authenticated' && user && (
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 {user.user_metadata?.avatar_url ? (
@@ -123,11 +200,13 @@ export function NavBar() {
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {authStatus === 'unauthenticated' && (
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowLoginDropdown(!showLoginDropdown)} className="gamify-nav-btn">LOGIN / SIGN UP</button>
               {showLoginDropdown && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: '#2d2d2d', border: '2px solid #3a3a3a', borderRadius: '8px', padding: '1rem', minWidth: '200px', boxShadow: '0 4px 0 #1a1a1a' }}>
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: '#2d2d2d', border: '2px solid #3a3a3a', borderRadius: '8px', padding: '1rem', minWidth: '240px', boxShadow: '0 4px 0 #1a1a1a' }}>
                   <p style={{ fontSize: '0.45rem', color: '#888', marginBottom: '0.75rem', textAlign: 'center', fontFamily: "'Press Start 2P', monospace" }}>
                     Continue with
                   </p>
@@ -158,6 +237,67 @@ export function NavBar() {
                     </svg>
                     Google
                   </button>
+
+                  <div style={{ margin: '1rem 0', borderTop: '1px solid #3a3a3a', position: 'relative' }}>
+                    <span style={{ position: 'absolute', top: '-0.5rem', left: '50%', transform: 'translateX(-50%)', background: '#2d2d2d', padding: '0 0.5rem', fontSize: '0.35rem', color: '#666', fontFamily: "'Press Start 2P', monospace" }}>OR</span>
+                  </div>
+
+                  <form onSubmit={handleEmailLogin}>
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        marginBottom: '0.5rem',
+                        background: '#1a1a1a',
+                        border: '2px solid #3a3a3a',
+                        borderRadius: '4px',
+                        color: '#fff',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: '0.35rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        marginBottom: '0.75rem',
+                        background: '#1a1a1a',
+                        border: '2px solid #3a3a3a',
+                        borderRadius: '4px',
+                        color: '#fff',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: '0.35rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loginLoading}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem',
+                        background: loginLoading ? '#666' : 'linear-gradient(180deg, #FFD700 0%, #FFA500 100%)',
+                        border: '2px solid #CC8800',
+                        borderRadius: '4px',
+                        color: '#1a1a1a',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: '0.4rem',
+                        cursor: loginLoading ? 'wait' : 'pointer',
+                        boxShadow: '0 3px 0 #996600',
+                      }}
+                    >
+                      {loginLoading ? 'LOADING...' : 'LOGIN'}
+                    </button>
+                  </form>
                 </div>
               )}
             </div>
