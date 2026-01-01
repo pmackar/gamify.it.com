@@ -3,12 +3,6 @@ import { createBrowserClient } from '@supabase/ssr';
 // Use custom cookie domain only in production for SSO across subdomains
 const isProduction = typeof window !== 'undefined' && window.location.hostname === 'gamify.it.com';
 
-// Debug: log env vars (remove after debugging)
-if (typeof window !== 'undefined') {
-  console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log('SUPABASE_KEY prefix:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20));
-}
-
 export function createClient() {
   // In production, use custom cookies for cross-subdomain SSO
   // In development, use default cookie handling
