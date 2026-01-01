@@ -3,6 +3,7 @@ import "./globals.css";
 import { RetroNavBar } from "@/components/RetroNavBar";
 import { AchievementProvider } from "@/components/AchievementPopup";
 import { NavBarProvider } from "@/components/NavBarContext";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -19,6 +20,15 @@ export const metadata: Metadata = {
   keywords: ["gamification", "life tracking", "achievements", "XP", "fitness", "productivity", "travel"],
   authors: [{ name: "gamify.it" }],
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -51,6 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased">
+        <ServiceWorkerRegistration />
         <NavBarProvider>
           <AchievementProvider>
             <RetroNavBar />
