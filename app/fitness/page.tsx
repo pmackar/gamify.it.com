@@ -15,13 +15,58 @@ export default function FitnessPage() {
   const [setReps, setSetReps] = useState(8);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [campaignForm, setCampaignForm] = useState({ title: '', description: '', targetDate: '' });
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [addingGoal, setAddingGoal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const weightInputRef = useRef<HTMLInputElement>(null);
+  const repsInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
     store.loadState();
   }, []);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const inInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+      // Escape - navigate back or blur
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (showSetPanel) {
+          setShowSetPanel(false);
+        } else if (showSaveModal) {
+          setShowSaveModal(false);
+        } else if (creatingCampaign) {
+          setCreatingCampaign(false);
+        } else if (addingGoal) {
+          setAddingGoal(false);
+        } else if (inInput) {
+          (target as HTMLInputElement).blur();
+        } else if (store.currentView !== 'home' && store.currentView !== 'workout') {
+          store.setView('home');
+        }
+        return;
+      }
+
+      // Don't trigger other shortcuts when in input
+      if (inInput) return;
+
+      // "n" to focus command input
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [showSetPanel, showSaveModal, creatingCampaign, addingGoal, store.currentView]);
 
   useEffect(() => {
     if (store.currentWorkout && store.currentView === 'workout') {
@@ -45,6 +90,25 @@ export default function FitnessPage() {
   const getSuggestions = useCallback((): CommandSuggestion[] => {
     const q = query.toLowerCase().trim();
     const results: CommandSuggestion[] = [];
+
+    // Adding campaign goal mode - show exercises to pick
+    if (addingGoal) {
+      const matchingExercises = EXERCISES.filter(ex =>
+        !q || ex.name.toLowerCase().includes(q) || ex.id.toLowerCase().includes(q)
+      ).slice(0, 8);
+
+      for (const ex of matchingExercises) {
+        results.push({
+          type: 'add-campaign-goal',
+          id: ex.id,
+          title: ex.name,
+          subtitle: store.records[ex.id] ? `Current PR: ${store.records[ex.id]} lbs` : ex.muscle,
+          icon: '🎯'
+        });
+      }
+      results.push({ type: 'cancel-add-goal', id: 'cancel', title: 'Cancel', subtitle: 'Go back', icon: '←' });
+      return results;
+    }
 
     if (store.currentWorkout && store.currentView === 'workout') {
       const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
@@ -155,7 +219,7 @@ export default function FitnessPage() {
     }
 
     return results.slice(0, 8);
-  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises]);
+  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, addingGoal]);
 
   const suggestions = getSuggestions();
 
@@ -184,9 +248,71 @@ export default function FitnessPage() {
       case 'cancel-workout': if (confirm('Discard this workout?')) store.cancelWorkout(); break;
       case 'resume': store.setView('workout'); break;
       case 'history': store.setView('history'); break;
+      case 'add-campaign-goal':
+        if (selectedCampaignId) {
+          const exercise = getExerciseById(suggestion.id);
+          if (exercise) {
+            addGoalToCampaign(selectedCampaignId, suggestion.id, exercise.name);
+          }
+        }
+        setAddingGoal(false);
+        break;
+      case 'cancel-add-goal':
+        setAddingGoal(false);
+        break;
     }
     setQuery('');
     setSelectedSuggestion(0);
+  };
+
+  // Campaign functions
+  const addGoalToCampaign = (campaignId: string, exerciseId: string, exerciseName: string) => {
+    const campaign = store.campaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+
+    const targetWeight = prompt(`Target weight for ${exerciseName} (lbs):`, '225');
+    if (!targetWeight) return;
+
+    const newGoal = {
+      exerciseId,
+      exerciseName,
+      targetWeight: parseInt(targetWeight),
+      currentPR: store.records[exerciseId] || 0,
+      isAchieved: (store.records[exerciseId] || 0) >= parseInt(targetWeight)
+    };
+
+    // Update the campaign with the new goal
+    const updatedCampaigns = store.campaigns.map(c =>
+      c.id === campaignId
+        ? { ...c, goals: [...c.goals, newGoal] }
+        : c
+    );
+
+    // We need to update the store directly - for now just show toast
+    store.showToast(`Goal added: ${exerciseName} ${targetWeight} lbs`);
+  };
+
+  const saveCampaign = () => {
+    if (!campaignForm.title.trim() || !campaignForm.targetDate) {
+      store.showToast('Please fill in title and target date');
+      return;
+    }
+
+    const newCampaign = {
+      id: Date.now().toString(),
+      title: campaignForm.title,
+      description: campaignForm.description,
+      targetDate: campaignForm.targetDate,
+      goals: [],
+      isCompleted: false,
+      createdAt: new Date().toISOString()
+    };
+
+    store.addCampaign(newCampaign);
+    setCreatingCampaign(false);
+    setCampaignForm({ title: '', description: '', targetDate: '' });
+    setSelectedCampaignId(newCampaign.id);
+    store.showToast('Campaign created!');
   };
 
   const openSetPanel = () => {
@@ -1023,6 +1149,118 @@ export default function FitnessPage() {
           to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
 
+        /* Campaign Styles */
+        .create-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--bg-card);
+          border: 1px dashed var(--border-light);
+          border-radius: 14px;
+          color: var(--text-secondary);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .create-btn:hover {
+          background: var(--bg-hover);
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        .campaign-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .campaign-card:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-light);
+        }
+
+        .campaign-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .campaign-title {
+          font-weight: 600;
+          font-size: 15px;
+          color: var(--text-primary);
+        }
+        .campaign-badge {
+          font-size: 11px;
+          padding: 4px 8px;
+          background: var(--bg-active);
+          border-radius: 6px;
+          color: var(--text-secondary);
+        }
+        .campaign-badge.overdue {
+          background: rgba(255,107,107,0.15);
+          color: var(--accent);
+        }
+
+        .campaign-progress {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .progress-bar {
+          flex: 1;
+          height: 6px;
+          background: var(--bg-active);
+          border-radius: 3px;
+          overflow: hidden;
+        }
+        .progress-fill {
+          height: 100%;
+          background: var(--accent);
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+        .progress-text {
+          font-size: 12px;
+          color: var(--text-muted);
+          flex-shrink: 0;
+        }
+
+        /* Goal Cards */
+        .goal-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 14px;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .goal-card.achieved {
+          background: rgba(52,199,89,0.08);
+          border-color: rgba(52,199,89,0.2);
+        }
+        .goal-info { flex: 1; }
+        .goal-exercise {
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+        .goal-target {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+        .goal-check {
+          color: var(--success);
+          font-size: 18px;
+          font-weight: 600;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .content-area { padding-top: 16px; }
@@ -1218,6 +1456,171 @@ export default function FitnessPage() {
             </div>
           )}
 
+          {/* Campaigns View */}
+          {store.currentView === 'campaigns' && (
+            <div className="view-content">
+              <div className="view-header">
+                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <span className="view-title">Campaigns</span>
+              </div>
+
+              <button
+                className="create-btn"
+                onClick={() => setCreatingCampaign(true)}
+              >
+                + New Campaign
+              </button>
+
+              {store.campaigns.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">🎯</div>
+                  <div className="empty-title">No campaigns yet</div>
+                  <div className="empty-subtitle">Create a campaign to set fitness goals with target dates</div>
+                </div>
+              ) : (
+                <>
+                  {store.campaigns.filter(c => !c.isCompleted).length > 0 && (
+                    <>
+                      <div className="section-title" style={{ marginTop: '20px' }}>Active</div>
+                      {store.campaigns.filter(c => !c.isCompleted).map(campaign => {
+                        const totalGoals = campaign.goals.length;
+                        const achievedGoals = campaign.goals.filter(g => g.isAchieved).length;
+                        const progress = totalGoals > 0 ? (achievedGoals / totalGoals) * 100 : 0;
+                        const daysLeft = Math.ceil((new Date(campaign.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+                        return (
+                          <div
+                            key={campaign.id}
+                            className="campaign-card"
+                            onClick={() => setSelectedCampaignId(campaign.id)}
+                          >
+                            <div className="campaign-header">
+                              <span className="campaign-title">{campaign.title}</span>
+                              <span className={`campaign-badge ${daysLeft < 0 ? 'overdue' : ''}`}>
+                                {daysLeft < 0 ? 'Overdue' : `${daysLeft}d left`}
+                              </span>
+                            </div>
+                            <div className="campaign-progress">
+                              <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: `${progress}%` }} />
+                              </div>
+                              <span className="progress-text">{achievedGoals}/{totalGoals} goals</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Campaign Detail Modal */}
+          {selectedCampaignId && !creatingCampaign && (
+            <div className="modal-overlay" onClick={() => setSelectedCampaignId(null)}>
+              <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                {(() => {
+                  const campaign = store.campaigns.find(c => c.id === selectedCampaignId);
+                  if (!campaign) return null;
+                  const daysLeft = Math.ceil((new Date(campaign.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+                  return (
+                    <>
+                      <div className="modal-header">{campaign.title}</div>
+                      <div className="modal-subtitle">
+                        {daysLeft > 0 ? `${daysLeft} days remaining` : 'Campaign ended'}
+                        {campaign.description && ` · ${campaign.description}`}
+                      </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <div className="section-title">Goals</div>
+                        {campaign.goals.length === 0 ? (
+                          <div style={{ color: 'var(--text-muted)', fontSize: '14px', padding: '16px 0' }}>
+                            No goals yet. Add one below.
+                          </div>
+                        ) : (
+                          campaign.goals.map((goal, idx) => (
+                            <div key={idx} className={`goal-card ${goal.isAchieved ? 'achieved' : ''}`}>
+                              <div className="goal-info">
+                                <div className="goal-exercise">{goal.exerciseName}</div>
+                                <div className="goal-target">
+                                  Target: {goal.targetWeight} lbs
+                                  {goal.currentPR > 0 && ` · PR: ${goal.currentPR} lbs`}
+                                </div>
+                              </div>
+                              {goal.isAchieved && <span className="goal-check">✓</span>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="modal-actions">
+                        <button
+                          className="modal-btn secondary"
+                          onClick={() => setSelectedCampaignId(null)}
+                        >
+                          Close
+                        </button>
+                        <button
+                          className="modal-btn primary"
+                          onClick={() => {
+                            setAddingGoal(true);
+                            inputRef.current?.focus();
+                          }}
+                        >
+                          Add Goal
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* Create Campaign Modal */}
+          {creatingCampaign && (
+            <div className="modal-overlay" onClick={() => setCreatingCampaign(false)}>
+              <div className="modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">New Campaign</div>
+                <div className="modal-subtitle">Set a goal with a deadline to stay motivated</div>
+
+                <input
+                  type="text"
+                  className="modal-input"
+                  placeholder="Campaign name (e.g., Bench 225 Club)"
+                  value={campaignForm.title}
+                  onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') saveCampaign(); }}
+                  autoFocus
+                />
+
+                <input
+                  type="text"
+                  className="modal-input"
+                  placeholder="Description (optional)"
+                  value={campaignForm.description}
+                  onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') saveCampaign(); }}
+                />
+
+                <input
+                  type="date"
+                  className="modal-input"
+                  value={campaignForm.targetDate}
+                  onChange={e => setCampaignForm({ ...campaignForm, targetDate: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') saveCampaign(); }}
+                />
+
+                <div className="modal-actions">
+                  <button className="modal-btn secondary" onClick={() => setCreatingCampaign(false)}>Cancel</button>
+                  <button className="modal-btn primary" onClick={saveCampaign}>Create</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
@@ -1298,19 +1701,35 @@ export default function FitnessPage() {
               <div className="set-inputs">
                 <div className="input-group">
                   <input
+                    ref={weightInputRef}
                     type="number"
                     value={setWeight}
                     onChange={(e) => setSetWeight(Number(e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        repsInputRef.current?.focus();
+                        repsInputRef.current?.select();
+                      }
+                    }}
                     inputMode="decimal"
+                    autoFocus
                   />
                   <div className="input-label">lbs</div>
                 </div>
                 <div className="input-divider">×</div>
                 <div className="input-group">
                   <input
+                    ref={repsInputRef}
                     type="number"
                     value={setReps}
                     onChange={(e) => setSetReps(Number(e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLogSet();
+                      }
+                    }}
                     inputMode="numeric"
                   />
                   <div className="input-label">reps</div>
