@@ -746,24 +746,8 @@ export default function TodayPage() {
 
     setCenterContent(
       <div className="nav-today-header">
-        <div className="nav-today-title">
-          <span className="nav-today-view">{viewInfo.title}</span>
-          <span className="nav-today-subtitle">{viewInfo.subtitle}</span>
-        </div>
-        <div className="nav-today-actions">
-          <button
-            className="nav-today-btn nav-today-stats"
-            onClick={() => setShowStatsModal(true)}
-          >
-            📊
-          </button>
-          <button
-            className="nav-today-btn nav-today-add"
-            onClick={() => openTaskModal()}
-          >
-            + ADD
-          </button>
-        </div>
+        <span className="nav-today-view">{viewInfo.title}</span>
+        <span className="nav-today-subtitle">{viewInfo.subtitle}</span>
       </div>
     );
   }, [mounted, viewInfo.title, viewInfo.subtitle, setCenterContent]);

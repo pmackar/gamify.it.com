@@ -377,6 +377,12 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
         }
 
+        .nav-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
         .nav-apps {
           display: flex;
           align-items: center;
@@ -815,17 +821,11 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         .nav-today-header {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 8px;
           padding: 4px 12px;
           background: rgba(0, 0, 0, 0.2);
           border-radius: 100px;
           border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .nav-today-title {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
         }
 
         .nav-today-view {
@@ -838,46 +838,8 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         .nav-today-subtitle {
           font-family: -apple-system, BlinkMacSystemFont, sans-serif;
           font-size: 9px;
-          color: #888;
+          color: #666;
           line-height: 1;
-        }
-
-        .nav-today-actions {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .nav-today-btn {
-          padding: 4px 10px;
-          border: none;
-          border-radius: 100px;
-          font-family: 'Press Start 2P', monospace;
-          font-size: 7px;
-          cursor: pointer;
-          transition: all 0.2s;
-          background: rgba(255, 255, 255, 0.08);
-          color: #888;
-        }
-
-        .nav-today-btn:hover {
-          background: rgba(255, 255, 255, 0.15);
-          color: #fff;
-        }
-
-        .nav-today-stats {
-          font-size: 12px;
-          padding: 4px 8px;
-        }
-
-        .nav-today-add {
-          background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
-          color: white;
-        }
-
-        .nav-today-add:hover {
-          transform: scale(1.05);
-          box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
         }
 
         /* Mobile responsive - same nav everywhere */
@@ -949,10 +911,18 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
             display: none;
           }
 
+          .nav-left {
+            gap: 4px;
+          }
+
+          .nav-logo {
+            font-size: 7px;
+          }
+
           /* Mobile today header */
           .nav-today-header {
             padding: 3px 8px;
-            gap: 8px;
+            gap: 6px;
           }
 
           .nav-today-view {
@@ -961,20 +931,6 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
           .nav-today-subtitle {
             display: none;
-          }
-
-          .nav-today-btn {
-            padding: 3px 8px;
-            font-size: 6px;
-          }
-
-          .nav-today-stats {
-            font-size: 10px;
-            padding: 3px 6px;
-          }
-
-          .nav-today-add {
-            padding: 4px 8px;
           }
 
           /* Mobile workout header */
@@ -1000,10 +956,27 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
       <nav className={`global-nav ${theme === 'light' ? 'theme-light' : ''}`}>
         <div className="global-nav-inner">
-          <Link href="/" className="nav-logo">GAMIFY.IT</Link>
+          {/* Left section: Logo + App icons */}
+          <div className="nav-left">
+            <Link href="/" className="nav-logo">G.IT</Link>
+            <div className="nav-apps">
+              <Link href="/fitness" className={`nav-app-link ${isFitness ? 'active' : ''}`} title="Iron Quest">
+                <DumbbellIcon active={isFitness} />
+              </Link>
+              <Link href="/today" className={`nav-app-link ${isToday ? 'active' : ''}`} title="Day Quest">
+                <ChecklistIcon active={isToday} />
+              </Link>
+              <Link href="/travel" className={`nav-app-link ${isTravel ? 'active' : ''}`} title="Explorer">
+                <PlaneIcon active={isTravel} />
+              </Link>
+              <div className="nav-app-link disabled" title="Coming Soon">
+                <LifeIcon />
+              </div>
+            </div>
+          </div>
 
-          {/* Center section: App menu items, context content, or app icons */}
-          {(appMenuItems || children || contextContent) ? (
+          {/* Center section: App menu items or context content */}
+          {(appMenuItems || children || contextContent) && (
             <div className="nav-center">
               {appMenuItems && (
                 <div className="nav-menu-items">
@@ -1021,21 +994,6 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
               )}
               {children}
               {contextContent}
-            </div>
-          ) : (
-            <div className="nav-apps">
-              <Link href="/fitness" className={`nav-app-link ${isFitness ? 'active' : ''}`} title="Iron Quest">
-                <DumbbellIcon active={isFitness} />
-              </Link>
-              <Link href="/today" className={`nav-app-link ${isToday ? 'active' : ''}`} title="Day Quest">
-                <ChecklistIcon active={isToday} />
-              </Link>
-              <Link href="/travel" className={`nav-app-link ${isTravel ? 'active' : ''}`} title="Explorer">
-                <PlaneIcon active={isTravel} />
-              </Link>
-              <div className="nav-app-link disabled" title="Coming Soon">
-                <LifeIcon />
-              </div>
             </div>
           )}
 

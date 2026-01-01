@@ -3,6 +3,7 @@ import "./globals.css";
 import { RetroNavBar } from "@/components/RetroNavBar";
 import { AchievementProvider } from "@/components/AchievementPopup";
 import { NavBarProvider } from "@/components/NavBarContext";
+import { XPProvider } from "@/components/XPContext";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 export const viewport: Viewport = {
@@ -63,10 +64,12 @@ export default function RootLayout({
       <body className="antialiased">
         <ServiceWorkerRegistration />
         <NavBarProvider>
-          <AchievementProvider>
-            <RetroNavBar />
-            {children}
-          </AchievementProvider>
+          <XPProvider>
+            <AchievementProvider>
+              <RetroNavBar />
+              {children}
+            </AchievementProvider>
+          </XPProvider>
         </NavBarProvider>
       </body>
     </html>
