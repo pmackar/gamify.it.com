@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import Link from 'next/link';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout } from '@/lib/fitness/types';
@@ -19,13 +18,11 @@ export default function FitnessPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Prevent SSR hydration issues
   useEffect(() => {
     setMounted(true);
     store.loadState();
   }, []);
 
-  // Workout timer
   useEffect(() => {
     if (store.currentWorkout && store.currentView === 'workout') {
       timerRef.current = setInterval(() => {
@@ -35,25 +32,19 @@ export default function FitnessPage() {
         }
       }, 1000);
     }
-
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [store.currentWorkout, store.currentView]);
 
-  // Get command suggestions based on current state and query
   const getSuggestions = useCallback((): CommandSuggestion[] => {
     const q = query.toLowerCase().trim();
     const results: CommandSuggestion[] = [];
 
-    // In workout mode
     if (store.currentWorkout && store.currentView === 'workout') {
       const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
-
-      // Parse set input (e.g., "135 x 8" or "135x8")
       const setMatch = query.match(/^(\d+\.?\d*)\s*[xX\*\-×\s]\s*(\d+)(?:\s*[@:]\s*(\d+\.?\d*))?$/);
+
       if (setMatch && currentEx) {
         const weight = parseFloat(setMatch[1]);
         const reps = parseInt(setMatch[2]);
@@ -66,15 +57,12 @@ export default function FitnessPage() {
           subtitle: `Log set for ${currentEx.name}`,
           icon: '💪',
           meta: `${currentEx.sets.length} sets`,
-          weight,
-          reps,
-          rpe
+          weight, reps, rpe
         });
         return results;
       }
 
       if (!q) {
-        // Default workout commands
         if (currentEx) {
           const lastSet = currentEx.sets[currentEx.sets.length - 1];
           const weight = lastSet?.weight || store.records[currentEx.id] || 135;
@@ -83,21 +71,18 @@ export default function FitnessPage() {
             type: 'log-set-hint',
             id: currentEx.id,
             title: `Type: ${weight} x ${reps}`,
-            subtitle: `Log set for ${currentEx.name} (or tap to edit)`,
+            subtitle: `Log set for ${currentEx.name}`,
             icon: '💪',
             meta: `${currentEx.sets.length} sets`
           });
         }
-
-        results.push({ type: 'add-exercise', id: 'add', title: 'Add Exercise', subtitle: 'Search and add an exercise', icon: '➕' });
-        results.push({ type: 'history', id: 'history', title: 'History', subtitle: 'View past workouts', icon: '📋' });
+        results.push({ type: 'add-exercise', id: 'add', title: 'Add Exercise', subtitle: 'Search and add', icon: '➕' });
+        results.push({ type: 'history', id: 'history', title: 'History', subtitle: 'Past workouts', icon: '📋' });
         results.push({ type: 'finish', id: 'finish', title: 'Finish Workout', subtitle: `${getTotalSets()} sets logged`, icon: '✅' });
-        results.push({ type: 'cancel-workout', id: 'cancel', title: 'Cancel Workout', subtitle: 'Discard and exit', icon: '✕' });
-
+        results.push({ type: 'cancel-workout', id: 'cancel', title: 'Cancel', subtitle: 'Discard workout', icon: '✕' });
         return results;
       }
 
-      // Search exercises to add
       const matchingExercises = [...EXERCISES, ...store.customExercises]
         .filter(ex => ex.name.toLowerCase().includes(q) || ex.id.toLowerCase().includes(q))
         .slice(0, 6);
@@ -113,7 +98,6 @@ export default function FitnessPage() {
         });
       }
 
-      // Offer to create new exercise if no matches
       if (matchingExercises.length === 0 && q.length > 1 && !/^\d/.test(query)) {
         results.push({
           type: 'new-exercise',
@@ -124,20 +108,17 @@ export default function FitnessPage() {
         });
       }
 
-      // Quick commands
       if ('done'.startsWith(q) || 'finish'.startsWith(q)) {
-        results.push({ type: 'finish', id: 'finish', title: 'Finish Workout', subtitle: `${getTotalSets()} sets logged`, icon: '✅' });
+        results.push({ type: 'finish', id: 'finish', title: 'Finish Workout', subtitle: `${getTotalSets()} sets`, icon: '✅' });
       }
       if ('cancel'.startsWith(q) || 'exit'.startsWith(q)) {
-        results.push({ type: 'cancel-workout', id: 'cancel', title: 'Cancel Workout', subtitle: 'Discard and exit', icon: '✕' });
+        results.push({ type: 'cancel-workout', id: 'cancel', title: 'Cancel Workout', subtitle: 'Discard', icon: '✕' });
       }
 
       return results.slice(0, 8);
     }
 
-    // Home mode
     if (!q) {
-      // Show resume if workout is active but minimized
       if (store.currentWorkout && store.currentView !== 'workout') {
         const totalSets = store.currentWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
         return [
@@ -148,49 +129,24 @@ export default function FitnessPage() {
       return DEFAULT_COMMANDS.map(cmd => ({ type: 'command', ...cmd }));
     }
 
-    // Search commands
-    if ('workout'.startsWith(q) || 'w'.startsWith(q) || 'start'.startsWith(q)) {
-      results.push({ type: 'command', ...DEFAULT_COMMANDS[0] });
-    }
-    if ('history'.startsWith(q) || 'h'.startsWith(q)) {
-      results.push({ type: 'command', ...DEFAULT_COMMANDS[1] });
-    }
-    if ('profile'.startsWith(q) || 'p'.startsWith(q)) {
-      results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
-    }
-    if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) {
-      results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
-    }
-    if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) {
-      results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
-    }
+    if ('workout'.startsWith(q) || 'start'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[0] });
+    if ('history'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[1] });
+    if ('profile'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
+    if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
+    if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
 
-    // Search templates
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
-        results.push({
-          type: 'template',
-          id: template.id,
-          title: template.name,
-          subtitle: `${template.exercises.length} exercises`,
-          icon: '📝'
-        });
+        results.push({ type: 'template', id: template.id, title: template.name, subtitle: `${template.exercises.length} exercises`, icon: '📝' });
       }
     }
 
-    // Search exercises
     const matchingExercises = EXERCISES
       .filter(ex => ex.name.toLowerCase().includes(q) || ex.id.toLowerCase().includes(q))
       .slice(0, 5);
 
     for (const ex of matchingExercises) {
-      results.push({
-        type: 'exercise',
-        id: ex.id,
-        title: ex.name,
-        subtitle: `Start workout with ${ex.muscle}`,
-        icon: '🏋️'
-      });
+      results.push({ type: 'exercise', id: ex.id, title: ex.name, subtitle: `Start with ${ex.muscle}`, icon: '🏋️' });
     }
 
     return results.slice(0, 8);
@@ -212,59 +168,23 @@ export default function FitnessPage() {
         else if (suggestion.id === 'campaigns') store.setView('campaigns');
         else if (suggestion.id === 'achievements') store.setView('achievements');
         break;
-
-      case 'template':
-        store.startWorkoutFromTemplate(suggestion.id);
-        break;
-
-      case 'exercise':
-        store.startWorkoutWithExercise(suggestion.id);
-        break;
-
+      case 'template': store.startWorkoutFromTemplate(suggestion.id); break;
+      case 'exercise': store.startWorkoutWithExercise(suggestion.id); break;
       case 'log-set-direct':
-        if (suggestion.weight && suggestion.reps) {
-          store.logSet(suggestion.weight, suggestion.reps, suggestion.rpe);
-        }
+        if (suggestion.weight && suggestion.reps) store.logSet(suggestion.weight, suggestion.reps, suggestion.rpe);
         break;
-
-      case 'log-set-hint':
-        openSetPanel();
-        return; // Don't clear input
-
-      case 'add-exercise-quick':
-        store.addExerciseToWorkout(suggestion.id);
-        break;
-
-      case 'new-exercise':
-        store.addCustomExercise(suggestion.id);
-        break;
-
+      case 'log-set-hint': openSetPanel(); return;
+      case 'add-exercise-quick': store.addExerciseToWorkout(suggestion.id); break;
+      case 'new-exercise': store.addCustomExercise(suggestion.id); break;
       case 'select-exercise':
         const idx = store.currentWorkout?.exercises.findIndex(e => e.id === suggestion.id);
-        if (idx !== undefined && idx >= 0) {
-          store.selectExercise(idx);
-        }
+        if (idx !== undefined && idx >= 0) store.selectExercise(idx);
         break;
-
-      case 'finish':
-        setShowSaveModal(true);
-        return;
-
-      case 'cancel-workout':
-        if (confirm('Discard this workout?')) {
-          store.cancelWorkout();
-        }
-        break;
-
-      case 'resume':
-        store.setView('workout');
-        break;
-
-      case 'history':
-        store.setView('history');
-        break;
+      case 'finish': setShowSaveModal(true); return;
+      case 'cancel-workout': if (confirm('Discard this workout?')) store.cancelWorkout(); break;
+      case 'resume': store.setView('workout'); break;
+      case 'history': store.setView('history'); break;
     }
-
     setQuery('');
     setSelectedSuggestion(0);
   };
@@ -273,7 +193,6 @@ export default function FitnessPage() {
     if (!store.currentWorkout) return;
     const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
     if (!currentEx) return;
-
     const lastSet = currentEx.sets[currentEx.sets.length - 1];
     setSetWeight(lastSet?.weight || store.records[currentEx.id] || 135);
     setSetReps(lastSet?.reps || 8);
@@ -286,240 +205,333 @@ export default function FitnessPage() {
   };
 
   const handleFinishWorkout = (saveTemplate: boolean) => {
-    if (saveTemplate && templateName.trim()) {
-      store.saveTemplate(templateName.trim());
-    }
+    if (saveTemplate && templateName.trim()) store.saveTemplate(templateName.trim());
     store.finishWorkout();
     setShowSaveModal(false);
     setTemplateName('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedSuggestion(prev => Math.min(prev + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedSuggestion(prev => Math.max(prev - 1, 0));
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      if (e.shiftKey) {
-        setSelectedSuggestion(prev => Math.max(prev - 1, 0));
-      } else {
-        setSelectedSuggestion(prev => Math.min(prev + 1, suggestions.length - 1));
-      }
-    } else if (e.key === 'Enter' && suggestions[selectedSuggestion]) {
-      e.preventDefault();
-      executeCommand(suggestions[selectedSuggestion]);
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedSuggestion(prev => Math.min(prev + 1, suggestions.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedSuggestion(prev => Math.max(prev - 1, 0)); }
+    else if (e.key === 'Tab') { e.preventDefault(); e.shiftKey ? setSelectedSuggestion(prev => Math.max(prev - 1, 0)) : setSelectedSuggestion(prev => Math.min(prev + 1, suggestions.length - 1)); }
+    else if (e.key === 'Enter' && suggestions[selectedSuggestion]) { e.preventDefault(); executeCommand(suggestions[selectedSuggestion]); }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-[#0a0a0f]" />;
-  }
+  if (!mounted) return <div className="min-h-screen" style={{ background: '#08080c' }} />;
 
   return (
     <>
       <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         .fitness-app {
-          --bg-primary: #0a0a0f;
-          --bg-secondary: #12121a;
-          --bg-tertiary: #1a1a25;
-          --bg-elevated: #22222f;
-          --text-primary: #ffffff;
-          --text-secondary: #a0a0b0;
-          --text-muted: #606070;
+          --bg-base: #08080c;
+          --bg-elevated: #0f0f14;
+          --bg-card: #151519;
+          --bg-hover: #1a1a20;
+          --bg-active: #222228;
+          --text-primary: #f5f5f7;
+          --text-secondary: #8e8e93;
+          --text-muted: #5c5c62;
           --accent: #ff6b6b;
-          --accent-dim: #e55a5a;
-          --success: #22c55e;
-          --warning: #f59e0b;
-          --border: #2a2a3a;
-          --border-light: #3a3a4a;
+          --accent-glow: rgba(255, 107, 107, 0.15);
+          --success: #34c759;
+          --gold: #ffd700;
+          --border: rgba(255,255,255,0.06);
+          --border-light: rgba(255,255,255,0.1);
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          -webkit-font-smoothing: antialiased;
         }
 
-        .fitness-app * { box-sizing: border-box; }
+        .fitness-app * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .status-bar {
+        /* Subtle background texture */
+        .fitness-app::before {
+          content: '';
           position: fixed;
-          top: 0; left: 0; right: 0;
+          inset: 0;
+          background: radial-gradient(ellipse at 50% 0%, rgba(255,107,107,0.03) 0%, transparent 50%);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        /* Floating Status Pill - Only shows during workout */
+        .workout-status {
+          position: fixed;
+          top: 76px;
+          left: 50%;
+          transform: translateX(-50%);
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          padding: 12px 20px;
-          padding-top: calc(12px + env(safe-area-inset-top, 0px));
-          background: var(--bg-secondary);
-          border-bottom: 1px solid var(--border);
-          z-index: 50;
+          gap: 16px;
+          background: rgba(15,15,20,0.9);
+          backdrop-filter: blur(20px);
+          border: 1px solid var(--border-light);
+          border-radius: 100px;
+          padding: 8px 20px;
+          z-index: 40;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.4);
         }
 
-        .level-badge {
-          background: var(--accent);
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-weight: 600;
-          font-size: 13px;
-          cursor: pointer;
-          transition: transform 0.15s;
-        }
-        .level-badge:hover { transform: scale(1.05); }
-
-        .workout-indicator {
+        .status-timer {
           display: flex;
           align-items: center;
           gap: 8px;
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 600;
+          color: var(--text-primary);
         }
 
-        .workout-dot {
-          width: 8px; height: 8px;
+        .status-dot {
+          width: 8px;
+          height: 8px;
           background: var(--success);
           border-radius: 50%;
           animation: pulse 2s infinite;
+          box-shadow: 0 0 8px var(--success);
         }
 
         @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(0.9); }
         }
 
-        .xp-display {
-          font-size: 14px;
+        .status-sets {
+          font-size: 13px;
           color: var(--text-secondary);
-          font-weight: 500;
         }
-        .xp-display span { color: var(--accent); font-weight: 600; }
 
-        .finish-btn {
-          padding: 6px 12px;
+        .status-finish {
+          padding: 6px 14px;
           background: var(--success);
           border: none;
-          border-radius: 8px;
+          border-radius: 100px;
           color: white;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
+          transition: all 0.2s;
+        }
+        .status-finish:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 20px rgba(52,199,89,0.4);
         }
 
+        /* Main Content */
         .content-area {
-          padding-top: calc(70px + env(safe-area-inset-top, 0px));
-          padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+          padding-top: 70px;
+          padding-bottom: 200px;
           min-height: 100vh;
-          overflow-y: auto;
+          position: relative;
+          z-index: 1;
         }
 
+        .content-area.has-workout {
+          padding-top: 130px;
+        }
+
+        /* Premium Command Bar */
         .command-bar {
           position: fixed;
-          bottom: 0; left: 0; right: 0;
-          padding: 12px 16px;
-          padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-          background: var(--bg-secondary);
-          border-top: 1px solid var(--border);
-          z-index: 40;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 0 16px 16px;
+          padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+          z-index: 50;
+        }
+
+        .command-bar-inner {
+          max-width: 600px;
+          margin: 0 auto;
+          background: rgba(15,15,20,0.92);
+          backdrop-filter: blur(24px);
+          border: 1px solid var(--border-light);
+          border-radius: 20px;
+          padding: 12px;
+          box-shadow: 0 -4px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02) inset;
         }
 
         .suggestions {
           margin-bottom: 8px;
-          max-height: 320px;
+          max-height: 280px;
           overflow-y: auto;
+          scrollbar-width: none;
         }
+        .suggestions::-webkit-scrollbar { display: none; }
 
         .suggestion {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px;
-          border-radius: 8px;
+          padding: 10px 12px;
+          border-radius: 12px;
           cursor: pointer;
-          transition: background 0.15s;
+          transition: all 0.15s ease;
         }
         .suggestion:hover, .suggestion.selected {
-          background: var(--bg-tertiary);
+          background: var(--bg-hover);
+        }
+        .suggestion.selected {
+          background: var(--accent-glow);
         }
 
         .suggestion-icon {
-          width: 40px; height: 40px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-elevated);
-          border-radius: 8px;
-          font-size: 18px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          font-size: 16px;
+          flex-shrink: 0;
         }
 
-        .suggestion-text { flex: 1; }
-        .suggestion-title { font-weight: 500; font-size: 14px; }
-        .suggestion-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-        .suggestion-meta { font-size: 12px; color: var(--text-secondary); }
+        .suggestion-text { flex: 1; min-width: 0; }
+        .suggestion-title {
+          font-weight: 500;
+          font-size: 14px;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .suggestion-subtitle {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-top: 1px;
+        }
+        .suggestion-meta {
+          font-size: 11px;
+          color: var(--text-secondary);
+          background: var(--bg-card);
+          padding: 4px 8px;
+          border-radius: 6px;
+          flex-shrink: 0;
+        }
 
         .command-input {
           width: 100%;
           padding: 14px 16px;
-          background: var(--bg-tertiary);
+          background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 12px;
+          border-radius: 14px;
           color: var(--text-primary);
-          font-size: 16px;
+          font-size: 15px;
+          font-weight: 500;
           outline: none;
+          transition: all 0.2s;
         }
-        .command-input:focus { border-color: var(--accent); }
-        .command-input::placeholder { color: var(--text-muted); }
+        .command-input:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .command-input::placeholder {
+          color: var(--text-muted);
+          font-weight: 400;
+        }
+
+        /* Exercise Pills */
+        .exercises-container {
+          padding: 16px;
+        }
 
         .exercise-pill {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
           padding: 16px;
-          background: var(--bg-tertiary);
+          background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 12px;
-          margin-bottom: 8px;
+          border-radius: 16px;
+          margin-bottom: 10px;
           cursor: pointer;
-          transition: all 0.15s;
+          transition: all 0.2s ease;
+        }
+        .exercise-pill:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-light);
         }
         .exercise-pill.active {
           border-color: var(--accent);
-          background: rgba(255, 107, 107, 0.1);
+          background: var(--accent-glow);
+          box-shadow: 0 0 24px var(--accent-glow);
         }
-        .exercise-pill:hover { background: var(--bg-elevated); }
 
-        .exercise-name { font-weight: 600; font-size: 15px; }
+        .exercise-number {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-active);
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          flex-shrink: 0;
+        }
+        .exercise-pill.active .exercise-number {
+          background: var(--accent);
+          color: white;
+        }
+
+        .exercise-info { flex: 1; min-width: 0; }
+        .exercise-name {
+          font-weight: 600;
+          font-size: 15px;
+          color: var(--text-primary);
+          margin-bottom: 6px;
+        }
         .exercise-sets {
           display: flex;
-          gap: 8px;
-          margin-top: 6px;
+          gap: 6px;
           flex-wrap: wrap;
         }
         .set-badge {
-          padding: 4px 8px;
-          background: var(--bg-elevated);
-          border-radius: 6px;
+          padding: 4px 10px;
+          background: var(--bg-active);
+          border-radius: 8px;
           font-size: 12px;
+          font-weight: 500;
           color: var(--text-secondary);
         }
-        .set-badge.pr { background: #ffd70033; color: #ffd700; }
+        .set-badge.pr {
+          background: rgba(255,215,0,0.15);
+          color: var(--gold);
+        }
+        .set-badge.empty {
+          color: var(--text-muted);
+          font-style: italic;
+        }
+
+        /* Set Panel */
+        .set-panel-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.6);
+          backdrop-filter: blur(4px);
+          z-index: 60;
+        }
 
         .set-panel {
           position: fixed;
-          bottom: 0; left: 0; right: 0;
-          background: var(--bg-secondary);
-          border-top: 1px solid var(--border);
-          padding: 20px;
-          padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-          z-index: 60;
-          animation: slideUp 0.2s ease-out;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: var(--bg-elevated);
+          border-top: 1px solid var(--border-light);
+          border-radius: 24px 24px 0 0;
+          padding: 24px 20px;
+          padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+          z-index: 61;
+          animation: slideUp 0.25s ease-out;
         }
         @keyframes slideUp {
           from { transform: translateY(100%); }
@@ -530,296 +542,521 @@ export default function FitnessPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
-        .set-panel-header span { font-weight: 600; font-size: 16px; }
+        .set-panel-title {
+          font-weight: 600;
+          font-size: 18px;
+          color: var(--text-primary);
+        }
         .close-btn {
-          width: 32px; height: 32px;
+          width: 32px;
+          height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-tertiary);
-          border: none;
-          border-radius: 8px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
           color: var(--text-secondary);
-          font-size: 20px;
+          font-size: 18px;
           cursor: pointer;
+          transition: all 0.15s;
+        }
+        .close-btn:hover {
+          background: var(--bg-hover);
+          color: var(--text-primary);
         }
 
         .set-inputs {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 16px;
-          margin-bottom: 20px;
+          gap: 20px;
+          margin-bottom: 24px;
         }
-        .input-col { text-align: center; }
-        .input-col input {
+        .input-group { text-align: center; }
+        .input-group input {
           width: 100px;
-          padding: 12px;
-          background: var(--bg-tertiary);
+          padding: 16px;
+          background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 8px;
+          border-radius: 14px;
           color: var(--text-primary);
-          font-size: 24px;
-          font-weight: 600;
+          font-size: 28px;
+          font-weight: 700;
           text-align: center;
           outline: none;
+          transition: all 0.2s;
         }
-        .input-col input:focus { border-color: var(--accent); }
-        .input-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-        .input-divider { font-size: 24px; color: var(--text-muted); }
+        .input-group input:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .input-label {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .input-divider {
+          font-size: 28px;
+          color: var(--text-muted);
+          font-weight: 300;
+        }
 
         .set-actions {
           display: flex;
-          gap: 12px;
+          gap: 10px;
         }
-        .stepper-btn {
+        .action-btn {
           flex: 1;
-          padding: 14px;
-          background: var(--bg-tertiary);
+          padding: 16px;
+          background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 8px;
+          border-radius: 14px;
           color: var(--text-primary);
           font-size: 16px;
           font-weight: 600;
           cursor: pointer;
+          transition: all 0.15s;
         }
-        .log-btn {
+        .action-btn:hover {
+          background: var(--bg-hover);
+        }
+        .action-btn.primary {
           flex: 2;
-          padding: 14px;
           background: var(--accent);
-          border: none;
-          border-radius: 8px;
+          border-color: var(--accent);
           color: white;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
+        }
+        .action-btn.primary:hover {
+          filter: brightness(1.1);
+          transform: translateY(-1px);
         }
 
+        /* Modal */
         .modal-overlay {
           position: fixed;
           inset: 0;
           background: rgba(0,0,0,0.8);
+          backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 100;
           padding: 20px;
         }
+
         .modal {
-          background: var(--bg-secondary);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 24px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-light);
+          border-radius: 24px;
+          padding: 28px;
           width: 100%;
-          max-width: 400px;
+          max-width: 380px;
+          box-shadow: 0 24px 80px rgba(0,0,0,0.6);
         }
-        .modal-header { font-weight: 600; font-size: 18px; margin-bottom: 16px; }
-        .modal-body { margin-bottom: 20px; }
-        .modal-body p { color: var(--text-secondary); font-size: 14px; margin-bottom: 12px; }
-        .modal-body input {
-          width: 100%;
-          padding: 12px;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border);
-          border-radius: 8px;
+
+        .modal-header {
+          font-weight: 700;
+          font-size: 20px;
           color: var(--text-primary);
-          font-size: 14px;
-          outline: none;
+          margin-bottom: 8px;
         }
+        .modal-subtitle {
+          color: var(--text-secondary);
+          font-size: 14px;
+          margin-bottom: 20px;
+          line-height: 1.5;
+        }
+        .modal-input {
+          width: 100%;
+          padding: 14px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 15px;
+          outline: none;
+          margin-bottom: 20px;
+          transition: all 0.2s;
+        }
+        .modal-input:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .modal-input::placeholder { color: var(--text-muted); }
+
         .modal-actions {
           display: flex;
-          gap: 12px;
+          gap: 10px;
         }
         .modal-btn {
           flex: 1;
-          padding: 12px;
-          border-radius: 8px;
+          padding: 14px;
+          border-radius: 12px;
           font-weight: 600;
+          font-size: 14px;
           cursor: pointer;
           border: none;
+          transition: all 0.15s;
         }
         .modal-btn.secondary {
-          background: var(--bg-tertiary);
+          background: var(--bg-card);
           color: var(--text-secondary);
+        }
+        .modal-btn.secondary:hover {
+          background: var(--bg-hover);
+          color: var(--text-primary);
         }
         .modal-btn.primary {
           background: var(--accent);
           color: white;
         }
-
-        .toast {
-          position: fixed;
-          bottom: 180px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--bg-elevated);
-          border: 1px solid var(--border);
-          padding: 12px 20px;
-          border-radius: 8px;
-          font-size: 14px;
-          z-index: 200;
-          animation: fadeIn 0.2s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .modal-btn.primary:hover {
+          filter: brightness(1.1);
         }
 
+        /* View Content */
         .view-content { padding: 16px; }
+
         .view-header {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
+          gap: 14px;
+          margin-bottom: 24px;
         }
         .back-btn {
-          width: 40px; height: 40px;
+          width: 40px;
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-tertiary);
-          border: none;
-          border-radius: 8px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
           color: var(--text-primary);
           font-size: 18px;
           cursor: pointer;
+          transition: all 0.15s;
         }
-        .view-title { font-size: 20px; font-weight: 600; }
+        .back-btn:hover {
+          background: var(--bg-hover);
+        }
+        .view-title {
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
 
-        .profile-card {
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 24px;
+        /* Profile Card */
+        .profile-hero {
+          background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+          border: 1px solid var(--border-light);
+          border-radius: 24px;
+          padding: 32px;
           text-align: center;
           margin-bottom: 20px;
+          position: relative;
+          overflow: hidden;
         }
-        .profile-level {
-          width: 80px; height: 80px;
-          background: var(--accent);
+        .profile-hero::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 200px;
+          height: 100px;
+          background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
+        .profile-level-ring {
+          width: 100px;
+          height: 100px;
+          background: linear-gradient(135deg, var(--accent) 0%, #ff8f8f 100%);
           border-radius: 50%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 16px;
+          margin: 0 auto 20px;
+          box-shadow: 0 8px 32px var(--accent-glow);
+          position: relative;
         }
-        .profile-level-label { font-size: 10px; opacity: 0.8; }
-        .profile-level-value { font-size: 28px; font-weight: 700; }
-        .profile-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-        .profile-xp { color: var(--text-secondary); font-size: 14px; }
+        .profile-level-label {
+          font-size: 10px;
+          font-weight: 600;
+          opacity: 0.9;
+          letter-spacing: 1px;
+        }
+        .profile-level-value {
+          font-size: 36px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        .profile-name {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 6px;
+        }
+        .profile-xp {
+          color: var(--text-secondary);
+          font-size: 14px;
+        }
+        .profile-xp span {
+          color: var(--accent);
+          font-weight: 600;
+        }
 
+        /* Stats Grid */
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          margin-bottom: 20px;
+          gap: 10px;
+          margin-bottom: 24px;
         }
         .stat-card {
-          background: var(--bg-tertiary);
+          background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 12px;
-          padding: 16px;
+          border-radius: 16px;
+          padding: 18px 12px;
           text-align: center;
         }
-        .stat-value { font-size: 24px; font-weight: 700; color: var(--accent); }
-        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .stat-value {
+          font-size: 26px;
+          font-weight: 700;
+          color: var(--accent);
+          line-height: 1;
+        }
+        .stat-label {
+          font-size: 10px;
+          color: var(--text-muted);
+          margin-top: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
 
-        .pr-section { margin-top: 24px; }
-        .pr-section h3 { font-size: 16px; margin-bottom: 12px; }
-        .pr-list {
+        /* PR Section */
+        .section-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .pr-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 8px;
         }
-        .pr-item {
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 12px;
-        }
-        .pr-exercise { font-size: 12px; color: var(--text-secondary); }
-        .pr-weight { font-size: 18px; font-weight: 700; color: #ffd700; }
-
-        .workout-list { }
-        .workout-card {
-          background: var(--bg-tertiary);
+        .pr-card {
+          background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: 12px;
+          padding: 14px;
+        }
+        .pr-exercise {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-bottom: 4px;
+        }
+        .pr-weight {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--gold);
+        }
+
+        /* Workout Cards */
+        .workout-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
           padding: 16px;
           margin-bottom: 8px;
           cursor: pointer;
-          transition: all 0.15s;
+          transition: all 0.2s;
         }
-        .workout-card:hover { background: var(--bg-elevated); }
-        .workout-date { font-size: 12px; color: var(--text-muted); }
-        .workout-summary { font-size: 14px; margin-top: 4px; }
-        .workout-xp { color: var(--accent); font-weight: 600; }
+        .workout-card:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-light);
+          transform: translateY(-1px);
+        }
+        .workout-date {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-bottom: 4px;
+        }
+        .workout-summary {
+          font-size: 14px;
+          color: var(--text-secondary);
+        }
+        .workout-xp {
+          color: var(--accent);
+          font-weight: 600;
+        }
 
-        .nav-link {
+        /* Achievement Cards */
+        .achievement-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 8px;
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          color: var(--text-secondary);
-          text-decoration: none;
-          font-size: 13px;
-          border-radius: 8px;
-          transition: all 0.15s;
+          gap: 14px;
+          transition: all 0.2s;
         }
-        .nav-link:hover { color: #ffd700; background: rgba(255,215,0,0.1); }
-
-        .empty-state {
-          text-align: center;
-          padding: 40px 20px;
+        .achievement-card.unlocked {
+          background: rgba(255,215,0,0.05);
+          border-color: rgba(255,215,0,0.2);
+        }
+        .achievement-card.locked {
+          opacity: 0.5;
+        }
+        .achievement-icon {
+          font-size: 32px;
+          flex-shrink: 0;
+        }
+        .achievement-info { flex: 1; }
+        .achievement-name {
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+        .achievement-desc {
+          font-size: 12px;
           color: var(--text-muted);
         }
-        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
-        .empty-state-text { font-size: 14px; }
+        .achievement-check {
+          color: var(--success);
+          font-size: 18px;
+        }
+
+        /* Empty State */
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+        }
+        .empty-icon {
+          font-size: 56px;
+          margin-bottom: 16px;
+          opacity: 0.8;
+        }
+        .empty-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+        .empty-subtitle {
+          font-size: 14px;
+          color: var(--text-muted);
+          max-width: 260px;
+          margin: 0 auto;
+          line-height: 1.5;
+        }
+
+        /* Home Hero */
+        .home-hero {
+          text-align: center;
+          padding: 48px 24px 32px;
+        }
+        .home-icon {
+          font-size: 64px;
+          margin-bottom: 20px;
+        }
+        .home-title {
+          font-size: 32px;
+          font-weight: 800;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+          background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .home-subtitle {
+          font-size: 15px;
+          color: var(--text-secondary);
+          margin-bottom: 32px;
+        }
+
+        .recent-section {
+          padding: 0 16px;
+        }
+        .recent-header {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 12px;
+        }
+
+        /* Toast */
+        .toast {
+          position: fixed;
+          bottom: 220px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--bg-card);
+          border: 1px solid var(--border-light);
+          padding: 12px 24px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+          z-index: 200;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          animation: toastIn 0.3s ease-out;
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .content-area { padding-top: 16px; }
+          .content-area.has-workout { padding-top: 80px; }
+          .workout-status { top: 16px; }
+        }
       `}</style>
 
-      <div className="fitness-app min-h-screen bg-[#0a0a0f] text-white">
-        {/* Status Bar */}
-        <header className="status-bar">
-          <div className="level-badge" onClick={() => store.setView('profile')}>
-            LVL {store.profile.level}
-          </div>
-
-          {store.currentWorkout && (
-            <div className="workout-indicator">
-              <span className="workout-dot" />
-              <span>{formatTime(store.workoutSeconds)}</span>
+      <div className="fitness-app min-h-screen text-white" style={{ background: '#08080c' }}>
+        {/* Floating Workout Status */}
+        {store.currentWorkout && store.currentView === 'workout' && (
+          <div className="workout-status">
+            <div className="status-timer">
+              <span className="status-dot" />
+              {formatTime(store.workoutSeconds)}
             </div>
-          )}
-
-          <Link href="/" className="nav-link">
-            ← gamify.it
-          </Link>
-
-          <div className="xp-display">
-            <span>{store.profile.xp.toLocaleString()}</span> XP
-          </div>
-
-          {store.currentWorkout && store.currentView === 'workout' && (
-            <button className="finish-btn" onClick={() => setShowSaveModal(true)}>
+            <span className="status-sets">{getTotalSets()} sets</span>
+            <button className="status-finish" onClick={() => setShowSaveModal(true)}>
               Finish
             </button>
-          )}
-        </header>
+          </div>
+        )}
 
-        {/* Content Area */}
-        <main className="content-area">
+        {/* Main Content */}
+        <main className={`content-area ${store.currentWorkout && store.currentView === 'workout' ? 'has-workout' : ''}`}>
+
           {/* Workout View */}
           {store.currentView === 'workout' && store.currentWorkout && (
-            <div className="view-content">
+            <div className="exercises-container">
               {store.currentWorkout.exercises.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">💪</div>
-                  <div className="empty-state-text">
-                    Search for an exercise below to get started
-                  </div>
+                  <div className="empty-icon">💪</div>
+                  <div className="empty-title">Ready to lift?</div>
+                  <div className="empty-subtitle">Search for an exercise below to start building your workout</div>
                 </div>
               ) : (
                 store.currentWorkout.exercises.map((exercise, idx) => (
@@ -828,11 +1065,12 @@ export default function FitnessPage() {
                     className={`exercise-pill ${idx === store.currentExerciseIndex ? 'active' : ''}`}
                     onClick={() => store.selectExercise(idx)}
                   >
-                    <div style={{ flex: 1 }}>
+                    <div className="exercise-number">{idx + 1}</div>
+                    <div className="exercise-info">
                       <div className="exercise-name">{exercise.name}</div>
                       <div className="exercise-sets">
                         {exercise.sets.length === 0 ? (
-                          <span className="set-badge">No sets yet</span>
+                          <span className="set-badge empty">No sets yet</span>
                         ) : (
                           exercise.sets.map((set, setIdx) => (
                             <span
@@ -859,47 +1097,45 @@ export default function FitnessPage() {
                 <span className="view-title">Profile</span>
               </div>
 
-              <div className="profile-card">
-                <div className="profile-level">
+              <div className="profile-hero">
+                <div className="profile-level-ring">
                   <span className="profile-level-label">LEVEL</span>
                   <span className="profile-level-value">{store.profile.level}</span>
                 </div>
                 <div className="profile-name">{store.profile.name}</div>
-                <div className="profile-xp">{store.profile.xp.toLocaleString()} XP</div>
+                <div className="profile-xp"><span>{store.profile.xp.toLocaleString()}</span> XP</div>
               </div>
 
               <div className="stats-grid">
                 <div className="stat-card">
                   <div className="stat-value">{store.profile.totalWorkouts}</div>
-                  <div className="stat-label">WORKOUTS</div>
+                  <div className="stat-label">Workouts</div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-value">{store.profile.totalSets}</div>
-                  <div className="stat-label">SETS</div>
+                  <div className="stat-label">Total Sets</div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-value">{Math.floor(store.profile.totalVolume / 1000)}K</div>
-                  <div className="stat-label">VOLUME (lbs)</div>
+                  <div className="stat-label">Volume</div>
                 </div>
               </div>
 
-              <div className="pr-section">
-                <h3>Personal Records</h3>
-                <div className="pr-list">
-                  {Object.entries(store.records)
-                    .filter(([id]) => EXERCISES.some(e => e.id === id))
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 8)
-                    .map(([id, weight]) => {
-                      const exercise = getExerciseById(id);
-                      return (
-                        <div key={id} className="pr-item">
-                          <div className="pr-exercise">{exercise?.name || id}</div>
-                          <div className="pr-weight">{weight} lbs</div>
-                        </div>
-                      );
-                    })}
-                </div>
+              <div className="section-title">Personal Records</div>
+              <div className="pr-grid">
+                {Object.entries(store.records)
+                  .filter(([id]) => EXERCISES.some(e => e.id === id))
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 8)
+                  .map(([id, weight]) => {
+                    const exercise = getExerciseById(id);
+                    return (
+                      <div key={id} className="pr-card">
+                        <div className="pr-exercise">{exercise?.name || id}</div>
+                        <div className="pr-weight">{weight} lbs</div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -912,28 +1148,27 @@ export default function FitnessPage() {
                 <span className="view-title">History</span>
               </div>
 
-              <div className="workout-list">
-                {store.workouts.length === 0 ? (
-                  <div className="empty-state">
-                    <div className="empty-state-icon">📋</div>
-                    <div className="empty-state-text">No workouts yet. Start your first workout!</div>
-                  </div>
-                ) : (
-                  store.workouts.slice(0, 20).map(workout => (
-                    <div
-                      key={workout.id}
-                      className="workout-card"
-                      onClick={() => store.showWorkoutDetail(workout.id)}
-                    >
-                      <div className="workout-date">{formatDate(workout.startTime)}</div>
-                      <div className="workout-summary">
-                        {workout.exercises.length} exercises • {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets
-                        <span className="workout-xp"> • +{workout.totalXP} XP</span>
-                      </div>
+              {store.workouts.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📋</div>
+                  <div className="empty-title">No workouts yet</div>
+                  <div className="empty-subtitle">Complete your first workout to see it here</div>
+                </div>
+              ) : (
+                store.workouts.slice(0, 20).map(workout => (
+                  <div
+                    key={workout.id}
+                    className="workout-card"
+                    onClick={() => store.showWorkoutDetail(workout.id)}
+                  >
+                    <div className="workout-date">{formatDate(workout.startTime)}</div>
+                    <div className="workout-summary">
+                      {workout.exercises.length} exercises · {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets
+                      <span className="workout-xp"> · +{workout.totalXP} XP</span>
                     </div>
-                  ))
-                )}
-              </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -944,11 +1179,8 @@ export default function FitnessPage() {
               records={store.records}
               onBack={() => store.setView('history')}
               onRepeat={(workout) => {
-                // Start workout with same exercises but no sets
                 store.startWorkout();
-                workout.exercises.forEach(ex => {
-                  store.addExerciseToWorkout(ex.id);
-                });
+                workout.exercises.forEach(ex => store.addExerciseToWorkout(ex.id));
               }}
             />
           )}
@@ -961,148 +1193,136 @@ export default function FitnessPage() {
                 <span className="view-title">Achievements</span>
               </div>
 
-              <div style={{ display: 'grid', gap: '8px' }}>
-                {Object.entries(MILESTONES).flatMap(([exerciseId, milestones]) =>
-                  milestones.map(milestone => {
-                    const key = `${exerciseId}_${milestone.weight}`;
-                    const unlocked = store.achievements.includes(key);
-                    const exercise = getExerciseById(exerciseId);
-                    return (
-                      <div
-                        key={key}
-                        style={{
-                          background: unlocked ? 'rgba(255,215,0,0.1)' : 'var(--bg-tertiary)',
-                          border: `1px solid ${unlocked ? '#ffd700' : 'var(--border)'}`,
-                          borderRadius: '12px',
-                          padding: '16px',
-                          opacity: unlocked ? 1 : 0.5
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '28px' }}>{milestone.icon}</span>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{milestone.name}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                              {exercise?.name} • {milestone.weight} lbs • +{milestone.xp} XP
-                            </div>
-                          </div>
-                          {unlocked && <span style={{ marginLeft: 'auto', color: '#22c55e' }}>✓</span>}
+              {Object.entries(MILESTONES).flatMap(([exerciseId, milestones]) =>
+                milestones.map(milestone => {
+                  const key = `${exerciseId}_${milestone.weight}`;
+                  const unlocked = store.achievements.includes(key);
+                  const exercise = getExerciseById(exerciseId);
+                  return (
+                    <div
+                      key={key}
+                      className={`achievement-card ${unlocked ? 'unlocked' : 'locked'}`}
+                    >
+                      <span className="achievement-icon">{milestone.icon}</span>
+                      <div className="achievement-info">
+                        <div className="achievement-name">{milestone.name}</div>
+                        <div className="achievement-desc">
+                          {exercise?.name} · {milestone.weight} lbs · +{milestone.xp} XP
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                      {unlocked && <span className="achievement-check">✓</span>}
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
 
-          {/* Home View (default) */}
+          {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
-            <div className="view-content">
-              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>💪</div>
-                <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>Iron Quest</h1>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-                  Level up your fitness journey
-                </p>
-
-                {store.workouts.length > 0 && (
-                  <div style={{ marginTop: '32px' }}>
-                    <h3 style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                      RECENT WORKOUTS
-                    </h3>
-                    {store.workouts.slice(0, 3).map(workout => (
-                      <div
-                        key={workout.id}
-                        className="workout-card"
-                        onClick={() => store.showWorkoutDetail(workout.id)}
-                      >
-                        <div className="workout-date">{formatDate(workout.startTime)}</div>
-                        <div className="workout-summary">
-                          {workout.exercises.map(e => e.name).slice(0, 3).join(', ')}
-                          {workout.exercises.length > 3 && ` +${workout.exercises.length - 3} more`}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            <>
+              <div className="home-hero">
+                <div className="home-icon">🏋️</div>
+                <h1 className="home-title">Iron Quest</h1>
+                <p className="home-subtitle">Level up your fitness journey</p>
               </div>
-            </div>
+
+              {store.workouts.length > 0 && (
+                <div className="recent-section">
+                  <div className="recent-header">Recent Workouts</div>
+                  {store.workouts.slice(0, 3).map(workout => (
+                    <div
+                      key={workout.id}
+                      className="workout-card"
+                      onClick={() => store.showWorkoutDetail(workout.id)}
+                    >
+                      <div className="workout-date">{formatDate(workout.startTime)}</div>
+                      <div className="workout-summary">
+                        {workout.exercises.map(e => e.name).slice(0, 3).join(', ')}
+                        {workout.exercises.length > 3 && ` +${workout.exercises.length - 3} more`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </main>
 
         {/* Command Bar */}
         <div className="command-bar">
-          <div className="suggestions">
-            {suggestions.map((suggestion, idx) => (
-              <div
-                key={suggestion.id + idx}
-                className={`suggestion ${idx === selectedSuggestion ? 'selected' : ''}`}
-                onClick={() => executeCommand(suggestion)}
-              >
-                <div className="suggestion-icon">{suggestion.icon}</div>
-                <div className="suggestion-text">
-                  <div className="suggestion-title">{suggestion.title}</div>
-                  <div className="suggestion-subtitle">{suggestion.subtitle}</div>
+          <div className="command-bar-inner">
+            <div className="suggestions">
+              {suggestions.map((suggestion, idx) => (
+                <div
+                  key={suggestion.id + idx}
+                  className={`suggestion ${idx === selectedSuggestion ? 'selected' : ''}`}
+                  onClick={() => executeCommand(suggestion)}
+                >
+                  <div className="suggestion-icon">{suggestion.icon}</div>
+                  <div className="suggestion-text">
+                    <div className="suggestion-title">{suggestion.title}</div>
+                    <div className="suggestion-subtitle">{suggestion.subtitle}</div>
+                  </div>
+                  {suggestion.meta && <div className="suggestion-meta">{suggestion.meta}</div>}
                 </div>
-                {suggestion.meta && <div className="suggestion-meta">{suggestion.meta}</div>}
-              </div>
-            ))}
+              ))}
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              className="command-input"
+              placeholder={
+                store.currentWorkout && store.currentView === 'workout'
+                  ? store.currentWorkout.exercises[store.currentExerciseIndex]
+                    ? `Log set: 135 x 8`
+                    : 'Search exercise...'
+                  : 'What would you like to do?'
+              }
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
+              onKeyDown={handleKeyDown}
+            />
           </div>
-          <input
-            ref={inputRef}
-            type="text"
-            className="command-input"
-            placeholder={
-              store.currentWorkout && store.currentView === 'workout'
-                ? store.currentWorkout.exercises[store.currentExerciseIndex]
-                  ? `${store.currentWorkout.exercises[store.currentExerciseIndex].name}: type weight x reps`
-                  : 'Add exercise...'
-                : 'What do you want to do?'
-            }
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedSuggestion(0);
-            }}
-            onKeyDown={handleKeyDown}
-          />
         </div>
 
         {/* Set Panel */}
         {showSetPanel && store.currentWorkout && (
-          <div className="set-panel">
-            <div className="set-panel-header">
-              <span>{store.currentWorkout.exercises[store.currentExerciseIndex]?.name}</span>
-              <button className="close-btn" onClick={() => setShowSetPanel(false)}>×</button>
-            </div>
-            <div className="set-inputs">
-              <div className="input-col">
-                <input
-                  type="number"
-                  value={setWeight}
-                  onChange={(e) => setSetWeight(Number(e.target.value))}
-                  inputMode="decimal"
-                />
-                <div className="input-label">lbs</div>
+          <>
+            <div className="set-panel-overlay" onClick={() => setShowSetPanel(false)} />
+            <div className="set-panel">
+              <div className="set-panel-header">
+                <span className="set-panel-title">{store.currentWorkout.exercises[store.currentExerciseIndex]?.name}</span>
+                <button className="close-btn" onClick={() => setShowSetPanel(false)}>×</button>
               </div>
-              <div className="input-divider">×</div>
-              <div className="input-col">
-                <input
-                  type="number"
-                  value={setReps}
-                  onChange={(e) => setSetReps(Number(e.target.value))}
-                  inputMode="numeric"
-                />
-                <div className="input-label">reps</div>
+              <div className="set-inputs">
+                <div className="input-group">
+                  <input
+                    type="number"
+                    value={setWeight}
+                    onChange={(e) => setSetWeight(Number(e.target.value))}
+                    inputMode="decimal"
+                  />
+                  <div className="input-label">lbs</div>
+                </div>
+                <div className="input-divider">×</div>
+                <div className="input-group">
+                  <input
+                    type="number"
+                    value={setReps}
+                    onChange={(e) => setSetReps(Number(e.target.value))}
+                    inputMode="numeric"
+                  />
+                  <div className="input-label">reps</div>
+                </div>
+              </div>
+              <div className="set-actions">
+                <button className="action-btn" onClick={() => setSetWeight(w => w - 5)}>−5</button>
+                <button className="action-btn primary" onClick={handleLogSet}>Log Set</button>
+                <button className="action-btn" onClick={() => setSetWeight(w => w + 5)}>+5</button>
               </div>
             </div>
-            <div className="set-actions">
-              <button className="stepper-btn" onClick={() => setSetWeight(w => w - 5)}>-5</button>
-              <button className="log-btn" onClick={handleLogSet}>Log Set</button>
-              <button className="stepper-btn" onClick={() => setSetWeight(w => w + 5)}>+5</button>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Save Template Modal */}
@@ -1110,43 +1330,31 @@ export default function FitnessPage() {
           <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">Save as Template?</div>
-              <div className="modal-body">
-                <p>Save this workout to quickly start it again later.</p>
-                <input
-                  type="text"
-                  placeholder="Template name (e.g., Push Day)"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleFinishWorkout(true);
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
+              <div className="modal-subtitle">Save this workout to quickly start it again later.</div>
+              <input
+                type="text"
+                className="modal-input"
+                placeholder="Template name (e.g., Push Day)"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleFinishWorkout(true); }}
+                autoFocus
+              />
               <div className="modal-actions">
-                <button className="modal-btn secondary" onClick={() => handleFinishWorkout(false)}>
-                  Skip
-                </button>
-                <button className="modal-btn primary" onClick={() => handleFinishWorkout(true)}>
-                  Save
-                </button>
+                <button className="modal-btn secondary" onClick={() => handleFinishWorkout(false)}>Skip</button>
+                <button className="modal-btn primary" onClick={() => handleFinishWorkout(true)}>Save</button>
               </div>
             </div>
           </div>
         )}
 
         {/* Toast */}
-        {store.toastMessage && (
-          <div className="toast">{store.toastMessage}</div>
-        )}
+        {store.toastMessage && <div className="toast">{store.toastMessage}</div>}
       </div>
     </>
   );
 }
 
-// Workout Detail Component
 function WorkoutDetailView({
   workout,
   records,
@@ -1160,20 +1368,8 @@ function WorkoutDetailView({
 }) {
   if (!workout) return null;
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return '--';
-    const mins = Math.floor(seconds / 60);
-    return `${mins} min`;
-  };
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const formatDuration = (seconds?: number) => seconds ? `${Math.floor(seconds / 60)} min` : '--';
 
   return (
     <div className="view-content">
@@ -1183,32 +1379,26 @@ function WorkoutDetailView({
       </div>
 
       <div style={{
-        background: 'var(--bg-tertiary)',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border)',
-        borderRadius: '12px',
-        padding: '16px',
+        borderRadius: '16px',
+        padding: '20px',
         marginBottom: '16px',
         display: 'flex',
         justifyContent: 'space-around',
         textAlign: 'center'
       }}>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>
-            +{workout.totalXP}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>XP EARNED</div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--accent)' }}>+{workout.totalXP}</div>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>XP Earned</div>
         </div>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 700 }}>
-            {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>SETS</div>
+          <div style={{ fontSize: '22px', fontWeight: 700 }}>{workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}</div>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Sets</div>
         </div>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 700 }}>
-            {formatDuration(workout.duration)}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>DURATION</div>
+          <div style={{ fontSize: '22px', fontWeight: 700 }}>{formatDuration(workout.duration)}</div>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Duration</div>
         </div>
       </div>
 
@@ -1216,24 +1406,25 @@ function WorkoutDetailView({
         <div
           key={exercise.id + idx}
           style={{
-            background: 'var(--bg-tertiary)',
+            background: 'var(--bg-card)',
             border: '1px solid var(--border)',
-            borderRadius: '12px',
+            borderRadius: '14px',
             padding: '16px',
             marginBottom: '8px'
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>{exercise.name}</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ fontWeight: 600, marginBottom: '10px', fontSize: '15px' }}>{exercise.name}</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {exercise.sets.map((set, setIdx) => (
               <span
                 key={setIdx}
                 style={{
-                  padding: '4px 8px',
-                  background: set.weight >= (records[exercise.id] || 0) ? 'rgba(255,215,0,0.2)' : 'var(--bg-elevated)',
-                  color: set.weight >= (records[exercise.id] || 0) ? '#ffd700' : 'var(--text-secondary)',
-                  borderRadius: '6px',
-                  fontSize: '12px'
+                  padding: '5px 10px',
+                  background: set.weight >= (records[exercise.id] || 0) ? 'rgba(255,215,0,0.15)' : 'var(--bg-active)',
+                  color: set.weight >= (records[exercise.id] || 0) ? 'var(--gold)' : 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 500
                 }}
               >
                 {set.weight}×{set.reps}
@@ -1247,15 +1438,16 @@ function WorkoutDetailView({
         onClick={() => onRepeat(workout)}
         style={{
           width: '100%',
-          padding: '14px',
+          padding: '16px',
           background: 'var(--accent)',
           border: 'none',
-          borderRadius: '12px',
+          borderRadius: '14px',
           color: 'white',
           fontWeight: 600,
-          fontSize: '14px',
+          fontSize: '15px',
           cursor: 'pointer',
-          marginTop: '16px'
+          marginTop: '16px',
+          transition: 'all 0.2s'
         }}
       >
         Repeat This Workout
