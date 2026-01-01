@@ -1316,8 +1316,8 @@ export default function TodayPage() {
           left: 260px;
           right: 0;
           z-index: 100;
-          background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 40%);
-          padding: 40px 24px 24px;
+          background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 50%, var(--bg-primary) 100%);
+          padding: 60px 24px 24px;
           pointer-events: none;
         }
 
@@ -1334,6 +1334,10 @@ export default function TodayPage() {
           align-items: center;
           gap: 12px;
           pointer-events: auto;
+          background: var(--bg-secondary);
+          padding: 12px 16px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
         }
 
         .floating-quick-add-icon {
@@ -1344,17 +1348,11 @@ export default function TodayPage() {
         .floating-quick-add-input {
           flex: 1;
           border: none;
-          border-bottom: 2px solid var(--border);
           background: transparent;
           font-size: 14px;
           color: var(--text-primary);
           outline: none;
-          padding: 8px 0;
-          transition: border-color 0.15s ease;
-        }
-
-        .floating-quick-add-input:focus {
-          border-color: var(--accent);
+          padding: 4px 0;
         }
 
         .floating-quick-add-input::placeholder {
