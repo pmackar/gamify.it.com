@@ -62,9 +62,10 @@ export interface AppMenuItem {
 export interface RetroNavBarProps {
   appMenuItems?: AppMenuItem[];
   children?: React.ReactNode;
+  theme?: 'dark' | 'light';
 }
 
-export function RetroNavBar({ appMenuItems, children }: RetroNavBarProps = {}) {
+export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroNavBarProps = {}) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -74,6 +75,32 @@ export function RetroNavBar({ appMenuItems, children }: RetroNavBarProps = {}) {
   const [email, setEmail] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [detectedTheme, setDetectedTheme] = useState<'dark' | 'light'>('dark');
+
+  // Auto-detect theme from document data-theme attribute
+  useEffect(() => {
+    const updateTheme = () => {
+      const docTheme = document.documentElement.getAttribute('data-theme');
+      setDetectedTheme(docTheme === 'light' ? 'light' : 'dark');
+    };
+
+    updateTheme();
+
+    // Watch for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-theme') {
+          updateTheme();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  // Use prop if provided, otherwise use detected theme
+  const theme = themeProp ?? detectedTheme;
 
   const isFitness = pathname.startsWith('/fitness');
   const isToday = pathname.startsWith('/today');
@@ -195,6 +222,159 @@ export function RetroNavBar({ appMenuItems, children }: RetroNavBarProps = {}) {
             0 0 0 1px rgba(0, 0, 0, 0.2),
             inset 0 1px 0 rgba(255, 255, 255, 0.04);
           pointer-events: auto;
+        }
+
+        /* Light theme */
+        .global-nav.theme-light .global-nav-inner {
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow:
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            0 0 0 1px rgba(0, 0, 0, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .global-nav.theme-light .nav-logo {
+          background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          text-shadow: none;
+        }
+
+        .global-nav.theme-light .nav-app-link:hover {
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        .global-nav.theme-light .nav-app-link.active {
+          background: rgba(99, 102, 241, 0.1);
+        }
+
+        .global-nav.theme-light .nav-app-link.active::after {
+          background: #6366f1;
+          box-shadow: 0 0 6px 1px rgba(99, 102, 241, 0.6);
+        }
+
+        .global-nav.theme-light .nav-menu-link {
+          color: #6b7280;
+        }
+
+        .global-nav.theme-light .nav-menu-link:hover {
+          color: #111827;
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        .global-nav.theme-light .nav-menu-link.active {
+          color: #6366f1;
+          background: rgba(99, 102, 241, 0.1);
+        }
+
+        .global-nav.theme-light .nav-login-btn {
+          background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+        }
+
+        .global-nav.theme-light .nav-avatar {
+          border: 2px solid rgba(99, 102, 241, 0.5);
+        }
+
+        .global-nav.theme-light .nav-avatar:hover {
+          border-color: #6366f1;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .global-nav.theme-light .nav-avatar-placeholder {
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+        }
+
+        .global-nav.theme-light .nav-avatar-placeholder:hover {
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .global-nav.theme-light .nav-level-badge {
+          background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+          box-shadow: 0 2px 0 #3730a3;
+        }
+
+        .global-nav.theme-light .nav-xp-bar {
+          background: rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .global-nav.theme-light .nav-xp-fill {
+          background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+          box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+        }
+
+        .global-nav.theme-light .nav-dropdown {
+          background: rgba(255, 255, 255, 0.98);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .global-nav.theme-light .nav-dropdown-email {
+          color: #6b7280;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .global-nav.theme-light .nav-dropdown-item {
+          color: #374151;
+        }
+
+        .global-nav.theme-light .nav-dropdown-item:hover {
+          background: rgba(0, 0, 0, 0.05);
+          color: #111827;
+        }
+
+        .global-nav.theme-light .nav-dropdown-item.danger {
+          color: #dc2626;
+        }
+
+        .global-nav.theme-light .nav-dropdown-item.danger:hover {
+          background: rgba(220, 38, 38, 0.1);
+        }
+
+        .global-nav.theme-light .nav-login-dropdown {
+          background: rgba(255, 255, 255, 0.98);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .global-nav.theme-light .nav-login-title {
+          color: #6b7280;
+        }
+
+        .global-nav.theme-light .nav-divider {
+          color: #9ca3af;
+        }
+
+        .global-nav.theme-light .nav-divider::before,
+        .global-nav.theme-light .nav-divider::after {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .global-nav.theme-light .nav-input {
+          background: rgba(0, 0, 0, 0.03);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          color: #111827;
+        }
+
+        .global-nav.theme-light .nav-input:focus {
+          border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .global-nav.theme-light .nav-input::placeholder {
+          color: #9ca3af;
+        }
+
+        .global-nav.theme-light .nav-submit-btn {
+          background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+        }
+
+        .global-nav.theme-light .nav-loading {
+          background: #6366f1;
         }
 
         .nav-logo {
@@ -658,7 +838,7 @@ export function RetroNavBar({ appMenuItems, children }: RetroNavBarProps = {}) {
         }
       `}</style>
 
-      <nav className="global-nav">
+      <nav className={`global-nav ${theme === 'light' ? 'theme-light' : ''}`}>
         <div className="global-nav-inner">
           <Link href="/" className="nav-logo">GAMIFY.IT</Link>
 
