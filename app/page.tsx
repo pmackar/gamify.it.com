@@ -323,13 +323,14 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     setLoading(true);
     setError('');
     const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.toLowerCase().trim(),
+      token: otp.trim(),
       type: 'email'
     });
+    console.log('verifyOtp response:', { data, error });
     if (error) {
-      setError('Invalid code. Please try again.');
+      setError(`${error.message}`);
       setOtp('');
     }
     setLoading(false);
