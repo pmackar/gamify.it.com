@@ -811,6 +811,75 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           box-shadow: 0 0 12px rgba(52, 199, 89, 0.4);
         }
 
+        /* Today app header in navbar */
+        .nav-today-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 4px 12px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 100px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-today-title {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .nav-today-view {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 9px;
+          color: #fff;
+          line-height: 1;
+        }
+
+        .nav-today-subtitle {
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 9px;
+          color: #888;
+          line-height: 1;
+        }
+
+        .nav-today-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .nav-today-btn {
+          padding: 4px 10px;
+          border: none;
+          border-radius: 100px;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 7px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: rgba(255, 255, 255, 0.08);
+          color: #888;
+        }
+
+        .nav-today-btn:hover {
+          background: rgba(255, 255, 255, 0.15);
+          color: #fff;
+        }
+
+        .nav-today-stats {
+          font-size: 12px;
+          padding: 4px 8px;
+        }
+
+        .nav-today-add {
+          background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+        }
+
+        .nav-today-add:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+
         /* Mobile responsive - same nav everywhere */
         @media (max-width: 768px) {
           .global-nav {
@@ -872,7 +941,59 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           }
 
           .nav-center {
+            flex: 1;
+          }
+
+          /* Hide menu items on mobile but keep workout/today headers */
+          .nav-menu-items {
             display: none;
+          }
+
+          /* Mobile today header */
+          .nav-today-header {
+            padding: 3px 8px;
+            gap: 8px;
+          }
+
+          .nav-today-view {
+            font-size: 7px;
+          }
+
+          .nav-today-subtitle {
+            display: none;
+          }
+
+          .nav-today-btn {
+            padding: 3px 8px;
+            font-size: 6px;
+          }
+
+          .nav-today-stats {
+            font-size: 10px;
+            padding: 3px 6px;
+          }
+
+          .nav-today-add {
+            padding: 4px 8px;
+          }
+
+          /* Mobile workout header */
+          .nav-workout-status {
+            padding: 3px 8px;
+            gap: 8px;
+          }
+
+          .nav-workout-timer {
+            font-size: 7px;
+          }
+
+          .nav-workout-sets {
+            font-size: 6px;
+          }
+
+          .nav-workout-finish {
+            font-size: 5px;
+            padding: 3px 8px;
           }
         }
       `}</style>

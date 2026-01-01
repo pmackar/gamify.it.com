@@ -17,7 +17,7 @@ import { useNavBar } from '@/components/NavBarContext';
 export default function TodayPage() {
   const store = useTodayStore();
   const [mounted, setMounted] = useState(false);
-  const { setTheme: setNavBarTheme } = useNavBar();
+  const { setTheme: setNavBarTheme, setCenterContent } = useNavBar();
 
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -740,6 +740,39 @@ export default function TodayPage() {
     (t) => !t.is_completed && t.due_date && new Date(t.due_date) <= todayDate
   ).length;
 
+  // Update navbar content with view info and actions
+  useEffect(() => {
+    if (!mounted) return;
+
+    setCenterContent(
+      <div className="nav-today-header">
+        <div className="nav-today-title">
+          <span className="nav-today-view">{viewInfo.title}</span>
+          <span className="nav-today-subtitle">{viewInfo.subtitle}</span>
+        </div>
+        <div className="nav-today-actions">
+          <button
+            className="nav-today-btn nav-today-stats"
+            onClick={() => setShowStatsModal(true)}
+          >
+            📊
+          </button>
+          <button
+            className="nav-today-btn nav-today-add"
+            onClick={() => openTaskModal()}
+          >
+            + ADD
+          </button>
+        </div>
+      </div>
+    );
+  }, [mounted, viewInfo.title, viewInfo.subtitle, setCenterContent]);
+
+  // Clean up navbar content on unmount
+  useEffect(() => {
+    return () => setCenterContent(null);
+  }, [setCenterContent]);
+
   if (!mounted) {
     return (
       <div className="today-loading">
@@ -1168,29 +1201,6 @@ export default function TodayPage() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-        }
-
-        .main-header {
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .header-title {
-          font-size: 24px;
-          font-weight: 700;
-        }
-
-        .header-subtitle {
-          font-size: 14px;
-          color: var(--text-tertiary);
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 8px;
         }
 
         .btn {
@@ -2121,42 +2131,6 @@ export default function TodayPage() {
             padding-bottom: 90px;
           }
 
-          /* Header - Clean and minimal */
-          .main-header {
-            padding: 16px 16px;
-            position: sticky;
-            top: 0;
-            background: var(--bg-primary);
-            z-index: 50;
-            border-bottom: 1px solid var(--border);
-          }
-
-          .header-title {
-            font-size: 20px;
-          }
-
-          .header-subtitle {
-            font-size: 12px;
-            margin-top: 2px;
-          }
-
-          .header-actions {
-            gap: 6px;
-          }
-
-          .header-actions .btn {
-            padding: 8px 12px;
-            font-size: 12px;
-          }
-
-          .header-actions .btn-ghost {
-            display: none;
-          }
-
-          .header-actions .btn-primary {
-            display: none;
-          }
-
           /* Task list - space for nav + quick add */
           .task-list {
             padding: 12px 16px calc(120px + env(safe-area-inset-bottom, 0));
@@ -2514,21 +2488,6 @@ export default function TodayPage() {
 
         {/* Main Content */}
         <main className="today-main">
-          <header className="main-header">
-            <div>
-              <h1 className="header-title">{viewInfo.title}</h1>
-              <p className="header-subtitle">{viewInfo.subtitle}</p>
-            </div>
-            <div className="header-actions">
-              <button className="btn btn-ghost" onClick={() => setShowStatsModal(true)}>
-                📊 Stats
-              </button>
-              <button className="btn btn-primary" onClick={() => openTaskModal()}>
-                + Add Task
-              </button>
-            </div>
-          </header>
-
           <div className="task-list">
             {filteredTasks.length === 0 ? (
               <div className="empty-state">
