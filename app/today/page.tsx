@@ -1512,6 +1512,25 @@ export default function TodayPage() {
           color: white;
         }
 
+        .autocomplete-item.create-new {
+          border-top: 1px solid var(--border);
+          color: var(--accent);
+          font-weight: 500;
+        }
+
+        .autocomplete-item.create-new .autocomplete-icon {
+          color: var(--accent);
+        }
+
+        .autocomplete-item.create-new.selected {
+          background: var(--accent);
+          color: white;
+        }
+
+        .autocomplete-item.create-new.selected .autocomplete-icon {
+          color: white;
+        }
+
         .autocomplete-icon {
           font-size: 16px;
           width: 24px;
@@ -2582,12 +2601,18 @@ export default function TodayPage() {
               {suggestions.map((suggestion, index) => (
                 <div
                   key={`${suggestion.type}-${suggestion.value}`}
-                  className={`autocomplete-item ${index === suggestionIndex ? 'selected' : ''}`}
+                  className={`autocomplete-item ${index === suggestionIndex ? 'selected' : ''} ${suggestion.type.startsWith('create-') ? 'create-new' : ''}`}
                   onClick={() => selectSuggestion(suggestion)}
                 >
                   <span className="autocomplete-icon">{suggestion.icon}</span>
                   <span className="autocomplete-label">{suggestion.label}</span>
-                  <span className="autocomplete-value">{suggestion.type === 'project' ? '@' : suggestion.type === 'category' ? '#' : suggestion.type === 'priority' ? '!' : suggestion.type === 'difficulty' ? '~' : '^'}{suggestion.value}</span>
+                  <span className="autocomplete-value">
+                    {(suggestion.type === 'project' || suggestion.type === 'create-project') ? '@' :
+                     (suggestion.type === 'category' || suggestion.type === 'create-category') ? '#' :
+                     suggestion.type === 'priority' ? '!' :
+                     suggestion.type === 'difficulty' ? '~' : '^'}
+                    {suggestion.type.startsWith('create-') ? '' : suggestion.value}
+                  </span>
                 </div>
               ))}
             </div>
