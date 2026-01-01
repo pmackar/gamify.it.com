@@ -293,15 +293,47 @@ export default function TodayPage() {
 
     if (tokenChar === '@') {
       // Project suggestions
-      newSuggestions = store.projects
+      const matchingProjects = store.projects
         .filter(p => p.name.toLowerCase().includes(query))
         .map(p => ({ type: 'project', value: p.name.replace(/\s+/g, '-'), label: p.name, icon: '📁' }));
+
+      // Check if there's an exact match
+      const exactMatch = store.projects.some(p => p.name.toLowerCase() === query.toLowerCase());
+
+      // Add "Create new" option if query has content and no exact match
+      if (query.length > 0 && !exactMatch) {
+        const createName = query.charAt(0).toUpperCase() + query.slice(1);
+        matchingProjects.push({
+          type: 'create-project',
+          value: createName.replace(/\s+/g, '-'),
+          label: `+ Create "${createName}"`,
+          icon: '➕'
+        });
+      }
+
+      newSuggestions = matchingProjects;
       setActiveToken({ type: 'project', start: tokenStart, query });
     } else if (tokenChar === '#') {
       // Category suggestions
-      newSuggestions = store.categories
+      const matchingCategories = store.categories
         .filter(c => c.name.toLowerCase().includes(query))
         .map(c => ({ type: 'category', value: c.name.replace(/\s+/g, '-'), label: c.name, icon: '🏷️' }));
+
+      // Check if there's an exact match
+      const exactMatch = store.categories.some(c => c.name.toLowerCase() === query.toLowerCase());
+
+      // Add "Create new" option if query has content and no exact match
+      if (query.length > 0 && !exactMatch) {
+        const createName = query.charAt(0).toUpperCase() + query.slice(1);
+        matchingCategories.push({
+          type: 'create-category',
+          value: createName.replace(/\s+/g, '-'),
+          label: `+ Create "${createName}"`,
+          icon: '➕'
+        });
+      }
+
+      newSuggestions = matchingCategories;
       setActiveToken({ type: 'category', start: tokenStart, query });
     } else if (tokenChar === '!') {
       // Priority suggestions
@@ -350,6 +382,15 @@ export default function TodayPage() {
     const value = quickAddValue;
     const tokenChar = value[activeToken.start];
 
+    // Handle creating new project/category
+    if (suggestion.type === 'create-project') {
+      const projectName = suggestion.value.replace(/-/g, ' ');
+      store.addProject({ name: projectName, description: '' });
+    } else if (suggestion.type === 'create-category') {
+      const categoryName = suggestion.value.replace(/-/g, ' ');
+      store.addCategory({ name: categoryName, color: '#6366f1' });
+    }
+
     // Replace the token with the selected value
     const before = value.slice(0, activeToken.start);
     const after = value.slice(input.selectionStart || value.length);
@@ -365,7 +406,7 @@ export default function TodayPage() {
       input.setSelectionRange(newPos, newPos);
       input.focus();
     }, 0);
-  }, [activeToken, quickAddValue]);
+  }, [activeToken, quickAddValue, store]);
 
   const openTaskModal = (task?: Task) => {
     if (task) {
