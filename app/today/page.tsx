@@ -1376,29 +1376,30 @@ export default function TodayPage() {
           gap: 12px;
           width: 100%;
           max-width: 600px;
-          padding: 12px 16px;
+          padding: 14px 18px;
           background: var(--bg-primary);
-          border: 2px solid var(--bg-tertiary);
-          border-radius: 14px;
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
           pointer-events: auto;
           transition: all 0.15s ease;
         }
 
         .quick-add-wrapper:focus-within {
           border-color: var(--accent);
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 0 4px rgba(249, 115, 22, 0.15);
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 3px rgba(249, 115, 22, 0.1);
         }
 
         [data-theme="dark"] .quick-add-wrapper,
         [data-theme="terminal"] .quick-add-wrapper {
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+          background: var(--bg-secondary);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         }
 
         .quick-add-icon {
           color: var(--accent);
           font-size: 16px;
-          opacity: 0.8;
+          opacity: 0.6;
         }
 
         .quick-add-input {
@@ -1408,6 +1409,7 @@ export default function TodayPage() {
           font-size: 14px;
           color: var(--text-primary);
           outline: none;
+          caret-color: var(--accent);
         }
 
         .quick-add-input::placeholder {
@@ -1944,6 +1946,7 @@ export default function TodayPage() {
         }
 
         .mobile-panel {
+          display: none;
           position: fixed;
           bottom: 60px;
           left: 0;
@@ -1958,8 +1961,11 @@ export default function TodayPage() {
           z-index: 201;
         }
 
-        .mobile-panel.active {
-          transform: translateY(0);
+        @media (max-width: 768px) {
+          .mobile-panel.active {
+            display: block;
+            transform: translateY(0);
+          }
         }
 
         .mobile-panel-header {
