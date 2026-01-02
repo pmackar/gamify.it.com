@@ -1638,6 +1638,16 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
               </div>
             )}
 
+            {/* Fitness app quick actions */}
+            {isFitness && !quickActions && (
+              <div className="nav-quick-actions">
+                <Link href="/fitness/coach" className="nav-quick-action">
+                  <span className="nav-quick-action-icon">👥</span>
+                  <span className="nav-quick-action-label">COACH</span>
+                </Link>
+              </div>
+            )}
+
             {/* App-specific content from context */}
             {contextContent && (
               <div className="nav-app-content">
