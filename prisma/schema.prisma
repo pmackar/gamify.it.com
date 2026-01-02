@@ -44,6 +44,17 @@ model profiles {
   travel_quests        travel_quests[]
   travel_user_location_data travel_user_location_data[]
 
+  // Quest item attribution
+  quest_items_added     travel_quest_items[] @relation("QuestItemAddedBy")
+  quest_items_completed travel_quest_items[] @relation("QuestItemCompletedBy")
+
+  // Social relations
+  friendships_sent     friendships[] @relation("FriendshipRequester")
+  friendships_received friendships[] @relation("FriendshipAddressee")
+  party_memberships    quest_party_members[]
+  activity_feed_owned  activity_feed[] @relation("ActivityFeedOwner")
+  activity_feed_actor  activity_feed[] @relation("ActivityFeedActor")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
@@ -379,6 +390,7 @@ model travel_quests {
   user                   profiles              @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   items                  travel_quest_items[]
+  party                  quest_parties?
 
   created_at             DateTime              @default(now()) @db.Timestamptz(6)
   updated_at             DateTime              @default(now()) @db.Timestamptz(6)
@@ -402,7 +414,111 @@ model travel_quest_items {
   location_id  String           @db.Uuid
   location     travel_locations @relation(fields: [location_id], references: [id], onDelete: Cascade)
 
+  // Party attribution
+  added_by_id     String?       @db.Uuid
+  added_by        profiles?     @relation("QuestItemAddedBy", fields: [added_by_id], references: [id], onDelete: SetNull)
+  completed_by_id String?       @db.Uuid
+  completed_by    profiles?     @relation("QuestItemCompletedBy", fields: [completed_by_id], references: [id], onDelete: SetNull)
+
   @@unique([quest_id, location_id])
   @@index([quest_id])
   @@index([location_id])
+}
+
+// ============================================
+// SOCIAL SYSTEM TABLES (Platform-wide)
+// ============================================
+
+enum friendship_status {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+/// Platform-wide friendship relationships (bidirectional)
+model friendships {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id String            @db.Uuid
+  requester    profiles          @relation("FriendshipRequester", fields: [requester_id], references: [id], onDelete: Cascade)
+  addressee_id String            @db.Uuid
+  addressee    profiles          @relation("FriendshipAddressee", fields: [addressee_id], references: [id], onDelete: Cascade)
+  status       friendship_status @default(PENDING)
+  created_at   DateTime          @default(now()) @db.Timestamptz(6)
+  accepted_at  DateTime?         @db.Timestamptz(6)
+
+  @@unique([requester_id, addressee_id])
+  @@index([requester_id])
+  @@index([addressee_id])
+  @@index([status])
+}
+
+enum party_member_role {
+  OWNER
+  MEMBER
+}
+
+enum party_invite_status {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+/// Party for collaborative quest editing (1:1 with quest)
+model quest_parties {
+  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quest_id   String                @unique @db.Uuid
+  quest      travel_quests         @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  created_at DateTime              @default(now()) @db.Timestamptz(6)
+
+  members    quest_party_members[]
+
+  @@index([quest_id])
+}
+
+/// Party membership associations
+model quest_party_members {
+  id         String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id   String              @db.Uuid
+  party      quest_parties       @relation(fields: [party_id], references: [id], onDelete: Cascade)
+  user_id    String              @db.Uuid
+  user       profiles            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role       party_member_role   @default(MEMBER)
+  status     party_invite_status @default(PENDING)
+  invited_at DateTime            @default(now()) @db.Timestamptz(6)
+  joined_at  DateTime?           @db.Timestamptz(6)
+
+  @@unique([party_id, user_id])
+  @@index([party_id])
+  @@index([user_id])
+  @@index([status])
+}
+
+enum activity_type {
+  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_ACCEPTED
+  PARTY_INVITE_RECEIVED
+  PARTY_MEMBER_JOINED
+  QUEST_ITEM_ADDED
+  QUEST_ITEM_COMPLETED
+  QUEST_COMPLETED
+}
+
+/// Activity feed for social notifications
+model activity_feed {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String        @db.Uuid  // Target user (who should see this)
+  user        profiles      @relation("ActivityFeedOwner", fields: [user_id], references: [id], onDelete: Cascade)
+  actor_id    String        @db.Uuid  // Who performed the action
+  actor       profiles      @relation("ActivityFeedActor", fields: [actor_id], references: [id], onDelete: Cascade)
+  type        activity_type
+  entity_type String?                 // 'quest', 'location', 'friendship'
+  entity_id   String?       @db.Uuid  // ID of the related entity
+  metadata    Json          @default("{}")
+  read        Boolean       @default(false)
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id, read])
+  @@index([user_id, created_at])
+  @@index([actor_id])
 }
