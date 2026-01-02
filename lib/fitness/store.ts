@@ -43,6 +43,7 @@ interface FitnessStore extends FitnessState, SyncState {
   currentWorkout: Workout | null;
   currentExerciseIndex: number;
   workoutSeconds: number;
+  workoutStartTime: number | null; // Timestamp when workout started
   workoutPRsHit: number;
 
   // UI state
@@ -57,6 +58,7 @@ interface FitnessStore extends FitnessState, SyncState {
   // Profile actions
   addXP: (amount: number) => void;
   updateProfileName: (name: string) => void;
+  updateBodyStats: (height?: number, bodyWeight?: number) => void;
 
   // Workout actions
   startWorkout: () => void;
@@ -66,11 +68,15 @@ interface FitnessStore extends FitnessState, SyncState {
   addCustomExercise: (name: string) => void;
   selectExercise: (index: number) => void;
   logSet: (weight: number, reps: number, rpe?: number) => void;
+  updateSet: (setIndex: number, weight: number, reps: number, rpe?: number) => void;
+  removeSet: (exerciseIndex: number, setIndex: number) => void;
+  removeExercise: (exerciseIndex: number) => void;
+  reorderExercises: (fromIndex: number, toIndex: number) => void;
   finishWorkout: () => Promise<void>;
   cancelWorkout: () => void;
 
   // Timer
-  incrementTimer: () => void;
+  updateTimerFromStart: () => void;
   resetTimer: () => void;
 
   // Navigation
@@ -130,6 +136,7 @@ export const useFitnessStore = create<FitnessStore>()(
       currentWorkout: null,
       currentExerciseIndex: 0,
       workoutSeconds: 0,
+      workoutStartTime: null,
       workoutPRsHit: 0,
 
       // UI state
@@ -149,10 +156,13 @@ export const useFitnessStore = create<FitnessStore>()(
           const activeWorkout = localStorage.getItem(ACTIVE_WORKOUT_KEY);
           if (activeWorkout) {
             const parsed = JSON.parse(activeWorkout);
+            const startTime = parsed.startTime || Date.now();
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
             set({
               currentWorkout: parsed.workout,
               currentExerciseIndex: parsed.exerciseIndex || 0,
-              workoutSeconds: parsed.seconds || 0,
+              workoutStartTime: startTime,
+              workoutSeconds: elapsedSeconds,
               currentView: 'workout'
             });
           }
@@ -167,7 +177,7 @@ export const useFitnessStore = create<FitnessStore>()(
           localStorage.setItem(ACTIVE_WORKOUT_KEY, JSON.stringify({
             workout: state.currentWorkout,
             exerciseIndex: state.currentExerciseIndex,
-            seconds: state.workoutSeconds
+            startTime: state.workoutStartTime
           }));
         }
       },
@@ -202,9 +212,46 @@ export const useFitnessStore = create<FitnessStore>()(
         queueSync(get);
       },
 
+      updateBodyStats: (height?: number, bodyWeight?: number) => {
+        set((state) => {
+          const today = new Date().toISOString().split('T')[0];
+          let weightHistory = [...(state.profile.weightHistory || [])];
+
+          // If body weight changed, add to history
+          if (bodyWeight !== undefined && bodyWeight !== state.profile.bodyWeight) {
+            // Check if we already have an entry for today
+            const todayIndex = weightHistory.findIndex(e => e.date === today);
+            if (todayIndex >= 0) {
+              // Update today's entry
+              weightHistory[todayIndex] = { weight: bodyWeight, date: today };
+            } else {
+              // Add new entry
+              weightHistory.push({ weight: bodyWeight, date: today });
+            }
+            // Keep only last 365 entries
+            if (weightHistory.length > 365) {
+              weightHistory = weightHistory.slice(-365);
+            }
+          }
+
+          return {
+            profile: {
+              ...state.profile,
+              ...(height !== undefined && { height }),
+              ...(bodyWeight !== undefined && { bodyWeight }),
+              weightHistory
+            },
+            pendingSync: true
+          };
+        });
+        queueSync(get);
+        get().showToast('Stats updated');
+      },
+
       startWorkout: () => {
+        const now = Date.now();
         const workout: Workout = {
-          id: Date.now().toString(),
+          id: now.toString(),
           exercises: [],
           startTime: new Date().toISOString(),
           totalXP: 0
@@ -213,6 +260,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: workout,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutStartTime: now,
           workoutPRsHit: 0,
           currentView: 'workout'
         });
@@ -233,8 +281,9 @@ export const useFitnessStore = create<FitnessStore>()(
           };
         });
 
+        const now = Date.now();
         const workout: Workout = {
-          id: Date.now().toString(),
+          id: now.toString(),
           exercises,
           startTime: new Date().toISOString(),
           totalXP: 0
@@ -244,6 +293,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: workout,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutStartTime: now,
           workoutPRsHit: 0,
           currentView: 'workout'
         });
@@ -254,8 +304,9 @@ export const useFitnessStore = create<FitnessStore>()(
         const exercise = getExerciseById(exerciseId);
         if (!exercise) return;
 
+        const now = Date.now();
         const workout: Workout = {
-          id: Date.now().toString(),
+          id: now.toString(),
           exercises: [{
             id: exerciseId,
             name: exercise.name,
@@ -269,6 +320,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: workout,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutStartTime: now,
           workoutPRsHit: 0,
           currentView: 'workout'
         });
@@ -411,12 +463,127 @@ export const useFitnessStore = create<FitnessStore>()(
         get().updateCampaignProgress();
       },
 
+      updateSet: (setIndex: number, weight: number, reps: number, rpe?: number) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        const exercise = state.currentWorkout.exercises[state.currentExerciseIndex];
+        if (!exercise || setIndex >= exercise.sets.length) return;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          const sets = [...exercises[state.currentExerciseIndex].sets];
+          sets[setIndex] = { ...sets[setIndex], weight, reps, rpe };
+          exercises[state.currentExerciseIndex] = { ...exercises[state.currentExerciseIndex], sets };
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises }
+          };
+        });
+
+        get().saveState();
+        get().showToast('Set updated');
+      },
+
+      removeSet: (exerciseIndex: number, setIndex: number) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        const exercise = state.currentWorkout.exercises[exerciseIndex];
+        if (!exercise || setIndex >= exercise.sets.length) return;
+
+        const removedSet = exercise.sets[setIndex];
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          const sets = [...exercises[exerciseIndex].sets];
+          sets.splice(setIndex, 1);
+          exercises[exerciseIndex] = { ...exercises[exerciseIndex], sets };
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises }
+          };
+        });
+
+        get().saveState();
+        get().showToast(`Removed ${removedSet.weight}×${removedSet.reps}`);
+      },
+
+      removeExercise: (exerciseIndex: number) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        const exercise = state.currentWorkout.exercises[exerciseIndex];
+        if (!exercise) return;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          exercises.splice(exerciseIndex, 1);
+
+          let newIndex = state.currentExerciseIndex;
+          if (exercises.length === 0) {
+            newIndex = 0;
+          } else if (state.currentExerciseIndex >= exercises.length) {
+            newIndex = exercises.length - 1;
+          } else if (state.currentExerciseIndex > exerciseIndex) {
+            newIndex = state.currentExerciseIndex - 1;
+          }
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises },
+            currentExerciseIndex: newIndex
+          };
+        });
+
+        get().saveState();
+        get().showToast(`${exercise.name} removed`);
+      },
+
+      reorderExercises: (fromIndex: number, toIndex: number) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          const [removed] = exercises.splice(fromIndex, 1);
+          exercises.splice(toIndex, 0, removed);
+
+          let newIndex = state.currentExerciseIndex;
+          if (state.currentExerciseIndex === fromIndex) {
+            newIndex = toIndex;
+          } else if (fromIndex < state.currentExerciseIndex && toIndex >= state.currentExerciseIndex) {
+            newIndex = state.currentExerciseIndex - 1;
+          } else if (fromIndex > state.currentExerciseIndex && toIndex <= state.currentExerciseIndex) {
+            newIndex = state.currentExerciseIndex + 1;
+          }
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises },
+            currentExerciseIndex: newIndex
+          };
+        });
+
+        get().saveState();
+        get().showToast('Exercise order updated');
+      },
+
       finishWorkout: async () => {
         const state = get();
         if (!state.currentWorkout) return;
 
         const endTime = new Date().toISOString();
-        const duration = state.workoutSeconds;
+        // Calculate duration from start time for accuracy
+        const duration = state.workoutStartTime
+          ? Math.floor((Date.now() - state.workoutStartTime) / 1000)
+          : state.workoutSeconds;
 
         const completedWorkout: Workout = {
           ...state.currentWorkout,
@@ -442,6 +609,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: null,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutStartTime: null,
           workoutPRsHit: 0,
           currentView: 'home',
           pendingSync: true
@@ -502,6 +670,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: null,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutStartTime: null,
           workoutPRsHit: 0,
           currentView: 'home'
         });
@@ -509,12 +678,16 @@ export const useFitnessStore = create<FitnessStore>()(
         get().showToast('Workout cancelled');
       },
 
-      incrementTimer: () => {
-        set((state) => ({ workoutSeconds: state.workoutSeconds + 1 }));
+      updateTimerFromStart: () => {
+        const state = get();
+        if (state.workoutStartTime) {
+          const elapsed = Math.floor((Date.now() - state.workoutStartTime) / 1000);
+          set({ workoutSeconds: elapsed });
+        }
       },
 
       resetTimer: () => {
-        set({ workoutSeconds: 0 });
+        set({ workoutSeconds: 0, workoutStartTime: null });
       },
 
       setView: (view: ViewType) => {
@@ -707,6 +880,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: null,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutStartTime: null,
           currentView: 'home',
           pendingSync: true
         });

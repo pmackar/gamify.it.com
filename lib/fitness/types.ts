@@ -26,6 +26,11 @@ export interface Workout {
   duration?: number;
 }
 
+export interface WeightEntry {
+  weight: number;
+  date: string;
+}
+
 export interface Profile {
   name: string;
   level: number;
@@ -33,6 +38,9 @@ export interface Profile {
   totalWorkouts: number;
   totalSets: number;
   totalVolume: number;
+  height?: number; // in inches
+  bodyWeight?: number; // current weight in lbs
+  weightHistory?: WeightEntry[];
 }
 
 export interface Campaign {

@@ -47,6 +47,8 @@ export default function FitnessApp() {
   const [showSetPanel, setShowSetPanel] = useState(false);
   const [setWeight, setSetWeight] = useState(135);
   const [setReps, setSetReps] = useState(8);
+  const [setRpe, setSetRpe] = useState<number | null>(null);
+  const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [creatingCampaign, setCreatingCampaign] = useState(false);
@@ -60,10 +62,15 @@ export default function FitnessApp() {
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
+  const rpeInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, unmapped: [] as string[] });
+  const [editingBodyStats, setEditingBodyStats] = useState(false);
+  const [heightFeet, setHeightFeet] = useState(5);
+  const [heightInches, setHeightInches] = useState(10);
+  const [bodyWeight, setBodyWeight] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -107,6 +114,8 @@ export default function FitnessApp() {
           setShowSetPanel(false);
         } else if (showSaveModal) {
           setShowSaveModal(false);
+        } else if (editingBodyStats) {
+          setEditingBodyStats(false);
         } else if (creatingCampaign) {
           setCreatingCampaign(false);
         } else if (addingGoal) {
@@ -131,16 +140,31 @@ export default function FitnessApp() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [showSetPanel, showSaveModal, creatingCampaign, addingGoal, store.currentView]);
+  }, [showSetPanel, showSaveModal, editingBodyStats, creatingCampaign, addingGoal, store.currentView]);
 
+  // Timer effect - uses timestamp for accuracy even when tab is backgrounded
   useEffect(() => {
     if (store.currentWorkout && store.currentView === 'workout') {
+      // Update timer immediately when entering workout
+      store.updateTimerFromStart();
+
+      // Update every second
       timerRef.current = setInterval(() => {
-        store.incrementTimer();
-        if (store.workoutSeconds % 30 === 0) {
-          store.saveState();
-        }
+        store.updateTimerFromStart();
       }, 1000);
+
+      // Handle visibility change - update timer when tab regains focus
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          store.updateTimerFromStart();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -417,19 +441,52 @@ export default function FitnessApp() {
     store.showToast('Campaign created!');
   };
 
-  const openSetPanel = () => {
+  const openSetPanel = (exerciseIdx?: number, setIdx?: number) => {
     if (!store.currentWorkout) return;
-    const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+    const exIdx = exerciseIdx ?? store.currentExerciseIndex;
+    const currentEx = store.currentWorkout.exercises[exIdx];
     if (!currentEx) return;
-    const lastSet = currentEx.sets[currentEx.sets.length - 1];
-    setSetWeight(lastSet?.weight || store.records[currentEx.id] || 135);
-    setSetReps(lastSet?.reps || 8);
+
+    if (setIdx !== undefined) {
+      // Editing existing set
+      const set = currentEx.sets[setIdx];
+      setSetWeight(set.weight);
+      setSetReps(set.reps);
+      setSetRpe(set.rpe || null);
+      setEditingSetIndex(setIdx);
+      store.selectExercise(exIdx);
+    } else {
+      // Adding new set
+      const lastSet = currentEx.sets[currentEx.sets.length - 1];
+      setSetWeight(lastSet?.weight || store.records[currentEx.id] || 135);
+      setSetReps(lastSet?.reps || 8);
+      setSetRpe(lastSet?.rpe || null);
+      setEditingSetIndex(null);
+    }
     setShowSetPanel(true);
   };
 
   const handleLogSet = () => {
-    store.logSet(setWeight, setReps);
+    if (editingSetIndex !== null) {
+      // Update existing set
+      store.updateSet(editingSetIndex, setWeight, setReps, setRpe || undefined);
+      setEditingSetIndex(null);
+    } else {
+      // Log new set
+      store.logSet(setWeight, setReps, setRpe || undefined);
+    }
     setShowSetPanel(false);
+  };
+
+  const handleRemoveSet = (exerciseIdx: number, setIdx: number) => {
+    store.removeSet(exerciseIdx, setIdx);
+    setShowSetPanel(false);
+  };
+
+  const handleRemoveExercise = (idx: number) => {
+    if (confirm(`Remove ${store.currentWorkout?.exercises[idx]?.name} from this workout?`)) {
+      store.removeExercise(idx);
+    }
   };
 
   const handleFinishWorkout = (saveTemplate: boolean) => {
@@ -619,6 +676,21 @@ export default function FitnessApp() {
     } finally {
       setImporting(false);
     }
+  };
+
+  const openBodyStatsEditor = () => {
+    // Initialize form with current values
+    const totalInches = store.profile.height || 70; // Default 5'10"
+    setHeightFeet(Math.floor(totalInches / 12));
+    setHeightInches(totalInches % 12);
+    setBodyWeight(store.profile.bodyWeight || 0);
+    setEditingBodyStats(true);
+  };
+
+  const handleSaveBodyStats = () => {
+    const totalInches = (heightFeet * 12) + heightInches;
+    store.updateBodyStats(totalInches, bodyWeight || undefined);
+    setEditingBodyStats(false);
   };
 
   if (!mounted) return <div className="min-h-screen" style={{ background: 'var(--theme-bg-base)' }} />;
@@ -906,6 +978,78 @@ export default function FitnessApp() {
         .set-badge.empty {
           color: var(--text-tertiary);
           font-style: italic;
+        }
+        .set-badge.clickable {
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .set-badge.clickable:hover {
+          background: var(--bg-elevated);
+          transform: scale(1.05);
+        }
+
+        /* Drag handle */
+        .drag-handle {
+          cursor: grab;
+          color: var(--text-tertiary);
+          font-size: 14px;
+          padding: 4px;
+          opacity: 0.4;
+          transition: opacity 0.15s;
+          user-select: none;
+          letter-spacing: -2px;
+          flex-shrink: 0;
+        }
+        .drag-handle:hover { opacity: 1; }
+        .drag-handle:active { cursor: grabbing; }
+
+        /* Remove exercise button */
+        .exercise-remove-btn {
+          background: none;
+          border: none;
+          padding: 8px;
+          font-size: 14px;
+          cursor: pointer;
+          opacity: 0.3;
+          color: var(--error);
+          transition: opacity 0.15s;
+          flex-shrink: 0;
+        }
+        .exercise-remove-btn:hover { opacity: 1; }
+
+        /* Drag states */
+        .exercise-pill.dragging {
+          opacity: 0.5;
+          border: 2px dashed var(--accent);
+        }
+        .exercise-pill.drag-over {
+          border: 2px solid var(--accent);
+          background: var(--bg-elevated);
+        }
+
+        /* RPE input styling */
+        .rpe-divider { font-size: 18px; }
+        .input-group-small input {
+          width: 50px !important;
+          font-size: 20px !important;
+        }
+
+        /* Remove set button */
+        .remove-set-btn {
+          width: 100%;
+          padding: 10px;
+          margin-top: 12px;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-tertiary);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .remove-set-btn:hover {
+          border-color: var(--error);
+          color: var(--error);
         }
 
         /* Set Panel */
@@ -1236,6 +1380,153 @@ export default function FitnessApp() {
           margin-top: 6px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+        }
+
+        /* Body Stats */
+        .body-stats-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 24px;
+          cursor: pointer;
+        }
+        .body-stat-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+        .body-stat-card:hover {
+          border-color: var(--accent);
+          background: var(--bg-card-hover);
+        }
+        .body-stat-icon {
+          font-size: 24px;
+          flex-shrink: 0;
+        }
+        .body-stat-content {
+          flex: 1;
+          min-width: 0;
+        }
+        .body-stat-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 2px;
+        }
+        .body-stat-value {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .weight-trend {
+          position: absolute;
+          top: 8px;
+          right: 10px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .trend-up { color: #FF6B6B; }
+        .trend-down { color: var(--success); }
+        .trend-same { color: var(--text-tertiary); }
+
+        /* Body Stats Modal */
+        .body-stats-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+          padding: 20px;
+        }
+        .body-stats-modal-content {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 24px;
+          width: 100%;
+          max-width: 340px;
+        }
+        .body-stats-modal-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        .body-stats-field {
+          margin-bottom: 20px;
+        }
+        .body-stats-field-label {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .body-stats-input-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .body-stats-input {
+          flex: 1;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 14px;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-primary);
+          text-align: center;
+          -webkit-appearance: none;
+        }
+        .body-stats-input:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+        .body-stats-unit {
+          font-size: 14px;
+          color: var(--text-tertiary);
+          min-width: 30px;
+        }
+        .body-stats-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 24px;
+        }
+        .body-stats-btn {
+          flex: 1;
+          padding: 14px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s ease;
+        }
+        .body-stats-btn-cancel {
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+        }
+        .body-stats-btn-save {
+          background: var(--accent);
+          color: white;
+        }
+        .body-stats-btn-save:hover {
+          filter: brightness(1.1);
         }
 
         /* PR Section */
@@ -1831,15 +2122,36 @@ export default function FitnessApp() {
                   <div
                     key={exercise.id + idx}
                     className={`exercise-pill ${idx === store.currentExerciseIndex ? 'active' : ''}`}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', String(idx));
+                      e.currentTarget.classList.add('dragging');
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.classList.remove('dragging');
+                      document.querySelectorAll('.exercise-pill.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('drag-over');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('drag-over');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('drag-over');
+                      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                      if (fromIdx !== idx) {
+                        store.reorderExercises(fromIdx, idx);
+                      }
+                    }}
                     onClick={() => {
                       store.selectExercise(idx);
-                      // Open set panel for this exercise
-                      const lastSet = exercise.sets[exercise.sets.length - 1];
-                      setSetWeight(lastSet?.weight || store.records[exercise.id] || 135);
-                      setSetReps(lastSet?.reps || 8);
-                      setShowSetPanel(true);
+                      openSetPanel(idx);
                     }}
                   >
+                    <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
                     <div className="exercise-number">{idx + 1}</div>
                     <div className="exercise-info">
                       <div className="exercise-name">{exercise.name}</div>
@@ -1850,7 +2162,11 @@ export default function FitnessApp() {
                           exercise.sets.map((set, setIdx) => (
                             <span
                               key={setIdx}
-                              className={`set-badge ${set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
+                              className={`set-badge clickable ${set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openSetPanel(idx, setIdx);
+                              }}
                             >
                               {set.weight}×{set.reps}{set.rpe ? ` @${set.rpe}` : ''}
                             </span>
@@ -1858,6 +2174,16 @@ export default function FitnessApp() {
                         )}
                       </div>
                     </div>
+                    <button
+                      className="exercise-remove-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveExercise(idx);
+                      }}
+                      title="Remove exercise"
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))
               )}
@@ -1893,6 +2219,45 @@ export default function FitnessApp() {
                 <div className="stat-card">
                   <div className="stat-value">{Math.floor(store.profile.totalVolume / 1000)}K</div>
                   <div className="stat-label">Volume</div>
+                </div>
+              </div>
+
+              <div className="section-title">Body Stats</div>
+              <div className="body-stats-row" onClick={openBodyStatsEditor}>
+                <div className="body-stat-card">
+                  <div className="body-stat-icon">📏</div>
+                  <div className="body-stat-content">
+                    <div className="body-stat-label">Height</div>
+                    <div className="body-stat-value">
+                      {store.profile.height
+                        ? `${Math.floor(store.profile.height / 12)}'${store.profile.height % 12}"`
+                        : 'Tap to set'}
+                    </div>
+                  </div>
+                </div>
+                <div className="body-stat-card">
+                  <div className="body-stat-icon">⚖️</div>
+                  <div className="body-stat-content">
+                    <div className="body-stat-label">Weight</div>
+                    <div className="body-stat-value">
+                      {store.profile.bodyWeight
+                        ? `${store.profile.bodyWeight} lbs`
+                        : 'Tap to set'}
+                    </div>
+                  </div>
+                  {store.profile.weightHistory && store.profile.weightHistory.length > 1 && (
+                    <div className="weight-trend">
+                      {(() => {
+                        const history = store.profile.weightHistory;
+                        const latest = history[history.length - 1].weight;
+                        const previous = history[history.length - 2].weight;
+                        const diff = latest - previous;
+                        if (diff > 0) return <span className="trend-up">+{diff.toFixed(1)}</span>;
+                        if (diff < 0) return <span className="trend-down">{diff.toFixed(1)}</span>;
+                        return <span className="trend-same">→</span>;
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2323,19 +2688,60 @@ export default function FitnessApp() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleLogSet();
+                        rpeInputRef.current?.focus();
+                        rpeInputRef.current?.select();
                       }
                     }}
                     inputMode="numeric"
                   />
                   <div className="input-label">reps</div>
                 </div>
+                <div className="input-divider rpe-divider">@</div>
+                <div className="input-group input-group-small">
+                  <input
+                    ref={rpeInputRef}
+                    type="number"
+                    value={setRpe || ''}
+                    placeholder="–"
+                    onChange={(e) => setSetRpe(e.target.value ? Number(e.target.value) : null)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLogSet();
+                      }
+                    }}
+                    inputMode="decimal"
+                    min={1}
+                    max={10}
+                    step={0.5}
+                  />
+                  <div className="input-label">rpe</div>
+                </div>
               </div>
               <div className="set-actions">
                 <button className="action-btn" onClick={() => setSetWeight(w => w - 5)}>−5</button>
-                <button className="action-btn primary" onClick={handleLogSet}>Log Set</button>
+                <button className="action-btn primary" onClick={handleLogSet}>
+                  {editingSetIndex !== null ? 'Save Changes' : 'Log Set'}
+                </button>
                 <button className="action-btn" onClick={() => setSetWeight(w => w + 5)}>+5</button>
               </div>
+              {(editingSetIndex !== null || (store.currentWorkout?.exercises[store.currentExerciseIndex]?.sets.length ?? 0) > 0) && (
+                <button
+                  className="remove-set-btn"
+                  onClick={() => {
+                    if (editingSetIndex !== null) {
+                      handleRemoveSet(store.currentExerciseIndex, editingSetIndex);
+                    } else {
+                      const sets = store.currentWorkout?.exercises[store.currentExerciseIndex]?.sets;
+                      if (sets && sets.length > 0) {
+                        handleRemoveSet(store.currentExerciseIndex, sets.length - 1);
+                      }
+                    }
+                  }}
+                >
+                  {editingSetIndex !== null ? 'Delete This Set' : 'Remove Last Set'}
+                </button>
+              )}
             </div>
           </>
         )}
@@ -2480,6 +2886,66 @@ export default function FitnessApp() {
                   background: 'var(--accent)',
                   transition: 'width 0.2s ease'
                 }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Body Stats Modal */}
+        {editingBodyStats && (
+          <div className="body-stats-modal" onClick={() => setEditingBodyStats(false)}>
+            <div className="body-stats-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="body-stats-modal-title">Edit Body Stats</div>
+
+              <div className="body-stats-field">
+                <div className="body-stats-field-label">📏 Height</div>
+                <div className="body-stats-input-row">
+                  <input
+                    type="number"
+                    className="body-stats-input"
+                    value={heightFeet}
+                    onChange={(e) => setHeightFeet(Math.max(0, Math.min(9, parseInt(e.target.value) || 0)))}
+                    min="0"
+                    max="9"
+                    inputMode="numeric"
+                  />
+                  <span className="body-stats-unit">ft</span>
+                  <input
+                    type="number"
+                    className="body-stats-input"
+                    value={heightInches}
+                    onChange={(e) => setHeightInches(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    min="0"
+                    max="11"
+                    inputMode="numeric"
+                  />
+                  <span className="body-stats-unit">in</span>
+                </div>
+              </div>
+
+              <div className="body-stats-field">
+                <div className="body-stats-field-label">⚖️ Weight</div>
+                <div className="body-stats-input-row">
+                  <input
+                    type="number"
+                    className="body-stats-input"
+                    value={bodyWeight || ''}
+                    onChange={(e) => setBodyWeight(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    step="0.1"
+                    inputMode="decimal"
+                  />
+                  <span className="body-stats-unit">lbs</span>
+                </div>
+              </div>
+
+              <div className="body-stats-actions">
+                <button className="body-stats-btn body-stats-btn-cancel" onClick={() => setEditingBodyStats(false)}>
+                  Cancel
+                </button>
+                <button className="body-stats-btn body-stats-btn-save" onClick={handleSaveBodyStats}>
+                  Save
+                </button>
               </div>
             </div>
           </div>
