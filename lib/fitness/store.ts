@@ -46,6 +46,10 @@ interface FitnessStore extends FitnessState, SyncState {
   workoutStartTime: number | null; // Timestamp when workout started
   workoutPRsHit: number;
 
+  // Rest timer state
+  restTimerSeconds: number;  // Countdown seconds (0 = not running)
+  restTimerRunning: boolean;
+
   // UI state
   currentView: ViewType;
   selectedWorkoutId: string | null;
@@ -67,17 +71,29 @@ interface FitnessStore extends FitnessState, SyncState {
   addExerciseToWorkout: (exerciseId: string) => void;
   addCustomExercise: (name: string) => void;
   selectExercise: (index: number) => void;
-  logSet: (weight: number, reps: number, rpe?: number) => void;
-  updateSet: (setIndex: number, weight: number, reps: number, rpe?: number) => void;
+  logSet: (weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
+  updateSet: (setIndex: number, weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
   removeSet: (exerciseIndex: number, setIndex: number) => void;
   removeExercise: (exerciseIndex: number) => void;
   reorderExercises: (fromIndex: number, toIndex: number) => void;
   finishWorkout: () => Promise<void>;
   cancelWorkout: () => void;
 
-  // Timer
+  // Workout timer
   updateTimerFromStart: () => void;
   resetTimer: () => void;
+
+  // Rest timer
+  setRestTimerPreset: (seconds: number) => void;
+  startRestTimer: () => void;
+  tickRestTimer: () => void;
+  stopRestTimer: () => void;
+
+  // Exercise notes
+  setExerciseNote: (exerciseId: string, note: string) => void;
+
+  // Helpers
+  getLastWorkoutForExercise: (exerciseId: string) => WorkoutExercise | null;
 
   // Navigation
   setView: (view: ViewType) => void;
@@ -124,7 +140,9 @@ const defaultState: FitnessState = {
   achievements: [],
   customExercises: [],
   templates: [...DEFAULT_TEMPLATES],
-  campaigns: []
+  campaigns: [],
+  exerciseNotes: {},
+  restTimerPreset: 90
 };
 
 export const useFitnessStore = create<FitnessStore>()(
@@ -138,6 +156,10 @@ export const useFitnessStore = create<FitnessStore>()(
       workoutSeconds: 0,
       workoutStartTime: null,
       workoutPRsHit: 0,
+
+      // Rest timer state
+      restTimerSeconds: 0,
+      restTimerRunning: false,
 
       // UI state
       currentView: 'home',
@@ -394,21 +416,23 @@ export const useFitnessStore = create<FitnessStore>()(
         get().saveState();
       },
 
-      logSet: (weight: number, reps: number, rpe?: number) => {
+      logSet: (weight: number, reps: number, rpe?: number, isWarmup?: boolean) => {
         const state = get();
         if (!state.currentWorkout) return;
 
         const exercise = state.currentWorkout.exercises[state.currentExerciseIndex];
         if (!exercise) return;
 
-        const xp = calculateSetXP(exercise.id, weight, reps);
+        // Warmup sets don't earn XP or count toward volume
+        const xp = isWarmup ? 0 : calculateSetXP(exercise.id, weight, reps);
 
         const newSet: SetType = {
           weight,
           reps,
           rpe,
           timestamp: new Date().toISOString(),
-          xp
+          xp,
+          isWarmup
         };
 
         // Update the workout
@@ -430,40 +454,43 @@ export const useFitnessStore = create<FitnessStore>()(
             profile: {
               ...state.profile,
               totalSets: state.profile.totalSets + 1,
-              totalVolume: state.profile.totalVolume + (weight * reps)
+              // Only add to volume for working sets
+              totalVolume: state.profile.totalVolume + (isWarmup ? 0 : weight * reps)
             }
           };
         });
 
-        // Add XP
-        get().addXP(xp);
-
-        // Check PR
-        const isPR = get().checkPR(exercise.id, weight);
-        if (isPR) {
-          set((state) => ({ workoutPRsHit: state.workoutPRsHit + 1 }));
-          get().showToast(`🏆 New PR: ${weight} lbs!`);
+        // Add XP (only for working sets)
+        if (!isWarmup && xp > 0) {
+          get().addXP(xp);
         }
 
-        // Check milestone
-        const milestone = get().checkMilestone(exercise.id, weight);
-        if (milestone) {
-          get().addXP(milestone.xp);
-          // Add milestone XP to workout total so it syncs to API
-          set((state) => ({
-            currentWorkout: state.currentWorkout ? {
-              ...state.currentWorkout,
-              totalXP: state.currentWorkout.totalXP + milestone.xp
-            } : null
-          }));
-          setTimeout(() => get().showToast(`${milestone.icon} ${milestone.name} unlocked!`), isPR ? 2500 : 0);
+        // Check PR and milestone only for working sets
+        if (!isWarmup) {
+          const isPR = get().checkPR(exercise.id, weight);
+          if (isPR) {
+            set((state) => ({ workoutPRsHit: state.workoutPRsHit + 1 }));
+            get().showToast(`🏆 New PR: ${weight} lbs!`);
+          }
+
+          const milestone = get().checkMilestone(exercise.id, weight);
+          if (milestone) {
+            get().addXP(milestone.xp);
+            set((state) => ({
+              currentWorkout: state.currentWorkout ? {
+                ...state.currentWorkout,
+                totalXP: state.currentWorkout.totalXP + milestone.xp
+              } : null
+            }));
+            setTimeout(() => get().showToast(`${milestone.icon} ${milestone.name} unlocked!`), isPR ? 2500 : 0);
+          }
         }
 
         get().saveState();
         get().updateCampaignProgress();
       },
 
-      updateSet: (setIndex: number, weight: number, reps: number, rpe?: number) => {
+      updateSet: (setIndex: number, weight: number, reps: number, rpe?: number, isWarmup?: boolean) => {
         const state = get();
         if (!state.currentWorkout) return;
 
@@ -475,7 +502,7 @@ export const useFitnessStore = create<FitnessStore>()(
 
           const exercises = [...state.currentWorkout.exercises];
           const sets = [...exercises[state.currentExerciseIndex].sets];
-          sets[setIndex] = { ...sets[setIndex], weight, reps, rpe };
+          sets[setIndex] = { ...sets[setIndex], weight, reps, rpe, isWarmup };
           exercises[state.currentExerciseIndex] = { ...exercises[state.currentExerciseIndex], sets };
 
           return {
@@ -688,6 +715,52 @@ export const useFitnessStore = create<FitnessStore>()(
 
       resetTimer: () => {
         set({ workoutSeconds: 0, workoutStartTime: null });
+      },
+
+      // Rest timer actions
+      setRestTimerPreset: (seconds: number) => {
+        set({ restTimerPreset: seconds, pendingSync: true });
+        queueSync(get);
+      },
+
+      startRestTimer: () => {
+        const preset = get().restTimerPreset;
+        set({ restTimerSeconds: preset, restTimerRunning: true });
+      },
+
+      tickRestTimer: () => {
+        const state = get();
+        if (state.restTimerRunning && state.restTimerSeconds > 0) {
+          set({ restTimerSeconds: state.restTimerSeconds - 1 });
+        } else if (state.restTimerRunning && state.restTimerSeconds <= 0) {
+          set({ restTimerRunning: false });
+        }
+      },
+
+      stopRestTimer: () => {
+        set({ restTimerSeconds: 0, restTimerRunning: false });
+      },
+
+      // Exercise notes
+      setExerciseNote: (exerciseId: string, note: string) => {
+        set((state) => ({
+          exerciseNotes: { ...state.exerciseNotes, [exerciseId]: note },
+          pendingSync: true
+        }));
+        queueSync(get);
+      },
+
+      // Helper to get last workout data for an exercise
+      getLastWorkoutForExercise: (exerciseId: string) => {
+        const state = get();
+        // Search through workouts (newest first) to find one with this exercise
+        for (const workout of state.workouts) {
+          const exercise = workout.exercises.find(e => e.id === exerciseId);
+          if (exercise && exercise.sets.length > 0) {
+            return exercise;
+          }
+        }
+        return null;
       },
 
       setView: (view: ViewType) => {
@@ -953,6 +1026,8 @@ export const useFitnessStore = create<FitnessStore>()(
                 customExercises: state.customExercises,
                 templates: state.templates,
                 campaigns: state.campaigns,
+                exerciseNotes: state.exerciseNotes,
+                restTimerPreset: state.restTimerPreset,
               },
             }),
           });
@@ -1008,6 +1083,8 @@ export const useFitnessStore = create<FitnessStore>()(
         customExercises: state.customExercises,
         templates: state.templates,
         campaigns: state.campaigns,
+        exerciseNotes: state.exerciseNotes,
+        restTimerPreset: state.restTimerPreset,
         lastSyncedAt: state.lastSyncedAt
       })
     }

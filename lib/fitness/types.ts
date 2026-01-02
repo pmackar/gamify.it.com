@@ -8,6 +8,7 @@ export interface Set {
   rpe?: number;
   timestamp: string;
   xp: number;
+  isWarmup?: boolean;  // Warmup sets excluded from XP/volume
 }
 
 export interface WorkoutExercise {
@@ -73,6 +74,8 @@ export interface FitnessState {
   customExercises: { id: string; name: string; muscle: string }[];
   templates: WorkoutTemplate[];
   campaigns: Campaign[];
+  exerciseNotes: Record<string, string>;  // exerciseId -> note text
+  restTimerPreset: number;  // User's preferred rest time in seconds (default 90)
 }
 
 export interface SyncState {

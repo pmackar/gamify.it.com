@@ -48,7 +48,10 @@ export default function FitnessApp() {
   const [setWeight, setSetWeight] = useState(135);
   const [setReps, setSetReps] = useState(8);
   const [setRpe, setSetRpe] = useState<number | null>(null);
+  const [setIsWarmup, setSetIsWarmup] = useState(false);
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
+  const [showExerciseNotes, setShowExerciseNotes] = useState(false);
+  const restTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [creatingCampaign, setCreatingCampaign] = useState(false);
@@ -114,6 +117,33 @@ export default function FitnessApp() {
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
+
+  // Rest timer countdown
+  useEffect(() => {
+    if (store.restTimerRunning) {
+      restTimerRef.current = setInterval(() => {
+        store.tickRestTimer();
+      }, 1000);
+    } else {
+      if (restTimerRef.current) {
+        clearInterval(restTimerRef.current);
+        restTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (restTimerRef.current) {
+        clearInterval(restTimerRef.current);
+      }
+    };
+  }, [store.restTimerRunning]);
+
+  // Play sound when rest timer completes
+  useEffect(() => {
+    if (store.restTimerSeconds === 0 && !store.restTimerRunning && restTimerRef.current === null) {
+      // Timer just finished - could play a sound here
+      // For now, just show a toast
+    }
+  }, [store.restTimerSeconds, store.restTimerRunning]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -467,6 +497,7 @@ export default function FitnessApp() {
       setSetWeight(set.weight);
       setSetReps(set.reps);
       setSetRpe(set.rpe || null);
+      setSetIsWarmup(set.isWarmup || false);
       setEditingSetIndex(setIdx);
       store.selectExercise(exIdx);
     } else {
@@ -475,6 +506,7 @@ export default function FitnessApp() {
       setSetWeight(lastSet?.weight || store.records[currentEx.id] || 135);
       setSetReps(lastSet?.reps || 8);
       setSetRpe(lastSet?.rpe || null);
+      setSetIsWarmup(false);  // New sets default to working sets
       setEditingSetIndex(null);
     }
     setShowSetPanel(true);
@@ -483,13 +515,30 @@ export default function FitnessApp() {
   const handleLogSet = () => {
     if (editingSetIndex !== null) {
       // Update existing set
-      store.updateSet(editingSetIndex, setWeight, setReps, setRpe || undefined);
+      store.updateSet(editingSetIndex, setWeight, setReps, setRpe || undefined, setIsWarmup);
       setEditingSetIndex(null);
     } else {
       // Log new set
-      store.logSet(setWeight, setReps, setRpe || undefined);
+      store.logSet(setWeight, setReps, setRpe || undefined, setIsWarmup);
+      // Start rest timer after logging a working set
+      if (!setIsWarmup) {
+        store.startRestTimer();
+      }
     }
     setShowSetPanel(false);
+  };
+
+  // Repeat last set helper
+  const handleRepeatLastSet = () => {
+    if (!store.currentWorkout) return;
+    const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+    if (!currentEx || currentEx.sets.length === 0) return;
+
+    const lastSet = currentEx.sets[currentEx.sets.length - 1];
+    store.logSet(lastSet.weight, lastSet.reps, lastSet.rpe, lastSet.isWarmup);
+    if (!lastSet.isWarmup) {
+      store.startRestTimer();
+    }
   };
 
   const handleRemoveSet = (exerciseIdx: number, setIdx: number) => {
@@ -1202,6 +1251,269 @@ export default function FitnessApp() {
         .action-btn.primary:hover {
           filter: brightness(1.1);
           transform: translateY(-1px);
+        }
+
+        /* Set Panel Header Actions */
+        .set-panel-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .note-indicator {
+          font-size: 14px;
+          opacity: 0.7;
+        }
+
+        /* Previous Workout Section */
+        .prev-workout-section {
+          margin-bottom: 16px;
+          padding: 12px;
+          background: var(--bg-card);
+          border-radius: 12px;
+          border: 1px solid var(--border);
+        }
+        .prev-workout-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+        .prev-workout-sets {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .prev-set-badge {
+          padding: 6px 10px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-light);
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .prev-set-badge:hover {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: white;
+        }
+        .prev-set-badge.warmup {
+          opacity: 0.6;
+          border-style: dashed;
+        }
+        .prev-set-badge .warmup-w {
+          font-size: 10px;
+          margin-right: 4px;
+          opacity: 0.7;
+        }
+
+        /* Exercise Notes Section */
+        .exercise-notes-section {
+          margin-bottom: 16px;
+        }
+        .notes-toggle {
+          width: 100%;
+          padding: 10px 12px;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .notes-toggle:hover {
+          background: var(--bg-card);
+        }
+        .exercise-notes-input {
+          width: 100%;
+          margin-top: 8px;
+          padding: 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 14px;
+          resize: none;
+          outline: none;
+          font-family: inherit;
+        }
+        .exercise-notes-input:focus {
+          border-color: var(--accent);
+        }
+        .exercise-notes-input::placeholder {
+          color: var(--text-tertiary);
+        }
+
+        /* Warmup Toggle */
+        .warmup-toggle-row {
+          margin-bottom: 16px;
+          display: flex;
+          justify-content: center;
+        }
+        .warmup-toggle {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          padding: 8px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          transition: all 0.15s;
+        }
+        .warmup-toggle:hover {
+          border-color: var(--border-light);
+        }
+        .warmup-toggle input {
+          width: 18px;
+          height: 18px;
+          accent-color: var(--accent);
+        }
+        .warmup-toggle-label {
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+        .warmup-toggle-hint {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        /* Repeat Last Set Button */
+        .repeat-set-btn {
+          width: 100%;
+          margin-top: 12px;
+          padding: 14px;
+          background: transparent;
+          border: 1px dashed var(--border);
+          border-radius: 12px;
+          color: var(--text-secondary);
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .repeat-set-btn:hover {
+          background: var(--bg-card);
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        /* Remove Set Button */
+        .remove-set-btn {
+          width: 100%;
+          margin-top: 12px;
+          padding: 12px;
+          background: transparent;
+          border: none;
+          border-radius: 12px;
+          color: var(--text-tertiary);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .remove-set-btn:hover {
+          background: rgba(255,107,107,0.1);
+          color: #ff6b6b;
+        }
+
+        /* Rest Timer */
+        .rest-timer-section {
+          margin-top: 20px;
+          padding: 16px;
+          background: var(--bg-card);
+          border-radius: 16px;
+          border: 1px solid var(--border);
+        }
+        .rest-timer-display {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+        .rest-timer-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .rest-timer-time {
+          font-size: 32px;
+          font-weight: 700;
+          color: var(--accent);
+          font-variant-numeric: tabular-nums;
+        }
+        .rest-timer-skip {
+          padding: 8px 16px;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .rest-timer-skip:hover {
+          background: var(--bg-card-hover);
+          color: var(--text-primary);
+        }
+        .rest-timer-bar {
+          height: 6px;
+          background: var(--bg-elevated);
+          border-radius: 3px;
+          overflow: hidden;
+        }
+        .rest-timer-fill {
+          height: 100%;
+          background: var(--accent);
+          border-radius: 3px;
+          transition: width 1s linear;
+        }
+
+        /* Rest Timer Presets */
+        .rest-timer-presets {
+          margin-top: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .rest-presets-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+        .rest-preset-btn {
+          padding: 6px 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .rest-preset-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .rest-preset-btn.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: white;
+        }
+
+        /* Warmup indicator on set badges */
+        .set-badge.warmup {
+          opacity: 0.6;
+          border-style: dashed;
+        }
+        .warmup-indicator {
+          font-size: 9px;
+          margin-right: 3px;
+          opacity: 0.7;
         }
 
         /* Modal */
@@ -2189,12 +2501,13 @@ export default function FitnessApp() {
                           exercise.sets.map((set, setIdx) => (
                             <span
                               key={setIdx}
-                              className={`set-badge clickable ${set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
+                              className={`set-badge clickable ${set.isWarmup ? 'warmup' : ''} ${!set.isWarmup && set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openSetPanel(idx, setIdx);
                               }}
                             >
+                              {set.isWarmup && <span className="warmup-indicator">W</span>}
                               {set.weight}×{set.reps}{set.rpe ? ` @${set.rpe}` : ''}
                             </span>
                           ))
@@ -2681,14 +2994,65 @@ export default function FitnessApp() {
         </div>
 
         {/* Set Panel */}
-        {showSetPanel && store.currentWorkout && (
+        {showSetPanel && store.currentWorkout && (() => {
+          const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+          const lastWorkoutEx = currentEx ? store.getLastWorkoutForExercise(currentEx.id) : null;
+          const exerciseNote = currentEx ? store.exerciseNotes[currentEx.id] || '' : '';
+          return (
           <>
             <div className="set-panel-overlay" onClick={() => setShowSetPanel(false)} />
             <div className="set-panel">
               <div className="set-panel-header">
-                <span className="set-panel-title">{store.currentWorkout.exercises[store.currentExerciseIndex]?.name}</span>
-                <button className="close-btn" onClick={() => setShowSetPanel(false)}>×</button>
+                <span className="set-panel-title">{currentEx?.name}</span>
+                <div className="set-panel-header-actions">
+                  {exerciseNote && <span className="note-indicator" title="Has note">📝</span>}
+                  <button className="close-btn" onClick={() => setShowSetPanel(false)}>×</button>
+                </div>
               </div>
+
+              {/* Previous Workout Display */}
+              {lastWorkoutEx && lastWorkoutEx.sets.length > 0 && editingSetIndex === null && (
+                <div className="prev-workout-section">
+                  <div className="prev-workout-label">Last time:</div>
+                  <div className="prev-workout-sets">
+                    {lastWorkoutEx.sets.map((s, i) => (
+                      <button
+                        key={i}
+                        className={`prev-set-badge ${s.isWarmup ? 'warmup' : ''}`}
+                        onClick={() => {
+                          setSetWeight(s.weight);
+                          setSetReps(s.reps);
+                          if (s.rpe) setSetRpe(s.rpe);
+                        }}
+                        title="Click to use these values"
+                      >
+                        {s.isWarmup && <span className="warmup-w">W</span>}
+                        {s.weight}×{s.reps}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Exercise Notes */}
+              <div className="exercise-notes-section">
+                <button
+                  className="notes-toggle"
+                  onClick={() => setShowExerciseNotes(!showExerciseNotes)}
+                >
+                  {showExerciseNotes ? '▼' : '▶'} Notes {exerciseNote && '•'}
+                </button>
+                {showExerciseNotes && (
+                  <textarea
+                    className="exercise-notes-input"
+                    placeholder="Add notes for this exercise..."
+                    value={exerciseNote}
+                    onChange={(e) => currentEx && store.setExerciseNote(currentEx.id, e.target.value)}
+                    rows={2}
+                  />
+                )}
+              </div>
+
               <div className="set-inputs">
                 <div className="input-group">
                   <input
@@ -2748,6 +3112,20 @@ export default function FitnessApp() {
                   <div className="input-label">rpe</div>
                 </div>
               </div>
+
+              {/* Warmup Toggle */}
+              <div className="warmup-toggle-row">
+                <label className="warmup-toggle">
+                  <input
+                    type="checkbox"
+                    checked={setIsWarmup}
+                    onChange={(e) => setSetIsWarmup(e.target.checked)}
+                  />
+                  <span className="warmup-toggle-label">Warmup set</span>
+                  <span className="warmup-toggle-hint">(no XP)</span>
+                </label>
+              </div>
+
               <div className="set-actions">
                 <button className="action-btn" onClick={() => setSetWeight(w => w - 5)}>−5</button>
                 <button className="action-btn primary" onClick={handleLogSet}>
@@ -2755,14 +3133,28 @@ export default function FitnessApp() {
                 </button>
                 <button className="action-btn" onClick={() => setSetWeight(w => w + 5)}>+5</button>
               </div>
-              {(editingSetIndex !== null || (store.currentWorkout?.exercises[store.currentExerciseIndex]?.sets.length ?? 0) > 0) && (
+
+              {/* Repeat Last Set Button */}
+              {editingSetIndex === null && currentEx && currentEx.sets.length > 0 && (
+                <button
+                  className="repeat-set-btn"
+                  onClick={() => {
+                    handleRepeatLastSet();
+                    setShowSetPanel(false);
+                  }}
+                >
+                  ↩ Repeat Last ({currentEx.sets[currentEx.sets.length - 1].weight}×{currentEx.sets[currentEx.sets.length - 1].reps})
+                </button>
+              )}
+
+              {(editingSetIndex !== null || (currentEx?.sets.length ?? 0) > 0) && (
                 <button
                   className="remove-set-btn"
                   onClick={() => {
                     if (editingSetIndex !== null) {
                       handleRemoveSet(store.currentExerciseIndex, editingSetIndex);
                     } else {
-                      const sets = store.currentWorkout?.exercises[store.currentExerciseIndex]?.sets;
+                      const sets = currentEx?.sets;
                       if (sets && sets.length > 0) {
                         handleRemoveSet(store.currentExerciseIndex, sets.length - 1);
                       }
@@ -2772,9 +3164,45 @@ export default function FitnessApp() {
                   {editingSetIndex !== null ? 'Delete This Set' : 'Remove Last Set'}
                 </button>
               )}
+
+              {/* Rest Timer */}
+              {(store.restTimerRunning || store.restTimerSeconds > 0) && (
+                <div className="rest-timer-section">
+                  <div className="rest-timer-display">
+                    <span className="rest-timer-label">Rest</span>
+                    <span className="rest-timer-time">
+                      {Math.floor(store.restTimerSeconds / 60)}:{(store.restTimerSeconds % 60).toString().padStart(2, '0')}
+                    </span>
+                    <button className="rest-timer-skip" onClick={() => store.stopRestTimer()}>Skip</button>
+                  </div>
+                  <div className="rest-timer-bar">
+                    <div
+                      className="rest-timer-fill"
+                      style={{ width: `${(store.restTimerSeconds / store.restTimerPreset) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Rest Timer Presets */}
+              {!store.restTimerRunning && store.restTimerSeconds === 0 && (
+                <div className="rest-timer-presets">
+                  <span className="rest-presets-label">Rest timer:</span>
+                  {[60, 90, 120, 180].map(seconds => (
+                    <button
+                      key={seconds}
+                      className={`rest-preset-btn ${store.restTimerPreset === seconds ? 'active' : ''}`}
+                      onClick={() => store.setRestTimerPreset(seconds)}
+                    >
+                      {seconds < 60 ? `${seconds}s` : `${seconds / 60}m`}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </>
-        )}
+        );
+        })()}
 
         {/* Save Template Modal */}
         {showSaveModal && (
