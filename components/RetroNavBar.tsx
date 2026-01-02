@@ -141,8 +141,11 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
   const [showAppsMenu, setShowAppsMenu] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [loginMode, setLoginMode] = useState<'magic' | 'password'>('magic');
+  const [loginError, setLoginError] = useState('');
 
   // Get content from NavBarContext
   const contextContent = useNavBarContent();
@@ -271,6 +274,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
+    setLoginError('');
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -280,9 +284,32 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
     });
     setLoginLoading(false);
     if (error) {
-      alert(`Error: ${error.message}`);
+      setLoginError(error.message);
     } else {
       setMagicLinkSent(true);
+    }
+  };
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoginLoading(false);
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        setLoginError('Invalid email or password');
+      } else {
+        setLoginError(error.message);
+      }
+    } else {
+      setShowLoginDropdown(false);
+      setPassword('');
+      setEmail('');
     }
   };
 
@@ -1993,6 +2020,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                       <ThemeSwitcher />
                       <Link href="/account" className="nav-dropdown-item">PROFILE</Link>
                       <Link href="/friends" className="nav-dropdown-item">FRIENDS</Link>
+                      <Link href="/settings" className="nav-dropdown-item">SETTINGS</Link>
                       <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>
                     </div>
                   )}
@@ -2003,7 +2031,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             {authStatus === 'unauthenticated' && (
               <div style={{ position: 'relative' }} className="nav-dropdown-zone">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowLoginDropdown(!showLoginDropdown); setMagicLinkSent(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowLoginDropdown(!showLoginDropdown); setMagicLinkSent(false); setLoginError(''); }}
                   className="nav-login-btn"
                 >
                   PLAY
@@ -2020,21 +2048,99 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                       </div>
                     ) : (
                       <>
-                        <p className="nav-login-title">ENTER YOUR EMAIL</p>
-                        <form onSubmit={handleMagicLink}>
-                          <input
-                            type="email"
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="nav-input"
-                          />
-                          <button type="submit" disabled={loginLoading} className="nav-submit-btn">
-                            {loginLoading ? 'SENDING...' : 'SEND MAGIC LINK'}
+                        {/* Login mode toggle */}
+                        <div style={{ display: 'flex', marginBottom: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '3px' }}>
+                          <button
+                            type="button"
+                            onClick={() => { setLoginMode('magic'); setLoginError(''); }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              background: loginMode === 'magic' ? 'rgba(255,215,0,0.2)' : 'transparent',
+                              border: 'none',
+                              borderRadius: '4px',
+                              color: loginMode === 'magic' ? '#FFD700' : '#666',
+                              fontFamily: "'Press Start 2P', monospace",
+                              fontSize: '6px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            MAGIC LINK
                           </button>
-                        </form>
-                        <p style={{ fontSize: '7px', color: '#555', marginTop: '12px', textAlign: 'center', fontFamily: "'Press Start 2P', monospace" }}>No password needed!</p>
+                          <button
+                            type="button"
+                            onClick={() => { setLoginMode('password'); setLoginError(''); }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              background: loginMode === 'password' ? 'rgba(255,215,0,0.2)' : 'transparent',
+                              border: 'none',
+                              borderRadius: '4px',
+                              color: loginMode === 'password' ? '#FFD700' : '#666',
+                              fontFamily: "'Press Start 2P', monospace",
+                              fontSize: '6px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            PASSWORD
+                          </button>
+                        </div>
+
+                        {loginError && (
+                          <div style={{ padding: '8px 10px', background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '6px', marginBottom: '10px', fontSize: '10px', color: '#ff6b6b' }}>
+                            {loginError}
+                          </div>
+                        )}
+
+                        {loginMode === 'magic' ? (
+                          <>
+                            <p className="nav-login-title">ENTER YOUR EMAIL</p>
+                            <form onSubmit={handleMagicLink}>
+                              <input
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                className="nav-input"
+                              />
+                              <button type="submit" disabled={loginLoading} className="nav-submit-btn">
+                                {loginLoading ? 'SENDING...' : 'SEND MAGIC LINK'}
+                              </button>
+                            </form>
+                            <p style={{ fontSize: '7px', color: '#555', marginTop: '12px', textAlign: 'center', fontFamily: "'Press Start 2P', monospace" }}>No password needed!</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="nav-login-title">SIGN IN</p>
+                            <form onSubmit={handlePasswordLogin}>
+                              <input
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                className="nav-input"
+                              />
+                              <input
+                                type="password"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                className="nav-input"
+                              />
+                              <button type="submit" disabled={loginLoading} className="nav-submit-btn">
+                                {loginLoading ? 'SIGNING IN...' : 'SIGN IN'}
+                              </button>
+                            </form>
+                            <p style={{ fontSize: '7px', color: '#555', marginTop: '12px', textAlign: 'center', fontFamily: "'Press Start 2P', monospace" }}>
+                              No password? Use Magic Link
+                            </p>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
