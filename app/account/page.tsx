@@ -211,7 +211,7 @@ export default function AccountPage() {
         /* Dashboard Wrapper */
         .account-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; min-height: 100vh; }
         .account-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
-        .account-content { position: relative; z-index: 2; padding: 80px 2rem 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
+        .account-content { position: relative; z-index: 2; padding: 80px 2rem 4rem; max-width: 1000px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
 
         /* Welcome Card - Glass morphic */
         .welcome-card { background: var(--theme-bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--theme-border-light); border-radius: 20px; padding: 2rem; display: flex; align-items: center; gap: 2rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); margin-bottom: 3rem; }
