@@ -2585,7 +2585,7 @@ export default function FitnessApp() {
                   <p className="home-subtitle">Turn every rep into XP</p>
                   <div className="home-stats">
                     <div className="home-stat">
-                      <div className="home-stat-value">{store.profile.level}</div>
+                      <div className="home-stat-value">{unifiedProfile?.level ?? store.profile.level}</div>
                       <div className="home-stat-label">LEVEL</div>
                     </div>
                     <div className="home-stat">
@@ -2593,8 +2593,8 @@ export default function FitnessApp() {
                       <div className="home-stat-label">WORKOUTS</div>
                     </div>
                     <div className="home-stat">
-                      <div className="home-stat-value" style={{ color: '#FFD700' }}>{store.profile.xp.toLocaleString()}</div>
-                      <div className="home-stat-label">TOTAL XP</div>
+                      <div className="home-stat-value" style={{ color: '#FFD700' }}>{(unifiedProfile?.xp ?? store.profile.xp).toLocaleString()}</div>
+                      <div className="home-stat-label">XP</div>
                     </div>
                   </div>
                 </div>
