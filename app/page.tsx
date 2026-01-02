@@ -807,7 +807,7 @@ export default function LandingPage() {
         .stat-card { background: var(--theme-bg-card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--theme-border); border-radius: 12px; padding: 1.25rem; text-align: center; transition: all 0.3s ease; }
         .stat-card:hover { border-color: var(--theme-gold); box-shadow: 0 0 20px var(--theme-gold-glow); }
         .stat-value { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .stat-label { font-size: 0.4rem; color: var(--theme-text-muted); }
+        .stat-label { font-size: 0.45rem; color: var(--theme-text-secondary); }
 
         /* Shared Styles */
         @keyframes subtle-flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.985; } }
@@ -857,13 +857,13 @@ export default function LandingPage() {
         .game-card-badge.test { background: rgba(255,193,7,0.2); border-color: #ffc107; color: #ffc107; }
         .game-icon { width: 64px; height: 64px; margin: 0 auto 1rem; transition: all 0.3s ease; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
         .game-card:hover .game-icon { transform: scale(1.1) translateY(-4px); filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4)); }
-        .game-name { font-size: 0.7rem; color: var(--theme-text-primary); margin-bottom: 0.35rem; font-family: 'Press Start 2P', monospace; }
-        .game-tagline { font-size: 0.45rem; color: var(--theme-text-muted); margin-bottom: 0.75rem; font-family: 'Press Start 2P', monospace; line-height: 1.8; }
+        .game-name { font-size: 0.7rem; color: var(--theme-text-primary); margin-bottom: 0.5rem; font-family: 'Press Start 2P', monospace; }
+        .game-tagline { font-size: 0.5rem; color: var(--theme-text-secondary); margin-bottom: 1rem; font-family: 'Press Start 2P', monospace; line-height: 1.8; }
         .xp-bar-container { margin-top: 0.5rem; }
         .xp-bar-bg { height: 6px; background: var(--theme-bg-base); border: 1px solid var(--theme-border); border-radius: 3px; overflow: hidden; }
         .xp-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease-out; }
-        .xp-bar-text { display: block; margin-top: 0.35rem; font-size: 0.28rem; color: var(--theme-text-muted); font-family: 'Press Start 2P', monospace; }
-        .game-domain { font-size: 0.32rem; color: var(--theme-text-muted); margin-top: 0.6rem; font-family: 'Press Start 2P', monospace; transition: color 0.2s ease; }
+        .xp-bar-text { display: block; margin-top: 0.4rem; font-size: 0.35rem; color: var(--theme-text-muted); font-family: 'Press Start 2P', monospace; }
+        .game-domain { font-size: 0.4rem; color: var(--theme-text-muted); margin-top: 0.75rem; font-family: 'Press Start 2P', monospace; transition: color 0.2s ease; }
         .game-card:hover .game-domain { color: var(--theme-text-secondary); }
         .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; max-width: 1000px; margin: 0 auto; }
         .feature-card { background: linear-gradient(180deg, var(--theme-bg-card) 0%, var(--theme-bg-elevated) 100%); border: 1px solid var(--theme-border); border-radius: 12px; padding: 1.75rem; transition: all 0.3s ease; }
