@@ -27,8 +27,8 @@ export default async function LocationDetailPage({ params }: Props) {
   const location = await prisma.travel_locations.findUnique({
     where: { id: locationId },
     include: {
-      travel_cities: true,
-      travel_neighborhoods: true,
+      city: true,
+      neighborhood: true,
     },
   });
 
@@ -125,10 +125,10 @@ export default async function LocationDetailPage({ params }: Props) {
               {location.name}
             </h1>
             <p className="text-[0.55rem]" style={{ color: "var(--rpg-muted)" }}>
-              {location.travel_neighborhoods?.name && (
-                <span>{location.travel_neighborhoods.name} • </span>
+              {location.neighborhood?.name && (
+                <span>{location.neighborhood.name} • </span>
               )}
-              {location.travel_cities.name}, {location.travel_cities.country}
+              {location.city.name}, {location.city.country}
             </p>
           </div>
 
