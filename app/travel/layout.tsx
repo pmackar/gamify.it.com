@@ -23,49 +23,60 @@ export default function TravelLayout({
           font-family: var(--font-pixel) !important;
         }
 
-        /* Override Tailwind text sizes for consistency */
+        /* Override Tailwind text sizes for consistency with fitness/today */
         .travel-layout .text-lg {
           font-family: var(--font-pixel) !important;
-          font-size: 0.75rem !important;
+          font-size: 1.25rem !important;
         }
 
         .travel-layout .text-sm {
-          font-size: 0.6rem !important;
+          font-size: 0.9375rem !important;
         }
 
         .travel-layout .text-xs {
-          font-size: 0.5rem !important;
+          font-size: 0.8125rem !important;
         }
 
-        /* Normalize arbitrary text sizes */
+        /* Normalize arbitrary text sizes - scale up to match fitness */
         .travel-layout [class*="text-[0.45rem]"] {
-          font-size: 0.5rem !important;
+          font-size: 0.75rem !important;
         }
 
         .travel-layout [class*="text-[0.5rem]"] {
-          font-size: 0.55rem !important;
+          font-size: 0.8125rem !important;
         }
 
         .travel-layout [class*="text-[0.55rem]"] {
-          font-size: 0.6rem !important;
+          font-size: 0.875rem !important;
         }
 
         .travel-layout [class*="text-[0.6rem]"] {
-          font-size: 0.65rem !important;
+          font-size: 0.9375rem !important;
         }
 
         .travel-layout [class*="text-[0.65rem]"] {
-          font-size: 0.7rem !important;
+          font-size: 1rem !important;
         }
 
         /* RPG button text sizing */
         .travel-layout .rpg-btn {
-          font-size: 0.55rem !important;
+          font-size: 0.875rem !important;
         }
 
         /* RPG input text sizing */
         .travel-layout .rpg-input {
-          font-size: 0.6rem !important;
+          font-size: 1rem !important;
+        }
+
+        /* Body text baseline */
+        .travel-layout p,
+        .travel-layout span,
+        .travel-layout div {
+          font-size: inherit;
+        }
+
+        .travel-layout {
+          font-size: 1rem;
         }
 
         /* Light theme adjustments for travel */
