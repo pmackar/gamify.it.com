@@ -2,11 +2,11 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
+import type {
   FitnessState,
   Workout,
   WorkoutExercise,
-  Set,
+  Set as SetType,
   Profile,
   Campaign,
   WorkoutTemplate,
@@ -317,7 +317,7 @@ export const useFitnessStore = create<FitnessStore>()(
 
         const xp = calculateSetXP(exercise.id, weight, reps);
 
-        const newSet: Set = {
+        const newSet: SetType = {
           weight,
           reps,
           rpe,

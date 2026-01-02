@@ -19,23 +19,48 @@ function calculateXPProgress(totalXp: number, level: number) {
   return { xpInCurrentLevel, xpToNextLevel };
 }
 
+// Calculate XP to next level for app profiles
+function calculateAppXPToNext(level: number): number {
+  let xpNeeded = 100;
+  for (let i = 1; i < level; i++) {
+    xpNeeded = Math.floor(xpNeeded * 1.5);
+  }
+  return xpNeeded;
+}
+
 export async function GET() {
   try {
     const user = await requireAuth();
 
     // Get stats from new schema
-    const [locationsCount, achievementsCount] = await Promise.all([
+    const [locationsCount, achievementsCount, appProfiles] = await Promise.all([
       prisma.travel_locations.count({
         where: { user_id: user.id },
       }),
       prisma.user_achievements.count({
         where: { user_id: user.id, is_completed: true },
       }),
+      prisma.app_profiles.findMany({
+        where: { user_id: user.id },
+      }),
     ]);
 
     const totalXp = user.totalXP || 0;
     const level = user.mainLevel || 1;
     const { xpInCurrentLevel, xpToNextLevel } = calculateXPProgress(totalXp, level);
+
+    // Build app XP map
+    const apps: Record<string, { xp: number; level: number; xpToNext: number }> = {};
+    for (const app of appProfiles) {
+      apps[app.app_id] = {
+        xp: app.xp || 0,
+        level: app.level || 1,
+        xpToNext: app.xp_to_next || calculateAppXPToNext(app.level || 1),
+      };
+    }
+
+    // Count active apps (apps with any XP)
+    const activeApps = appProfiles.filter(a => (a.xp || 0) > 0).length;
 
     return NextResponse.json({
       character: {
@@ -52,7 +77,9 @@ export async function GET() {
       stats: {
         locations: locationsCount,
         achievements: achievementsCount,
+        activeApps,
       },
+      apps,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {

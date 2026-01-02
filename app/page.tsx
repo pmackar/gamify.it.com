@@ -46,16 +46,57 @@ const TEST_ACHIEVEMENTS = [
   { code: 'international', name: 'International', description: 'Visit 10 different countries', icon: 'earth', xpReward: 2000, category: 'exploration', tier: 4 },
 ];
 
+// Profile data type
+interface ProfileData {
+  character: {
+    name: string;
+    level: number;
+    xp: number;
+    xpInCurrentLevel: number;
+    xpToNextLevel: number;
+    currentStreak: number;
+  };
+  stats: {
+    achievements: number;
+    activeApps: number;
+  };
+  apps: Record<string, { xp: number; level: number; xpToNext: number }>;
+}
+
 // Logged-in Dashboard Component
 function Dashboard({ user }: { user: User }) {
-  const [totalXP] = useState(12450);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
   const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player';
   const { showAchievement } = useAchievements();
+
+  useEffect(() => {
+    fetch('/api/profile')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) setProfile(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const testAchievement = () => {
     const randomAchievement = TEST_ACHIEVEMENTS[Math.floor(Math.random() * TEST_ACHIEVEMENTS.length)];
     showAchievement(randomAchievement);
   };
+
+  // Get app XP with defaults
+  const getAppXP = (appId: string) => {
+    const app = profile?.apps?.[appId];
+    return {
+      xp: app?.xp || 0,
+      xpToNext: app?.xpToNext || 100,
+    };
+  };
+
+  const fitnessXP = getAppXP('fitness');
+  const todayXP = getAppXP('today');
+  const travelXP = getAppXP('travel');
 
   return (
     <>
@@ -72,13 +113,17 @@ function Dashboard({ user }: { user: User }) {
                 ) : (
                   <div className="avatar-placeholder">{displayName.charAt(0).toUpperCase()}</div>
                 )}
-                <div className="level-badge">LVL 12</div>
+                <div className="level-badge">
+                  {loading ? '...' : `LVL ${profile?.character?.level || 1}`}
+                </div>
               </div>
               <div className="welcome-info">
                 <p className="welcome-label">WELCOME BACK</p>
                 <h1 className="welcome-name">{displayName}</h1>
                 <div className="xp-display">
-                  <span className="xp-value">{totalXP.toLocaleString()}</span>
+                  <span className="xp-value">
+                    {loading ? '...' : (profile?.character?.xp || 0).toLocaleString()}
+                  </span>
                   <span className="xp-label">TOTAL XP</span>
                 </div>
               </div>
@@ -97,7 +142,7 @@ function Dashboard({ user }: { user: User }) {
                 <DumbbellIcon className="game-icon" />
                 <h3 className="game-name">IRON QUEST</h3>
                 <p className="game-tagline">Turn every rep into XP</p>
-                <XPBar current={4250} max={5000} color="#FF6B6B" />
+                <XPBar current={fitnessXP.xp} max={fitnessXP.xpToNext} color="#FF6B6B" />
                 <p className="game-domain">/fitness</p>
               </a>
               <a href="/today" className="game-card tasks">
@@ -105,7 +150,7 @@ function Dashboard({ user }: { user: User }) {
                 <ChecklistIcon className="game-icon" />
                 <h3 className="game-name">DAY QUEST</h3>
                 <p className="game-tagline">Conquer your daily missions</p>
-                <XPBar current={6800} max={10000} color="#5CC9F5" />
+                <XPBar current={todayXP.xp} max={todayXP.xpToNext} color="#5CC9F5" />
                 <p className="game-domain">/today</p>
               </a>
               <a href="/travel" className="game-card travel">
@@ -113,7 +158,7 @@ function Dashboard({ user }: { user: User }) {
                 <PlaneIcon className="game-icon" />
                 <h3 className="game-name">EXPLORER</h3>
                 <p className="game-tagline">Map your adventures</p>
-                <XPBar current={0} max={3000} color="#5fbf8a" />
+                <XPBar current={travelXP.xp} max={travelXP.xpToNext} color="#5fbf8a" />
                 <p className="game-domain">/travel</p>
               </a>
               <div className="game-card life" style={{ cursor: 'default', opacity: 0.7 }}>
@@ -121,7 +166,7 @@ function Dashboard({ user }: { user: User }) {
                 <LifeIcon className="game-icon" />
                 <h3 className="game-name">LIFE TRACKER</h3>
                 <p className="game-tagline">Gamify everything else</p>
-                <XPBar current={0} max={1000} color="#a855f7" />
+                <XPBar current={0} max={100} color="#a855f7" />
                 <p className="game-domain">gamify.life</p>
               </div>
             </div>
@@ -131,15 +176,21 @@ function Dashboard({ user }: { user: User }) {
           <section className="stats-section">
             <div className="stats-grid">
               <div className="stat-card">
-                <div className="stat-value" style={{ color: '#FF6B6B' }}>7</div>
+                <div className="stat-value" style={{ color: '#FF6B6B' }}>
+                  {loading ? '...' : profile?.character?.currentStreak || 0}
+                </div>
                 <div className="stat-label">DAY STREAK</div>
               </div>
               <div className="stat-card">
-                <div className="stat-value" style={{ color: '#5CC9F5' }}>3</div>
+                <div className="stat-value" style={{ color: '#5CC9F5' }}>
+                  {loading ? '...' : profile?.stats?.activeApps || 0}
+                </div>
                 <div className="stat-label">GAMES ACTIVE</div>
               </div>
               <div className="stat-card" onClick={testAchievement} style={{ cursor: 'pointer' }}>
-                <div className="stat-value" style={{ color: '#5fbf8a' }}>24</div>
+                <div className="stat-value" style={{ color: '#5fbf8a' }}>
+                  {loading ? '...' : profile?.stats?.achievements || 0}
+                </div>
                 <div className="stat-label">ACHIEVEMENTS</div>
                 <div style={{ fontSize: '0.3rem', color: '#666', marginTop: '0.5rem' }}>CLICK TO TEST</div>
               </div>

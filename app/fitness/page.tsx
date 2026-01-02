@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
-import { CommandSuggestion, Workout, WorkoutExercise, Set } from '@/lib/fitness/types';
+import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
@@ -264,6 +264,7 @@ export default function FitnessPage() {
     if ('profile'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
     if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
     if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
+    if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[5] });
 
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
@@ -292,6 +293,7 @@ export default function FitnessPage() {
         else if (suggestion.id === 'profile') store.setView('profile');
         else if (suggestion.id === 'campaigns') store.setView('campaigns');
         else if (suggestion.id === 'achievements') store.setView('achievements');
+        else if (suggestion.id === 'import') fileInputRef.current?.click();
         break;
       case 'template': store.startWorkoutFromTemplate(suggestion.id); break;
       case 'exercise': store.startWorkoutWithExercise(suggestion.id); break;
@@ -415,6 +417,179 @@ export default function FitnessPage() {
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  // CSV Import function
+  const handleCSVImport = async (file: File) => {
+    setImporting(true);
+    setImportProgress({ current: 0, total: 0, unmapped: [] });
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+
+      // Find column indices
+      const dateIdx = headers.findIndex(h => h.toLowerCase() === 'date');
+      const exerciseIdx = headers.findIndex(h => h.toLowerCase().includes('exercise name'));
+      const weightIdx = headers.findIndex(h => h.toLowerCase() === 'weight');
+      const repsIdx = headers.findIndex(h => h.toLowerCase() === 'reps');
+      const rpeIdx = headers.findIndex(h => h.toLowerCase() === 'rpe');
+      const durationIdx = headers.findIndex(h => h.toLowerCase() === 'duration');
+
+      if (dateIdx === -1 || exerciseIdx === -1 || weightIdx === -1 || repsIdx === -1) {
+        store.showToast('Invalid CSV format. Required: Date, Exercise Name, Weight, Reps');
+        setImporting(false);
+        return;
+      }
+
+      // Parse CSV rows
+      const rows: string[][] = [];
+      let currentRow: string[] = [];
+      let inQuotes = false;
+      let currentField = '';
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            currentRow.push(currentField.trim());
+            currentField = '';
+          } else {
+            currentField += char;
+          }
+        }
+        if (!inQuotes) {
+          currentRow.push(currentField.trim());
+          if (currentRow.length > 0 && currentRow[0]) {
+            rows.push(currentRow);
+          }
+          currentRow = [];
+          currentField = '';
+        } else {
+          currentField += '\n';
+        }
+      }
+
+      setImportProgress(prev => ({ ...prev, total: rows.length }));
+
+      // Group rows by workout (same date)
+      const workoutMap = new Map<string, { date: string; duration?: string; rows: typeof rows }>();
+      const unmappedExercises = new Set<string>();
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const dateStr = row[dateIdx];
+        if (!dateStr) continue;
+
+        // Parse date - Strong format: "2016-07-27 15:00:55"
+        const workoutKey = dateStr; // Group by exact timestamp
+
+        if (!workoutMap.has(workoutKey)) {
+          workoutMap.set(workoutKey, {
+            date: dateStr,
+            duration: durationIdx >= 0 ? row[durationIdx] : undefined,
+            rows: []
+          });
+        }
+        workoutMap.get(workoutKey)!.rows.push(row);
+
+        setImportProgress(prev => ({ ...prev, current: i + 1 }));
+      }
+
+      // Convert to Workout objects
+      const workouts: Workout[] = [];
+
+      for (const [, workoutData] of workoutMap) {
+        const exerciseMap = new Map<string, WorkoutExercise>();
+
+        for (const row of workoutData.rows) {
+          const csvExerciseName = row[exerciseIdx];
+          const weight = parseFloat(row[weightIdx]) || 0;
+          const reps = parseInt(row[repsIdx]) || 0;
+          const rpe = rpeIdx >= 0 && row[rpeIdx] ? parseFloat(row[rpeIdx]) : undefined;
+
+          if (!csvExerciseName || reps === 0) continue;
+
+          // Try to match exercise
+          const exerciseId = matchExerciseFromCSV(csvExerciseName);
+
+          if (!exerciseId) {
+            unmappedExercises.add(csvExerciseName);
+            continue;
+          }
+
+          const exercise = getExerciseById(exerciseId);
+          const exerciseName = exercise?.name || csvExerciseName;
+
+          if (!exerciseMap.has(exerciseId)) {
+            exerciseMap.set(exerciseId, {
+              id: exerciseId,
+              name: exerciseName,
+              sets: []
+            });
+          }
+
+          const xp = calculateSetXP(exerciseId, weight, reps);
+          const set: SetType = {
+            weight,
+            reps,
+            rpe,
+            timestamp: workoutData.date,
+            xp
+          };
+
+          exerciseMap.get(exerciseId)!.sets.push(set);
+        }
+
+        if (exerciseMap.size > 0) {
+          // Parse duration string like "2h", "1h 11m", "50m"
+          let durationSeconds = 0;
+          if (workoutData.duration) {
+            const hourMatch = workoutData.duration.match(/(\d+)\s*h/);
+            const minMatch = workoutData.duration.match(/(\d+)\s*m/);
+            if (hourMatch) durationSeconds += parseInt(hourMatch[1]) * 3600;
+            if (minMatch) durationSeconds += parseInt(minMatch[1]) * 60;
+          }
+
+          const exercises = Array.from(exerciseMap.values());
+          const totalXP = exercises.reduce((sum, ex) =>
+            sum + ex.sets.reduce((setSum, s) => setSum + (s.xp || 0), 0), 0
+          );
+
+          const workout: Workout = {
+            id: `import_${new Date(workoutData.date).getTime()}`,
+            exercises,
+            startTime: workoutData.date,
+            endTime: workoutData.date,
+            duration: durationSeconds,
+            totalXP
+          };
+
+          workouts.push(workout);
+        }
+      }
+
+      // Import the workouts
+      if (workouts.length > 0) {
+        store.importWorkouts(workouts);
+      }
+
+      setImportProgress(prev => ({ ...prev, unmapped: Array.from(unmappedExercises) }));
+
+      if (unmappedExercises.size > 0) {
+        console.log('Unmapped exercises:', Array.from(unmappedExercises));
+      }
+
+    } catch (error) {
+      console.error('Import error:', error);
+      store.showToast('Error importing CSV file');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   if (!mounted) return <div className="min-h-screen" style={{ background: 'var(--theme-bg-base)' }} />;
 
@@ -2159,6 +2334,48 @@ export default function FitnessPage() {
 
         {/* Toast */}
         {store.toastMessage && <div className="toast">{store.toastMessage}</div>}
+
+        {/* Hidden file input for CSV import */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".csv"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              handleCSVImport(file);
+              e.target.value = ''; // Reset for re-import
+            }
+          }}
+        />
+
+        {/* Import Progress Overlay */}
+        {importing && (
+          <div className="modal-overlay">
+            <div className="modal" style={{ textAlign: 'center' }}>
+              <div className="modal-header">Importing Workouts...</div>
+              <div className="modal-subtitle">
+                Processing {importProgress.current.toLocaleString()} of {importProgress.total.toLocaleString()} rows
+              </div>
+              <div style={{
+                width: '100%',
+                height: '8px',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                marginTop: '16px'
+              }}>
+                <div style={{
+                  width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%`,
+                  height: '100%',
+                  background: 'var(--accent)',
+                  transition: 'width 0.2s ease'
+                }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
