@@ -1719,6 +1719,57 @@ export default function FitnessPage() {
           font-weight: 600;
         }
 
+        /* ===== LIGHT MODE POLISH ===== */
+        :global(html.light) .fitness-app {
+          background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
+        }
+        :global(html.light) .fitness-app::before { display: none; }
+        :global(html.light) .command-bar-inner {
+          background: rgba(255,255,255,0.95);
+          box-shadow: 0 -4px 40px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05) inset;
+        }
+        :global(html.light) .suggestion:hover { background: var(--theme-bg-tertiary); }
+        :global(html.light) .suggestion-icon { background: var(--theme-bg-elevated); border-color: var(--theme-border); }
+        :global(html.light) .command-input {
+          background: var(--theme-bg-base) !important;
+          border-color: var(--theme-border) !important;
+        }
+        :global(html.light) .workout-card {
+          background: var(--theme-bg-card);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        :global(html.light) .exercise-card {
+          background: var(--theme-bg-elevated);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        :global(html.light) .set-badge {
+          background: var(--theme-bg-tertiary);
+          border-color: var(--theme-border);
+        }
+        :global(html.light) .pixel-particle { opacity: 0.3 !important; }
+        :global(html.light) .milestone-card {
+          background: var(--theme-bg-card);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        :global(html.light) .set-panel {
+          background: rgba(255,255,255,0.98);
+          box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
+        }
+        :global(html.light) .set-input-wrapper input {
+          background: var(--theme-bg-base) !important;
+        }
+        :global(html.light) .exercise-picker-modal {
+          background: var(--theme-bg-elevated);
+        }
+        :global(html.light) .category-card {
+          background: var(--theme-bg-card);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        :global(html.light) .category-card:hover {
+          background: var(--theme-bg-card-hover);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .content-area { padding-top: 60px; }

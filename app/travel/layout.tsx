@@ -7,12 +7,24 @@ export default function TravelLayout({
 }) {
   return (
     <>
-      <style jsx>{`
+      <style jsx global>{`
         .travel-layout {
           min-height: 100vh;
-          background: #1a1a1a;
+          background: var(--theme-bg-base);
           padding-top: 66px;
+          color: var(--theme-text-primary);
         }
+
+        /* Light theme adjustments for travel */
+        :global(html.light) .travel-layout {
+          background: var(--theme-bg-base);
+        }
+
+        :global(html.light) .travel-layout [style*="background: var(--rpg-card)"],
+        :global(html.light) .travel-layout [style*="background: #2d2d2d"] {
+          background: var(--theme-bg-card) !important;
+        }
+
         @media (max-width: 768px) {
           .travel-layout {
             padding-top: 56px;
