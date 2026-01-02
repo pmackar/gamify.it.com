@@ -91,12 +91,12 @@ export default function TravelDashboardPage() {
       {/* Welcome Section */}
       <div className="mb-8">
         <h1
-          className="text-lg mb-2"
+          className="text-xl md:text-2xl mb-2"
           style={{ color: 'var(--rpg-text)', textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}
         >
           Welcome back, Explorer!
         </h1>
-        <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
+        <p className="text-base" style={{ color: 'var(--rpg-muted)' }}>
           Ready to continue your adventure?
         </p>
       </div>
@@ -112,8 +112,8 @@ export default function TravelDashboardPage() {
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <p className="text-[0.5rem] mb-1" style={{ color: 'var(--rpg-muted)' }}>Your Progress</p>
-            <p className="text-xl" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
+            <p className="text-sm mb-1" style={{ color: 'var(--rpg-muted)' }}>Your Progress</p>
+            <p className="text-2xl" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
               Level {stats?.user.level || 1}
             </p>
           </div>
@@ -179,8 +179,8 @@ export default function TravelDashboardPage() {
               <Plus className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
             </div>
             <div className="flex-1">
-              <h3 className="text-[0.65rem]" style={{ color: 'var(--rpg-text)' }}>Add New Location</h3>
-              <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+              <h3 className="text-base font-medium" style={{ color: 'var(--rpg-text)' }}>Add New Location</h3>
+              <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
                 Log a place you've visited
               </p>
             </div>
@@ -205,8 +205,8 @@ export default function TravelDashboardPage() {
               <Globe className="w-5 h-5" style={{ color: 'var(--rpg-gold)' }} />
             </div>
             <div className="flex-1">
-              <h3 className="text-[0.65rem]" style={{ color: 'var(--rpg-text)' }}>View Map</h3>
-              <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+              <h3 className="text-base font-medium" style={{ color: 'var(--rpg-text)' }}>View Map</h3>
+              <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
                 See all your travels
               </p>
             </div>
@@ -227,13 +227,13 @@ export default function TravelDashboardPage() {
           }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[0.7rem] flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
-              <Trophy className="w-4 h-4" style={{ color: 'var(--rpg-gold)' }} />
+            <h2 className="text-lg flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
+              <Trophy className="w-5 h-5" style={{ color: 'var(--rpg-gold)' }} />
               Achievements
             </h2>
             <Link
               href="/travel/achievements"
-              className="text-[0.5rem] transition-colors"
+              className="text-sm transition-colors"
               style={{ color: 'var(--rpg-teal)' }}
             >
               View all
@@ -258,11 +258,11 @@ export default function TravelDashboardPage() {
                 />
               </div>
             </div>
-            <span className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+            <span className="text-sm font-medium" style={{ color: 'var(--rpg-muted)' }}>
               {stats?.achievements.unlocked || 0} / {stats?.achievements.total || 0}
             </span>
           </div>
-          <p className="mt-3 text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+          <p className="mt-3 text-sm" style={{ color: 'var(--rpg-muted)' }}>
             Keep exploring to unlock more achievements!
           </p>
         </div>
@@ -277,13 +277,13 @@ export default function TravelDashboardPage() {
           }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[0.7rem] flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
-              <TrendingUp className="w-4 h-4" style={{ color: 'var(--rpg-teal)' }} />
+            <h2 className="text-lg flex items-center gap-2" style={{ color: 'var(--rpg-text)' }}>
+              <TrendingUp className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
               Top Rated
             </h2>
             <Link
               href="/travel/locations"
-              className="text-[0.5rem] transition-colors"
+              className="text-sm transition-colors"
               style={{ color: 'var(--rpg-teal)' }}
             >
               View all
