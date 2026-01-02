@@ -38,6 +38,26 @@ function getTierName(tier: number): string {
   }
 }
 
+function getAppColor(appId: string): string {
+  switch (appId) {
+    case 'fitness': return '#FF6B6B';
+    case 'today': return '#5CC9F5';
+    case 'travel': return '#5fbf8a';
+    case 'global': return '#FFD700';
+    default: return '#888';
+  }
+}
+
+function getAppName(appId: string): string {
+  switch (appId) {
+    case 'fitness': return 'FITNESS';
+    case 'today': return 'TODAY';
+    case 'travel': return 'TRAVEL';
+    case 'global': return 'GLOBAL';
+    default: return appId.toUpperCase();
+  }
+}
+
 // Pixel Particles Component
 function PixelParticles() {
   const [particles, setParticles] = useState<Array<{ id: number; left: number; size: number; duration: number; delay: number; color: string }>>([]);
@@ -256,11 +276,12 @@ export default function AccountPage() {
         .achievements-row::-webkit-scrollbar { height: 6px; }
         .achievements-row::-webkit-scrollbar-track { background: #1a1a1a; border-radius: 3px; }
         .achievements-row::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
-        .achievement-card { flex-shrink: 0; width: 130px; background: rgba(30, 30, 40, 0.6); backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; }
+        .achievement-card { flex-shrink: 0; width: 130px; background: rgba(30, 30, 40, 0.6); backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; border-left-width: 4px; }
         .achievement-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); }
         .achievement-card-icon { width: 56px; height: 56px; margin: 0 auto 0.75rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
         .achievement-card-name { font-size: 0.4rem; color: #fff; line-height: 1.4; margin-bottom: 0.25rem; }
         .achievement-card-tier { font-size: 0.28rem; padding: 0.15rem 0.3rem; border-radius: 3px; display: inline-block; }
+        .achievement-card-app { position: absolute; top: 0.4rem; left: 0.4rem; font-size: 0.22rem; padding: 0.1rem 0.25rem; border-radius: 3px; letter-spacing: 0.05em; }
         .view-all-btn { flex-shrink: 0; width: 130px; background: rgba(30, 30, 40, 0.4); border: 2px dashed rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s ease; }
         .view-all-btn:hover { border-color: #FFD700; background: rgba(30, 30, 40, 0.8); }
         .view-all-icon { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -280,11 +301,12 @@ export default function AccountPage() {
         .tier-label { font-size: 0.55rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
         .tier-count { font-size: 0.4rem; color: #666; }
         .tier-achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
-        .modal-achievement-card { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; display: flex; gap: 1rem; transition: all 0.2s ease; }
+        .modal-achievement-card { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; display: flex; gap: 1rem; transition: all 0.2s ease; border-left-width: 4px; position: relative; }
         .modal-achievement-card:hover { border-color: rgba(255, 255, 255, 0.2); }
         .modal-achievement-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
         .modal-achievement-info { flex: 1; min-width: 0; }
-        .modal-achievement-name { font-size: 0.45rem; color: #fff; margin-bottom: 0.25rem; }
+        .modal-achievement-name { font-size: 0.45rem; color: #fff; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        .modal-achievement-app { font-size: 0.25rem; padding: 0.1rem 0.3rem; border-radius: 3px; letter-spacing: 0.05em; flex-shrink: 0; }
         .modal-achievement-desc { font-size: 0.35rem; color: #888; line-height: 1.6; margin-bottom: 0.5rem; }
         .modal-achievement-xp { font-size: 0.35rem; color: #FFD700; }
 
@@ -423,14 +445,18 @@ export default function AccountPage() {
                 <div className="achievements-row">
                   {sortedAchievements.slice(0, 6).map(achievement => {
                     const tierColor = getTierColor(achievement.tier || 1);
+                    const appColor = getAppColor(achievement.appId);
                     return (
                       <div
                         key={achievement.id}
                         className="achievement-card"
-                        style={{ borderColor: `${tierColor}50` }}
+                        style={{ borderColor: `${tierColor}50`, borderLeftColor: appColor }}
                         onClick={() => setShowAllAchievements(true)}
                       >
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: tierColor }} />
+                        <div className="achievement-card-app" style={{ background: `${appColor}25`, color: appColor }}>
+                          {getAppName(achievement.appId)}
+                        </div>
                         <div className="achievement-card-icon" style={{ background: `${tierColor}20`, border: `2px solid ${tierColor}50` }}>
                           {getIcon(achievement.icon)}
                         </div>
@@ -470,18 +496,26 @@ export default function AccountPage() {
                                 <span className="tier-count">{tierAchievements.length} unlocked</span>
                               </div>
                               <div className="tier-achievements-grid">
-                                {tierAchievements.map(ach => (
-                                  <div key={ach.id} className="modal-achievement-card" style={{ borderColor: `${tierColor}30` }}>
-                                    <div className="modal-achievement-icon" style={{ background: `${tierColor}20`, border: `2px solid ${tierColor}50` }}>
-                                      {getIcon(ach.icon)}
+                                {tierAchievements.map(ach => {
+                                  const appColor = getAppColor(ach.appId);
+                                  return (
+                                    <div key={ach.id} className="modal-achievement-card" style={{ borderColor: `${tierColor}30`, borderLeftColor: appColor }}>
+                                      <div className="modal-achievement-icon" style={{ background: `${tierColor}20`, border: `2px solid ${tierColor}50` }}>
+                                        {getIcon(ach.icon)}
+                                      </div>
+                                      <div className="modal-achievement-info">
+                                        <div className="modal-achievement-name">
+                                          {ach.name}
+                                          <span className="modal-achievement-app" style={{ background: `${appColor}25`, color: appColor }}>
+                                            {getAppName(ach.appId)}
+                                          </span>
+                                        </div>
+                                        <div className="modal-achievement-desc">{ach.description}</div>
+                                        <div className="modal-achievement-xp">+{ach.xpReward} XP</div>
+                                      </div>
                                     </div>
-                                    <div className="modal-achievement-info">
-                                      <div className="modal-achievement-name">{ach.name}</div>
-                                      <div className="modal-achievement-desc">{ach.description}</div>
-                                      <div className="modal-achievement-xp">+{ach.xpReward} XP</div>
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           );

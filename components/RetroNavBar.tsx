@@ -1281,7 +1281,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
               </button>
               {showAppsMenu && (
                 <div className="nav-apps-dropdown">
-                  <Link href="/" className="nav-apps-dropdown-item" onClick={() => setShowAppsMenu(false)}>
+                  <Link href="/account" className="nav-apps-dropdown-item" onClick={() => setShowAppsMenu(false)}>
                     <span className="nav-apps-dropdown-icon">🏠</span>
                     HOME
                   </Link>
