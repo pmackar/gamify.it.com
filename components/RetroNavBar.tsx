@@ -493,6 +493,47 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           cursor: pointer;
         }
 
+        .nav-brand-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .nav-separator {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 9px;
+          color: var(--theme-text-muted, #666);
+          opacity: 0.5;
+        }
+
+        .nav-active-app {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 9px;
+          letter-spacing: -0.5px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .nav-active-app.fitness {
+          color: var(--app-fitness, #FF6B6B);
+        }
+
+        .nav-active-app.today {
+          color: var(--app-today, #5CC9F5);
+        }
+
+        .nav-active-app.travel {
+          color: var(--app-travel, #5fbf8a);
+        }
+
+        .nav-active-app.home {
+          color: var(--theme-gold, #FFD700);
+        }
+
+        .nav-active-app:hover {
+          filter: brightness(1.3);
+        }
+
         .nav-apps-dropdown {
           position: absolute;
           top: calc(100% + 8px);
@@ -1272,13 +1313,14 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         <div className="global-nav-inner">
           {/* Left section: Logo with apps dropdown */}
           <div className="nav-left">
-            <div style={{ position: 'relative' }} className="nav-dropdown-zone">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowAppsMenu(!showAppsMenu); }}
-                className="nav-logo-btn"
-              >
-                <span className="nav-logo">G.IT</span>
-              </button>
+            <div className="nav-brand-group">
+              <div style={{ position: 'relative' }} className="nav-dropdown-zone">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowAppsMenu(!showAppsMenu); }}
+                  className="nav-logo-btn"
+                >
+                  <span className="nav-logo">G.IT</span>
+                </button>
               {showAppsMenu && (
                 <div className="nav-apps-dropdown">
                   <Link href="/account" className="nav-apps-dropdown-item" onClick={() => setShowAppsMenu(false)}>
@@ -1302,6 +1344,17 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                     LIFE (SOON)
                   </div>
                 </div>
+              )}
+              </div>
+              {/* Active app indicator */}
+              {(isFitness || isToday || isTravel || pathname === '/account') && (
+                <>
+                  <span className="nav-separator">/</span>
+                  {isFitness && <Link href="/fitness" className="nav-active-app fitness">IRON QUEST</Link>}
+                  {isToday && <Link href="/today" className="nav-active-app today">DAY QUEST</Link>}
+                  {isTravel && <Link href="/travel" className="nav-active-app travel">EXPLORER</Link>}
+                  {pathname === '/account' && <Link href="/account" className="nav-active-app home">HOME</Link>}
+                </>
               )}
             </div>
           </div>
