@@ -27,11 +27,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           avatar_url: true,
         },
       },
+      // Legacy single city/neighborhood
       target_city: {
         select: { id: true, name: true, country: true },
       },
       target_neighborhood: {
         select: { id: true, name: true },
+      },
+      // Multi-city/neighborhood support
+      cities: {
+        include: { city: { select: { id: true, name: true, country: true } } },
+        orderBy: { sort_order: "asc" },
+      },
+      neighborhoods: {
+        include: { neighborhood: { select: { id: true, name: true } } },
       },
       items: {
         include: {
@@ -124,6 +133,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             name: quest.target_neighborhood.name,
           }
         : null,
+      // Multi-city/neighborhood arrays
+      cities: quest.cities.map((qc) => ({
+        id: qc.city.id,
+        name: qc.city.name,
+        country: qc.city.country,
+      })),
+      neighborhoods: quest.neighborhoods.map((qn) => ({
+        id: qn.neighborhood.id,
+        name: qn.neighborhood.name,
+      })),
       items: quest.items.map((item) => ({
         id: item.id,
         completed: item.completed,
@@ -336,5 +355,41 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     partyMembers: memberXPResults,
     ownerLevelUp: ownerXPResult.leveledUp,
     ownerNewLevel: ownerXPResult.newLevel,
+  });
+}
+
+// DELETE /api/quests/[questId] - Delete quest
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const user = await getAuthUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { questId } = await params;
+
+  const quest = await prisma.travel_quests.findUnique({
+    where: { id: questId },
+    select: { id: true, user_id: true, name: true },
+  });
+
+  if (!quest) {
+    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
+  }
+
+  // Only owner can delete quest
+  if (quest.user_id !== user.id) {
+    return NextResponse.json(
+      { error: "Only the quest owner can delete it" },
+      { status: 403 }
+    );
+  }
+
+  // Delete quest (cascade will remove items, cities, neighborhoods, party)
+  await prisma.travel_quests.delete({
+    where: { id: questId },
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: `Quest "${quest.name}" deleted successfully`,
   });
 }

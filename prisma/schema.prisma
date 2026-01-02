@@ -160,6 +160,7 @@ model travel_cities {
   neighborhoods travel_neighborhoods[]
   locations     travel_locations[]
   quests        travel_quests[]
+  quest_cities  travel_quest_cities[]
 
   created_at    DateTime  @default(now()) @db.Timestamptz(6)
   updated_at    DateTime  @default(now()) @db.Timestamptz(6)
@@ -181,8 +182,9 @@ model travel_neighborhoods {
   city_id     String     @db.Uuid
   city        travel_cities @relation(fields: [city_id], references: [id], onDelete: Cascade)
 
-  locations   travel_locations[]
-  quests      travel_quests[]
+  locations           travel_locations[]
+  quests              travel_quests[]
+  quest_neighborhoods travel_quest_neighborhoods[]
 
   created_at  DateTime   @default(now()) @db.Timestamptz(6)
   updated_at  DateTime   @default(now()) @db.Timestamptz(6)
@@ -392,6 +394,10 @@ model travel_quests {
   items                  travel_quest_items[]
   party                  quest_parties?
 
+  // Multi-city/neighborhood support
+  cities                 travel_quest_cities[]
+  neighborhoods          travel_quest_neighborhoods[]
+
   created_at             DateTime              @default(now()) @db.Timestamptz(6)
   updated_at             DateTime              @default(now()) @db.Timestamptz(6)
 
@@ -423,6 +429,33 @@ model travel_quest_items {
   @@unique([quest_id, location_id])
   @@index([quest_id])
   @@index([location_id])
+}
+
+/// Multi-city support for quests (junction table)
+model travel_quest_cities {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quest_id   String        @db.Uuid
+  quest      travel_quests @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  city_id    String        @db.Uuid
+  city       travel_cities @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  sort_order Int           @default(0)
+
+  @@unique([quest_id, city_id])
+  @@index([quest_id])
+  @@index([city_id])
+}
+
+/// Multi-neighborhood support for quests (junction table)
+model travel_quest_neighborhoods {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quest_id        String               @db.Uuid
+  quest           travel_quests        @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  neighborhood_id String               @db.Uuid
+  neighborhood    travel_neighborhoods @relation(fields: [neighborhood_id], references: [id], onDelete: Cascade)
+
+  @@unique([quest_id, neighborhood_id])
+  @@index([quest_id])
+  @@index([neighborhood_id])
 }
 
 // ============================================
@@ -521,4 +554,167 @@ model activity_feed {
   @@index([user_id, read])
   @@index([user_id, created_at])
   @@index([actor_id])
+}
+
+// ============================================
+// FITNESS COACHING SYSTEM TABLES
+// ============================================
+
+enum coaching_relationship_status {
+  PENDING
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+/// Coach profile - extends user profile with coaching capabilities
+model coach_profiles {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String    @unique @db.Uuid
+  user            profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  business_name   String?
+  specializations String[]  // ["powerlifting", "bodybuilding", "general fitness"]
+  bio             String?
+  is_verified     Boolean   @default(false)
+  max_athletes    Int       @default(10)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  athletes        coaching_relationships[]
+  programs        coaching_programs[]
+
+  @@index([user_id])
+}
+
+/// Coach-Athlete relationship
+model coaching_relationships {
+  id           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id     String                       @db.Uuid
+  coach        coach_profiles               @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  athlete_id   String                       @db.Uuid
+  athlete      profiles                     @relation("AthleteCoaching", fields: [athlete_id], references: [id], onDelete: Cascade)
+  status       coaching_relationship_status @default(PENDING)
+  invited_at   DateTime                     @default(now()) @db.Timestamptz(6)
+  accepted_at  DateTime?                    @db.Timestamptz(6)
+  ended_at     DateTime?                    @db.Timestamptz(6)
+  coach_notes  String?
+
+  assignments  coaching_program_assignments[]
+
+  @@unique([coach_id, athlete_id])
+  @@index([coach_id])
+  @@index([athlete_id])
+  @@index([status])
+}
+
+/// Training program template/assignment
+model coaching_programs {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id       String          @db.Uuid
+  coach          coach_profiles  @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  duration_weeks Int
+  difficulty     String?         // beginner, intermediate, advanced
+  goal           String?         // strength, hypertrophy, endurance, general
+  is_template    Boolean         @default(false)
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @db.Timestamptz(6)
+
+  weeks          coaching_program_weeks[]
+  assignments    coaching_program_assignments[]
+
+  @@index([coach_id])
+  @@index([is_template])
+}
+
+/// Program assigned to specific athlete
+model coaching_program_assignments {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String                 @db.Uuid
+  program         coaching_programs      @relation(fields: [program_id], references: [id], onDelete: Cascade)
+  relationship_id String                 @db.Uuid
+  relationship    coaching_relationships @relation(fields: [relationship_id], references: [id], onDelete: Cascade)
+  start_date      DateTime               @db.Date
+  current_week    Int                    @default(1)
+  status          String                 @default("active") // active, completed, paused
+  created_at      DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime               @default(now()) @db.Timestamptz(6)
+
+  completions     coaching_workout_completions[]
+
+  @@index([relationship_id])
+  @@index([program_id])
+  @@index([status])
+}
+
+/// Week within a program
+model coaching_program_weeks {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id  String            @db.Uuid
+  program     coaching_programs @relation(fields: [program_id], references: [id], onDelete: Cascade)
+  week_number Int
+  name        String?           // "Deload Week", "Volume Block"
+  notes       String?
+
+  workouts    coaching_workouts[]
+
+  @@unique([program_id, week_number])
+  @@index([program_id])
+}
+
+/// Prescribed workout for a day
+model coaching_workouts {
+  id          String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  week_id     String                 @db.Uuid
+  week        coaching_program_weeks @relation(fields: [week_id], references: [id], onDelete: Cascade)
+  day_number  Int                    // 1-7
+  name        String                 // "Push Day", "Upper A"
+  notes       String?
+  rest_day    Boolean                @default(false)
+
+  exercises   coaching_workout_exercises[]
+  completions coaching_workout_completions[]
+
+  @@unique([week_id, day_number])
+  @@index([week_id])
+}
+
+/// Prescribed exercise within a workout
+model coaching_workout_exercises {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workout_id    String            @db.Uuid
+  workout       coaching_workouts @relation(fields: [workout_id], references: [id], onDelete: Cascade)
+  exercise_id   String            // From fitness exercise library
+  exercise_name String            // Denormalized for display
+  order_index   Int
+  sets          Int
+  reps_min      Int
+  reps_max      Int?              // For ranges like "8-12"
+  intensity     String?           // "75%", "RPE 8", "moderate"
+  rest_seconds  Int?
+  notes         String?
+
+  @@unique([workout_id, order_index])
+  @@index([workout_id])
+}
+
+/// Track athlete's completion of prescribed workouts
+model coaching_workout_completions {
+  id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id         String                       @db.Uuid
+  assignment            coaching_program_assignments @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  prescribed_workout_id String                       @db.Uuid
+  prescribed_workout    coaching_workouts            @relation(fields: [prescribed_workout_id], references: [id], onDelete: Cascade)
+  athlete_workout_id    String?                      // ID from gamify_fitness_data workouts array
+  scheduled_date        DateTime                     @db.Date
+  completed_at          DateTime?                    @db.Timestamptz(6)
+  skipped               Boolean                      @default(false)
+  compliance_score      Float?                       // 0-100
+  coach_feedback        String?
+  athlete_notes         String?
+
+  @@unique([assignment_id, prescribed_workout_id, scheduled_date])
+  @@index([assignment_id])
+  @@index([scheduled_date])
 }

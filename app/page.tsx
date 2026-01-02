@@ -927,9 +927,8 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {isPWA && showLaunch ? (
-        <PWALogin user={user} onContinue={() => setShowLaunch(false)} />
-      ) : user ? (
+      {/* PWA login hidden for now */}
+      {user ? (
         <Dashboard user={user} />
       ) : (
         <SplashIntro />
