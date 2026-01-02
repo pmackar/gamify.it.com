@@ -8,11 +8,36 @@ import {
   Plus,
   ArrowRight,
   TrendingUp,
+  Map,
+  Star,
 } from "lucide-react";
 import XPBar from "@/components/ui/XPBar";
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { redirect } from "next/navigation";
+import AppLandingPage from "@/components/AppLandingPage";
+
+const FEATURES = [
+  {
+    icon: <Map size={28} />,
+    title: "Map Your World",
+    description: "Track cities, neighborhoods, and locations you've visited",
+  },
+  {
+    icon: <Star size={28} />,
+    title: "Rate & Review",
+    description: "Remember your favorite spots with ratings and notes",
+  },
+  {
+    icon: <TrendingUp size={28} />,
+    title: "Earn Exploration XP",
+    description: "Every new place you log contributes to your level",
+  },
+  {
+    icon: <Trophy size={28} />,
+    title: "Achievement Hunting",
+    description: "Unlock badges for reaching exploration milestones",
+  },
+];
 
 async function getStats(userId: string) {
   const [
@@ -91,8 +116,21 @@ async function getStats(userId: string) {
 
 export default async function TravelDashboardPage() {
   const user = await getUser();
+
   if (!user) {
-    redirect("/login");
+    return (
+      <AppLandingPage
+        appId="travel"
+        appName="Explorer"
+        tagline="Turn Every Trip Into an Adventure"
+        description="Log your travels, rate your discoveries, and unlock achievements as you explore the world."
+        color="#5fbf8a"
+        colorGlow="rgba(95, 191, 138, 0.3)"
+        icon={<Globe size={64} strokeWidth={1.5} />}
+        features={FEATURES}
+        tryPath="/travel/demo"
+      />
+    );
   }
 
   const stats = await getStats(user.id);
