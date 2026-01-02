@@ -125,6 +125,31 @@ export default function TodayPage() {
   useEffect(() => {
     setMounted(true);
     store.loadState();
+    // Fetch from server after local state is loaded
+    store.fetchFromServer();
+  }, []);
+
+  // Sync on page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      const state = useTodayStore.getState();
+      if (state.pendingSync) {
+        // Use sendBeacon for reliable last-chance sync
+        navigator.sendBeacon('/api/today/sync', JSON.stringify({
+          data: {
+            profile: state.profile,
+            tasks: state.tasks,
+            projects: state.projects,
+            categories: state.categories,
+            daily_stats: state.daily_stats,
+            personal_records: state.personal_records,
+          },
+        }));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
 
   // Reset selection when view changes

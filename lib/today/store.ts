@@ -9,7 +9,8 @@ import {
   Category,
   DailyStat,
   Profile,
-  ViewType
+  ViewType,
+  SyncState
 } from './types';
 import {
   XP_CONFIG,
@@ -21,7 +22,10 @@ import { dispatchXPUpdate } from '@/components/XPContext';
 
 const STORAGE_KEY = 'gamify_life';
 
-interface TodayStore extends TodayState {
+// Sync debounce timeout
+let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+
+interface TodayStore extends TodayState, SyncState {
   // UI State
   currentView: ViewType;
   toastMessage: string | null;
@@ -30,6 +34,10 @@ interface TodayStore extends TodayState {
 
   // Actions
   loadState: () => void;
+
+  // Sync actions
+  syncToServer: () => Promise<void>;
+  fetchFromServer: () => Promise<void>;
 
   // Profile actions
   addXP: (amount: number) => boolean; // returns true if leveled up
@@ -117,6 +125,15 @@ function calculateTaskXP(task: Task, currentStreak: number): number {
   return Math.floor(baseXP * streakMultiplier);
 }
 
+// Queue sync helper
+const queueSync = (get: () => TodayStore) => {
+  get().pendingSync; // Access to ensure we can set it
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(() => {
+    get().syncToServer();
+  }, 500);
+};
+
 export const useTodayStore = create<TodayStore>()(
   persist(
     (set, get) => ({
@@ -128,11 +145,98 @@ export const useTodayStore = create<TodayStore>()(
       toastType: 'info',
       theme: 'light',
 
+      // Sync State
+      lastSyncedAt: null,
+      pendingSync: false,
+      syncStatus: 'idle',
+      syncError: null,
+
       loadState: () => {
         // Theme is handled separately
         const savedTheme = localStorage.getItem('gamify-theme');
         if (savedTheme === 'dark' || savedTheme === 'light') {
           set({ theme: savedTheme });
+        }
+      },
+
+      syncToServer: async () => {
+        const state = get();
+        if (state.syncStatus === 'syncing') return;
+
+        set({ syncStatus: 'syncing', pendingSync: true });
+
+        try {
+          const res = await fetch('/api/today/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              data: {
+                profile: state.profile,
+                tasks: state.tasks,
+                projects: state.projects,
+                categories: state.categories,
+                daily_stats: state.daily_stats,
+                personal_records: state.personal_records,
+              },
+            }),
+          });
+
+          if (res.ok) {
+            const { updated_at } = await res.json();
+            set({
+              lastSyncedAt: updated_at,
+              pendingSync: false,
+              syncStatus: 'idle',
+              syncError: null,
+            });
+          } else {
+            throw new Error('Sync failed');
+          }
+        } catch (error) {
+          set({
+            syncStatus: 'error',
+            syncError: error instanceof Error ? error.message : 'Sync failed',
+          });
+          // Retry in 5 seconds
+          setTimeout(() => {
+            if (get().pendingSync) {
+              get().syncToServer();
+            }
+          }, 5000);
+        }
+      },
+
+      fetchFromServer: async () => {
+        try {
+          const res = await fetch('/api/today/sync');
+          if (!res.ok) return;
+
+          const serverData = await res.json();
+          if (!serverData || !serverData.data) return;
+
+          const localLastSynced = get().lastSyncedAt;
+          const hasPendingChanges = get().pendingSync;
+
+          if (!localLastSynced) {
+            // First sync on this device - server wins
+            set({
+              ...serverData.data,
+              lastSyncedAt: serverData.updated_at,
+              pendingSync: false,
+              syncStatus: 'idle',
+            });
+          } else if (serverData.updated_at > localLastSynced && !hasPendingChanges) {
+            // Server is newer and no pending local changes - use server
+            set({
+              ...serverData.data,
+              lastSyncedAt: serverData.updated_at,
+              pendingSync: false,
+              syncStatus: 'idle',
+            });
+          }
+          // Otherwise: local wins (we have pending changes or are newer)
+        } catch (error) {
+          console.error('Failed to fetch from server:', error);
         }
       },
 
@@ -192,8 +296,10 @@ export const useTodayStore = create<TodayStore>()(
         };
 
         set((state) => ({
-          tasks: [...state.tasks, task]
+          tasks: [...state.tasks, task],
+          pendingSync: true,
         }));
+        queueSync(get);
 
         return task;
       },
@@ -204,14 +310,18 @@ export const useTodayStore = create<TodayStore>()(
             t.id === taskId
               ? { ...t, ...updates, updated_at: new Date().toISOString() }
               : t
-          )
+          ),
+          pendingSync: true,
         }));
+        queueSync(get);
       },
 
       deleteTask: (taskId: string) => {
         set((state) => ({
-          tasks: state.tasks.filter((t) => t.id !== taskId)
+          tasks: state.tasks.filter((t) => t.id !== taskId),
+          pendingSync: true,
         }));
+        queueSync(get);
       },
 
       toggleTaskComplete: (taskId: string) => {
@@ -262,8 +372,10 @@ export const useTodayStore = create<TodayStore>()(
               longest_streak: Math.max(state.profile.longest_streak, newStreak),
               last_task_date: today
             },
-            daily_stats: updateDailyStats(state.daily_stats, today, xpEarned)
+            daily_stats: updateDailyStats(state.daily_stats, today, xpEarned),
+            pendingSync: true,
           }));
+          queueSync(get);
 
           // Add XP locally
           const leveledUp = get().addXP(xpEarned);
@@ -341,9 +453,11 @@ export const useTodayStore = create<TodayStore>()(
                 level: newLevel,
                 xp_to_next: xpToNext,
                 total_tasks_completed: Math.max(0, state.profile.total_tasks_completed - 1)
-              }
+              },
+              pendingSync: true,
             };
           });
+          queueSync(get);
 
           // Revoke XP from global profile (async, don't block)
           if (revokedXP > 0) {
@@ -381,8 +495,10 @@ export const useTodayStore = create<TodayStore>()(
         };
 
         set((state) => ({
-          projects: [...state.projects, project]
+          projects: [...state.projects, project],
+          pendingSync: true,
         }));
+        queueSync(get);
 
         return project;
       },
@@ -393,8 +509,10 @@ export const useTodayStore = create<TodayStore>()(
             p.id === projectId
               ? { ...p, ...updates, updated_at: new Date().toISOString() }
               : p
-          )
+          ),
+          pendingSync: true,
         }));
+        queueSync(get);
       },
 
       deleteProject: (projectId: string) => {
@@ -404,8 +522,10 @@ export const useTodayStore = create<TodayStore>()(
             t.project_id === projectId
               ? { ...t, project_id: null, updated_at: new Date().toISOString() }
               : t
-          )
+          ),
+          pendingSync: true,
         }));
+        queueSync(get);
 
         // If viewing this project, go to inbox
         if (get().currentView === `project-${projectId}`) {
@@ -424,8 +544,10 @@ export const useTodayStore = create<TodayStore>()(
         };
 
         set((state) => ({
-          categories: [...state.categories, category]
+          categories: [...state.categories, category],
+          pendingSync: true,
         }));
+        queueSync(get);
 
         return category;
       },
@@ -434,8 +556,10 @@ export const useTodayStore = create<TodayStore>()(
         set((state) => ({
           categories: state.categories.map((c) =>
             c.id === categoryId ? { ...c, ...updates } : c
-          )
+          ),
+          pendingSync: true,
         }));
+        queueSync(get);
       },
 
       deleteCategory: (categoryId: string) => {
@@ -445,8 +569,10 @@ export const useTodayStore = create<TodayStore>()(
             t.category_id === categoryId
               ? { ...t, category_id: null, updated_at: new Date().toISOString() }
               : t
-          )
+          ),
+          pendingSync: true,
         }));
+        queueSync(get);
 
         // If viewing this category, go to inbox
         if (get().currentView === `category-${categoryId}`) {
@@ -518,7 +644,11 @@ export const useTodayStore = create<TodayStore>()(
           ...defaultState,
           currentView: 'inbox',
           toastMessage: null,
-          theme: get().theme
+          theme: get().theme,
+          lastSyncedAt: null,
+          pendingSync: false,
+          syncStatus: 'idle',
+          syncError: null,
         });
         get().showToast('All data erased', 'success');
       }
@@ -531,7 +661,8 @@ export const useTodayStore = create<TodayStore>()(
         projects: state.projects,
         categories: state.categories,
         daily_stats: state.daily_stats,
-        personal_records: state.personal_records
+        personal_records: state.personal_records,
+        lastSyncedAt: state.lastSyncedAt,
       })
     }
   )

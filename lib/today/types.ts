@@ -71,6 +71,13 @@ export interface TodayState {
   personal_records: Record<string, { value: number; date: string }>;
 }
 
+export interface SyncState {
+  lastSyncedAt: string | null;
+  pendingSync: boolean;
+  syncStatus: 'idle' | 'syncing' | 'error';
+  syncError: string | null;
+}
+
 export type ViewType =
   | 'inbox'
   | 'today'
