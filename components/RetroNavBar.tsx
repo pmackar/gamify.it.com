@@ -1092,15 +1092,71 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         /* Theme Switcher */
         .theme-switcher {
           display: flex;
-          gap: 4px;
+          align-items: center;
+          gap: 8px;
           padding: 8px 12px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           margin-bottom: 4px;
         }
 
+        /* Dark/Light Toggle */
+        .theme-toggle {
+          position: relative;
+          width: 56px;
+          height: 28px;
+          background: rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 14px;
+          cursor: pointer;
+          padding: 0;
+          transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+          border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .toggle-track {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          height: 100%;
+          padding: 0 4px;
+        }
+
+        .toggle-icon {
+          font-size: 12px;
+          z-index: 1;
+          transition: opacity 0.2s ease;
+        }
+
+        .toggle-icon.sun { opacity: 0.4; }
+        .toggle-icon.moon { opacity: 0.4; }
+        .theme-toggle.dark .toggle-icon.moon { opacity: 1; }
+        .theme-toggle.light .toggle-icon.sun { opacity: 1; }
+
+        .toggle-thumb {
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          width: 20px;
+          height: 20px;
+          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+          border-radius: 50%;
+          transition: transform 0.2s ease, background 0.2s ease;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-toggle.light .toggle-thumb {
+          transform: translateX(28px);
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+
         .theme-option {
           flex: 1;
-          padding: 8px 6px;
+          padding: 6px;
           background: rgba(0, 0, 0, 0.2);
           border: 1px solid transparent;
           border-radius: 6px;
@@ -1122,12 +1178,17 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
 
         .theme-icon {
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* Light theme switcher */
         .global-nav.theme-light .theme-switcher {
           border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .global-nav.theme-light .theme-toggle {
+          background: rgba(0, 0, 0, 0.08);
+          border-color: rgba(0, 0, 0, 0.15);
         }
 
         .global-nav.theme-light .theme-option {
