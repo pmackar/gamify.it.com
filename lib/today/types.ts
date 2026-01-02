@@ -50,6 +50,19 @@ export interface DailyStat {
   xp_earned: number;
 }
 
+export interface StreakInfo {
+  current: number;
+  longest: number;
+  last_date?: string | null;
+}
+
+export interface Streaks {
+  daily: StreakInfo;        // Complete any task each day
+  inbox_zero: StreakInfo;   // Clear inbox daily
+  early_bird: StreakInfo;   // Complete task before 9am
+  night_owl: StreakInfo;    // Complete task after 8pm
+}
+
 export interface Profile {
   name: string;
   level: number;
@@ -60,6 +73,24 @@ export interface Profile {
   longest_streak: number;
   achievements: string[];
   last_task_date?: string | null;
+  streaks?: Streaks;
+}
+
+export interface DailyQuest {
+  id: string;
+  type: 'complete_tasks' | 'complete_epic' | 'inbox_zero' | 'early_task' | 'streak_maintain' | 'complete_project_task';
+  title: string;
+  description: string;
+  target: number;
+  progress: number;
+  xp_reward: number;
+  completed: boolean;
+}
+
+export interface DailyQuestsState {
+  date: string; // YYYY-MM-DD
+  quests: DailyQuest[];
+  all_completed_bonus: boolean;
 }
 
 export interface TodayState {
@@ -69,6 +100,7 @@ export interface TodayState {
   categories: Category[];
   daily_stats: DailyStat[];
   personal_records: Record<string, { value: number; date: string }>;
+  daily_quests?: DailyQuestsState;
 }
 
 export interface SyncState {

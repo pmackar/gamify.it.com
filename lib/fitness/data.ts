@@ -244,6 +244,8 @@ export const DEFAULT_COMMANDS: Command[] = [
   { id: 'workout', title: 'Start Workout', subtitle: 'Begin a new workout session', icon: '💪' },
   { id: 'history', title: 'History', subtitle: 'View past workouts', icon: '📋' },
   { id: 'profile', title: 'Profile', subtitle: 'View your stats and PRs', icon: '👤' },
+  { id: 'coach', title: 'AI Coach', subtitle: 'Insights, plateaus, form tips', icon: '🤖' },
+  { id: 'social', title: 'Social', subtitle: 'Friends, challenges, leaderboard', icon: '👥' },
   { id: 'campaigns', title: 'Campaigns', subtitle: 'Goals and challenges', icon: '🎯' },
   { id: 'achievements', title: 'Achievements', subtitle: 'View unlocked milestones', icon: '🏆' },
   { id: 'import', title: 'Import CSV', subtitle: 'Import workout history from CSV', icon: '📥' },

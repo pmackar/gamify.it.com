@@ -119,127 +119,135 @@ export default function TravelCommandBar({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50"
+      className="fixed bottom-0 left-0 right-0 z-50 px-4"
       style={{
-        paddingBottom: "max(12px, env(safe-area-inset-bottom))",
-        background: "var(--rpg-card)",
-        borderTop: "2px solid var(--rpg-border)",
+        paddingBottom: "max(16px, env(safe-area-inset-bottom))",
       }}
     >
-      {/* Suggestions */}
-      {isFocused && filteredCommands.length > 0 && (
-        <div
-          ref={suggestionsRef}
-          className="absolute bottom-full left-0 right-0 overflow-y-auto"
-          style={{
-            maxHeight: "280px",
-            background: "var(--rpg-card)",
-            borderTop: "2px solid var(--rpg-border)",
-            borderLeft: "2px solid var(--rpg-border)",
-            borderRight: "2px solid var(--rpg-border)",
-            borderRadius: "8px 8px 0 0",
-          }}
-        >
-          {filteredCommands.map((cmd, index) => (
-            <div
-              key={cmd.id}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                index === selectedIndex ? "selected" : ""
-              }`}
-              style={{
-                background:
-                  index === selectedIndex
-                    ? "rgba(95, 191, 138, 0.15)"
-                    : "transparent",
-              }}
-              onMouseEnter={() => setSelectedIndex(index)}
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent blur
-                handleSuggestionClick(cmd);
-              }}
-            >
-              {cmd.icon && (
-                <span className="text-xl w-8 h-8 flex items-center justify-center">
-                  {cmd.icon}
-                </span>
-              )}
-              <div className="flex-1 min-w-0">
-                <div
-                  className="text-base truncate"
-                  style={{ color: "var(--rpg-text)" }}
-                >
-                  {cmd.title}
-                </div>
-                {cmd.subtitle && (
-                  <div
-                    className="text-sm truncate"
-                    style={{ color: "var(--rpg-muted)" }}
+      {/* Floating container */}
+      <div
+        className="max-w-lg mx-auto rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--rpg-card)",
+          border: "2px solid var(--rpg-border)",
+          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.4), 0 0 40px rgba(95, 191, 138, 0.1)",
+        }}
+      >
+        {/* Suggestions */}
+        {isFocused && filteredCommands.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            className="overflow-y-auto"
+            style={{
+              maxHeight: "200px",
+              borderBottom: "1px solid var(--rpg-border)",
+            }}
+          >
+            {filteredCommands.map((cmd, index) => (
+              <div
+                key={cmd.id}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                  index === selectedIndex ? "selected" : ""
+                }`}
+                style={{
+                  background:
+                    index === selectedIndex
+                      ? "rgba(95, 191, 138, 0.15)"
+                      : "transparent",
+                }}
+                onMouseEnter={() => setSelectedIndex(index)}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevent blur
+                  handleSuggestionClick(cmd);
+                }}
+              >
+                {cmd.icon && (
+                  <span
+                    className="text-lg w-8 h-8 flex items-center justify-center rounded"
+                    style={{ background: "var(--rpg-border)" }}
                   >
-                    {cmd.subtitle}
+                    {cmd.icon}
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div
+                    className="text-base truncate"
+                    style={{ color: "var(--rpg-text)" }}
+                  >
+                    {cmd.title}
                   </div>
+                  {cmd.subtitle && (
+                    <div
+                      className="text-sm truncate"
+                      style={{ color: "var(--rpg-muted)" }}
+                    >
+                      {cmd.subtitle}
+                    </div>
+                  )}
+                </div>
+                {cmd.type === "create" && (
+                  <span
+                    className="text-xs px-2 py-1 rounded"
+                    style={{
+                      background: "rgba(95, 191, 138, 0.2)",
+                      color: "var(--rpg-teal)",
+                    }}
+                  >
+                    Create
+                  </span>
                 )}
               </div>
-              {cmd.type === "create" && (
-                <span
-                  className="text-xs px-2 py-1 rounded"
-                  style={{
-                    background: "rgba(95, 191, 138, 0.2)",
-                    color: "var(--rpg-teal)",
-                  }}
-                >
-                  Create
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="px-4 pt-3 pb-3">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => {
-            // Delay to allow click handlers to fire
-            setTimeout(() => setIsFocused(false), 150);
-          }}
-          placeholder={placeholder}
-          autoComplete="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          className="w-full px-4 py-3 rounded-lg text-base"
-          style={{
-            background: "var(--rpg-darker)",
-            border: "2px solid var(--rpg-border)",
-            color: "var(--rpg-text)",
-            outline: "none",
-          }}
-          onFocusCapture={(e) => {
-            (e.target as HTMLInputElement).style.borderColor = "var(--rpg-teal)";
-            (e.target as HTMLInputElement).style.boxShadow =
-              "0 0 0 3px rgba(95, 191, 138, 0.2)";
-          }}
-          onBlurCapture={(e) => {
-            (e.target as HTMLInputElement).style.borderColor =
-              "var(--rpg-border)";
-            (e.target as HTMLInputElement).style.boxShadow = "none";
-          }}
-        />
-        {/* Keyboard hint */}
-        {!isFocused && (
-          <div
-            className="text-center mt-2 text-xs"
-            style={{ color: "var(--rpg-muted)" }}
-          >
-            Press <kbd className="px-1.5 py-0.5 rounded" style={{ background: "var(--rpg-border)" }}>N</kbd> to open
+            ))}
           </div>
         )}
+
+        {/* Input */}
+        <div className="p-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => {
+              // Delay to allow click handlers to fire
+              setTimeout(() => setIsFocused(false), 150);
+            }}
+            placeholder={placeholder}
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="w-full px-4 py-3 rounded-xl text-base"
+            style={{
+              background: "var(--rpg-darker)",
+              border: "2px solid var(--rpg-border)",
+              color: "var(--rpg-text)",
+              outline: "none",
+            }}
+            onFocusCapture={(e) => {
+              (e.target as HTMLInputElement).style.borderColor = "var(--rpg-teal)";
+              (e.target as HTMLInputElement).style.boxShadow =
+                "0 0 0 3px rgba(95, 191, 138, 0.2)";
+            }}
+            onBlurCapture={(e) => {
+              (e.target as HTMLInputElement).style.borderColor =
+                "var(--rpg-border)";
+              (e.target as HTMLInputElement).style.boxShadow = "none";
+            }}
+          />
+        </div>
       </div>
+
+      {/* Keyboard hint - outside floating bar */}
+      {!isFocused && (
+        <div
+          className="text-center mt-2 text-xs"
+          style={{ color: "var(--rpg-muted)" }}
+        >
+          Press <kbd className="px-1.5 py-0.5 rounded" style={{ background: "var(--rpg-border)" }}>N</kbd> to open
+        </div>
+      )}
     </div>
   );
 }

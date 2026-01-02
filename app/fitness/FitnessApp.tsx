@@ -414,6 +414,8 @@ export default function FitnessApp() {
         if (suggestion.id === 'workout') store.startWorkout();
         else if (suggestion.id === 'history') store.setView('history');
         else if (suggestion.id === 'profile') store.setView('profile');
+        else if (suggestion.id === 'social') store.setView('social');
+        else if (suggestion.id === 'coach') store.setView('coach');
         else if (suggestion.id === 'campaigns') store.setView('campaigns');
         else if (suggestion.id === 'achievements') store.setView('achievements');
         else if (suggestion.id === 'import') fileInputRef.current?.click();
@@ -1174,26 +1176,45 @@ export default function FitnessApp() {
           right: 0;
           background: var(--bg-elevated);
           border-top: 1px solid var(--border-light);
-          border-radius: 24px 24px 0 0;
-          padding: 24px 20px;
-          padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+          border-radius: 20px 20px 0 0;
+          padding: 16px 16px;
+          padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
           z-index: 61;
           animation: slideUp 0.25s ease-out;
+          max-height: 85vh;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        @media (min-width: 768px) {
+          .set-panel {
+            max-width: 500px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            padding-bottom: 24px;
+          }
         }
         @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
+        }
+        @media (min-width: 768px) {
+          @keyframes slideUp {
+            from { transform: translate(-50%, 100%); }
+            to { transform: translate(-50%, 0); }
+          }
         }
 
         .set-panel-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          margin-bottom: 12px;
         }
         .set-panel-title {
           font-weight: 600;
-          font-size: 18px;
+          font-size: 16px;
           color: var(--text-primary);
         }
         .close-btn {
@@ -1219,68 +1240,141 @@ export default function FitnessApp() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 20px;
-          margin-bottom: 24px;
+          gap: 8px;
+          margin-bottom: 16px;
         }
-        .input-group { text-align: center; }
+        @media (min-width: 768px) {
+          .set-inputs {
+            gap: 16px;
+          }
+        }
+        .input-group {
+          text-align: center;
+          flex-shrink: 0;
+        }
         .input-group input {
-          width: 100px;
-          padding: 16px;
+          width: 80px;
+          padding: 12px 8px;
           background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 14px;
+          border-radius: 12px;
           color: var(--text-primary);
-          font-size: 28px;
+          font-size: 24px;
           font-weight: 700;
           text-align: center;
           outline: none;
           transition: all 0.2s;
+          -webkit-appearance: none;
+          -moz-appearance: textfield;
+        }
+        .input-group input::-webkit-inner-spin-button,
+        .input-group input::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        @media (min-width: 768px) {
+          .input-group input {
+            width: 100px;
+            padding: 14px 12px;
+            font-size: 28px;
+          }
         }
         .input-group input:focus {
           border-color: var(--accent);
           box-shadow: 0 0 0 3px var(--accent-glow);
         }
+        .input-group-small input {
+          width: 60px;
+        }
+        @media (min-width: 768px) {
+          .input-group-small input {
+            width: 70px;
+          }
+        }
         .input-label {
-          font-size: 11px;
+          font-size: 10px;
           color: var(--text-tertiary);
-          margin-top: 6px;
+          margin-top: 4px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
         }
         .input-divider {
-          font-size: 28px;
+          font-size: 20px;
           color: var(--text-tertiary);
           font-weight: 300;
         }
-
-        .set-actions {
-          display: flex;
-          gap: 10px;
+        @media (min-width: 768px) {
+          .input-divider {
+            font-size: 24px;
+          }
         }
-        .action-btn {
-          flex: 1;
-          padding: 16px;
+        .rpe-divider {
+          margin-left: 4px;
+        }
+
+        /* Actions Row - Combined warmup + log button */
+        .set-actions-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .warmup-toggle-inline {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .warmup-toggle-inline input {
+          display: none;
+        }
+        .warmup-check-box {
+          width: 20px;
+          height: 20px;
+          border: 2px solid var(--border);
+          border-radius: 4px;
           background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s;
+        }
+        .warmup-toggle-inline input:checked + .warmup-check-box {
+          background: var(--accent);
+          border-color: var(--accent);
+        }
+        .warmup-toggle-inline input:checked + .warmup-check-box::after {
+          content: '✓';
+          color: #000;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .warmup-label {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .log-set-btn {
+          flex: 1;
+          padding: 14px 20px;
+          background: var(--accent);
+          border: none;
+          border-radius: 12px;
+          color: #000;
           font-size: 16px;
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
           transition: all 0.15s;
         }
-        .action-btn:hover {
-          background: var(--bg-card-hover);
-        }
-        .action-btn.primary {
-          flex: 2;
-          background: var(--accent);
-          border-color: var(--accent);
-          color: white;
-        }
-        .action-btn.primary:hover {
+        .log-set-btn:hover {
           filter: brightness(1.1);
-          transform: translateY(-1px);
+        }
+        .log-set-btn:active {
+          transform: scale(0.98);
         }
 
         /* Set Panel Header Actions */
@@ -1296,18 +1390,18 @@ export default function FitnessApp() {
 
         /* Previous Workout Section */
         .prev-workout-section {
-          margin-bottom: 16px;
-          padding: 12px;
+          margin-bottom: 10px;
+          padding: 10px;
           background: var(--bg-card);
-          border-radius: 12px;
+          border-radius: 10px;
           border: 1px solid var(--border);
         }
         .prev-workout-label {
-          font-size: 11px;
+          font-size: 10px;
           color: var(--text-tertiary);
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
         .prev-workout-sets {
           display: flex;
@@ -1342,16 +1436,16 @@ export default function FitnessApp() {
 
         /* Exercise Notes Section */
         .exercise-notes-section {
-          margin-bottom: 16px;
+          margin-bottom: 10px;
         }
         .notes-toggle {
           width: 100%;
-          padding: 10px 12px;
+          padding: 8px 10px;
           background: transparent;
           border: 1px solid var(--border);
-          border-radius: 10px;
+          border-radius: 8px;
           color: var(--text-secondary);
-          font-size: 13px;
+          font-size: 12px;
           text-align: left;
           cursor: pointer;
           transition: all 0.15s;
@@ -1361,13 +1455,13 @@ export default function FitnessApp() {
         }
         .exercise-notes-input {
           width: 100%;
-          margin-top: 8px;
-          padding: 12px;
+          margin-top: 6px;
+          padding: 10px;
           background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 10px;
+          border-radius: 8px;
           color: var(--text-primary);
-          font-size: 14px;
+          font-size: 13px;
           resize: none;
           outline: none;
           font-family: inherit;
@@ -1379,50 +1473,16 @@ export default function FitnessApp() {
           color: var(--text-tertiary);
         }
 
-        /* Warmup Toggle */
-        .warmup-toggle-row {
-          margin-bottom: 16px;
-          display: flex;
-          justify-content: center;
-        }
-        .warmup-toggle {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          padding: 8px 16px;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          transition: all 0.15s;
-        }
-        .warmup-toggle:hover {
-          border-color: var(--border-light);
-        }
-        .warmup-toggle input {
-          width: 18px;
-          height: 18px;
-          accent-color: var(--accent);
-        }
-        .warmup-toggle-label {
-          font-size: 14px;
-          color: var(--text-primary);
-        }
-        .warmup-toggle-hint {
-          font-size: 12px;
-          color: var(--text-tertiary);
-        }
-
         /* Repeat Last Set Button */
         .repeat-set-btn {
           width: 100%;
-          margin-top: 12px;
-          padding: 14px;
+          margin-top: 8px;
+          padding: 10px;
           background: transparent;
           border: 1px dashed var(--border);
-          border-radius: 12px;
+          border-radius: 10px;
           color: var(--text-secondary);
-          font-size: 14px;
+          font-size: 13px;
           cursor: pointer;
           transition: all 0.15s;
         }
@@ -1435,13 +1495,13 @@ export default function FitnessApp() {
         /* Remove Set Button */
         .remove-set-btn {
           width: 100%;
-          margin-top: 12px;
-          padding: 12px;
+          margin-top: 6px;
+          padding: 8px;
           background: transparent;
           border: none;
-          border-radius: 12px;
+          border-radius: 8px;
           color: var(--text-tertiary);
-          font-size: 13px;
+          font-size: 12px;
           cursor: pointer;
           transition: all 0.15s;
         }
@@ -1452,37 +1512,37 @@ export default function FitnessApp() {
 
         /* Rest Timer */
         .rest-timer-section {
-          margin-top: 20px;
-          padding: 16px;
+          margin-top: 12px;
+          padding: 12px;
           background: var(--bg-card);
-          border-radius: 16px;
+          border-radius: 12px;
           border: 1px solid var(--border);
         }
         .rest-timer-display {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
         }
         .rest-timer-label {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-tertiary);
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         .rest-timer-time {
-          font-size: 32px;
+          font-size: 26px;
           font-weight: 700;
           color: var(--accent);
           font-variant-numeric: tabular-nums;
         }
         .rest-timer-skip {
-          padding: 8px 16px;
+          padding: 6px 12px;
           background: transparent;
           border: 1px solid var(--border);
-          border-radius: 8px;
+          border-radius: 6px;
           color: var(--text-secondary);
-          font-size: 13px;
+          font-size: 12px;
           cursor: pointer;
           transition: all 0.15s;
         }
@@ -1491,37 +1551,37 @@ export default function FitnessApp() {
           color: var(--text-primary);
         }
         .rest-timer-bar {
-          height: 6px;
+          height: 4px;
           background: var(--bg-elevated);
-          border-radius: 3px;
+          border-radius: 2px;
           overflow: hidden;
         }
         .rest-timer-fill {
           height: 100%;
           background: var(--accent);
-          border-radius: 3px;
+          border-radius: 2px;
           transition: width 1s linear;
         }
 
         /* Rest Timer Presets */
         .rest-timer-presets {
-          margin-top: 16px;
+          margin-top: 10px;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
         }
         .rest-presets-label {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-tertiary);
         }
         .rest-preset-btn {
-          padding: 6px 12px;
+          padding: 5px 10px;
           background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 8px;
+          border-radius: 6px;
           color: var(--text-secondary);
-          font-size: 13px;
+          font-size: 12px;
           cursor: pointer;
           transition: all 0.15s;
         }
@@ -1532,7 +1592,7 @@ export default function FitnessApp() {
         .rest-preset-btn.active {
           background: var(--accent);
           border-color: var(--accent);
-          color: white;
+          color: #000;
         }
 
         /* Chart Button */
@@ -3472,6 +3532,16 @@ gamify.it.com/fitness`;
             </div>
           )}
 
+          {/* Social View */}
+          {store.currentView === 'social' && (
+            <SocialView onBack={() => store.setView('home')} />
+          )}
+
+          {/* Coach View */}
+          {store.currentView === 'coach' && (
+            <CoachView onBack={() => store.setView('home')} />
+          )}
+
           {/* Campaign Detail Modal */}
           {selectedCampaignId && !creatingCampaign && (
             <div className="modal-overlay" onClick={() => setSelectedCampaignId(null)}>
@@ -3845,25 +3915,20 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
-              {/* Warmup Toggle */}
-              <div className="warmup-toggle-row">
-                <label className="warmup-toggle">
+              {/* Actions Row - Warmup toggle + Log button */}
+              <div className="set-actions-row">
+                <label className="warmup-toggle-inline">
                   <input
                     type="checkbox"
                     checked={setIsWarmup}
                     onChange={(e) => setSetIsWarmup(e.target.checked)}
                   />
-                  <span className="warmup-toggle-label">Warmup set</span>
-                  <span className="warmup-toggle-hint">(no XP)</span>
+                  <span className="warmup-check-box" />
+                  <span className="warmup-label">Warmup</span>
                 </label>
-              </div>
-
-              <div className="set-actions">
-                <button className="action-btn" onClick={() => setSetWeight(w => w - 5)}>−5</button>
-                <button className="action-btn primary" onClick={handleLogSet}>
+                <button className="log-set-btn" onClick={handleLogSet}>
                   {editingSetIndex !== null ? 'Save Changes' : 'Log Set'}
                 </button>
-                <button className="action-btn" onClick={() => setSetWeight(w => w + 5)}>+5</button>
               </div>
 
               {/* Repeat Last Set Button */}
@@ -4514,6 +4579,1019 @@ gamify.it.com/fitness`;
         )}
       </div>
     </>
+  );
+}
+
+// Social View Component
+function SocialView({ onBack }: { onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenge'>('challenge');
+  const [challenge, setChallenge] = useState<any>(null);
+  const [weeklyStats, setWeeklyStats] = useState<any>(null);
+  const [feed, setFeed] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [challengeRes, feedRes, leaderboardRes] = await Promise.all([
+        fetch('/api/fitness/challenges'),
+        fetch('/api/fitness/social?type=feed'),
+        fetch('/api/fitness/social?type=leaderboard'),
+      ]);
+
+      if (challengeRes.ok) {
+        const data = await challengeRes.json();
+        setChallenge(data.challenge);
+        setWeeklyStats(data.weeklyStats);
+      }
+      if (feedRes.ok) {
+        const data = await feedRes.json();
+        setFeed(data.feed || []);
+      }
+      if (leaderboardRes.ok) {
+        const data = await leaderboardRes.json();
+        setLeaderboard(data.leaderboard || []);
+      }
+    } catch (e) {
+      console.error('Failed to load social data:', e);
+    }
+    setLoading(false);
+  };
+
+  const claimReward = async () => {
+    if (!challenge || claiming) return;
+    setClaiming(true);
+    try {
+      const res = await fetch('/api/fitness/challenges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge_id: challenge.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChallenge({ ...challenge, claimed: true });
+        alert(`🎉 +${data.xp_awarded} XP claimed!`);
+      }
+    } catch (e) {
+      console.error('Failed to claim reward:', e);
+    }
+    setClaiming(false);
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  return (
+    <div className="view-content">
+      <div className="view-header">
+        <button className="back-btn" onClick={onBack}>←</button>
+        <span className="view-title">Social</span>
+      </div>
+
+      {/* Tab Selector */}
+      <div className="social-tabs">
+        <button
+          className={`social-tab ${activeTab === 'challenge' ? 'active' : ''}`}
+          onClick={() => setActiveTab('challenge')}
+        >
+          🏆 Challenge
+        </button>
+        <button
+          className={`social-tab ${activeTab === 'feed' ? 'active' : ''}`}
+          onClick={() => setActiveTab('feed')}
+        >
+          📰 Feed
+        </button>
+        <button
+          className={`social-tab ${activeTab === 'leaderboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('leaderboard')}
+        >
+          🏅 Ranks
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="social-loading">
+          <div className="loading-spinner" />
+          <div>Loading...</div>
+        </div>
+      ) : (
+        <>
+          {/* Weekly Challenge Tab */}
+          {activeTab === 'challenge' && challenge && (
+            <div className="challenge-section">
+              <div className="challenge-card">
+                <div className="challenge-header">
+                  <span className="challenge-icon">{challenge.icon}</span>
+                  <div className="challenge-info">
+                    <div className="challenge-name">{challenge.name}</div>
+                    <div className="challenge-desc">{challenge.description}</div>
+                  </div>
+                  <div className="challenge-timer">
+                    {challenge.daysUntilReset}d left
+                  </div>
+                </div>
+                <div className="challenge-progress">
+                  <div className="challenge-progress-bar">
+                    <div
+                      className="challenge-progress-fill"
+                      style={{ width: `${challenge.progressPercent}%` }}
+                    />
+                  </div>
+                  <div className="challenge-progress-text">
+                    {challenge.progress.toLocaleString()} / {challenge.target.toLocaleString()}
+                  </div>
+                </div>
+                <div className="challenge-reward">
+                  <span className="challenge-xp">+{challenge.xp_reward} XP</span>
+                  {challenge.completed ? (
+                    challenge.claimed ? (
+                      <span className="challenge-claimed">✓ Claimed</span>
+                    ) : (
+                      <button
+                        className="challenge-claim-btn"
+                        onClick={claimReward}
+                        disabled={claiming}
+                      >
+                        {claiming ? 'Claiming...' : 'Claim Reward'}
+                      </button>
+                    )
+                  ) : (
+                    <span className="challenge-pending">In Progress</span>
+                  )}
+                </div>
+              </div>
+
+              {weeklyStats && (
+                <div className="weekly-stats-card">
+                  <div className="weekly-stats-title">📊 This Week</div>
+                  <div className="weekly-stats-grid">
+                    <div className="weekly-stat">
+                      <div className="weekly-stat-value">{weeklyStats.workouts}</div>
+                      <div className="weekly-stat-label">Workouts</div>
+                    </div>
+                    <div className="weekly-stat">
+                      <div className="weekly-stat-value">{weeklyStats.sets}</div>
+                      <div className="weekly-stat-label">Sets</div>
+                    </div>
+                    <div className="weekly-stat">
+                      <div className="weekly-stat-value">{(weeklyStats.volume / 1000).toFixed(0)}k</div>
+                      <div className="weekly-stat-label">Volume (lbs)</div>
+                    </div>
+                    <div className="weekly-stat">
+                      <div className="weekly-stat-value">{weeklyStats.days}</div>
+                      <div className="weekly-stat-label">Active Days</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Activity Feed Tab */}
+          {activeTab === 'feed' && (
+            <div className="feed-section">
+              {feed.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">👥</div>
+                  <div className="empty-title">No activity yet</div>
+                  <div className="empty-subtitle">Add friends to see their workouts here</div>
+                </div>
+              ) : (
+                feed.map((item) => (
+                  <div key={item.id} className="feed-item">
+                    <div className="feed-item-header">
+                      <div className="feed-avatar">
+                        {item.user.avatar_url ? (
+                          <img src={item.user.avatar_url} alt="" />
+                        ) : (
+                          <span>{item.user.name.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="feed-user-info">
+                        <div className="feed-user-name">{item.user.name}</div>
+                        <div className="feed-time">{formatTimeAgo(item.timestamp)}</div>
+                      </div>
+                      <div className="feed-xp">+{item.workout.xp} XP</div>
+                    </div>
+                    <div className="feed-workout">
+                      <div className="feed-workout-stat">
+                        <span className="feed-stat-value">{item.workout.exercises}</span>
+                        <span className="feed-stat-label">exercises</span>
+                      </div>
+                      <div className="feed-workout-stat">
+                        <span className="feed-stat-value">{item.workout.sets}</span>
+                        <span className="feed-stat-label">sets</span>
+                      </div>
+                      <div className="feed-workout-stat">
+                        <span className="feed-stat-value">{(item.workout.volume / 1000).toFixed(0)}k</span>
+                        <span className="feed-stat-label">lbs</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Leaderboard Tab */}
+          {activeTab === 'leaderboard' && (
+            <div className="leaderboard-section">
+              {leaderboard.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">🏅</div>
+                  <div className="empty-title">No rankings yet</div>
+                  <div className="empty-subtitle">Add friends to compare progress</div>
+                </div>
+              ) : (
+                leaderboard.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className={`leaderboard-item ${entry.is_self ? 'is-self' : ''}`}
+                  >
+                    <div className="leaderboard-rank">
+                      {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                    </div>
+                    <div className="leaderboard-avatar">
+                      {entry.avatar_url ? (
+                        <img src={entry.avatar_url} alt="" />
+                      ) : (
+                        <span>{entry.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="leaderboard-info">
+                      <div className="leaderboard-name">
+                        {entry.name} {entry.is_self && '(You)'}
+                      </div>
+                      <div className="leaderboard-stats">
+                        Lv.{entry.level} · {entry.total_workouts} workouts
+                      </div>
+                    </div>
+                    <div className="leaderboard-xp">
+                      {entry.xp.toLocaleString()} XP
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      <style jsx>{`
+        .social-tabs {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+        .social-tab {
+          flex: 1;
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          background: var(--bg-card);
+          color: var(--text-secondary);
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .social-tab.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+        .social-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px 20px;
+          color: var(--text-tertiary);
+          gap: 12px;
+        }
+        .loading-spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid var(--border);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Challenge Styles */
+        .challenge-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 16px;
+        }
+        .challenge-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .challenge-icon {
+          font-size: 32px;
+        }
+        .challenge-info {
+          flex: 1;
+        }
+        .challenge-name {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .challenge-desc {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-top: 4px;
+        }
+        .challenge-timer {
+          background: var(--bg-tertiary);
+          padding: 6px 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .challenge-progress {
+          margin-bottom: 16px;
+        }
+        .challenge-progress-bar {
+          height: 8px;
+          background: var(--bg-tertiary);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .challenge-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--accent), #FFD700);
+          border-radius: 4px;
+          transition: width 0.3s ease;
+        }
+        .challenge-progress-text {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-top: 6px;
+          text-align: right;
+        }
+        .challenge-reward {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .challenge-xp {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--gold);
+        }
+        .challenge-claim-btn {
+          padding: 10px 20px;
+          background: var(--accent);
+          color: #000;
+          border: none;
+          border-radius: 10px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        .challenge-claim-btn:disabled {
+          opacity: 0.7;
+        }
+        .challenge-claimed {
+          color: var(--success);
+          font-weight: 600;
+          font-size: 14px;
+        }
+        .challenge-pending {
+          color: var(--text-tertiary);
+          font-size: 14px;
+        }
+
+        /* Weekly Stats */
+        .weekly-stats-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 16px;
+        }
+        .weekly-stats-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 12px;
+        }
+        .weekly-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        .weekly-stat {
+          text-align: center;
+        }
+        .weekly-stat-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .weekly-stat-label {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          margin-top: 4px;
+        }
+
+        /* Feed Styles */
+        .feed-item {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 12px;
+        }
+        .feed-item-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .feed-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: var(--bg-tertiary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          color: var(--text-secondary);
+          overflow: hidden;
+        }
+        .feed-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .feed-user-info {
+          flex: 1;
+        }
+        .feed-user-name {
+          font-weight: 600;
+          color: var(--text-primary);
+          font-size: 14px;
+        }
+        .feed-time {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+        .feed-xp {
+          font-weight: 700;
+          color: var(--gold);
+          font-size: 14px;
+        }
+        .feed-workout {
+          display: flex;
+          gap: 20px;
+        }
+        .feed-workout-stat {
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+        .feed-stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .feed-stat-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        /* Leaderboard Styles */
+        .leaderboard-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 14px 16px;
+          margin-bottom: 8px;
+        }
+        .leaderboard-item.is-self {
+          border-color: var(--accent);
+          background: rgba(255, 215, 0, 0.05);
+        }
+        .leaderboard-rank {
+          font-size: 18px;
+          font-weight: 700;
+          min-width: 36px;
+          text-align: center;
+        }
+        .leaderboard-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: var(--bg-tertiary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          color: var(--text-secondary);
+          overflow: hidden;
+        }
+        .leaderboard-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .leaderboard-info {
+          flex: 1;
+        }
+        .leaderboard-name {
+          font-weight: 600;
+          color: var(--text-primary);
+          font-size: 14px;
+        }
+        .leaderboard-stats {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+        .leaderboard-xp {
+          font-weight: 700;
+          color: var(--gold);
+          font-size: 14px;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// AI Coach View Component
+function CoachView({ onBack }: { onBack: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
+  const [exerciseData, setExerciseData] = useState<any>(null);
+
+  useEffect(() => {
+    loadCoachData();
+  }, []);
+
+  const loadCoachData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/fitness/ai-coach');
+      if (res.ok) {
+        setData(await res.json());
+      }
+    } catch (e) {
+      console.error('Failed to load coach data:', e);
+    }
+    setLoading(false);
+  };
+
+  const loadExerciseTips = async (exerciseId: string) => {
+    setSelectedExercise(exerciseId);
+    try {
+      const res = await fetch(`/api/fitness/ai-coach?exercise=${exerciseId}`);
+      if (res.ok) {
+        setExerciseData(await res.json());
+      }
+    } catch (e) {
+      console.error('Failed to load exercise tips:', e);
+    }
+  };
+
+  const getLoadColor = (rec: string) => {
+    switch (rec) {
+      case 'deload': return '#FF6B6B';
+      case 'push': return '#34c759';
+      case 'ramp_up': return '#5CC9F5';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  const getLoadIcon = (rec: string) => {
+    switch (rec) {
+      case 'deload': return '⚠️';
+      case 'push': return '🚀';
+      case 'ramp_up': return '📈';
+      default: return '✓';
+    }
+  };
+
+  return (
+    <div className="view-content">
+      <div className="view-header">
+        <button className="back-btn" onClick={onBack}>←</button>
+        <span className="view-title">AI Coach</span>
+      </div>
+
+      {loading ? (
+        <div className="coach-loading">
+          <div className="loading-spinner" />
+          <div>Analyzing your training...</div>
+        </div>
+      ) : data ? (
+        <div className="coach-content">
+          {/* Training Load Card */}
+          {data.trainingLoad && (
+            <div className="coach-card">
+              <div className="coach-card-header">
+                <span className="coach-card-icon">📊</span>
+                <span className="coach-card-title">Training Load</span>
+              </div>
+              <div className="training-load-stats">
+                <div className="load-stat">
+                  <div className="load-stat-value">{(data.trainingLoad.thisWeekVolume / 1000).toFixed(0)}k</div>
+                  <div className="load-stat-label">This Week (lbs)</div>
+                </div>
+                <div className="load-stat">
+                  <div className="load-stat-value">{data.trainingLoad.volumeChangePercent > 0 ? '+' : ''}{data.trainingLoad.volumeChangePercent}%</div>
+                  <div className="load-stat-label">vs Average</div>
+                </div>
+                <div className="load-stat">
+                  <div className="load-stat-value">{data.trainingLoad.consecutiveWeeks}</div>
+                  <div className="load-stat-label">Weeks Straight</div>
+                </div>
+              </div>
+              <div className="load-recommendation" style={{ borderLeftColor: getLoadColor(data.trainingLoad.recommendation) }}>
+                <span className="load-rec-icon">{getLoadIcon(data.trainingLoad.recommendation)}</span>
+                <span className="load-rec-text">{data.trainingLoad.reason}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Insights */}
+          {data.insights && data.insights.length > 0 && (
+            <div className="coach-card">
+              <div className="coach-card-header">
+                <span className="coach-card-icon">💡</span>
+                <span className="coach-card-title">Insights</span>
+              </div>
+              <div className="insights-list">
+                {data.insights.map((insight: any, i: number) => (
+                  <div key={i} className={`insight-item insight-${insight.type}`}>
+                    <span className="insight-icon">{insight.icon}</span>
+                    <div className="insight-content">
+                      <div className="insight-title">{insight.title}</div>
+                      <div className="insight-message">{insight.message}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Plateaus */}
+          {data.plateaus && data.plateaus.length > 0 && (
+            <div className="coach-card">
+              <div className="coach-card-header">
+                <span className="coach-card-icon">🔒</span>
+                <span className="coach-card-title">Plateaus Detected</span>
+              </div>
+              <div className="plateaus-list">
+                {data.plateaus.map((plateau: any, i: number) => (
+                  <div
+                    key={i}
+                    className="plateau-item"
+                    onClick={() => loadExerciseTips(plateau.exerciseId)}
+                  >
+                    <div className="plateau-info">
+                      <div className="plateau-name">{plateau.exerciseName}</div>
+                      <div className="plateau-detail">
+                        Stuck at {plateau.currentMax} lbs for {plateau.weeks} weeks
+                      </div>
+                    </div>
+                    <div className="plateau-action">Tips →</div>
+                  </div>
+                ))}
+              </div>
+              <div className="plateau-tips">
+                <div className="tips-header">💡 Breaking Plateaus</div>
+                <ul className="tips-list">
+                  <li>Try adding micro plates (1.25 lb increments)</li>
+                  <li>Switch up rep ranges (5x5 → 4x8)</li>
+                  <li>Add pause reps or tempo work</li>
+                  <li>Consider a deload week to recover</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* No plateaus message */}
+          {data.plateaus && data.plateaus.length === 0 && data.totalWorkouts > 5 && (
+            <div className="coach-card">
+              <div className="coach-card-header">
+                <span className="coach-card-icon">✨</span>
+                <span className="coach-card-title">Progressing Well!</span>
+              </div>
+              <div className="no-plateaus">
+                No plateaus detected. Keep hitting those PRs!
+              </div>
+            </div>
+          )}
+
+          {/* Minimum workout message */}
+          {data.totalWorkouts < 5 && (
+            <div className="coach-card">
+              <div className="coach-card-header">
+                <span className="coach-card-icon">📝</span>
+                <span className="coach-card-title">Keep Logging</span>
+              </div>
+              <div className="no-plateaus">
+                Log more workouts for personalized insights. ({data.totalWorkouts}/5 minimum)
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <div className="empty-icon">🤖</div>
+          <div className="empty-title">No data available</div>
+          <div className="empty-subtitle">Start logging workouts for AI coaching insights</div>
+        </div>
+      )}
+
+      {/* Exercise Tips Modal */}
+      {selectedExercise && exerciseData && (
+        <div className="modal-overlay" onClick={() => setSelectedExercise(null)}>
+          <div className="modal coach-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">Form Tips</div>
+            <div className="modal-subtitle">
+              PR: {exerciseData.pr} lbs · {exerciseData.sessions} sessions
+            </div>
+
+            {exerciseData.tips && exerciseData.tips.length > 0 ? (
+              <div className="form-tips">
+                {exerciseData.tips.map((tip: string, i: number) => (
+                  <div key={i} className="form-tip">
+                    <span className="tip-number">{i + 1}</span>
+                    <span className="tip-text">{tip}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-tips">
+                No specific tips available for this exercise.
+              </div>
+            )}
+
+            <button
+              className="modal-btn primary"
+              style={{ marginTop: '16px', width: '100%' }}
+              onClick={() => setSelectedExercise(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .coach-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px 20px;
+          color: var(--text-tertiary);
+          gap: 12px;
+        }
+        .loading-spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid var(--border);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .coach-content {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .coach-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 16px;
+        }
+        .coach-card-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .coach-card-icon {
+          font-size: 20px;
+        }
+        .coach-card-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        /* Training Load */
+        .training-load-stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .load-stat {
+          text-align: center;
+        }
+        .load-stat-value {
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .load-stat-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-top: 4px;
+        }
+        .load-recommendation {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 12px;
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+          border-left: 3px solid var(--accent);
+        }
+        .load-rec-icon {
+          font-size: 18px;
+        }
+        .load-rec-text {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.4;
+        }
+
+        /* Insights */
+        .insights-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .insight-item {
+          display: flex;
+          gap: 10px;
+          padding: 12px;
+          border-radius: 10px;
+          background: var(--bg-tertiary);
+        }
+        .insight-item.insight-warning {
+          background: rgba(255, 107, 107, 0.1);
+        }
+        .insight-item.insight-achievement {
+          background: rgba(255, 215, 0, 0.1);
+        }
+        .insight-icon {
+          font-size: 20px;
+        }
+        .insight-content {
+          flex: 1;
+        }
+        .insight-title {
+          font-weight: 600;
+          color: var(--text-primary);
+          font-size: 14px;
+        }
+        .insight-message {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-top: 2px;
+        }
+
+        /* Plateaus */
+        .plateaus-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .plateau-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+          cursor: pointer;
+        }
+        .plateau-item:active {
+          opacity: 0.8;
+        }
+        .plateau-name {
+          font-weight: 600;
+          color: var(--text-primary);
+          font-size: 14px;
+        }
+        .plateau-detail {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          margin-top: 2px;
+        }
+        .plateau-action {
+          color: var(--accent);
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .plateau-tips {
+          padding: 12px;
+          background: rgba(255, 215, 0, 0.05);
+          border-radius: 10px;
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .tips-header {
+          font-weight: 600;
+          color: var(--gold);
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+        .tips-list {
+          margin: 0;
+          padding-left: 16px;
+          font-size: 12px;
+          color: var(--text-secondary);
+        }
+        .tips-list li {
+          margin-bottom: 4px;
+        }
+        .no-plateaus {
+          color: var(--text-secondary);
+          font-size: 14px;
+          text-align: center;
+          padding: 12px;
+        }
+
+        /* Form Tips Modal */
+        .coach-modal {
+          max-width: 360px;
+        }
+        .form-tips {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 16px;
+        }
+        .form-tip {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+        }
+        .tip-number {
+          width: 24px;
+          height: 24px;
+          background: var(--accent);
+          color: #000;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+        .tip-text {
+          font-size: 14px;
+          color: var(--text-secondary);
+          line-height: 1.4;
+        }
+        .no-tips {
+          color: var(--text-tertiary);
+          font-size: 14px;
+          text-align: center;
+          padding: 20px;
+        }
+      `}</style>
+    </div>
   );
 }
 

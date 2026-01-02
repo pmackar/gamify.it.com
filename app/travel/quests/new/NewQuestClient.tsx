@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, X, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, X, Check, Loader2, Users, Search } from "lucide-react";
 import TravelApp from "../../TravelApp";
 
 interface City {
@@ -11,6 +11,14 @@ interface City {
   name: string;
   country: string;
   neighborhoods: Array<{ id: string; name: string }>;
+}
+
+interface Friend {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  level: number;
 }
 
 interface NewQuestClientProps {
@@ -30,6 +38,49 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [autoPopulate, setAutoPopulate] = useState(true);
+
+  // Party state
+  const [friendSearch, setFriendSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Friend[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<Friend[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Search friends
+  useEffect(() => {
+    if (friendSearch.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(friendSearch)}`);
+        const data = await res.json();
+        // Filter out already selected friends
+        const filtered = (data.data || []).filter(
+          (u: Friend) => !selectedFriends.some((f) => f.id === u.id)
+        );
+        setSearchResults(filtered);
+      } catch (err) {
+        console.error("Friend search error:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [friendSearch, selectedFriends]);
+
+  const addFriend = (friend: Friend) => {
+    setSelectedFriends((prev) => [...prev, friend]);
+    setFriendSearch("");
+    setSearchResults([]);
+  };
+
+  const removeFriend = (friendId: string) => {
+    setSelectedFriends((prev) => prev.filter((f) => f.id !== friendId));
+  };
 
   // Get available neighborhoods based on selected cities
   const availableNeighborhoods = cities
@@ -72,28 +123,31 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
     setError(null);
 
     try {
+      const questName = name.trim() || generateDefaultName();
       const response = await fetch("/api/quests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim() || generateDefaultName(),
+          name: questName,
           description: description.trim() || null,
           cityIds: selectedCityIds,
           neighborhoodIds: selectedNeighborhoodIds.length > 0 ? selectedNeighborhoodIds : undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           autoPopulate,
+          inviteUserIds: selectedFriends.map((f) => f.id),
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create quest");
+        throw new Error(data.error || `Failed to create quest (${response.status})`);
       }
 
-      const data = await response.json();
       router.push(`/travel/quests/${data.quest.id}`);
     } catch (err) {
+      console.error("Quest creation error:", err);
       setError(err instanceof Error ? err.message : "Something went wrong");
       setIsSubmitting(false);
     }
@@ -386,6 +440,120 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
                 </span>
               </div>
             </label>
+          </div>
+
+          {/* Party Invites */}
+          <div
+            className="rounded-lg p-5 mb-6"
+            style={{
+              background: "var(--rpg-card)",
+              border: "2px solid var(--rpg-border)",
+            }}
+          >
+            <h2 className="text-base font-medium mb-3 flex items-center gap-2" style={{ color: "var(--rpg-text)" }}>
+              <Users size={18} style={{ color: "var(--rpg-purple)" }} />
+              Invite to Party <span className="text-sm font-normal" style={{ color: "var(--rpg-muted)" }}>(optional)</span>
+            </h2>
+            <p className="text-sm mb-4" style={{ color: "var(--rpg-muted)" }}>
+              Invite friends to collaborate on this quest
+            </p>
+
+            {/* Selected friends */}
+            {selectedFriends.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {selectedFriends.map((friend) => (
+                  <div
+                    key={friend.id}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
+                    style={{
+                      background: "rgba(168, 85, 247, 0.2)",
+                      border: "2px solid var(--rpg-purple)",
+                      color: "var(--rpg-purple)",
+                    }}
+                  >
+                    <span>{friend.displayName || friend.username}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFriend(friend.id)}
+                      className="hover:opacity-70"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Friend search */}
+            <div className="relative">
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--rpg-muted)" }}
+                />
+                <input
+                  type="text"
+                  value={friendSearch}
+                  onChange={(e) => setFriendSearch(e.target.value)}
+                  placeholder="Search by username or name..."
+                  className="w-full pl-10 pr-4 py-3 rounded-lg text-base"
+                  style={{
+                    background: "var(--rpg-darker)",
+                    border: "2px solid var(--rpg-border)",
+                    color: "var(--rpg-text)",
+                    outline: "none",
+                  }}
+                />
+                {isSearching && (
+                  <Loader2
+                    size={16}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin"
+                    style={{ color: "var(--rpg-muted)" }}
+                  />
+                )}
+              </div>
+
+              {/* Search results dropdown */}
+              {searchResults.length > 0 && (
+                <div
+                  className="absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden z-10"
+                  style={{
+                    background: "var(--rpg-card)",
+                    border: "2px solid var(--rpg-border)",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                  }}
+                >
+                  {searchResults.map((friend) => (
+                    <button
+                      key={friend.id}
+                      type="button"
+                      onClick={() => addFriend(friend)}
+                      className="w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-[rgba(95,191,138,0.1)]"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                        style={{
+                          background: "var(--rpg-border)",
+                          color: "var(--rpg-text)",
+                        }}
+                      >
+                        {(friend.displayName || friend.username)[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm truncate" style={{ color: "var(--rpg-text)" }}>
+                          {friend.displayName || friend.username}
+                        </div>
+                        <div className="text-xs truncate" style={{ color: "var(--rpg-muted)" }}>
+                          @{friend.username} · Lvl {friend.level}
+                        </div>
+                      </div>
+                      <Plus size={16} style={{ color: "var(--rpg-teal)" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Submit button */}

@@ -10,7 +10,11 @@ import {
   DailyStat,
   Profile,
   ViewType,
-  SyncState
+  SyncState,
+  Streaks,
+  StreakInfo,
+  DailyQuest,
+  DailyQuestsState
 } from './types';
 import {
   XP_CONFIG,
@@ -48,6 +52,7 @@ interface TodayStore extends TodayState, SyncState {
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
   toggleTaskComplete: (taskId: string) => { xpEarned: number; leveledUp: boolean; newAchievements: typeof ACHIEVEMENTS };
+  reorderTasks: (taskIds: string[]) => void;
 
   // Project actions
   createProject: (data: Partial<Project>) => Project;
@@ -70,9 +75,22 @@ interface TodayStore extends TodayState, SyncState {
   // Filtered tasks
   getFilteredTasks: () => Task[];
 
+  // Daily quests
+  getDailyQuests: () => DailyQuestsState;
+  updateDailyQuestProgress: (task: Task) => void;
+
   // Data management
   eraseAllData: () => void;
 }
+
+const defaultStreakInfo: StreakInfo = { current: 0, longest: 0, last_date: null };
+
+const defaultStreaks: Streaks = {
+  daily: { ...defaultStreakInfo },
+  inbox_zero: { ...defaultStreakInfo },
+  early_bird: { ...defaultStreakInfo },
+  night_owl: { ...defaultStreakInfo },
+};
 
 const defaultProfile: Profile = {
   name: 'User',
@@ -83,7 +101,8 @@ const defaultProfile: Profile = {
   current_streak: 0,
   longest_streak: 0,
   achievements: [],
-  last_task_date: null
+  last_task_date: null,
+  streaks: { ...defaultStreaks },
 };
 
 const defaultState: TodayState = {
@@ -123,6 +142,82 @@ function calculateTaskXP(task: Task, currentStreak: number): number {
   );
 
   return Math.floor(baseXP * streakMultiplier);
+}
+
+// Daily quest templates
+const DAILY_QUEST_TEMPLATES: Array<{
+  type: DailyQuest['type'];
+  title: string;
+  description: string;
+  target: number;
+  xp_reward: number;
+}> = [
+  { type: 'complete_tasks', title: 'Task Warrior', description: 'Complete 3 tasks today', target: 3, xp_reward: 30 },
+  { type: 'complete_tasks', title: 'Productivity Master', description: 'Complete 5 tasks today', target: 5, xp_reward: 50 },
+  { type: 'complete_epic', title: 'Boss Slayer', description: 'Complete an Epic difficulty task', target: 1, xp_reward: 75 },
+  { type: 'inbox_zero', title: 'Inbox Champion', description: 'Clear all tasks from your inbox', target: 1, xp_reward: 40 },
+  { type: 'early_task', title: 'Early Bird', description: 'Complete a task before 9am', target: 1, xp_reward: 25 },
+  { type: 'streak_maintain', title: 'Streak Keeper', description: 'Maintain your daily streak', target: 1, xp_reward: 35 },
+  { type: 'complete_project_task', title: 'Project Focus', description: 'Complete a task from any project', target: 1, xp_reward: 20 },
+];
+
+// Generate daily quests based on date seed
+function generateDailyQuests(dateStr: string): DailyQuest[] {
+  // Use date as seed for consistent daily quests
+  const seed = dateStr.split('-').reduce((acc, n) => acc + parseInt(n), 0);
+  const shuffled = [...DAILY_QUEST_TEMPLATES].sort((a, b) => {
+    const hashA = (seed * 31 + a.type.charCodeAt(0)) % 100;
+    const hashB = (seed * 31 + b.type.charCodeAt(0)) % 100;
+    return hashA - hashB;
+  });
+
+  // Pick 3 quests, avoiding duplicates
+  const selected: DailyQuest[] = [];
+  const usedTypes = new Set<string>();
+
+  for (const template of shuffled) {
+    if (!usedTypes.has(template.type) && selected.length < 3) {
+      selected.push({
+        id: `${dateStr}-${template.type}`,
+        ...template,
+        progress: 0,
+        completed: false,
+      });
+      usedTypes.add(template.type);
+    }
+  }
+
+  return selected;
+}
+
+// Update streak helper - returns updated streak info
+function updateStreak(streakInfo: StreakInfo | undefined, today: string): StreakInfo {
+  const info = streakInfo || { current: 0, longest: 0, last_date: null };
+  const lastDate = info.last_date;
+
+  if (!lastDate) {
+    return { current: 1, longest: Math.max(info.longest, 1), last_date: today };
+  }
+
+  const last = new Date(lastDate);
+  const now = new Date(today);
+  const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    // Same day - no change
+    return info;
+  } else if (diffDays === 1) {
+    // Consecutive day
+    const newCurrent = info.current + 1;
+    return {
+      current: newCurrent,
+      longest: Math.max(info.longest, newCurrent),
+      last_date: today,
+    };
+  } else {
+    // Streak broken
+    return { current: 1, longest: info.longest, last_date: today };
+  }
 }
 
 // Queue sync helper
@@ -351,6 +446,30 @@ export const useTodayStore = create<TodayStore>()(
             }
           }
 
+          // Update special streaks based on completion time
+          const now = new Date();
+          const hour = now.getHours();
+          const currentStreaks = state.profile.streaks || { ...defaultStreaks };
+
+          // Update daily streak (always)
+          const newDailyStreak = updateStreak(currentStreaks.daily, today);
+
+          // Update early bird streak (completed before 9am)
+          const newEarlyBirdStreak = hour < 9
+            ? updateStreak(currentStreaks.early_bird, today)
+            : currentStreaks.early_bird;
+
+          // Update night owl streak (completed after 8pm)
+          const newNightOwlStreak = hour >= 20
+            ? updateStreak(currentStreaks.night_owl, today)
+            : currentStreaks.night_owl;
+
+          // Check for inbox zero (no incomplete tasks) - update after this task
+          const remainingIncompleteTasks = state.tasks.filter(t => !t.is_completed && t.id !== taskId).length;
+          const newInboxZeroStreak = remainingIncompleteTasks === 0
+            ? updateStreak(currentStreaks.inbox_zero, today)
+            : currentStreaks.inbox_zero;
+
           // Update task
           set((state) => ({
             tasks: state.tasks.map((t) =>
@@ -370,7 +489,13 @@ export const useTodayStore = create<TodayStore>()(
               total_tasks_completed: state.profile.total_tasks_completed + 1,
               current_streak: newStreak,
               longest_streak: Math.max(state.profile.longest_streak, newStreak),
-              last_task_date: today
+              last_task_date: today,
+              streaks: {
+                daily: newDailyStreak,
+                inbox_zero: newInboxZeroStreak,
+                early_bird: newEarlyBirdStreak,
+                night_owl: newNightOwlStreak,
+              },
             },
             daily_stats: updateDailyStats(state.daily_stats, today, xpEarned),
             pendingSync: true,
@@ -379,6 +504,9 @@ export const useTodayStore = create<TodayStore>()(
 
           // Add XP locally
           const leveledUp = get().addXP(xpEarned);
+
+          // Update daily quests progress
+          get().updateDailyQuestProgress(task);
 
           // Check local achievements
           const newAchievements = checkAchievements(get());
@@ -478,6 +606,20 @@ export const useTodayStore = create<TodayStore>()(
 
           return { xpEarned: -revokedXP, leveledUp: false, newAchievements: [] };
         }
+      },
+
+      reorderTasks: (taskIds: string[]) => {
+        set((state) => ({
+          tasks: state.tasks.map((task) => {
+            const newIndex = taskIds.indexOf(task.id);
+            if (newIndex !== -1) {
+              return { ...task, order_index: newIndex, updated_at: new Date().toISOString() };
+            }
+            return task;
+          }),
+          pendingSync: true,
+        }));
+        queueSync(get);
       },
 
       createProject: (data: Partial<Project>) => {
@@ -637,6 +779,101 @@ export const useTodayStore = create<TodayStore>()(
         );
 
         return filtered;
+      },
+
+      getDailyQuests: () => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0];
+
+        // Check if we need to generate new daily quests
+        if (!state.daily_quests || state.daily_quests.date !== today) {
+          const quests = generateDailyQuests(today);
+          const newQuestsState: DailyQuestsState = {
+            date: today,
+            quests,
+            all_completed_bonus: false,
+          };
+          set({ daily_quests: newQuestsState, pendingSync: true });
+          return newQuestsState;
+        }
+
+        return state.daily_quests;
+      },
+
+      updateDailyQuestProgress: (task: Task) => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0];
+        const hour = new Date().getHours();
+
+        // Ensure we have today's quests
+        let questsState = state.daily_quests;
+        if (!questsState || questsState.date !== today) {
+          questsState = {
+            date: today,
+            quests: generateDailyQuests(today),
+            all_completed_bonus: false,
+          };
+        }
+
+        // Update progress for each applicable quest
+        const updatedQuests = questsState.quests.map((quest) => {
+          if (quest.completed) return quest;
+
+          let newProgress = quest.progress;
+
+          switch (quest.type) {
+            case 'complete_tasks':
+              newProgress++;
+              break;
+            case 'complete_epic':
+              if (task.difficulty === 'epic') newProgress++;
+              break;
+            case 'inbox_zero':
+              const remainingTasks = state.tasks.filter(t => !t.is_completed && t.id !== task.id).length;
+              if (remainingTasks === 0) newProgress = 1;
+              break;
+            case 'early_task':
+              if (hour < 9) newProgress = 1;
+              break;
+            case 'streak_maintain':
+              if (state.profile.current_streak > 0) newProgress = 1;
+              break;
+            case 'complete_project_task':
+              if (task.project_id) newProgress = 1;
+              break;
+          }
+
+          const completed = newProgress >= quest.target;
+          return { ...quest, progress: newProgress, completed };
+        });
+
+        const allCompleted = updatedQuests.every(q => q.completed);
+
+        set({
+          daily_quests: {
+            date: today,
+            quests: updatedQuests,
+            all_completed_bonus: allCompleted && !questsState.all_completed_bonus,
+          },
+          pendingSync: true,
+        });
+
+        // Check for newly completed quests and award XP
+        updatedQuests.forEach((quest, i) => {
+          if (quest.completed && !questsState!.quests[i].completed) {
+            get().addXP(quest.xp_reward);
+            get().showToast(`Quest Complete: ${quest.title}! +${quest.xp_reward} XP`, 'success');
+          }
+        });
+
+        // Bonus for completing all 3
+        if (allCompleted && !questsState.all_completed_bonus) {
+          const bonusXP = 50;
+          get().addXP(bonusXP);
+          setTimeout(() => {
+            get().showToast(`All Daily Quests Complete! Bonus +${bonusXP} XP`, 'success');
+          }, 1500);
+        }
       },
 
       eraseAllData: () => {

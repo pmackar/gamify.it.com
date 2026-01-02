@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     startDate,
     endDate,
     autoPopulate = true,
+    inviteUserIds = [],
   } = body;
 
   // Validation
@@ -109,6 +110,58 @@ export async function POST(request: NextRequest) {
       },
     },
   });
+
+  // Create party and send invites if users were selected
+  let partyCreated = false;
+  if (inviteUserIds && inviteUserIds.length > 0) {
+    // Verify invited users exist
+    const invitedUsers = await prisma.profiles.findMany({
+      where: { id: { in: inviteUserIds } },
+      select: { id: true },
+    });
+
+    if (invitedUsers.length > 0) {
+      // Create the party
+      await prisma.quest_parties.create({
+        data: {
+          quest_id: quest.id,
+          members: {
+            createMany: {
+              data: [
+                // Quest owner as LEADER with ACCEPTED status
+                { user_id: user.id, role: "LEADER", status: "ACCEPTED" },
+                // Invited users as MEMBER with PENDING status
+                ...invitedUsers.map((u) => ({
+                  user_id: u.id,
+                  role: "MEMBER" as const,
+                  status: "PENDING" as const,
+                })),
+              ],
+            },
+          },
+        },
+      });
+      partyCreated = true;
+
+      // Create activity feed entries for invites (if activity_feed table exists)
+      try {
+        await prisma.activity_feed.createMany({
+          data: invitedUsers.map((u) => ({
+            user_id: u.id,
+            type: "PARTY_INVITE",
+            data: {
+              questId: quest.id,
+              questName: quest.name,
+              invitedBy: user.id,
+              invitedByName: user.username || user.email,
+            },
+          })),
+        });
+      } catch {
+        // Activity feed is optional, don't fail if it doesn't exist
+      }
+    }
+  }
 
   // Auto-populate from hotlist if requested
   let itemsCreated = 0;
@@ -228,6 +281,8 @@ export async function POST(request: NextRequest) {
     },
     autoPopulated: autoPopulate,
     itemsCreated,
+    partyCreated,
+    invitedCount: partyCreated ? inviteUserIds.length : 0,
   });
 }
 

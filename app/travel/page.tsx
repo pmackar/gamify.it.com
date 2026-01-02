@@ -10,6 +10,8 @@ import {
   TrendingUp,
   Map,
   Star,
+  Scroll,
+  Heart,
 } from "lucide-react";
 import XPBar from "@/components/ui/XPBar";
 import { getUser } from "@/lib/auth";
@@ -47,6 +49,7 @@ async function getStats(userId: string) {
     visitsCount,
     achievementsCount,
     totalAchievements,
+    hotlistCount,
   ] = await Promise.all([
     prisma.travel_cities.count({
       where: { user_id: userId },
@@ -66,6 +69,9 @@ async function getStats(userId: string) {
     }),
     prisma.achievements.count({
       where: { app_id: 'travel' },
+    }),
+    prisma.travel_user_location_data.count({
+      where: { user_id: userId, hotlist: true },
     }),
   ]);
 
@@ -91,12 +97,31 @@ async function getStats(userId: string) {
     },
   });
 
+  // Get active quests
+  const activeQuests = await prisma.travel_quests.findMany({
+    where: {
+      user_id: userId,
+      status: { in: ['PLANNING', 'ACTIVE'] },
+    },
+    include: {
+      cities: {
+        include: { city: { select: { name: true } } },
+        orderBy: { sort_order: 'asc' },
+        take: 2,
+      },
+      items: { select: { id: true, completed: true } },
+    },
+    orderBy: { updated_at: 'desc' },
+    take: 3,
+  });
+
   return {
     counts: {
       cities: citiesCount,
       locations: locationsCount,
       visits: visitsCount,
       countries: uniqueCountries.size,
+      hotlist: hotlistCount,
     },
     achievements: {
       unlocked: achievementsCount,
@@ -111,6 +136,14 @@ async function getStats(userId: string) {
         name: loc.city.name,
         country: loc.city.country,
       },
+    })),
+    activeQuests: activeQuests.map((quest) => ({
+      id: quest.id,
+      name: quest.name,
+      status: quest.status,
+      cities: quest.cities.map((qc) => qc.city.name),
+      itemCount: quest.items.length,
+      completedCount: quest.items.filter((i) => i.completed).length,
     })),
   };
 }

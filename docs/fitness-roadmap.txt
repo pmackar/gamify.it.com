@@ -35,35 +35,35 @@ Essential features every top fitness app has.
 
 
 ===========================================
-PHASE 2: DIFFERENTIATION
+PHASE 2: DIFFERENTIATION (COMPLETED)
 ===========================================
 Features that set top apps apart.
 
-[ ] 1. Exercise Progress Charts
+[x] 1. Exercise Progress Charts
     - Line graph showing weight over time
     - Volume trends (sets x reps x weight)
     - Per-exercise and overall views
     - Time filters: 1M, 3M, 6M, 1Y, All
 
-[ ] 2. 1RM Estimates
+[x] 2. 1RM Estimates
     - Calculate estimated 1-rep max from working sets
     - Formula: Epley (weight × (1 + reps/30))
     - Show alongside PR in exercise history
     - Track e1RM progress over time
 
-[ ] 3. Workout Sharing
+[x] 3. Workout Sharing
     - Share completed workout as image/link
     - Include exercises, volume, XP earned
     - Social card with gamify.it branding
     - Copy link or download image
 
-[ ] 4. Superset/Circuit Support
+[x] 4. Superset/Circuit Support
     - Group 2+ exercises together
     - Visual indicator linking exercises
     - Shared rest timer between superset exercises
     - "Add to superset" option
 
-[ ] 5. Plate Calculator
+[x] 5. Plate Calculator
     - Input target weight
     - Show plates needed per side
     - Configurable bar weight (45/35/15 lb)
@@ -107,39 +107,45 @@ Features that improve long-term engagement.
 
 
 ===========================================
-PHASE 4: ADVANCED FEATURES
+PHASE 4: ADVANCED FEATURES (COMPLETED)
 ===========================================
 Power user and coaching features.
 
-[ ] 1. Program Builder
+[x] 1. Program Builder
     - Create multi-week training programs
     - Assign to self or athletes (coach mode)
-    - Progressive overload suggestions
-    - Rest day scheduling
+    - Week/day/workout grid editor
+    - Exercise picker with search
 
-[ ] 2. Body Composition Tracking
+[x] 2. Social Features
+    - Weekly rotating challenges with XP rewards
+    - Activity feed showing friends' workouts
+    - XP-based leaderboards among friends
+    - Weekly stats summary
+
+[x] 3. AI Coaching
+    - Form tips for 10+ major exercises
+    - Plateau detection (4+ weeks no PR)
+    - Deload recommendations based on volume
+    - Training load analysis with insights
+
+
+===========================================
+PARKING LOT (FUTURE)
+===========================================
+Features to revisit later.
+
+[ ] Body Composition Tracking
     - Weight, body fat %, measurements
     - Progress photos with date overlay
     - Trend graphs
     - Integration with smart scales
 
-[ ] 3. Nutrition Logging
+[ ] Nutrition Logging
     - Macro tracking (protein focus)
     - Calorie goals
     - Water intake
     - Meal templates
-
-[ ] 4. Social Features
-    - Follow other users
-    - Activity feed
-    - Challenges/competitions
-    - Leaderboards
-
-[ ] 5. AI Coaching
-    - Form tips based on exercise
-    - Plateau detection
-    - Deload recommendations
-    - Personalized suggestions
 
 
 ===========================================

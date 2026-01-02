@@ -1,0 +1,686 @@
+================================================================================
+DAY QUEST - FEATURE PRIORITIZATION MATRIX
+Impact / Complexity / Effort Analysis
+================================================================================
+
+Generated: January 2, 2026
+
+SCORING GUIDE:
+- Impact:     1-5 (5 = game-changing for users)
+- Complexity: 1-5 (5 = highly complex, many edge cases)
+- Effort:     1-5 (5 = weeks of work)
+- Priority Score = Impact × 2 - Complexity - Effort (higher = do first)
+
+================================================================================
+FEATURE PRIORITIZATION TABLE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ #  │ Feature                    │ Impact │ Complex │ Effort │ Score │ Tier │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 18 │ Drag & Drop Reordering     │   4    │    2    │   2    │   4   │  A   │
+│ 8  │ Natural Language Dates     │   4    │    2    │   2    │   4   │  A   │
+│ 20 │ Quick Actions on Tasks     │   4    │    2    │   2    │   4   │  A   │
+│ 21 │ Today View Enhancements    │   4    │    2    │   2    │   4   │  A   │
+│ 19 │ Bulk Actions               │   4    │    2    │   3    │   3   │  A   │
+│ 22 │ Empty States & Onboarding  │   3    │    1    │   2    │   3   │  A   │
+│ 15 │ Streak Variety             │   4    │    2    │   3    │   3   │  A   │
+│ 13 │ Daily Quests System        │   5    │    3    │   3    │   4   │  A   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 2  │ Subtasks / Checklists      │   5    │    3    │   3    │   4   │  B   │
+│ 9  │ Filters & Smart Lists      │   4    │    3    │   3    │   2   │  B   │
+│ 4  │ Time Estimation            │   4    │    2    │   3    │   3   │  B   │
+│ 3  │ Start/Defer Dates          │   4    │    3    │   3    │   2   │  B   │
+│ 16 │ Boss Battle UI             │   3    │    2    │   2    │   2   │  B   │
+│ 10 │ Notes & Attachments        │   3    │    3    │   3    │   0   │  B   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1  │ Recurring Tasks            │   5    │    4    │   4    │   2   │  C   │
+│ 6  │ Weekly Review System       │   4    │    3    │   4    │   1   │  C   │
+│ 5  │ Areas / Life Categories    │   3    │    3    │   3    │   0   │  C   │
+│ 17 │ Loot / Rewards System      │   4    │    4    │   4    │   0   │  C   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 8  │ Calendar View              │   4    │    4    │   4    │   0   │  D   │
+│ 11 │ Calendar Sync              │   4    │    5    │   5    │  -2   │  D   │
+│ 14 │ Skill Trees                │   3    │    4    │   4    │  -2   │  D   │
+│ 7  │ Quick Capture Widget       │   3    │    4    │   5    │  -3   │  D   │
+│ 12 │ Collaboration              │   4    │    5    │   5    │  -2   │  D   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+TIER DEFINITIONS
+================================================================================
+
+TIER A - QUICK WINS (Do Immediately)
+Score: 3+ | Low complexity, high impact
+Estimated time per feature: 2-8 hours
+Can likely complete multiple in one session
+
+TIER B - SOLID INVESTMENTS (Do Next)
+Score: 0-2 | Moderate complexity, good impact
+Estimated time per feature: 1-3 days
+Core functionality improvements
+
+TIER C - STRATEGIC FEATURES (Plan Carefully)
+Score: -1 to 1 | Higher complexity, worth the effort
+Estimated time per feature: 3-7 days
+Require architectural consideration
+
+TIER D - LONG-TERM PROJECTS (Future Roadmap)
+Score: <-1 | High complexity, significant effort
+Estimated time per feature: 1-3 weeks
+Consider for premium/v2
+
+================================================================================
+DETAILED BREAKDOWN BY TIER
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+TIER A: QUICK WINS (8 features, ~3-5 days total)
+────────────────────────────────────────────────────────────────────────────────
+
+1. DRAG & DROP REORDERING
+   Impact: 4 | Complexity: 2 | Effort: 2 | Score: 4
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - order_index already exists in data model
+   - Users expect this in any task manager
+   - Enables manual prioritization
+
+   Implementation:
+   - Add react-dnd or @dnd-kit library
+   - Update order_index on drop
+   - Animate reorder transition
+   - Mobile: long-press to drag
+
+   Estimate: 4-6 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+2. NATURAL LANGUAGE DATE PARSING
+   Impact: 4 | Complexity: 2 | Effort: 2 | Score: 4
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - Speeds up task entry significantly
+   - Power users expect this (Todoist standard)
+   - Quick add already has parsing infrastructure
+
+   Implementation:
+   - Use chrono-node or sugar-date library
+   - Add to quick add parser
+   - Support: "friday", "in 3 days", "dec 25", "next month"
+   - Show parsed date preview
+
+   Estimate: 3-4 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+3. QUICK ACTIONS ON TASKS
+   Impact: 4 | Complexity: 2 | Effort: 2 | Score: 4
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - Reduces clicks for common actions
+   - Mobile swipe gestures are expected
+   - Context menus speed up workflow
+
+   Implementation:
+   - Right-click context menu (desktop)
+   - Swipe actions (mobile) - use react-swipeable
+   - Quick date buttons: "Today", "Tomorrow", "Next Week"
+   - Inline title editing on click
+
+   Estimate: 4-6 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+4. TODAY VIEW ENHANCEMENTS
+   Impact: 4 | Complexity: 2 | Effort: 2 | Score: 4
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - Today is the primary view for most users
+   - Overdue visibility prevents missed tasks
+   - "Top 3" focus reduces overwhelm
+
+   Implementation:
+   - Add "Overdue" section at top (red styling)
+   - Add "Pick your top 3" morning prompt
+   - Time-based sections (optional toggle)
+   - "Add to Today" action from other views
+
+   Estimate: 3-5 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+5. BULK ACTIONS
+   Impact: 4 | Complexity: 2 | Effort: 3 | Score: 3
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - Essential for inbox processing
+   - Weekly review requires bulk operations
+   - Power user retention feature
+
+   Implementation:
+   - Add selection state to tasks
+   - Shift+click range, Cmd+click individual
+   - Floating action bar when selected
+   - Actions: Complete, Delete, Move, Reschedule
+
+   Estimate: 6-8 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+6. EMPTY STATES & ONBOARDING
+   Impact: 3 | Complexity: 1 | Effort: 2 | Score: 3
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - First impressions matter
+   - Reduces confusion for new users
+   - Celebrates achievements (inbox zero)
+
+   Implementation:
+   - Design illustrated empty states
+   - Add contextual messages per view
+   - First-run: sample tasks + guided tour
+   - "Quest complete!" celebration for inbox zero
+
+   Estimate: 4-6 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+7. STREAK VARIETY
+   Impact: 4 | Complexity: 2 | Effort: 3 | Score: 3
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - More engagement hooks
+   - Multiple streaks = more reasons to return
+   - Profile differentiation
+
+   Implementation:
+   - Add streak types: inbox_zero, early_bird, weekly_review
+   - Track each streak independently
+   - Display streak badges on profile
+   - Each active streak adds to XP multiplier
+
+   Estimate: 4-6 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+8. DAILY QUESTS SYSTEM
+   Impact: 5 | Complexity: 3 | Effort: 3 | Score: 4
+   ─────────────────────────────────────────────────
+   Why High Impact:
+   - Daily engagement hook (FOMO)
+   - Adds variety to gameplay
+   - Easy XP boost motivates completion
+
+   Implementation:
+   - Define quest pool (15-20 quest types)
+   - Generate 3 random quests daily at midnight
+   - Track progress throughout day
+   - Award bonus XP on completion
+   - UI: Quest card in sidebar/header
+
+   Estimate: 6-8 hours
+
+────────────────────────────────────────────────────────────────────────────────
+TIER A TOTAL: ~35-50 hours (3-5 days focused work)
+────────────────────────────────────────────────────────────────────────────────
+
+
+────────────────────────────────────────────────────────────────────────────────
+TIER B: SOLID INVESTMENTS (6 features, ~6-10 days total)
+────────────────────────────────────────────────────────────────────────────────
+
+9. SUBTASKS / CHECKLISTS
+   Impact: 5 | Complexity: 3 | Effort: 3 | Score: 4
+   ─────────────────────────────────────────────────
+   Why Worth It:
+   - Breaks down complex tasks
+   - Visual progress (3/5 complete)
+   - Standard feature in competitors
+
+   Implementation:
+   - Add subtasks[] array to Task model
+   - Subtask: { id, title, completed, order }
+   - Progress bar on parent task
+   - Option: Complete parent when all subtasks done
+   - XP: Award on parent completion or distribute
+
+   Data Model Change: Yes (subtasks array)
+   Estimate: 8-12 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+10. FILTERS & SMART LISTS
+    Impact: 4 | Complexity: 3 | Effort: 3 | Score: 2
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Power user essential
+    - Reduces view switching
+    - Personalized workflows
+
+    Implementation:
+    - Define filter criteria (priority, tier, category, date range, etc.)
+    - Filter builder UI (or query syntax)
+    - Save filters to sidebar
+    - Built-in smart lists: "Quick wins", "Boss battles", "Overdue"
+
+    Data Model Change: Yes (saved filters)
+    Estimate: 10-14 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+11. TIME ESTIMATION
+    Impact: 4 | Complexity: 2 | Effort: 3 | Score: 3
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Enables capacity planning
+    - "How much can I do today?"
+    - XP bonus for accuracy
+
+    Implementation:
+    - Add estimated_minutes to Task model
+    - Quick select: 15m, 30m, 1h, 2h, 4h+
+    - Show daily total in Today view
+    - Track actual_minutes (optional)
+    - Accuracy achievement: "Time Oracle"
+
+    Data Model Change: Yes (estimated_minutes, actual_minutes)
+    Estimate: 6-8 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+12. START/DEFER DATES
+    Impact: 4 | Complexity: 3 | Effort: 3 | Score: 2
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Cleaner inbox (hide future tasks)
+    - GTD best practice
+    - "Someday/Maybe" support
+
+    Implementation:
+    - Add start_date to Task model
+    - Tasks hidden until start_date
+    - "Defer until..." action
+    - "Someday" = start_date far future
+    - Filter by "Available now"
+
+    Data Model Change: Yes (start_date)
+    Estimate: 6-10 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+13. BOSS BATTLE UI
+    Impact: 3 | Complexity: 2 | Effort: 2 | Score: 2
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Memorable moments
+    - Differentiates from competitors
+    - Celebrates hard work
+
+    Implementation:
+    - Special card styling for epic tasks
+    - Pulsing/glowing border animation
+    - "Boss health bar" if has subtasks
+    - Victory animation on completion
+    - Sound effects (optional setting)
+
+    Data Model Change: No
+    Estimate: 4-6 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+14. NOTES & ATTACHMENTS
+    Impact: 3 | Complexity: 3 | Effort: 3 | Score: 0
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Context for complex tasks
+    - Reference materials
+    - Competitive parity
+
+    Implementation:
+    - Expand description to rich text (markdown)
+    - File upload to Supabase Storage
+    - Link previews
+    - Collapsible notes section
+
+    Data Model Change: Yes (attachments array)
+    Estimate: 10-14 hours
+
+────────────────────────────────────────────────────────────────────────────────
+TIER B TOTAL: ~45-65 hours (6-10 days focused work)
+────────────────────────────────────────────────────────────────────────────────
+
+
+────────────────────────────────────────────────────────────────────────────────
+TIER C: STRATEGIC FEATURES (4 features, ~10-18 days total)
+────────────────────────────────────────────────────────────────────────────────
+
+15. RECURRING TASKS
+    Impact: 5 | Complexity: 4 | Effort: 4 | Score: 2
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Most requested todo feature universally
+    - Essential for habits/routines
+    - "Daily Quest" branding opportunity
+
+    Complexity Factors:
+    - Recurrence rule parsing (RRULE standard?)
+    - Instance generation logic
+    - Skip/postpone handling
+    - Completion of single vs all instances
+    - Timezone considerations
+
+    Implementation:
+    - Add recurrence_rule to Task model
+    - Generate instances on-demand or scheduled
+    - UI: Recurrence picker (daily, weekly, monthly, custom)
+    - "Daily Quest" special styling for recurring
+    - Streak bonus for recurring task chains
+
+    Data Model Change: Yes (recurrence_rule, is_recurring, recurring_parent_id)
+    Estimate: 20-30 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+16. WEEKLY REVIEW SYSTEM
+    Impact: 4 | Complexity: 3 | Effort: 4 | Score: 1
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - GTD compliance
+    - Reflection drives improvement
+    - XP reward for good habit
+
+    Implementation:
+    - Weekly review modal/page
+    - Sections: Completed, Stuck, Upcoming, Inbox
+    - Guided prompts: "What went well?"
+    - Weekly stats summary
+    - XP bonus for completion
+    - Sunday evening notification/prompt
+    - "Weekly Review" streak
+
+    Data Model Change: Yes (weekly_review records)
+    Estimate: 14-20 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+17. AREAS / LIFE CATEGORIES
+    Impact: 3 | Complexity: 3 | Effort: 3 | Score: 0
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Hierarchical organization
+    - Life balance visibility
+    - Cross-app alignment (Fitness=Health area)
+
+    Implementation:
+    - New Area model (parent of Projects)
+    - Area selector in sidebar
+    - Area-level stats
+    - Default areas: Work, Personal, Health, Learning
+    - Area colors/icons
+
+    Data Model Change: Yes (Area model, project.area_id)
+    Estimate: 12-16 hours
+
+────────────────────────────────────────────────────────────────────────────────
+
+18. LOOT / REWARDS SYSTEM
+    Impact: 4 | Complexity: 4 | Effort: 4 | Score: 0
+    ─────────────────────────────────────────────────
+    Why Worth It:
+    - Collection motivation
+    - Monetization foundation
+    - Surprise/delight moments
+
+    Implementation:
+    - Loot table with drop rates
+    - Inventory system
+    - Cosmetic rewards (themes, badges)
+    - Consumables (XP boost, streak shield)
+    - Loot drop animation
+    - Shop for spending currency
+
+    Data Model Change: Yes (inventory, loot_items, currency)
+    Estimate: 20-30 hours
+
+────────────────────────────────────────────────────────────────────────────────
+TIER C TOTAL: ~65-95 hours (10-18 days focused work)
+────────────────────────────────────────────────────────────────────────────────
+
+
+────────────────────────────────────────────────────────────────────────────────
+TIER D: LONG-TERM PROJECTS (5 features, future roadmap)
+────────────────────────────────────────────────────────────────────────────────
+
+19. CALENDAR VIEW
+    Impact: 4 | Complexity: 4 | Effort: 4 | Score: 0
+    Estimate: 25-35 hours
+
+    Notes:
+    - Full calendar component needed
+    - Month/week/day views
+    - Drag tasks to dates
+    - Consider: FullCalendar, react-big-calendar
+
+────────────────────────────────────────────────────────────────────────────────
+
+20. CALENDAR SYNC (Google/Apple)
+    Impact: 4 | Complexity: 5 | Effort: 5 | Score: -2
+    Estimate: 40-60 hours
+
+    Notes:
+    - OAuth flows for Google/Apple
+    - 2-way sync logic
+    - Conflict resolution
+    - Premium feature candidate
+
+────────────────────────────────────────────────────────────────────────────────
+
+21. SKILL TREES
+    Impact: 3 | Complexity: 4 | Effort: 4 | Score: -2
+    Estimate: 30-40 hours
+
+    Notes:
+    - Define skill paths and abilities
+    - Visual tree UI
+    - Unlock conditions
+    - Premium feature gating
+
+────────────────────────────────────────────────────────────────────────────────
+
+22. QUICK CAPTURE WIDGET
+    Impact: 3 | Complexity: 4 | Effort: 5 | Score: -3
+    Estimate: 40-60 hours
+
+    Notes:
+    - Browser extension
+    - Mobile share extension (native)
+    - Global hotkey (Electron/native)
+    - Significant platform-specific work
+
+────────────────────────────────────────────────────────────────────────────────
+
+23. COLLABORATION
+    Impact: 4 | Complexity: 5 | Effort: 5 | Score: -2
+    Estimate: 60-100 hours
+
+    Notes:
+    - Shared projects
+    - Real-time sync (consider Supabase Realtime)
+    - Permissions model
+    - Activity feeds
+    - Premium/team tier
+
+────────────────────────────────────────────────────────────────────────────────
+TIER D TOTAL: ~200-300 hours (future roadmap)
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+RECOMMENDED EXECUTION ORDER
+================================================================================
+
+SPRINT 1 (Week 1): Quick Wins Foundation
+─────────────────────────────────────────
+Day 1-2:
+  □ Natural Language Date Parsing (3-4h)
+  □ Quick Actions on Tasks (4-6h)
+  □ Today View Enhancements (3-5h)
+
+Day 3-4:
+  □ Drag & Drop Reordering (4-6h)
+  □ Bulk Actions (6-8h)
+
+Day 5:
+  □ Empty States & Onboarding (4-6h)
+  □ Testing & polish
+
+Sprint 1 Deliverable: Polished core UX, faster workflows
+
+
+SPRINT 2 (Week 2): Gamification Boost
+─────────────────────────────────────────
+Day 1-2:
+  □ Daily Quests System (6-8h)
+  □ Streak Variety (4-6h)
+
+Day 3-4:
+  □ Subtasks / Checklists (8-12h)
+
+Day 5:
+  □ Boss Battle UI (4-6h)
+  □ Testing & polish
+
+Sprint 2 Deliverable: Enhanced engagement, task breakdown
+
+
+SPRINT 3 (Week 3): Power Features
+─────────────────────────────────────────
+Day 1-2:
+  □ Time Estimation (6-8h)
+  □ Start/Defer Dates (6-10h)
+
+Day 3-5:
+  □ Filters & Smart Lists (10-14h)
+  □ Testing & polish
+
+Sprint 3 Deliverable: Power user workflows, GTD compliance
+
+
+SPRINT 4 (Week 4): Content & Planning
+─────────────────────────────────────────
+Day 1-3:
+  □ Notes & Attachments (10-14h)
+
+Day 4-5:
+  □ Weekly Review System (start, 14-20h total)
+
+Sprint 4 Deliverable: Rich task content, reflection habits
+
+
+SPRINT 5 (Week 5): Complex Features
+─────────────────────────────────────────
+Day 1-2:
+  □ Weekly Review System (finish)
+
+Day 3-5:
+  □ Recurring Tasks (start, 20-30h total)
+
+Sprint 5 Deliverable: Weekly planning, recurring task foundation
+
+
+SPRINT 6 (Week 6): Polish & Ship
+─────────────────────────────────────────
+Day 1-3:
+  □ Recurring Tasks (finish)
+  □ Areas / Life Categories (12-16h)
+
+Day 4-5:
+  □ Integration testing
+  □ Performance optimization
+  □ Bug fixes
+
+Sprint 6 Deliverable: Complete Phase 1-3 features
+
+
+================================================================================
+MASTER TRACKING CHECKLIST
+================================================================================
+
+STATUS KEY:
+  [ ] = TODO (Not started)
+  [~] = IN PROGRESS (Started, not complete)
+  [x] = DONE (Shipped)
+  [P] = PARKING LOT (Deprioritized/deferred)
+  [!] = BLOCKED (Waiting on dependency)
+
+Last Updated: 2026-01-02
+
+────────────────────────────────────────────────────────────────────────────────
+TIER A - QUICK WINS
+────────────────────────────────────────────────────────────────────────────────
+[ ] A1. Natural Language Date Parsing      | Est: 3-4h  | Dep: None
+[ ] A2. Quick Actions on Tasks             | Est: 4-6h  | Dep: None
+[ ] A3. Today View Enhancements            | Est: 3-5h  | Dep: None
+[ ] A4. Drag & Drop Reordering             | Est: 4-6h  | Dep: None
+[ ] A5. Bulk Actions                       | Est: 6-8h  | Dep: None
+[ ] A6. Empty States & Onboarding          | Est: 4-6h  | Dep: None
+[ ] A7. Streak Variety                     | Est: 4-6h  | Dep: None
+[ ] A8. Daily Quests System                | Est: 6-8h  | Dep: None
+
+Tier A Progress: 0/8 complete | Est Total: 35-50h
+
+────────────────────────────────────────────────────────────────────────────────
+TIER B - SOLID INVESTMENTS
+────────────────────────────────────────────────────────────────────────────────
+[ ] B1. Subtasks / Checklists              | Est: 8-12h | Dep: None
+[ ] B2. Filters & Smart Lists              | Est: 10-14h| Dep: None
+[ ] B3. Time Estimation                    | Est: 6-8h  | Dep: None
+[ ] B4. Start/Defer Dates                  | Est: 6-10h | Dep: None
+[ ] B5. Boss Battle UI                     | Est: 4-6h  | Dep: None
+[ ] B6. Notes & Attachments                | Est: 10-14h| Dep: None
+
+Tier B Progress: 0/6 complete | Est Total: 45-65h
+
+────────────────────────────────────────────────────────────────────────────────
+TIER C - STRATEGIC FEATURES
+────────────────────────────────────────────────────────────────────────────────
+[ ] C1. Recurring Tasks                    | Est: 20-30h| Dep: None
+[ ] C2. Weekly Review System               | Est: 14-20h| Dep: None
+[ ] C3. Areas / Life Categories            | Est: 12-16h| Dep: None
+[ ] C4. Loot / Rewards System              | Est: 20-30h| Dep: Permission system
+
+Tier C Progress: 0/4 complete | Est Total: 65-95h
+
+────────────────────────────────────────────────────────────────────────────────
+TIER D - FUTURE ROADMAP (PARKING LOT)
+────────────────────────────────────────────────────────────────────────────────
+[P] D1. Calendar View                      | Est: 25-35h| Dep: None
+[P] D2. Calendar Sync (Google/Apple)       | Est: 40-60h| Dep: D1, OAuth
+[P] D3. Skill Trees                        | Est: 30-40h| Dep: Permission system
+[P] D4. Quick Capture Widget               | Est: 40-60h| Dep: Browser ext/native
+[P] D5. Collaboration                      | Est: 60-100h| Dep: Realtime, permissions
+
+Tier D Progress: Deferred | Est Total: 200-300h
+
+────────────────────────────────────────────────────────────────────────────────
+OVERALL PROGRESS
+────────────────────────────────────────────────────────────────────────────────
+Tier A (Quick Wins):        ████████░░░░░░░░░░░░  0%   (0/8)
+Tier B (Solid Investments): ████████░░░░░░░░░░░░  0%   (0/6)
+Tier C (Strategic):         ████████░░░░░░░░░░░░  0%   (0/4)
+Tier D (Future):            Parking Lot          N/A  (0/5)
+
+Total Active Features: 0/18 complete
+Total Estimated Hours: 145-210h (Tiers A-C)
+
+================================================================================
+CHANGE LOG
+================================================================================
+2026-01-02 | Initial prioritization created
+           | All features set to TODO status
+           | Tier D items moved to Parking Lot
+
+================================================================================
+END OF PRIORITIZATION REPORT
+================================================================================

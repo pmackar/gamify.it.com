@@ -16,6 +16,7 @@ import {
   X,
   Check,
   UserPlus,
+  BookOpen,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -305,20 +306,36 @@ export default function CoachDashboard() {
               {coachProfile?.business_name || "Manage your athletes"}
             </p>
           </div>
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
-            style={{
-              background: "linear-gradient(180deg, #FF6B6B 0%, #cc5555 100%)",
-              boxShadow: "0 3px 0 #992222",
-              fontFamily: "'Press Start 2P', monospace",
-              fontSize: "8px",
-              color: "white",
-            }}
-          >
-            <UserPlus className="w-4 h-4" />
-            INVITE
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/fitness/coach/programs"
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
+              style={{
+                background: "linear-gradient(180deg, #5fbf8a 0%, #4aa872 100%)",
+                boxShadow: "0 3px 0 #3d8d61",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: "8px",
+                color: "white",
+              }}
+            >
+              <BookOpen className="w-4 h-4" />
+              PROGRAMS
+            </Link>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
+              style={{
+                background: "linear-gradient(180deg, #FF6B6B 0%, #cc5555 100%)",
+                boxShadow: "0 3px 0 #992222",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: "8px",
+                color: "white",
+              }}
+            >
+              <UserPlus className="w-4 h-4" />
+              INVITE
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}

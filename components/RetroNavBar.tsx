@@ -1908,17 +1908,17 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             {/* Travel app quick actions */}
             {isTravel && !quickActions && (
               <div className="nav-quick-actions">
+                <Link href="/travel/quests" className="nav-quick-action">
+                  <span className="nav-quick-action-icon">📋</span>
+                  <span className="nav-quick-action-label">QUESTS</span>
+                </Link>
                 <Link href="/travel/locations/new" className="nav-quick-action">
                   <span className="nav-quick-action-icon">+</span>
                   <span className="nav-quick-action-label">ADD</span>
                 </Link>
-                <Link href="/travel/map" className="nav-quick-action">
-                  <span className="nav-quick-action-icon">🗺️</span>
-                  <span className="nav-quick-action-label">MAP</span>
-                </Link>
-                <Link href="/travel/cities" className="nav-quick-action">
-                  <span className="nav-quick-action-icon">🏙️</span>
-                  <span className="nav-quick-action-label">CITIES</span>
+                <Link href="/travel/hotlist" className="nav-quick-action">
+                  <span className="nav-quick-action-icon">❤️</span>
+                  <span className="nav-quick-action-label">HOTLIST</span>
                 </Link>
               </div>
             )}

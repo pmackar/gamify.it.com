@@ -93,7 +93,7 @@ export interface ActiveWorkout {
   seconds: number;
 }
 
-export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail';
+export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach';
 
 export interface CommandSuggestion {
   type: string;

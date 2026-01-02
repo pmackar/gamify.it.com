@@ -1,0 +1,511 @@
+================================================================================
+DAY QUEST (/today) - FEATURE ANALYSIS & ROADMAP
+Comparison with Best-in-Class Todo & GTD Apps
+================================================================================
+
+Generated: January 2, 2026
+Apps Compared: Things 3, Todoist, OmniFocus, TickTick, Notion, Sunsama, Linear
+
+================================================================================
+CURRENT STRENGTHS (KEEP THESE)
+================================================================================
+
+- Gamification core: XP, levels, streaks, achievements, character ranks
+- Quick add with parsing: @project #category !priority ~difficulty ^tier
+- Keyboard-first: Comprehensive shortcuts, command palette (Cmd+K)
+- Mobile-responsive: Bottom nav, touch-friendly, safe area support
+- Visual hierarchy: Tier/difficulty system for task importance
+- Pixel art aesthetic: Consistent with gamify.it.com brand
+- Offline-first: Local state with server sync
+
+================================================================================
+MISSING FEATURES & REFINEMENTS
+================================================================================
+
+--------------------------------------------------------------------------------
+1. RECURRING TASKS (Todoist, Things 3, TickTick)
+--------------------------------------------------------------------------------
+Gap: No way to create repeating tasks
+
+Recommendation:
+- Daily, weekly, monthly, custom recurrence
+- "Every weekday", "Every 2 weeks on Monday"
+- Natural language: "every day", "weekly", "1st of month"
+- Quest chain concept: "Daily Quest" for recurring tasks
+- Bonus XP for maintaining recurring task streaks
+- Skip/postpone individual occurrences
+
+--------------------------------------------------------------------------------
+2. SUBTASKS / CHECKLISTS (Things 3, Todoist, Notion)
+--------------------------------------------------------------------------------
+Gap: Tasks are flat, no breakdown capability
+
+Recommendation:
+- Nested subtasks (1-2 levels deep)
+- Checklist items within tasks
+- Progress indicator (3/5 subtasks done)
+- Parent task auto-completes when all subtasks done
+- XP distributed across subtasks or awarded on parent completion
+- Collapse/expand subtask lists
+
+--------------------------------------------------------------------------------
+3. START/DEFER DATES (OmniFocus, Things 3)
+--------------------------------------------------------------------------------
+Gap: Only due dates exist
+
+Recommendation:
+- "Start date" - task hidden until this date
+- "Defer until" - removes from Inbox, appears in Upcoming
+- Reduces clutter, shows only actionable items
+- "Someday/Maybe" list for deferred indefinitely
+- "Waiting For" status for blocked tasks
+
+--------------------------------------------------------------------------------
+4. TIME ESTIMATION & TRACKING (TickTick, Sunsama, Clockify)
+--------------------------------------------------------------------------------
+Gap: No sense of how long tasks take
+
+Recommendation:
+- Estimated duration (15m, 30m, 1h, 2h+)
+- Actual time tracked (optional)
+- Daily capacity planning: "4 hours of tasks scheduled"
+- XP bonus for accurate estimates
+- "Focus mode" with timer (Pomodoro-style)
+- Time spent stats in weekly review
+
+--------------------------------------------------------------------------------
+5. AREAS / LIFE CATEGORIES (Things 3, OmniFocus)
+--------------------------------------------------------------------------------
+Gap: Categories are flat labels, no hierarchy
+
+Recommendation:
+- Areas: "Work", "Personal", "Health", "Learning"
+- Projects live within Areas
+- Area-level stats and XP tracking
+- Quick filter by Area
+- Aligns with gamify.it.com ecosystem:
+  - Fitness app = Health area
+  - Travel app = Personal/Adventure area
+- Color-coded area badges
+
+--------------------------------------------------------------------------------
+6. WEEKLY REVIEW / PLANNING (GTD core, OmniFocus)
+--------------------------------------------------------------------------------
+Gap: No structured review process
+
+Recommendation:
+- Weekly Review Quest (Sunday evening prompt)
+- Review sections:
+  - Completed this week (celebrate wins)
+  - Stuck/overdue (decide: do, defer, delete)
+  - Upcoming week preview
+  - Clear inbox to zero
+- Set weekly goals/focus areas
+- XP reward for completing weekly review
+- "Weekly Report" showing productivity trends
+- Guided review flow with prompts
+
+--------------------------------------------------------------------------------
+7. QUICK CAPTURE WIDGET (Todoist, Things 3)
+--------------------------------------------------------------------------------
+Gap: Must open app to add tasks
+
+Recommendation:
+- Global keyboard shortcut (outside app)
+- Share extension (iOS/Android future)
+- Email to inbox: tasks@gamify.it.com
+- Voice input: "Add task: buy groceries"
+- Browser extension for web clipping
+- API for integrations (Zapier, Shortcuts)
+
+--------------------------------------------------------------------------------
+8. NATURAL LANGUAGE DATES (Todoist, TickTick)
+--------------------------------------------------------------------------------
+Gap: Limited date parsing
+
+Current: "today", "tomorrow", "next week"
+
+Add:
+- Day names: "Friday", "next Friday", "this Monday"
+- Relative: "in 3 days", "in 2 weeks", "in a month"
+- Absolute: "Dec 25", "12/25", "2026-01-15"
+- Contextual: "end of month", "next quarter", "end of week"
+- Time: "tomorrow at 3pm", "Friday 9am"
+
+--------------------------------------------------------------------------------
+9. FILTERS & SMART LISTS (Todoist, OmniFocus)
+--------------------------------------------------------------------------------
+Gap: Fixed views only (Inbox, Today, Upcoming, Completed)
+
+Recommendation:
+- Custom filters: "High priority + Work + Due this week"
+- Saved filters as sidebar items
+- Built-in smart lists:
+  - "Focus": Today's top 3 tasks only
+  - "Quick wins": Easy + Quick tier
+  - "Boss battles": Epic difficulty
+  - "Overdue": Past due date
+  - "No date": Tasks without due dates
+  - "Unassigned": No project/category
+- Filter syntax in search bar
+
+--------------------------------------------------------------------------------
+10. NOTES & ATTACHMENTS (Notion, Todoist)
+--------------------------------------------------------------------------------
+Gap: Only title and description (plain text)
+
+Recommendation:
+- Rich text notes (markdown support)
+- File attachments (images, PDFs, docs)
+- Links with preview cards
+- Checklists within notes (separate from subtasks)
+- Reference materials for complex tasks
+- Code snippets with syntax highlighting
+
+--------------------------------------------------------------------------------
+11. CALENDAR INTEGRATION (Sunsama, TickTick, Todoist)
+--------------------------------------------------------------------------------
+Gap: No calendar view or sync
+
+Recommendation:
+- Calendar view of tasks by due date
+- Time blocking: assign tasks to specific times
+- Google/Apple Calendar sync (2-way)
+- See events alongside tasks
+- "Schedule this task" action
+- Drag tasks to calendar slots
+- Daily agenda view combining tasks + events
+
+--------------------------------------------------------------------------------
+12. COLLABORATION (Todoist, Asana, Notion) - FUTURE
+--------------------------------------------------------------------------------
+Gap: Single-user only
+
+Recommendation (Future Premium Feature):
+- Shared projects with friends/team
+- Assign tasks to others
+- Comments/discussion on tasks
+- Activity feed for shared projects
+- Party quests (collaborative goals with friends)
+- Competition: weekly leaderboards with friends
+- @mentions and notifications
+
+================================================================================
+GAMIFICATION ENHANCEMENTS
+================================================================================
+
+--------------------------------------------------------------------------------
+13. DAILY QUESTS SYSTEM
+--------------------------------------------------------------------------------
+- 3 randomly generated daily challenges
+- Examples:
+  - "Complete 5 tasks today" → Bonus 50 XP
+  - "Clear your inbox" → Bonus 30 XP
+  - "Finish an Epic task" → Bonus 100 XP
+  - "Complete a task before 9am" → Bonus 25 XP
+  - "Maintain your streak" → Bonus 40 XP
+- Refresh at midnight, limited time urgency
+- Track daily quest completion rate
+- Bonus multiplier for completing all 3
+
+--------------------------------------------------------------------------------
+14. SKILL TREES / SPECIALIZATIONS
+--------------------------------------------------------------------------------
+- "Productivity Paths":
+  - Focus Master (deep work abilities)
+  - Early Bird (morning bonuses)
+  - Night Owl (evening bonuses)
+  - Planner (scheduling abilities)
+  - Speed Runner (quick task bonuses)
+- Unlock abilities as you progress:
+  - "Auto-schedule": AI suggests task times
+  - "Time oracle": Better time estimates
+  - "Focus shield": Distraction blocking
+- Visual skill tree progression
+- Aligns with premium feature unlocks
+
+--------------------------------------------------------------------------------
+15. STREAK VARIETY
+--------------------------------------------------------------------------------
+Current: Single "task completion" streak
+
+Add multiple streak types:
+- "Inbox Zero" streak (clear inbox daily)
+- "Early Bird" streak (complete task before 9am)
+- "Night Owl" streak (complete task after 8pm)
+- "Weekly Review" streak (complete review each week)
+- "Project Closer" streak (complete project tasks weekly)
+- Each active streak contributes to XP multiplier
+- Display streak badges on profile
+
+--------------------------------------------------------------------------------
+16. BOSS BATTLES (EPIC TASKS)
+--------------------------------------------------------------------------------
+- Epic difficulty tasks become "Boss Battles"
+- Special UI treatment:
+  - Dramatic card styling
+  - Pulsing border animation
+  - Boss health bar (subtask progress)
+  - Countdown timer option
+  - Victory celebration animation
+- Sound effects option (epic music)
+- Rare achievements:
+  - "Dragon Slayer" (complete 10 boss battles)
+  - "Speed Run" (complete boss battle in under 1 hour)
+  - "Flawless Victory" (boss battle with all subtasks on time)
+
+--------------------------------------------------------------------------------
+17. LOOT / REWARDS SYSTEM
+--------------------------------------------------------------------------------
+- Random "loot drops" on task completion
+- Loot types:
+  - Cosmetic: themes, avatar items, profile badges
+  - Consumables: "2x XP potion" (24 hours), "Streak shield" (protects streak)
+  - Currency: "Gold coins" for cosmetic shop
+- Rarity tiers: Common, Uncommon, Rare, Epic, Legendary
+- Higher difficulty = better loot chance
+- Ties into monetization (premium cosmetics in shop)
+- Collection/inventory system
+
+================================================================================
+UI/UX REFINEMENTS
+================================================================================
+
+--------------------------------------------------------------------------------
+18. DRAG & DROP REORDERING
+--------------------------------------------------------------------------------
+- Reorder tasks within views (order_index exists, needs UI)
+- Drag tasks to different dates on calendar view
+- Drag tasks to projects/categories in sidebar
+- Drag to reorder projects and categories
+- Visual drop indicators
+- Mobile: long-press to drag
+
+--------------------------------------------------------------------------------
+19. BULK ACTIONS
+--------------------------------------------------------------------------------
+- Multi-select tasks:
+  - Shift+click for range selection
+  - Cmd/Ctrl+click for individual selection
+  - "Select all" option
+- Bulk operations:
+  - Complete selected
+  - Delete selected
+  - Move to project
+  - Change category
+  - Set due date
+  - Change priority/tier/difficulty
+- "Select all overdue" quick action
+
+--------------------------------------------------------------------------------
+20. QUICK ACTIONS ON TASKS
+--------------------------------------------------------------------------------
+- Swipe actions on mobile:
+  - Swipe right: Complete
+  - Swipe left: Delete or Reschedule
+- Right-click context menu on desktop
+- Inline editing (click title to edit)
+- Quick date picker (click due date)
+- One-click actions:
+  - "Do today" (set due date to today)
+  - "Do tomorrow"
+  - "Do next week"
+  - "Remove date"
+
+--------------------------------------------------------------------------------
+21. TODAY VIEW ENHANCEMENTS
+--------------------------------------------------------------------------------
+- "Morning Planning" mode:
+  - Highlight top 3 priorities
+  - Drag to reorder importance
+  - Hide low-priority items initially
+- Time-based sections:
+  - Overdue (red, top)
+  - Morning
+  - Afternoon
+  - Evening
+  - No time assigned
+- "Add to Today" quick action from any view
+- Daily focus question: "What's most important today?"
+- End-of-day review prompt
+
+--------------------------------------------------------------------------------
+22. EMPTY STATES & ONBOARDING
+--------------------------------------------------------------------------------
+- Illustrated empty states with tips:
+  - Inbox empty: "Quest complete! Your inbox is clear."
+  - Today empty: "No quests today. Enjoy your rest, adventurer."
+  - Project empty: "This project awaits its first quest."
+- First-run tutorial:
+  - Sample tasks to complete
+  - Guided tour of features
+  - Explanation of XP system
+- Progressive feature disclosure:
+  - Start simple, reveal advanced features over time
+- Contextual tips and hints
+
+================================================================================
+PRIORITY ROADMAP
+================================================================================
+
+--------------------------------------------------------------------------------
+PHASE 1: CORE PRODUCTIVITY (High Impact, Foundation)
+--------------------------------------------------------------------------------
+Priority: CRITICAL
+Timeline: Implement first
+
+1. Recurring tasks
+   - Most requested feature in todo apps
+   - Essential for habits and routines
+   - "Daily Quest" branding opportunity
+
+2. Subtasks/checklists
+   - Breaks down complex tasks
+   - Better progress visibility
+   - Standard in all competitors
+
+3. Start/defer dates
+   - Reduces inbox clutter
+   - Shows only actionable items
+   - GTD best practice
+
+4. Natural language date parsing
+   - Faster task entry
+   - Expected by power users
+   - Low effort, high impact
+
+5. Drag & drop reordering
+   - Infrastructure exists (order_index)
+   - Standard UX expectation
+   - Mobile and desktop
+
+--------------------------------------------------------------------------------
+PHASE 2: POWER FEATURES (Differentiation)
+--------------------------------------------------------------------------------
+Priority: HIGH
+Timeline: After Phase 1
+
+6. Time estimation & tracking
+   - Unique value proposition
+   - Enables capacity planning
+   - XP bonus integration
+
+7. Custom filters/smart lists
+   - Power user retention
+   - Personalized workflows
+   - Reduces view switching
+
+8. Calendar view
+   - Visual planning
+   - Time blocking support
+   - Complements due dates
+
+9. Weekly review system
+   - GTD compliance
+   - Engagement driver
+   - XP reward opportunity
+
+10. Bulk actions
+    - Productivity multiplier
+    - Inbox processing speed
+    - Standard expectation
+
+--------------------------------------------------------------------------------
+PHASE 3: GAMIFICATION EXPANSION (Engagement)
+--------------------------------------------------------------------------------
+Priority: MEDIUM
+Timeline: After Phase 2
+
+11. Daily quests
+    - Daily engagement hook
+    - Variety in gameplay
+    - FOMO driver (time-limited)
+
+12. Streak variety
+    - More ways to build habits
+    - Increased XP multiplier complexity
+    - Profile customization
+
+13. Boss battle UI for epic tasks
+    - Dramatic differentiation
+    - Celebration moments
+    - Memorable experiences
+
+14. Loot/cosmetic rewards
+    - Collection motivation
+    - Monetization foundation
+    - Visual customization
+
+--------------------------------------------------------------------------------
+PHASE 4: PREMIUM & SOCIAL (Monetization)
+--------------------------------------------------------------------------------
+Priority: MEDIUM-LOW
+Timeline: After Phase 3
+
+15. Calendar sync (Google/Apple)
+    - Premium feature candidate
+    - Complex integration
+    - High value for professionals
+
+16. Collaboration features
+    - Premium/team tier
+    - Social engagement
+    - Viral growth potential
+
+17. Skill trees
+    - Long-term progression
+    - Feature gating mechanism
+    - Premium unlocks
+
+18. Advanced analytics
+    - Premium insights
+    - Productivity trends
+    - Export capabilities
+
+================================================================================
+TECHNICAL CONSIDERATIONS
+================================================================================
+
+Data Model Changes Required:
+- Task: Add recurrence_rule, start_date, estimated_duration, actual_duration
+- Task: Add parent_task_id for subtasks
+- New: Subtask model or nested structure
+- New: Filter/SmartList model for saved filters
+- New: DailyQuest model for generated challenges
+- New: Loot/Inventory models for reward system
+- New: Streak model for multiple streak types
+
+API Changes:
+- Recurring task generation logic
+- Filter query builder
+- Daily quest generation algorithm
+- Calendar sync endpoints (OAuth)
+
+Performance Considerations:
+- Subtask rendering (collapse by default)
+- Filter query optimization
+- Calendar view virtualization
+- Large task list pagination
+
+================================================================================
+ALIGNMENT WITH GAMIFY.IT.COM PHILOSOPHY
+================================================================================
+
+Core Principles to Maintain:
+1. PROGRESS IS VISIBLE - XP, levels, streaks always prominent
+2. EFFORT IS REWARDED - Harder tasks = more XP (tier/difficulty system)
+3. CONSISTENCY MATTERS - Streak bonuses encourage daily use
+4. ACHIEVEMENTS CELEBRATE - Milestones marked with fanfare
+5. PLAY IS PRODUCTIVE - Game mechanics serve real productivity
+
+New Features Should:
+- Integrate with XP system (new ways to earn)
+- Add achievement opportunities
+- Maintain pixel art aesthetic
+- Support keyboard-first workflow
+- Work offline-first with sync
+- Connect to global gamify.it.com profile
+
+================================================================================
+END OF ANALYSIS
+================================================================================

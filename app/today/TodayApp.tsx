@@ -122,6 +122,18 @@ export default function TodayApp() {
   // Shortcuts modal
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
+  // Quick actions menu
+  const [quickActionTaskId, setQuickActionTaskId] = useState<string | null>(null);
+
+  // Drag & drop
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
+
+  // Multi-select for bulk actions
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const [showBulkMenu, setShowBulkMenu] = useState(false);
+
   useEffect(() => {
     setMounted(true);
     store.loadState();
@@ -678,20 +690,162 @@ export default function TodayApp() {
     let date: Date | null = null;
     let remaining = text;
 
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+    const setEndOfDay = (d: Date) => {
+      d.setHours(23, 59, 0, 0);
+      return d;
+    };
+
+    const getNextDayOfWeek = (dayIndex: number, nextWeek: boolean = false): Date => {
+      const result = new Date(now);
+      const currentDay = result.getDay();
+      let daysToAdd = dayIndex - currentDay;
+      if (daysToAdd <= 0 || nextWeek) daysToAdd += 7;
+      if (nextWeek && daysToAdd < 7) daysToAdd += 7;
+      result.setDate(result.getDate() + daysToAdd);
+      return setEndOfDay(result);
+    };
+
+    // 1. Simple keywords: today, tomorrow, yesterday
     if (/\btoday\b/i.test(text)) {
-      date = new Date(now);
-      date.setHours(23, 59, 0, 0);
+      date = setEndOfDay(new Date(now));
       remaining = text.replace(/\btoday\b/i, '').trim();
-    } else if (/\btomorrow\b/i.test(text) || /\btmr\b/i.test(text)) {
+    } else if (/\b(tomorrow|tmr)\b/i.test(text)) {
       date = new Date(now);
       date.setDate(date.getDate() + 1);
-      date.setHours(23, 59, 0, 0);
+      date = setEndOfDay(date);
       remaining = text.replace(/\b(tomorrow|tmr)\b/i, '').trim();
-    } else if (/\bnext\s*week\b/i.test(text)) {
+    } else if (/\byesterday\b/i.test(text)) {
+      date = new Date(now);
+      date.setDate(date.getDate() - 1);
+      date = setEndOfDay(date);
+      remaining = text.replace(/\byesterday\b/i, '').trim();
+    }
+
+    // 2. Next week/month
+    else if (/\bnext\s*week\b/i.test(text)) {
       date = new Date(now);
       date.setDate(date.getDate() + 7);
-      date.setHours(23, 59, 0, 0);
+      date = setEndOfDay(date);
       remaining = text.replace(/\bnext\s*week\b/i, '').trim();
+    } else if (/\bnext\s*month\b/i.test(text)) {
+      date = new Date(now);
+      date.setMonth(date.getMonth() + 1);
+      date = setEndOfDay(date);
+      remaining = text.replace(/\bnext\s*month\b/i, '').trim();
+    }
+
+    // 3. Day names: "friday", "next friday", "this monday"
+    else {
+      const nextDayMatch = text.match(/\bnext\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+      const thisDayMatch = text.match(/\bthis\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+      const dayMatch = text.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+
+      if (nextDayMatch) {
+        const dayIndex = dayNames.indexOf(nextDayMatch[1].toLowerCase());
+        date = getNextDayOfWeek(dayIndex, true);
+        remaining = text.replace(nextDayMatch[0], '').trim();
+      } else if (thisDayMatch) {
+        const dayIndex = dayNames.indexOf(thisDayMatch[1].toLowerCase());
+        date = getNextDayOfWeek(dayIndex, false);
+        remaining = text.replace(thisDayMatch[0], '').trim();
+      } else if (dayMatch && !text.match(/\bin\s+\d+\s+day/i)) {
+        const dayIndex = dayNames.indexOf(dayMatch[1].toLowerCase());
+        date = getNextDayOfWeek(dayIndex, false);
+        remaining = text.replace(dayMatch[0], '').trim();
+      }
+
+      // 4. Relative: "in 3 days", "in 2 weeks", "in a month"
+      else {
+        const inDaysMatch = text.match(/\bin\s+(\d+|a|an)\s*(day|days)\b/i);
+        const inWeeksMatch = text.match(/\bin\s+(\d+|a|an)\s*(week|weeks)\b/i);
+        const inMonthsMatch = text.match(/\bin\s+(\d+|a|an)\s*(month|months)\b/i);
+
+        if (inDaysMatch) {
+          const num = /^(a|an)$/i.test(inDaysMatch[1]) ? 1 : parseInt(inDaysMatch[1]);
+          date = new Date(now);
+          date.setDate(date.getDate() + num);
+          date = setEndOfDay(date);
+          remaining = text.replace(inDaysMatch[0], '').trim();
+        } else if (inWeeksMatch) {
+          const num = /^(a|an)$/i.test(inWeeksMatch[1]) ? 1 : parseInt(inWeeksMatch[1]);
+          date = new Date(now);
+          date.setDate(date.getDate() + num * 7);
+          date = setEndOfDay(date);
+          remaining = text.replace(inWeeksMatch[0], '').trim();
+        } else if (inMonthsMatch) {
+          const num = /^(a|an)$/i.test(inMonthsMatch[1]) ? 1 : parseInt(inMonthsMatch[1]);
+          date = new Date(now);
+          date.setMonth(date.getMonth() + num);
+          date = setEndOfDay(date);
+          remaining = text.replace(inMonthsMatch[0], '').trim();
+        }
+
+        // 5. Contextual: "end of week", "end of month", "eow", "eom"
+        else if (/\b(end\s*of\s*week|eow)\b/i.test(text)) {
+          date = new Date(now);
+          const daysUntilSunday = 7 - date.getDay();
+          date.setDate(date.getDate() + (daysUntilSunday === 7 ? 0 : daysUntilSunday));
+          date = setEndOfDay(date);
+          remaining = text.replace(/\b(end\s*of\s*week|eow)\b/i, '').trim();
+        } else if (/\b(end\s*of\s*month|eom)\b/i.test(text)) {
+          date = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          date = setEndOfDay(date);
+          remaining = text.replace(/\b(end\s*of\s*month|eom)\b/i, '').trim();
+        } else if (/\b(end\s*of\s*year|eoy)\b/i.test(text)) {
+          date = new Date(now.getFullYear(), 11, 31);
+          date = setEndOfDay(date);
+          remaining = text.replace(/\b(end\s*of\s*year|eoy)\b/i, '').trim();
+        }
+
+        // 6. Absolute dates: "dec 25", "december 25", "12/25", "12-25", "2026-01-15"
+        else {
+          // ISO format: 2026-01-15
+          const isoMatch = text.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+          // US format: 12/25 or 12-25 or 12/25/2026
+          const usMatch = text.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+          // Month name: dec 25, december 25th
+          const monthNameMatch = text.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i);
+
+          if (isoMatch) {
+            const year = parseInt(isoMatch[1]);
+            const month = parseInt(isoMatch[2]) - 1;
+            const day = parseInt(isoMatch[3]);
+            date = new Date(year, month, day);
+            date = setEndOfDay(date);
+            remaining = text.replace(isoMatch[0], '').trim();
+          } else if (monthNameMatch) {
+            const monthStr = monthNameMatch[1].toLowerCase().slice(0, 3);
+            const monthIndex = monthNames.indexOf(monthStr);
+            const day = parseInt(monthNameMatch[2]);
+            const year = monthNameMatch[3] ? parseInt(monthNameMatch[3]) : now.getFullYear();
+            date = new Date(year, monthIndex, day);
+            // If date is in the past this year, assume next year
+            if (!monthNameMatch[3] && date < now) {
+              date.setFullYear(date.getFullYear() + 1);
+            }
+            date = setEndOfDay(date);
+            remaining = text.replace(monthNameMatch[0], '').trim();
+          } else if (usMatch) {
+            const month = parseInt(usMatch[1]) - 1;
+            const day = parseInt(usMatch[2]);
+            let year = now.getFullYear();
+            if (usMatch[3]) {
+              year = parseInt(usMatch[3]);
+              if (year < 100) year += 2000;
+            }
+            date = new Date(year, month, day);
+            // If date is in the past this year and no year specified, assume next year
+            if (!usMatch[3] && date < now) {
+              date.setFullYear(date.getFullYear() + 1);
+            }
+            date = setEndOfDay(date);
+            remaining = text.replace(usMatch[0], '').trim();
+          }
+        }
+      }
     }
 
     remaining = remaining.replace(/\s+/g, ' ').trim();
@@ -723,6 +877,212 @@ export default function TodayApp() {
       store.showToast('Task deleted', 'success');
     }
   };
+
+  // Quick date actions
+  const handleQuickDateAction = (taskId: string, action: 'today' | 'tomorrow' | 'next-week' | 'remove') => {
+    const now = new Date();
+    let dueDate: string | undefined;
+
+    switch (action) {
+      case 'today':
+        now.setHours(23, 59, 0, 0);
+        dueDate = now.toISOString();
+        break;
+      case 'tomorrow':
+        now.setDate(now.getDate() + 1);
+        now.setHours(23, 59, 0, 0);
+        dueDate = now.toISOString();
+        break;
+      case 'next-week':
+        now.setDate(now.getDate() + 7);
+        now.setHours(23, 59, 0, 0);
+        dueDate = now.toISOString();
+        break;
+      case 'remove':
+        dueDate = undefined;
+        break;
+    }
+
+    store.updateTask(taskId, { due_date: dueDate });
+    setQuickActionTaskId(null);
+
+    const actionLabels = {
+      'today': 'Scheduled for today',
+      'tomorrow': 'Scheduled for tomorrow',
+      'next-week': 'Scheduled for next week',
+      'remove': 'Due date removed'
+    };
+    store.showToast(actionLabels[action], 'success');
+  };
+
+  const toggleQuickActionMenu = (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuickActionTaskId(quickActionTaskId === taskId ? null : taskId);
+  };
+
+  // Close quick action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setQuickActionTaskId(null);
+    if (quickActionTaskId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [quickActionTaskId]);
+
+  // Drag & drop handlers
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggedTaskId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
+    // Add a slight delay to show the drag visual
+    const target = e.target as HTMLElement;
+    setTimeout(() => target.classList.add('dragging'), 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+    const target = e.target as HTMLElement;
+    target.classList.remove('dragging');
+  };
+
+  const handleDragOver = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (taskId !== draggedTaskId) {
+      setDragOverTaskId(taskId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTaskId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    const sourceTaskId = e.dataTransfer.getData('text/plain');
+
+    if (sourceTaskId && sourceTaskId !== targetTaskId) {
+      // Get current task order based on view
+      const currentTasks = filteredTasks;
+      const taskIds = currentTasks.map(t => t.id);
+
+      const sourceIndex = taskIds.indexOf(sourceTaskId);
+      const targetIndex = taskIds.indexOf(targetTaskId);
+
+      if (sourceIndex !== -1 && targetIndex !== -1) {
+        // Remove source and insert at target position
+        taskIds.splice(sourceIndex, 1);
+        taskIds.splice(targetIndex, 0, sourceTaskId);
+
+        store.reorderTasks(taskIds);
+        store.showToast('Task reordered', 'success');
+      }
+    }
+
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+  };
+
+  // Bulk selection handlers
+  const handleTaskSelect = (taskId: string, index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (e.shiftKey && lastSelectedIndex !== null) {
+      // Range selection
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      const tasksInRange = filteredTasks.slice(start, end + 1);
+      const newSelected = new Set(selectedTaskIds);
+      tasksInRange.forEach(t => newSelected.add(t.id));
+      setSelectedTaskIds(newSelected);
+    } else if (e.metaKey || e.ctrlKey) {
+      // Toggle individual selection
+      const newSelected = new Set(selectedTaskIds);
+      if (newSelected.has(taskId)) {
+        newSelected.delete(taskId);
+      } else {
+        newSelected.add(taskId);
+      }
+      setSelectedTaskIds(newSelected);
+      setLastSelectedIndex(index);
+    } else {
+      // Single selection (clear others)
+      if (selectedTaskIds.has(taskId) && selectedTaskIds.size === 1) {
+        setSelectedTaskIds(new Set());
+        setLastSelectedIndex(null);
+      } else {
+        setSelectedTaskIds(new Set([taskId]));
+        setLastSelectedIndex(index);
+      }
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allIds = filteredTasks.filter(t => !t.is_completed).map(t => t.id);
+    setSelectedTaskIds(new Set(allIds));
+    setLastSelectedIndex(null);
+  };
+
+  const clearSelection = () => {
+    setSelectedTaskIds(new Set());
+    setLastSelectedIndex(null);
+    setShowBulkMenu(false);
+  };
+
+  const handleBulkComplete = () => {
+    selectedTaskIds.forEach(id => {
+      const task = store.tasks.find(t => t.id === id);
+      if (task && !task.is_completed) {
+        store.toggleTaskComplete(id);
+      }
+    });
+    store.showToast(`Completed ${selectedTaskIds.size} tasks`, 'success');
+    clearSelection();
+  };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Delete ${selectedTaskIds.size} tasks?`)) {
+      selectedTaskIds.forEach(id => store.deleteTask(id));
+      store.showToast(`Deleted ${selectedTaskIds.size} tasks`, 'success');
+      clearSelection();
+    }
+  };
+
+  const handleBulkSetDate = (action: 'today' | 'tomorrow' | 'next-week' | 'remove') => {
+    const now = new Date();
+    let dueDate: string | undefined;
+
+    switch (action) {
+      case 'today':
+        now.setHours(23, 59, 0, 0);
+        dueDate = now.toISOString();
+        break;
+      case 'tomorrow':
+        now.setDate(now.getDate() + 1);
+        now.setHours(23, 59, 0, 0);
+        dueDate = now.toISOString();
+        break;
+      case 'next-week':
+        now.setDate(now.getDate() + 7);
+        now.setHours(23, 59, 0, 0);
+        dueDate = now.toISOString();
+        break;
+      case 'remove':
+        dueDate = undefined;
+        break;
+    }
+
+    selectedTaskIds.forEach(id => store.updateTask(id, { due_date: dueDate }));
+    const labels = { 'today': 'today', 'tomorrow': 'tomorrow', 'next-week': 'next week', 'remove': 'no date' };
+    store.showToast(`Set ${selectedTaskIds.size} tasks to ${labels[action]}`, 'success');
+    clearSelection();
+  };
+
+  // Clear selection when view changes
+  useEffect(() => {
+    clearSelection();
+  }, [store.currentView]);
 
   const handleDeleteProject = (projectId: string) => {
     const project = store.projects.find((p) => p.id === projectId);
@@ -793,6 +1153,35 @@ export default function TodayApp() {
   const todayCount = store.tasks.filter(
     (t) => !t.is_completed && t.due_date && new Date(t.due_date) <= todayDate
   ).length;
+
+  // Categorize tasks for Today view - separate overdue from due today
+  const categorizeTodayTasks = () => {
+    if (store.currentView !== 'today') return { overdue: [], dueToday: [], all: filteredTasks };
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const overdue: typeof filteredTasks = [];
+    const dueToday: typeof filteredTasks = [];
+
+    filteredTasks.forEach((task) => {
+      if (task.due_date) {
+        const dueDate = new Date(task.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        if (dueDate < now) {
+          overdue.push(task);
+        } else {
+          dueToday.push(task);
+        }
+      } else {
+        dueToday.push(task);
+      }
+    });
+
+    return { overdue, dueToday, all: filteredTasks };
+  };
+
+  const taskCategories = categorizeTodayTasks();
 
   // Update navbar content with view info and actions
   useEffect(() => {
@@ -1273,11 +1662,58 @@ export default function TodayApp() {
         }
 
         .empty-state-icon {
-          font-size: 48px;
+          font-size: 56px;
           margin-bottom: 16px;
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+
+        .empty-state h3 {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+        }
+
+        .empty-state p {
+          font-size: 14px;
+          color: var(--text-tertiary);
+          margin-bottom: 20px;
+        }
+
+        .empty-state-tips {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .empty-state-tips .tip {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          background: var(--bg-tertiary);
+          padding: 8px 12px;
+          border-radius: 8px;
+        }
+
+        .empty-state-tips kbd,
+        .empty-state-tips code {
+          display: inline-block;
+          padding: 2px 6px;
+          font-size: 11px;
+          font-family: monospace;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          color: var(--accent);
         }
 
         .task-card {
+          position: relative;
           display: flex;
           align-items: flex-start;
           gap: 14px;
@@ -1304,6 +1740,191 @@ export default function TodayApp() {
           background: rgba(92, 201, 245, 0.1);
           border-radius: 8px;
           border-bottom-color: transparent;
+        }
+
+        /* Today view section headers */
+        .task-section-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--text-tertiary);
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-primary);
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+
+        .task-section-header.overdue {
+          color: var(--danger);
+          background: rgba(239, 68, 68, 0.05);
+          border-bottom-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .task-section-header.today {
+          color: var(--accent);
+        }
+
+        .section-icon {
+          font-size: 14px;
+        }
+
+        .section-title {
+          flex: 1;
+        }
+
+        .section-count {
+          padding: 2px 8px;
+          font-size: 11px;
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+        }
+
+        .task-section-header.overdue .section-count {
+          background: rgba(239, 68, 68, 0.15);
+          color: var(--danger);
+        }
+
+        /* Overdue task card styling */
+        .task-card.overdue {
+          background: rgba(239, 68, 68, 0.03);
+          border-left: 3px solid var(--danger);
+        }
+
+        .task-card.overdue:hover {
+          background: rgba(239, 68, 68, 0.08);
+        }
+
+        .task-card.overdue .task-checkbox {
+          border-color: var(--danger);
+        }
+
+        /* Drag & drop styles */
+        .task-card[draggable="true"] {
+          cursor: grab;
+        }
+
+        .task-card[draggable="true"]:active {
+          cursor: grabbing;
+        }
+
+        .task-card.dragging {
+          opacity: 0.5;
+          background: var(--bg-tertiary);
+        }
+
+        .task-card.drag-over {
+          border-top: 2px solid var(--accent);
+          margin-top: -2px;
+        }
+
+        .task-card.drag-over::before {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: var(--accent);
+          box-shadow: 0 0 8px var(--accent);
+        }
+
+        /* Bulk selection */
+        .task-card.bulk-selected {
+          background: rgba(92, 201, 245, 0.08);
+          border-left: 3px solid var(--accent);
+        }
+
+        .task-checkbox.bulk-selected {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: white;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Bulk action bar */
+        .bulk-action-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          background: linear-gradient(135deg, rgba(92, 201, 245, 0.1), rgba(92, 201, 245, 0.05));
+          border-bottom: 1px solid var(--accent);
+          gap: 16px;
+          flex-wrap: wrap;
+          animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bulk-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .bulk-count {
+          font-weight: 600;
+          color: var(--accent);
+        }
+
+        .bulk-select-all,
+        .bulk-clear {
+          background: none;
+          border: none;
+          font-size: 12px;
+          color: var(--text-tertiary);
+          cursor: pointer;
+          padding: 4px 8px;
+        }
+
+        .bulk-select-all:hover,
+        .bulk-clear:hover {
+          color: var(--text-primary);
+          text-decoration: underline;
+        }
+
+        .bulk-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .bulk-actions button {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 12px;
+          font-size: 13px;
+          border: 1px solid var(--border);
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .bulk-actions button:hover {
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+          border-color: var(--text-tertiary);
+        }
+
+        .bulk-actions button.danger:hover {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: var(--danger);
+          color: var(--danger);
         }
 
         .task-checkbox {
@@ -1402,6 +2023,86 @@ export default function TodayApp() {
         .task-delete-btn:hover {
           opacity: 1 !important;
           color: var(--danger);
+        }
+
+        /* Task quick actions */
+        .task-actions {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .task-more-btn {
+          opacity: 0;
+          transition: opacity 0.15s ease;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-size: 18px;
+          font-weight: bold;
+          color: var(--text-tertiary);
+          letter-spacing: 2px;
+        }
+
+        .task-card:hover .task-more-btn {
+          opacity: 0.6;
+        }
+
+        .task-more-btn:hover {
+          opacity: 1 !important;
+          color: var(--text-primary);
+        }
+
+        .quick-action-menu {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          min-width: 160px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 6px;
+          z-index: 300;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+          animation: fadeInScale 0.12s ease;
+        }
+
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .quick-action-menu button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          padding: 8px 10px;
+          border: none;
+          background: none;
+          font-size: 13px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          border-radius: 6px;
+          text-align: left;
+          transition: background 0.1s ease, color 0.1s ease;
+        }
+
+        .quick-action-menu button:hover {
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+        }
+
+        .quick-action-menu button.danger:hover {
+          background: rgba(239, 68, 68, 0.15);
+          color: var(--danger);
+        }
+
+        .quick-action-divider {
+          height: 1px;
+          background: var(--border);
+          margin: 6px 0;
         }
 
         /* Floating quick add - gamify-today style */
@@ -1830,6 +2531,63 @@ export default function TodayApp() {
           font-size: 12px;
           color: var(--text-tertiary);
           margin-top: 4px;
+        }
+
+        /* Streak Badges */
+        .streak-badges {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .streak-badge {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+          transition: all 0.15s ease;
+        }
+
+        .streak-badge.active {
+          background: linear-gradient(135deg, rgba(92, 201, 245, 0.1), rgba(92, 201, 245, 0.05));
+          border: 1px solid rgba(92, 201, 245, 0.3);
+        }
+
+        .streak-badge.inactive {
+          opacity: 0.5;
+        }
+
+        .streak-badge-icon {
+          font-size: 24px;
+        }
+
+        .streak-badge-info {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .streak-badge-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+
+        .streak-badge-value {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--accent);
+        }
+
+        .streak-badge.active .streak-badge-value {
+          color: var(--success);
+        }
+
+        .streak-badge-best {
+          font-size: 11px;
+          font-weight: 400;
+          color: var(--text-tertiary);
         }
 
         .achievement-list {
@@ -2342,6 +3100,33 @@ export default function TodayApp() {
             </div>
           </div>
 
+          {/* Daily Quests Widget */}
+          <div className="daily-quests-widget">
+            <div className="daily-quests-header">
+              <span className="daily-quests-icon">⚔️</span>
+              <span className="daily-quests-title">Daily Quests</span>
+            </div>
+            <div className="daily-quests-list">
+              {store.getDailyQuests().quests.map((quest) => (
+                <div key={quest.id} className={`daily-quest-item ${quest.completed ? 'completed' : ''}`}>
+                  <div className="daily-quest-check">
+                    {quest.completed ? '✓' : `${quest.progress}/${quest.target}`}
+                  </div>
+                  <div className="daily-quest-info">
+                    <div className="daily-quest-title">{quest.title}</div>
+                    <div className="daily-quest-desc">{quest.description}</div>
+                  </div>
+                  <div className="daily-quest-xp">+{quest.xp_reward}</div>
+                </div>
+              ))}
+            </div>
+            {store.getDailyQuests().quests.every(q => q.completed) && (
+              <div className="daily-quests-bonus">
+                ✨ All quests complete! +50 XP bonus
+              </div>
+            )}
+          </div>
+
           <nav className="sidebar-nav">
             <div className="nav-section">
               <NavItem
@@ -2467,65 +3252,295 @@ export default function TodayApp() {
 
         {/* Main Content */}
         <main className="today-main">
+          {/* Bulk Action Bar */}
+          {selectedTaskIds.size > 0 && (
+            <div className="bulk-action-bar">
+              <div className="bulk-info">
+                <span className="bulk-count">{selectedTaskIds.size} selected</span>
+                <button className="bulk-select-all" onClick={handleSelectAll}>Select all</button>
+                <button className="bulk-clear" onClick={clearSelection}>Clear</button>
+              </div>
+              <div className="bulk-actions">
+                <button onClick={handleBulkComplete} title="Complete selected">
+                  ✅ Complete
+                </button>
+                <button onClick={() => handleBulkSetDate('today')} title="Due today">
+                  📅 Today
+                </button>
+                <button onClick={() => handleBulkSetDate('tomorrow')} title="Due tomorrow">
+                  🌅 Tomorrow
+                </button>
+                <button onClick={() => handleBulkSetDate('next-week')} title="Due next week">
+                  📆 Next week
+                </button>
+                <button className="danger" onClick={handleBulkDelete} title="Delete selected">
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          )}
           <div className="task-list">
             {filteredTasks.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon">
-                  {store.currentView === 'completed' ? '🎉' : '📋'}
-                </div>
-                <p>
-                  {store.currentView === 'completed'
-                    ? 'No completed tasks yet'
-                    : 'No tasks here. Add one to get started!'}
-                </p>
+                {store.currentView === 'inbox' && (
+                  <>
+                    <div className="empty-state-icon">✨</div>
+                    <h3>Inbox Zero!</h3>
+                    <p>All caught up. Time to plan your next adventure.</p>
+                    <div className="empty-state-tips">
+                      <span className="tip">💡 Press <kbd>N</kbd> to add a new quest</span>
+                    </div>
+                  </>
+                )}
+                {store.currentView === 'today' && (
+                  <>
+                    <div className="empty-state-icon">🏖️</div>
+                    <h3>No quests today</h3>
+                    <p>Your day is clear. Add some tasks or enjoy the break!</p>
+                    <div className="empty-state-tips">
+                      <span className="tip">💡 Type <code>today</code> or <code>tmr</code> when adding tasks</span>
+                    </div>
+                  </>
+                )}
+                {store.currentView === 'upcoming' && (
+                  <>
+                    <div className="empty-state-icon">🗓️</div>
+                    <h3>Nothing scheduled</h3>
+                    <p>Plan ahead by adding due dates to your tasks.</p>
+                    <div className="empty-state-tips">
+                      <span className="tip">💡 Try: <code>friday</code>, <code>next week</code>, <code>dec 25</code></span>
+                    </div>
+                  </>
+                )}
+                {store.currentView === 'completed' && (
+                  <>
+                    <div className="empty-state-icon">⚔️</div>
+                    <h3>No victories yet</h3>
+                    <p>Complete your first quest to earn XP!</p>
+                    <div className="empty-state-tips">
+                      <span className="tip">💡 Harder tasks give more XP. Try <code>^epic</code> tier!</span>
+                    </div>
+                  </>
+                )}
+                {store.currentView.startsWith('project-') && (
+                  <>
+                    <div className="empty-state-icon">📁</div>
+                    <h3>Empty project</h3>
+                    <p>This project awaits its first quest.</p>
+                    <div className="empty-state-tips">
+                      <span className="tip">💡 Use <code>@project-name</code> to add tasks here</span>
+                    </div>
+                  </>
+                )}
+                {store.currentView.startsWith('category-') && (
+                  <>
+                    <div className="empty-state-icon">🏷️</div>
+                    <h3>Empty category</h3>
+                    <p>No tasks with this label yet.</p>
+                    <div className="empty-state-tips">
+                      <span className="tip">💡 Use <code>#category-name</code> to tag tasks</span>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
-              filteredTasks.map((task, index) => {
-                const project = store.projects.find((p) => p.id === task.project_id);
-                const dueInfo = formatDueDate(task.due_date);
-                const xpPreview = calculateXPPreview(task, store.profile.current_streak);
-                const tierInfo = TIERS[task.tier];
-                const isSelected = index === selectedTaskIndex;
-
-                return (
-                  <div
-                    key={task.id}
-                    ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
-                    className={`task-card ${task.is_completed ? 'completed' : ''} ${
-                      task.priority ? `priority-${task.priority.toLowerCase()}` : ''
-                    } ${isSelected ? 'keyboard-selected' : ''}`}
-                  >
-                    <div
-                      className={`task-checkbox ${task.is_completed ? 'checked' : ''}`}
-                      onClick={() => handleToggleComplete(task.id)}
-                    >
-                      {task.is_completed && '✓'}
+              <>
+                {/* Render sectioned view for Today, flat list for others */}
+                {store.currentView === 'today' && taskCategories.overdue.length > 0 && (
+                  <>
+                    <div className="task-section-header overdue">
+                      <span className="section-icon">⚠️</span>
+                      <span className="section-title">Overdue</span>
+                      <span className="section-count">{taskCategories.overdue.length}</span>
                     </div>
-                    <div className="task-content" onClick={() => openTaskModal(task)}>
-                      <div className="task-title">{task.title}</div>
-                      <div className="task-meta">
-                        {project && <span>📁 {project.name}</span>}
-                        {dueInfo && (
-                          <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>
-                        )}
-                        <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
-                        {!task.is_completed && (
-                          <span className="task-xp">+{xpPreview} XP</span>
-                        )}
-                        {task.is_completed && task.xp_earned > 0 && (
-                          <span className="task-xp">Earned {task.xp_earned} XP</span>
+                    {taskCategories.overdue.map((task, index) => {
+                      const project = store.projects.find((p) => p.id === task.project_id);
+                      const dueInfo = formatDueDate(task.due_date);
+                      const xpPreview = calculateXPPreview(task, store.profile.current_streak);
+                      const tierInfo = TIERS[task.tier];
+                      const globalIndex = index;
+                      const isSelected = globalIndex === selectedTaskIndex;
+
+                      return (
+                        <div
+                          key={task.id}
+                          ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
+                          className={`task-card overdue ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''}`}
+                        >
+                          <div className={`task-checkbox`} onClick={() => handleToggleComplete(task.id)} />
+                          <div className="task-content" onClick={() => openTaskModal(task)}>
+                            <div className="task-title">{task.title}</div>
+                            <div className="task-meta">
+                              {project && <span>📁 {project.name}</span>}
+                              {dueInfo && <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>}
+                              <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
+                              <span className="task-xp">+{xpPreview} XP</span>
+                            </div>
+                          </div>
+                          <div className="task-actions">
+                            <button className="task-more-btn" onClick={(e) => toggleQuickActionMenu(task.id, e)} title="Quick actions">⋯</button>
+                            {quickActionTaskId === task.id && (
+                              <div className="quick-action-menu" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleQuickDateAction(task.id, 'today')}>📅 Do today</button>
+                                <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>🌅 Do tomorrow</button>
+                                <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>📆 Next week</button>
+                                {task.due_date && <button onClick={() => handleQuickDateAction(task.id, 'remove')}>❌ Remove date</button>}
+                                <div className="quick-action-divider" />
+                                <button onClick={() => { openTaskModal(task); setQuickActionTaskId(null); }}>✏️ Edit task</button>
+                                <button className="danger" onClick={() => { handleDeleteTask(task.id); setQuickActionTaskId(null); }}>🗑️ Delete</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                {store.currentView === 'today' && taskCategories.dueToday.length > 0 && (
+                  <>
+                    <div className="task-section-header today">
+                      <span className="section-icon">📅</span>
+                      <span className="section-title">Due Today</span>
+                      <span className="section-count">{taskCategories.dueToday.length}</span>
+                    </div>
+                    {taskCategories.dueToday.map((task, index) => {
+                      const project = store.projects.find((p) => p.id === task.project_id);
+                      const dueInfo = formatDueDate(task.due_date);
+                      const xpPreview = calculateXPPreview(task, store.profile.current_streak);
+                      const tierInfo = TIERS[task.tier];
+                      const globalIndex = taskCategories.overdue.length + index;
+                      const isSelected = globalIndex === selectedTaskIndex;
+
+                      return (
+                        <div
+                          key={task.id}
+                          ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
+                          className={`task-card ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''}`}
+                        >
+                          <div className={`task-checkbox`} onClick={() => handleToggleComplete(task.id)} />
+                          <div className="task-content" onClick={() => openTaskModal(task)}>
+                            <div className="task-title">{task.title}</div>
+                            <div className="task-meta">
+                              {project && <span>📁 {project.name}</span>}
+                              {dueInfo && <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>}
+                              <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
+                              <span className="task-xp">+{xpPreview} XP</span>
+                            </div>
+                          </div>
+                          <div className="task-actions">
+                            <button className="task-more-btn" onClick={(e) => toggleQuickActionMenu(task.id, e)} title="Quick actions">⋯</button>
+                            {quickActionTaskId === task.id && (
+                              <div className="quick-action-menu" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleQuickDateAction(task.id, 'today')}>📅 Do today</button>
+                                <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>🌅 Do tomorrow</button>
+                                <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>📆 Next week</button>
+                                {task.due_date && <button onClick={() => handleQuickDateAction(task.id, 'remove')}>❌ Remove date</button>}
+                                <div className="quick-action-divider" />
+                                <button onClick={() => { openTaskModal(task); setQuickActionTaskId(null); }}>✏️ Edit task</button>
+                                <button className="danger" onClick={() => { handleDeleteTask(task.id); setQuickActionTaskId(null); }}>🗑️ Delete</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                {/* Standard flat list for non-Today views */}
+                {store.currentView !== 'today' && filteredTasks.map((task, index) => {
+                  const project = store.projects.find((p) => p.id === task.project_id);
+                  const dueInfo = formatDueDate(task.due_date);
+                  const xpPreview = calculateXPPreview(task, store.profile.current_streak);
+                  const tierInfo = TIERS[task.tier];
+                  const isKeyboardSelected = index === selectedTaskIndex;
+                  const isBulkSelected = selectedTaskIds.has(task.id);
+
+                  return (
+                    <div
+                      key={task.id}
+                      ref={isKeyboardSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
+                      className={`task-card ${task.is_completed ? 'completed' : ''} ${
+                        task.priority ? `priority-${task.priority.toLowerCase()}` : ''
+                      } ${isKeyboardSelected ? 'keyboard-selected' : ''} ${isBulkSelected ? 'bulk-selected' : ''} ${draggedTaskId === task.id ? 'dragging' : ''} ${dragOverTaskId === task.id ? 'drag-over' : ''}`}
+                      draggable={!task.is_completed}
+                      onDragStart={(e) => handleDragStart(e, task.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, task.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, task.id)}
+                    >
+                      <div
+                        className={`task-checkbox ${task.is_completed ? 'checked' : ''} ${isBulkSelected ? 'bulk-selected' : ''}`}
+                        onClick={(e) => {
+                          if (e.metaKey || e.ctrlKey || e.shiftKey || selectedTaskIds.size > 0) {
+                            handleTaskSelect(task.id, index, e);
+                          } else {
+                            handleToggleComplete(task.id);
+                          }
+                        }}
+                      >
+                        {task.is_completed ? '✓' : isBulkSelected ? '✓' : ''}
+                      </div>
+                      <div className="task-content" onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                          handleTaskSelect(task.id, index, e);
+                        } else {
+                          openTaskModal(task);
+                        }
+                      }}>
+                        <div className="task-title">{task.title}</div>
+                        <div className="task-meta">
+                          {project && <span>📁 {project.name}</span>}
+                          {dueInfo && (
+                            <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>
+                          )}
+                          <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
+                          {!task.is_completed && (
+                            <span className="task-xp">+{xpPreview} XP</span>
+                          )}
+                          {task.is_completed && task.xp_earned > 0 && (
+                            <span className="task-xp">Earned {task.xp_earned} XP</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="task-actions">
+                        <button
+                          className="task-more-btn"
+                          onClick={(e) => toggleQuickActionMenu(task.id, e)}
+                          title="Quick actions"
+                        >
+                          ⋯
+                        </button>
+                        {quickActionTaskId === task.id && (
+                          <div className="quick-action-menu" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleQuickDateAction(task.id, 'today')}>
+                              📅 Do today
+                            </button>
+                            <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>
+                              🌅 Do tomorrow
+                            </button>
+                            <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>
+                              📆 Next week
+                            </button>
+                            {task.due_date && (
+                              <button onClick={() => handleQuickDateAction(task.id, 'remove')}>
+                                ❌ Remove date
+                              </button>
+                            )}
+                            <div className="quick-action-divider" />
+                            <button onClick={() => { openTaskModal(task); setQuickActionTaskId(null); }}>
+                              ✏️ Edit task
+                            </button>
+                            <button className="danger" onClick={() => { handleDeleteTask(task.id); setQuickActionTaskId(null); }}>
+                              🗑️ Delete
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
-                    <button
-                      className="task-delete-btn"
-                      onClick={() => handleDeleteTask(task.id)}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </>
             )}
           </div>
 
@@ -2923,7 +3938,34 @@ export default function TodayApp() {
                 </div>
               </div>
 
-              <h3 style={{ marginBottom: 12 }}>
+              {/* Streak Badges */}
+              <h3 style={{ marginBottom: 12, marginTop: 20 }}>Active Streaks</h3>
+              <div className="streak-badges">
+                {[
+                  { key: 'daily', icon: '🔥', label: 'Daily', streak: store.profile.streaks?.daily },
+                  { key: 'inbox_zero', icon: '📥', label: 'Inbox Zero', streak: store.profile.streaks?.inbox_zero },
+                  { key: 'early_bird', icon: '🌅', label: 'Early Bird', streak: store.profile.streaks?.early_bird },
+                  { key: 'night_owl', icon: '🦉', label: 'Night Owl', streak: store.profile.streaks?.night_owl },
+                ].map(({ key, icon, label, streak }) => (
+                  <div
+                    key={key}
+                    className={`streak-badge ${streak?.current && streak.current > 0 ? 'active' : 'inactive'}`}
+                  >
+                    <span className="streak-badge-icon">{icon}</span>
+                    <div className="streak-badge-info">
+                      <span className="streak-badge-label">{label}</span>
+                      <span className="streak-badge-value">
+                        {streak?.current || 0} days
+                        {streak?.longest && streak.longest > 0 && (
+                          <span className="streak-badge-best"> (best: {streak.longest})</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <h3 style={{ marginBottom: 12, marginTop: 20 }}>
                 Achievements ({store.profile.achievements.length}/{ACHIEVEMENTS.length})
               </h3>
               <div className="achievement-list">
