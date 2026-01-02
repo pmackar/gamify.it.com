@@ -272,17 +272,14 @@ export default function AccountPage() {
 
         /* Achievements Section */
         .achievements-section { margin-bottom: 3rem; }
-        .achievements-row { display: flex; gap: 1rem; overflow-x: auto; padding: 0.5rem 0; scrollbar-width: thin; scrollbar-color: var(--theme-border-light) var(--theme-bg-card); }
-        .achievements-row::-webkit-scrollbar { height: 6px; }
-        .achievements-row::-webkit-scrollbar-track { background: var(--theme-bg-card); border-radius: 3px; }
-        .achievements-row::-webkit-scrollbar-thumb { background: var(--theme-border-light); border-radius: 3px; }
-        .achievement-card { flex-shrink: 0; width: 130px; background: var(--theme-bg-card); backdrop-filter: blur(10px); border: 2px solid var(--theme-border); border-radius: 12px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; border-left-width: 4px; }
+        .achievements-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; padding: 0.5rem 0; }
+        .achievement-card { background: var(--theme-bg-card); backdrop-filter: blur(10px); border: 2px solid var(--theme-border); border-radius: 12px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; border-left-width: 4px; }
         .achievement-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
         .achievement-card-icon { width: 56px; height: 56px; margin: 0 auto 0.75rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
         .achievement-card-name { font-size: 0.5rem; color: var(--theme-text-primary); line-height: 1.4; margin-bottom: 0.25rem; }
         .achievement-card-tier { font-size: 0.35rem; padding: 0.15rem 0.3rem; border-radius: 3px; display: inline-block; }
         .achievement-card-app { position: absolute; top: 0.4rem; left: 0.4rem; font-size: 0.3rem; padding: 0.1rem 0.25rem; border-radius: 3px; letter-spacing: 0.05em; }
-        .view-all-btn { flex-shrink: 0; width: 130px; background: var(--theme-bg-tertiary); border: 2px dashed var(--theme-border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s ease; }
+        .view-all-btn { background: var(--theme-bg-tertiary); border: 2px dashed var(--theme-border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s ease; min-height: 160px; }
         .view-all-btn:hover { border-color: var(--theme-gold); background: var(--theme-bg-card); }
         .view-all-icon { font-size: 2rem; margin-bottom: 0.5rem; }
         .view-all-text { font-size: 0.5rem; color: var(--theme-text-muted); text-align: center; line-height: 1.6; }
