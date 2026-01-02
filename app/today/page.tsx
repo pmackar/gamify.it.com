@@ -17,7 +17,7 @@ import { useNavBar } from '@/components/NavBarContext';
 export default function TodayPage() {
   const store = useTodayStore();
   const [mounted, setMounted] = useState(false);
-  const { setTheme: setNavBarTheme, setCenterContent } = useNavBar();
+  const { setCenterContent } = useNavBar();
 
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -81,12 +81,6 @@ export default function TodayPage() {
   useEffect(() => {
     setMounted(true);
     store.loadState();
-
-    // Default to dark theme on mobile if no theme was previously saved
-    const savedTheme = localStorage.getItem('gamify-theme');
-    if (!savedTheme && window.innerWidth <= 768) {
-      store.setTheme('dark');
-    }
   }, []);
 
   // Reset selection when view changes
@@ -263,19 +257,6 @@ export default function TodayPage() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mounted, showCommandPalette, showTaskModal, showProjectModal, showCategoryModal, showStatsModal, showShortcutsModal, store, getFilteredTasksForNav, getSelectedTask]);
-
-  // Theme effect - sync with navbar
-  useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute('data-theme', store.theme);
-      setNavBarTheme(store.theme);
-    }
-  }, [mounted, store.theme, setNavBarTheme]);
-
-  // Reset navbar theme on unmount
-  useEffect(() => {
-    return () => setNavBarTheme('dark');
-  }, [setNavBarTheme]);
 
   // Autocomplete logic for quick add
   const updateSuggestions = useCallback((value: string, cursorPos: number) => {
@@ -701,9 +682,7 @@ export default function TodayPage() {
     { id: 'full-task', title: 'Full Task Modal', icon: '➕', shortcut: 'A', category: 'Create', action: () => openTaskModal() },
     { id: 'new-project', title: 'New Project', icon: '📁', shortcut: 'P', category: 'Create', action: () => openProjectModal() },
     { id: 'new-category', title: 'New Category', icon: '🏷️', shortcut: 'C', category: 'Create', action: () => openCategoryModal() },
-    { id: 'shortcuts', title: 'Keyboard Shortcuts', icon: '⌨️', shortcut: '?', category: 'Help', action: () => setShowShortcutsModal(true) },
-    { id: 'theme-light', title: 'Light Theme', icon: '☀️', category: 'Theme', action: () => store.setTheme('light') },
-    { id: 'theme-dark', title: 'Dark Theme', icon: '🌙', category: 'Theme', action: () => store.setTheme('dark') }
+    { id: 'shortcuts', title: 'Keyboard Shortcuts', icon: '⌨️', shortcut: '?', category: 'Help', action: () => setShowShortcutsModal(true) }
   ];
 
   const filteredCommands = commands.filter(
@@ -775,42 +754,27 @@ export default function TodayPage() {
     <>
       <style jsx global>{`
         :root {
-          --bg-primary: #ffffff;
-          --bg-secondary: #fafafa;
-          --bg-tertiary: #f3f4f6;
-          --bg-dark: #1a1a1a;
-          --text-primary: #111827;
-          --text-secondary: #4b5563;
-          --text-tertiary: #9ca3af;
-          --border: #e8e8e8;
-          --accent: #f97316;
-          --accent-light: #fed7aa;
-          --accent-hover: #ea580c;
-          --success: #22c55e;
-          --warning: #f59e0b;
-          --danger: #ef4444;
-        }
-
-        [data-theme="dark"] {
-          --bg-primary: #1a1a1a;
-          --bg-secondary: #242424;
-          --bg-tertiary: #333333;
-          --text-primary: #f9fafb;
-          --text-secondary: #d1d5db;
-          --text-tertiary: #888888;
-          --border: #333333;
-        }
-
-        [data-theme="terminal"] {
+          /* Gamify.it.com Design System - Dark Theme */
           --bg-primary: #0a0a0a;
-          --bg-secondary: #111111;
-          --bg-tertiary: #1a1a1a;
-          --text-primary: #00ff00;
-          --text-secondary: #00cc00;
-          --text-tertiary: #008800;
-          --border: #003300;
-          --accent: #00ff00;
-          --accent-light: #003300;
+          --bg-secondary: #1a1a1a;
+          --bg-tertiary: #252525;
+          --bg-card: #1e1e28;
+          --bg-card-hover: #252530;
+          --text-primary: #ffffff;
+          --text-secondary: #aaaaaa;
+          --text-tertiary: #666666;
+          --border: #2a2a2a;
+          --border-light: #3a3a3a;
+          --accent: #5CC9F5;
+          --accent-glow: rgba(92, 201, 245, 0.3);
+          --accent-hover: #4ab8e4;
+          --gold: #FFD700;
+          --gold-glow: rgba(255, 215, 0, 0.3);
+          --teal: #5fbf8a;
+          --teal-glow: rgba(95, 191, 138, 0.3);
+          --success: #5fbf8a;
+          --warning: #FFD700;
+          --danger: #ff6b6b;
         }
 
         .today-app {
@@ -848,10 +812,11 @@ export default function TodayPage() {
         }
 
         .character-card {
-          background: var(--bg-primary);
-          border: 1px solid var(--border);
+          background: linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+          border: 1px solid var(--border-light);
           border-radius: 12px;
           padding: 16px;
+          box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
         }
 
         .character-top {
@@ -864,33 +829,35 @@ export default function TodayPage() {
         .character-avatar {
           width: 44px;
           height: 44px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #e8e8e8, #d4d4d4);
+          border-radius: 12px;
+          background: linear-gradient(135deg, var(--gold), #FFA500);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 20px;
           position: relative;
-          border: 2px solid var(--border);
+          border: 2px solid var(--gold);
+          box-shadow: 0 0 15px var(--gold-glow);
         }
 
         .level-badge {
           position: absolute;
-          bottom: -4px;
+          bottom: -6px;
           left: 50%;
           transform: translateX(-50%);
-          background: var(--accent);
-          color: white;
-          font-size: 9px;
+          background: linear-gradient(180deg, var(--gold), #E6A000);
+          color: #1a1a1a;
+          font-size: 8px;
           font-weight: 700;
-          min-width: 18px;
+          font-family: 'Press Start 2P', monospace;
+          min-width: 24px;
           height: 18px;
-          padding: 0 4px;
-          border-radius: 9px;
+          padding: 0 6px;
+          border-radius: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid var(--bg-primary);
+          box-shadow: 0 2px 0 #996600;
         }
 
         .character-info {
@@ -898,11 +865,12 @@ export default function TodayPage() {
         }
 
         .character-rank {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          color: var(--accent);
+          color: var(--teal);
+          text-shadow: 0 0 8px var(--teal-glow);
         }
 
         .character-title {
@@ -927,61 +895,23 @@ export default function TodayPage() {
         }
 
         .xp-value {
-          color: var(--accent);
+          color: var(--gold);
+          text-shadow: 0 0 8px var(--gold-glow);
         }
 
         .xp-bar {
           height: 6px;
-          background: var(--bg-tertiary);
+          background: var(--border);
           border-radius: 3px;
           overflow: hidden;
         }
 
         .xp-bar-fill {
           height: 100%;
-          background: var(--accent);
+          background: linear-gradient(90deg, var(--accent) 0%, var(--teal) 100%);
           border-radius: 3px;
           transition: width 0.3s ease;
-        }
-
-        .theme-pills {
-          display: flex;
-          gap: 4px;
-          margin-bottom: 12px;
-          background: var(--bg-tertiary);
-          padding: 4px;
-          border-radius: 8px;
-        }
-
-        .theme-pill {
-          flex: 1;
-          padding: 6px 8px;
-          font-size: 11px;
-          font-weight: 500;
-          border: none;
-          background: transparent;
-          color: var(--text-tertiary);
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-        }
-
-        .theme-pill:hover {
-          color: var(--text-primary);
-        }
-
-        .theme-pill.active {
-          background: var(--bg-primary);
-          color: var(--text-primary);
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        [data-theme="terminal"] .theme-pill.active {
-          color: var(--accent);
+          box-shadow: 0 0 8px var(--accent-glow);
         }
 
         .stat-badges {
@@ -996,6 +926,7 @@ export default function TodayPage() {
           gap: 6px;
           padding: 8px 10px;
           background: var(--bg-tertiary);
+          border: 1px solid var(--border);
           border-radius: 8px;
           font-size: 12px;
           font-weight: 600;
@@ -1070,13 +1001,8 @@ export default function TodayPage() {
         }
 
         .nav-item.active {
-          background: var(--accent-light);
+          background: rgba(92, 201, 245, 0.15);
           color: var(--accent);
-        }
-
-        [data-theme="dark"] .nav-item.active,
-        [data-theme="terminal"] .nav-item.active {
-          background: rgba(249, 115, 22, 0.15);
         }
 
         .nav-item-icon {
@@ -1280,16 +1206,11 @@ export default function TodayPage() {
         }
 
         .task-card.keyboard-selected {
-          background: var(--accent-light);
+          background: rgba(92, 201, 245, 0.1);
           margin: 0 -16px;
           padding: 14px 16px;
           border-radius: 8px;
           border-bottom-color: transparent;
-        }
-
-        [data-theme="dark"] .task-card.keyboard-selected,
-        [data-theme="terminal"] .task-card.keyboard-selected {
-          background: rgba(249, 115, 22, 0.1);
         }
 
         .task-checkbox {
@@ -1418,23 +1339,17 @@ export default function TodayPage() {
           width: 100%;
           max-width: 600px;
           padding: 14px 18px;
-          background: var(--bg-primary);
+          background: var(--bg-secondary);
           border: 1px solid var(--border);
           border-radius: 12px;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
           pointer-events: auto;
           transition: all 0.15s ease;
         }
 
         .quick-add-wrapper:focus-within {
           border-color: var(--accent);
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 3px rgba(249, 115, 22, 0.1);
-        }
-
-        [data-theme="dark"] .quick-add-wrapper,
-        [data-theme="terminal"] .quick-add-wrapper {
-          background: var(--bg-secondary);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 3px var(--accent-glow);
         }
 
         .quick-add-icon {
@@ -2311,27 +2226,6 @@ export default function TodayPage() {
                 <div className="xp-bar">
                   <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
                 </div>
-              </div>
-
-              <div className="theme-pills">
-                <button
-                  className={`theme-pill ${store.theme === 'light' ? 'active' : ''}`}
-                  onClick={() => store.setTheme('light')}
-                >
-                  ☀️ Light
-                </button>
-                <button
-                  className={`theme-pill ${store.theme === 'dark' ? 'active' : ''}`}
-                  onClick={() => store.setTheme('dark')}
-                >
-                  🌙 Dark
-                </button>
-                <button
-                  className={`theme-pill ${store.theme === 'terminal' ? 'active' : ''}`}
-                  onClick={() => store.setTheme('terminal')}
-                >
-                  💻 Term
-                </button>
               </div>
 
               <div className="stat-badges">
