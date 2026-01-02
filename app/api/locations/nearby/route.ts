@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUser } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { travel_location_type } from "@prisma/client";
 
@@ -21,7 +21,8 @@ function toRad(deg: number): number {
 
 // GET /api/locations/nearby - Find locations near a point
 export async function GET(request: NextRequest) {
-  const user = await getUser();
+  // Use lightweight auth for read-only endpoint
+  const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

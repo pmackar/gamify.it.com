@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUser } from "@/lib/auth";
+import { getAuthUser, getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 interface RouteParams {
@@ -8,7 +8,8 @@ interface RouteParams {
 
 // GET /api/locations/[id]/user-data - Get user's data for this location
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const user = await getUser();
+  // Use lightweight auth for read-only endpoint
+  const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUser } from "@/lib/auth";
+import { getAuthUser, getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getUser();
+    // Use lightweight auth for read-only endpoint
+    const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

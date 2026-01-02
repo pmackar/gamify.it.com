@@ -2,11 +2,24 @@ import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/db';
 import type { User } from '@supabase/supabase-js';
 
-// Helper to get Supabase user from session
+// Cache for user sessions (in-memory, per-request)
+const userCache = new Map<string, { user: User; timestamp: number }>();
+const CACHE_TTL = 5000; // 5 seconds
+
+// Helper to get Supabase user from session (with short cache)
 export async function getSupabaseUser(): Promise<User | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+}
+
+// Lightweight auth check - just returns user ID and email, no DB calls
+// Use this for read-only API routes that don't need full profile
+export async function getAuthUser(): Promise<{ id: string; email: string } | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  return { id: user.id, email: user.email || '' };
 }
 
 // Get or create profile for a user
