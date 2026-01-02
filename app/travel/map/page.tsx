@@ -43,9 +43,11 @@ export default function MapPage() {
   useEffect(() => {
     async function fetchLocations() {
       try {
-        const res = await fetch("/api/locations");
+        const res = await fetch("/api/locations?limit=500");
         if (res.ok) {
-          const data = await res.json();
+          const json = await res.json();
+          // Handle both { data: [...] } and direct array formats
+          const data = json.data || json;
           if (Array.isArray(data)) {
             setLocations(data);
             setFilteredLocations(data);

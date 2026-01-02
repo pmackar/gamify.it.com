@@ -19,21 +19,19 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search");
 
   // Pagination params
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 500);
   const offset = parseInt(searchParams.get("offset") || "0");
 
   // Build where clause with server-side filtering
+  // Note: Not filtering by user_id to show all locations (personal app)
   const where: {
-    user_id: string;
     city_id?: string;
     neighborhood_id?: string | null;
     type?: travel_location_type;
     visited?: boolean;
     hotlist?: boolean;
     name?: { contains: string; mode: 'insensitive' };
-  } = {
-    user_id: user.id,
-  };
+  } = {};
 
   if (cityId) where.city_id = cityId;
   if (neighborhoodId) where.neighborhood_id = neighborhoodId;
