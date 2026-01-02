@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { useNavBarContent, useNavBarTheme } from './NavBarContext';
 import { useXP, XPState } from './XPContext';
+import { ThemeSwitcher } from './ThemeSwitcher';
+import { useTheme } from './ThemeContext';
 
 // Compact XP bar for when app content is active
 const CompactXPBar = ({ xp }: { xp: XPState }) => (
@@ -98,12 +100,14 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
   const [loginLoading, setLoginLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  // Get content and theme from context (set by app pages)
+  // Get content from NavBarContext
   const contextContent = useNavBarContent();
-  const contextTheme = useNavBarTheme();
 
-  // Use prop if provided, otherwise use context theme (defaults to dark)
-  const theme = themeProp ?? contextTheme;
+  // Get theme from ThemeContext (universal theme system)
+  const { resolvedTheme } = useTheme();
+
+  // Use prop if provided, otherwise use resolved theme from context
+  const theme = themeProp ?? resolvedTheme;
 
   const isFitness = pathname.startsWith('/fitness');
   const isToday = pathname.startsWith('/today');
@@ -743,6 +747,60 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           background: rgba(255, 107, 107, 0.1);
         }
 
+        /* Theme Switcher */
+        .theme-switcher {
+          display: flex;
+          gap: 4px;
+          padding: 8px 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          margin-bottom: 4px;
+        }
+
+        .theme-option {
+          flex: 1;
+          padding: 8px 6px;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid transparent;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .theme-option:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .theme-option.active {
+          background: rgba(255, 215, 0, 0.15);
+          border-color: #FFD700;
+        }
+
+        .theme-icon {
+          font-size: 16px;
+        }
+
+        /* Light theme switcher */
+        .global-nav.theme-light .theme-switcher {
+          border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .global-nav.theme-light .theme-option {
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        .global-nav.theme-light .theme-option:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .global-nav.theme-light .theme-option.active {
+          background: rgba(99, 102, 241, 0.1);
+          border-color: #6366f1;
+        }
+
         .nav-login-dropdown {
           position: absolute;
           top: calc(100% + 8px);
@@ -1107,7 +1165,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
         }
       `}</style>
 
-      <nav className={`global-nav ${theme === 'light' ? 'theme-light' : ''}`}>
+      <nav className={`global-nav ${theme === 'light' ? 'theme-light' : theme === 'terminal' ? 'theme-terminal' : ''}`}>
         <div className="global-nav-inner">
           {/* Left section: Logo with apps dropdown */}
           <div className="nav-left">
@@ -1212,6 +1270,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                           </div>
                         </div>
                       )}
+                      <ThemeSwitcher />
                       <Link href="/account" className="nav-dropdown-item">PROFILE</Link>
                       <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>
                     </div>

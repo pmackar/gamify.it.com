@@ -4,7 +4,24 @@ import { RetroNavBar } from "@/components/RetroNavBar";
 import { AchievementProvider } from "@/components/AchievementPopup";
 import { NavBarProvider } from "@/components/NavBarContext";
 import { XPProvider } from "@/components/XPContext";
+import { ThemeProvider } from "@/components/ThemeContext";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+
+// Inline script to prevent FOUC (flash of unstyled content)
+const themeScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('gamify_theme');
+    var theme = stored || 'system';
+    if (theme === 'system') {
+      theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    document.documentElement.classList.add(theme);
+  } catch (e) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+`;
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -60,17 +77,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="antialiased">
         <ServiceWorkerRegistration />
-        <NavBarProvider>
-          <XPProvider>
-            <AchievementProvider>
-              <RetroNavBar />
-              {children}
-            </AchievementProvider>
-          </XPProvider>
-        </NavBarProvider>
+        <ThemeProvider>
+          <NavBarProvider>
+            <XPProvider>
+              <AchievementProvider>
+                <RetroNavBar />
+                {children}
+              </AchievementProvider>
+            </XPProvider>
+          </NavBarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
