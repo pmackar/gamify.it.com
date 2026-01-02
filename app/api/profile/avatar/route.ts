@@ -110,8 +110,15 @@ export async function POST(req: NextRequest) {
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
+      // Return specific error for policy issues
+      if (uploadError.message?.includes("policy") || uploadError.message?.includes("permission")) {
+        return NextResponse.json(
+          { error: "Storage not configured. Check bucket policies." },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
-        { error: "Failed to upload file" },
+        { error: uploadError.message || "Failed to upload file" },
         { status: 500 }
       );
     }
