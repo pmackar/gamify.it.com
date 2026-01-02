@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 interface RouteParams {
@@ -9,56 +10,74 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { userId } = await params;
 
-  const user = await prisma.user.findUnique({
+  // Get current user for friendship status (optional)
+  const currentUser = await getAuthUser().catch(() => null);
+
+  const profile = await prisma.profiles.findUnique({
     where: { id: userId },
     select: {
       id: true,
-      name: true,
-      image: true,
-      level: true,
-      xp: true,
-      xpToNext: true,
-      profilePublic: true,
-      createdAt: true,
+      username: true,
+      display_name: true,
+      avatar_url: true,
+      bio: true,
+      total_xp: true,
+      main_level: true,
+      current_streak: true,
+      created_at: true,
     },
   });
 
-  if (!user) {
+  if (!profile) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // If profile is private, return limited info
-  if (!user.profilePublic) {
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        image: user.image,
-        level: user.level,
-        profilePublic: false,
+  // Get friendship status if logged in
+  let friendshipStatus: {
+    status: string | null;
+    friendshipId: string | null;
+    isRequester: boolean;
+  } = { status: null, friendshipId: null, isRequester: false };
+
+  if (currentUser && currentUser.id !== userId) {
+    const friendship = await prisma.friendships.findFirst({
+      where: {
+        OR: [
+          { requester_id: currentUser.id, addressee_id: userId },
+          { requester_id: userId, addressee_id: currentUser.id },
+        ],
       },
-      stats: null,
-      visitedLocations: [],
     });
+
+    if (friendship) {
+      friendshipStatus = {
+        status: friendship.status,
+        friendshipId: friendship.id,
+        isRequester: friendship.requester_id === currentUser.id,
+      };
+    }
   }
 
   // Get user stats
-  const [visitedCount, reviewCount, questCount] = await Promise.all([
-    prisma.userLocationData.count({
-      where: { userId, visited: true },
+  const [visitedCount, reviewCount, questCount, locationCount] = await Promise.all([
+    prisma.travel_user_location_data.count({
+      where: { user_id: userId, visited: true },
     }),
-    prisma.review.count({
-      where: { authorId: userId, status: "APPROVED" },
+    prisma.travel_reviews.count({
+      where: { author_id: userId, status: "APPROVED" },
     }),
-    prisma.quest.count({
-      where: { userId, status: "COMPLETED" },
+    prisma.travel_quests.count({
+      where: { user_id: userId, status: "COMPLETED" },
+    }),
+    prisma.travel_locations.count({
+      where: { user_id: userId },
     }),
   ]);
 
-  // Get user's visited locations (public)
-  const visitedLocations = await prisma.userLocationData.findMany({
+  // Get user's recent visited locations
+  const visitedLocations = await prisma.travel_user_location_data.findMany({
     where: {
-      userId,
+      user_id: userId,
       visited: true,
     },
     include: {
@@ -75,29 +94,37 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
     },
-    orderBy: { lastVisitedAt: "desc" },
-    take: 20,
+    orderBy: { last_visited_at: "desc" },
+    take: 12,
   });
 
   return NextResponse.json({
     user: {
-      id: user.id,
-      name: user.name,
-      image: user.image,
-      level: user.level,
-      xp: user.xp,
-      xpToNext: user.xpToNext,
-      profilePublic: user.profilePublic,
-      createdAt: user.createdAt,
+      id: profile.id,
+      username: profile.username,
+      displayName: profile.display_name,
+      avatarUrl: profile.avatar_url,
+      bio: profile.bio,
+      level: profile.main_level || 1,
+      xp: profile.total_xp || 0,
+      currentStreak: profile.current_streak || 0,
+      createdAt: profile.created_at,
     },
+    friendship: friendshipStatus,
     stats: {
       visitedCount,
       reviewCount,
       questCount,
+      locationCount,
     },
     visitedLocations: visitedLocations.map((vl) => ({
-      ...vl.location,
-      visitedAt: vl.lastVisitedAt,
+      id: vl.location.id,
+      name: vl.location.name,
+      type: vl.location.type,
+      latitude: vl.location.latitude,
+      longitude: vl.location.longitude,
+      city: vl.location.city,
+      visitedAt: vl.last_visited_at,
     })),
   });
 }

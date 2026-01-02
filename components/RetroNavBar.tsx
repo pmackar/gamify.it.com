@@ -1704,6 +1704,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                       )}
                       <ThemeSwitcher />
                       <Link href="/account" className="nav-dropdown-item">PROFILE</Link>
+                      <Link href="/friends" className="nav-dropdown-item">FRIENDS</Link>
                       <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>
                     </div>
                   )}
