@@ -14,6 +14,50 @@ import {
 } from '@/lib/today/data';
 import { useNavBar } from '@/components/NavBarContext';
 
+// Pixel Particles Effect
+interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
+
+const PixelParticles = () => {
+  const [particles, setParticles] = useState<Particle[]>([]);
+  useEffect(() => {
+    const colors = ['#FFD700', '#5fbf8a', '#ff6b6b', '#5CC9F5', '#a855f7'];
+    const newParticles: Particle[] = [];
+    for (let i = 0; i < 30; i++) {
+      newParticles.push({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 3 + 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        speed: Math.random() * 25 + 20,
+        opacity: Math.random() * 0.3 + 0.1,
+        delay: Math.random() * 15
+      });
+    }
+    setParticles(newParticles);
+  }, []);
+  return (
+    <div className="particles-container">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="pixel-particle"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            backgroundColor: p.color,
+            opacity: p.opacity,
+            animationDuration: `${p.speed}s`,
+            animationDelay: `${p.delay}s`
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 export default function TodayPage() {
   const store = useTodayStore();
   const [mounted, setMounted] = useState(false);
@@ -775,6 +819,31 @@ export default function TodayPage() {
           --success: #5fbf8a;
           --warning: #FFD700;
           --danger: #ff6b6b;
+        }
+
+        /* Pixel Particles */
+        .particles-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          pointer-events: none;
+          z-index: 1;
+          overflow: hidden;
+        }
+
+        .pixel-particle {
+          position: absolute;
+          image-rendering: pixelated;
+          animation: float-up linear infinite;
+        }
+
+        @keyframes float-up {
+          0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
         }
 
         .today-app {
@@ -2203,6 +2272,8 @@ export default function TodayPage() {
       `}</style>
 
       <div className="today-app">
+        <PixelParticles />
+
         {/* Sidebar */}
         <aside className="today-sidebar">
           <div className="sidebar-header">
