@@ -265,6 +265,7 @@ export default function FitnessPage() {
     if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
     if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
     if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[5] });
+    if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[6] });
 
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
@@ -294,6 +295,11 @@ export default function FitnessPage() {
         else if (suggestion.id === 'campaigns') store.setView('campaigns');
         else if (suggestion.id === 'achievements') store.setView('achievements');
         else if (suggestion.id === 'import') fileInputRef.current?.click();
+        else if (suggestion.id === 'reset') {
+          if (confirm('Are you sure you want to erase ALL fitness data? This cannot be undone.')) {
+            store.eraseAllData();
+          }
+        }
         break;
       case 'template': store.startWorkoutFromTemplate(suggestion.id); break;
       case 'exercise': store.startWorkoutWithExercise(suggestion.id); break;
