@@ -46,8 +46,10 @@ export default function MapPage() {
         const res = await fetch("/api/locations");
         if (res.ok) {
           const data = await res.json();
-          setLocations(data);
-          setFilteredLocations(data);
+          if (Array.isArray(data)) {
+            setLocations(data);
+            setFilteredLocations(data);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch locations:", error);
