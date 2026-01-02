@@ -77,6 +77,7 @@ export interface FitnessState {
   campaigns: Campaign[];
   exerciseNotes: Record<string, string>;  // exerciseId -> note text
   restTimerPreset: number;  // User's preferred rest time in seconds (default 90)
+  hasCompletedOnboarding: boolean;  // Track if user has seen the tutorial
 }
 
 export interface SyncState {

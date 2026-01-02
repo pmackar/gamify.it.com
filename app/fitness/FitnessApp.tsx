@@ -57,6 +57,9 @@ export default function FitnessApp() {
   const [showPlateCalc, setShowPlateCalc] = useState(false);
   const [plateCalcWeight, setPlateCalcWeight] = useState(135);
   const [plateCalcBar, setPlateCalcBar] = useState(45);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [summaryPeriod, setSummaryPeriod] = useState<7 | 30>(7);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
@@ -99,7 +102,28 @@ export default function FitnessApp() {
         }
       })
       .catch(() => {});
+
+    // Online/offline detection
+    const handleOnline = () => store.setOnlineStatus(true);
+    const handleOffline = () => store.setOnlineStatus(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
+
+  // Show onboarding for new users
+  useEffect(() => {
+    if (mounted && !store.hasCompletedOnboarding && store.workouts.length === 0) {
+      // Small delay to let the UI settle
+      const timer = setTimeout(() => setShowOnboarding(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, store.hasCompletedOnboarding, store.workouts.length]);
 
   // Sync to server on page unload
   useEffect(() => {
@@ -1815,6 +1839,196 @@ export default function FitnessApp() {
           flex: 1;
         }
 
+        /* Onboarding Modal */
+        .onboarding-overlay {
+          background: rgba(0, 0, 0, 0.85);
+        }
+        .onboarding-modal {
+          max-width: 340px;
+          text-align: center;
+          padding: 32px 24px 24px;
+        }
+        .onboarding-icon {
+          font-size: 56px;
+          margin-bottom: 16px;
+          animation: bounce 1s ease-in-out;
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .onboarding-title {
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 12px;
+        }
+        .onboarding-content {
+          font-size: 15px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          margin-bottom: 24px;
+        }
+        .onboarding-dots {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 24px;
+        }
+        .onboarding-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: var(--border);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .onboarding-dot.active {
+          background: var(--accent);
+          transform: scale(1.2);
+        }
+        .onboarding-dot:hover {
+          background: var(--text-tertiary);
+        }
+        .onboarding-actions {
+          display: flex;
+          gap: 10px;
+        }
+        .onboarding-actions .modal-btn {
+          flex: 1;
+        }
+        .onboarding-skip {
+          margin-top: 16px;
+          background: none;
+          border: none;
+          color: var(--text-tertiary);
+          font-size: 13px;
+          cursor: pointer;
+          padding: 8px;
+          transition: color 0.15s;
+        }
+        .onboarding-skip:hover {
+          color: var(--text-secondary);
+        }
+
+        /* Summary Card */
+        .summary-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 16px;
+          margin: 20px 0;
+        }
+        .summary-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .summary-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .summary-period-toggle {
+          display: flex;
+          gap: 4px;
+          padding: 3px;
+          background: var(--bg-secondary);
+          border-radius: 8px;
+        }
+        .period-btn {
+          padding: 6px 12px;
+          background: none;
+          border: none;
+          border-radius: 6px;
+          color: var(--text-tertiary);
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .period-btn.active {
+          background: var(--accent);
+          color: white;
+        }
+        .summary-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .summary-stat {
+          text-align: center;
+        }
+        .summary-stat-value {
+          display: block;
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--accent);
+        }
+        .summary-stat-label {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+        }
+        .summary-top-exercises {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+          margin-bottom: 12px;
+          padding-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+        .summary-top-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-right: 4px;
+        }
+        .summary-top-exercise {
+          padding: 4px 8px;
+          background: var(--bg-secondary);
+          border-radius: 6px;
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+        .summary-share-btn {
+          width: 100%;
+          padding: 12px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .summary-share-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        /* Export Button */
+        .export-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+          text-align: center;
+        }
+        .export-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
         /* Warmup indicator on set badges */
         .set-badge.warmup {
           opacity: 0.6;
@@ -2577,6 +2791,58 @@ export default function FitnessApp() {
           to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
 
+        /* Sync Status Indicator */
+        .sync-indicator {
+          position: fixed;
+          top: 70px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 500;
+          z-index: 150;
+          animation: syncIndicatorIn 0.3s ease-out;
+          backdrop-filter: blur(8px);
+        }
+        .sync-indicator.offline {
+          background: rgba(239, 68, 68, 0.2);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #ef4444;
+        }
+        .sync-indicator.syncing {
+          background: rgba(59, 130, 246, 0.2);
+          border: 1px solid rgba(59, 130, 246, 0.4);
+          color: #3b82f6;
+        }
+        .sync-indicator.error {
+          background: rgba(245, 158, 11, 0.2);
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          color: #f59e0b;
+        }
+        .sync-indicator.pending {
+          background: rgba(107, 114, 128, 0.2);
+          border: 1px solid rgba(107, 114, 128, 0.4);
+          color: #9ca3af;
+        }
+        .sync-icon {
+          font-size: 14px;
+        }
+        .sync-indicator.syncing .sync-icon {
+          animation: syncSpin 1s linear infinite;
+        }
+        @keyframes syncIndicatorIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes syncSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
         /* Campaign Styles */
         .create-btn {
           width: 100%;
@@ -2888,6 +3154,87 @@ export default function FitnessApp() {
                 </div>
               </div>
 
+              {/* Weekly/Monthly Summary */}
+              {(() => {
+                const stats = store.getSummaryStats(summaryPeriod);
+                const formatDuration = (s: number) => s > 0 ? `${Math.floor(s / 60)} min` : '--';
+
+                const handleShareSummary = async () => {
+                  const periodLabel = summaryPeriod === 7 ? 'This Week' : 'This Month';
+                  const text = `Iron Quest - ${periodLabel}
+
+📊 ${stats.workouts} workouts
+🏋️ ${stats.totalSets} sets
+💪 ${Math.round(stats.totalVolume).toLocaleString()} lbs volume
+⭐ ${stats.totalXP.toLocaleString()} XP earned
+⏱️ ${formatDuration(stats.avgDuration)} avg workout
+
+${stats.topExercises.length > 0 ? `Top exercises:\n${stats.topExercises.slice(0, 3).map(e => `• ${e.name} (${e.sets} sets)`).join('\n')}` : ''}
+
+gamify.it.com/fitness`;
+
+                  if (navigator.share) {
+                    try { await navigator.share({ text }); } catch {}
+                  } else {
+                    await navigator.clipboard.writeText(text);
+                    store.showToast('Summary copied!');
+                  }
+                };
+
+                return (
+                  <div className="summary-card">
+                    <div className="summary-header">
+                      <span className="summary-title">Summary</span>
+                      <div className="summary-period-toggle">
+                        <button
+                          className={`period-btn ${summaryPeriod === 7 ? 'active' : ''}`}
+                          onClick={() => setSummaryPeriod(7)}
+                        >
+                          Week
+                        </button>
+                        <button
+                          className={`period-btn ${summaryPeriod === 30 ? 'active' : ''}`}
+                          onClick={() => setSummaryPeriod(30)}
+                        >
+                          Month
+                        </button>
+                      </div>
+                    </div>
+                    <div className="summary-stats">
+                      <div className="summary-stat">
+                        <span className="summary-stat-value">{stats.workouts}</span>
+                        <span className="summary-stat-label">Workouts</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="summary-stat-value">{stats.totalSets}</span>
+                        <span className="summary-stat-label">Sets</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="summary-stat-value">{Math.round(stats.totalVolume / 1000)}K</span>
+                        <span className="summary-stat-label">Volume</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="summary-stat-value">{stats.totalXP}</span>
+                        <span className="summary-stat-label">XP</span>
+                      </div>
+                    </div>
+                    {stats.topExercises.length > 0 && (
+                      <div className="summary-top-exercises">
+                        <span className="summary-top-label">Top exercises:</span>
+                        {stats.topExercises.slice(0, 3).map((ex, i) => (
+                          <span key={i} className="summary-top-exercise">
+                            {ex.name} ({ex.sets})
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <button className="summary-share-btn" onClick={handleShareSummary}>
+                      Share Summary
+                    </button>
+                  </div>
+                );
+              })()}
+
               <div className="section-title">Body Stats</div>
               <div className="body-stats-row" onClick={openBodyStatsEditor}>
                 <div className="body-stat-card">
@@ -2943,6 +3290,25 @@ export default function FitnessApp() {
                     );
                   })}
               </div>
+
+              {/* Export Data */}
+              <div className="section-title">Data</div>
+              <button
+                className="export-btn"
+                onClick={() => {
+                  const csv = store.exportWorkoutsCSV();
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `iron-quest-export-${new Date().toISOString().split('T')[0]}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  store.showToast('Workout history exported!');
+                }}
+              >
+                📥 Export All Workouts (CSV)
+              </button>
             </div>
           )}
 
@@ -3859,6 +4225,94 @@ export default function FitnessApp() {
           );
         })()}
 
+        {/* Onboarding Modal */}
+        {showOnboarding && (() => {
+          const steps = [
+            {
+              icon: '💪',
+              title: 'Welcome to Iron Quest!',
+              content: 'Turn your workouts into an adventure. Track exercises, earn XP, and level up as you get stronger.',
+            },
+            {
+              icon: '⭐',
+              title: 'Earn XP Every Set',
+              content: 'Every set you log earns XP based on weight and reps. Hit personal records for bonus XP and unlock achievements!',
+            },
+            {
+              icon: '📊',
+              title: 'Track Your Progress',
+              content: 'View progress charts for each exercise, see your estimated 1RM, and track volume over time.',
+            },
+            {
+              icon: '🔥',
+              title: 'Pro Tips',
+              content: 'Mark warmup sets (no XP). Add notes to exercises. Link exercises into supersets. Use the plate calculator for loading.',
+            },
+            {
+              icon: '🚀',
+              title: 'Ready to Lift?',
+              content: 'Search for an exercise below to start your first workout. Let\'s get after it!',
+            },
+          ];
+
+          const step = steps[onboardingStep];
+          const isLast = onboardingStep === steps.length - 1;
+
+          return (
+            <div className="modal-overlay onboarding-overlay">
+              <div className="modal onboarding-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="onboarding-icon">{step.icon}</div>
+                <div className="onboarding-title">{step.title}</div>
+                <div className="onboarding-content">{step.content}</div>
+
+                <div className="onboarding-dots">
+                  {steps.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`onboarding-dot ${i === onboardingStep ? 'active' : ''}`}
+                      onClick={() => setOnboardingStep(i)}
+                    />
+                  ))}
+                </div>
+
+                <div className="onboarding-actions">
+                  {onboardingStep > 0 && (
+                    <button
+                      className="modal-btn secondary"
+                      onClick={() => setOnboardingStep(s => s - 1)}
+                    >
+                      Back
+                    </button>
+                  )}
+                  <button
+                    className="modal-btn primary"
+                    onClick={() => {
+                      if (isLast) {
+                        store.completeOnboarding();
+                        setShowOnboarding(false);
+                      } else {
+                        setOnboardingStep(s => s + 1);
+                      }
+                    }}
+                  >
+                    {isLast ? 'Start Training' : 'Next'}
+                  </button>
+                </div>
+
+                <button
+                  className="onboarding-skip"
+                  onClick={() => {
+                    store.completeOnboarding();
+                    setShowOnboarding(false);
+                  }}
+                >
+                  Skip tutorial
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Exercise Picker Modal */}
         {showExercisePicker && (
           <div className="exercise-picker-overlay">
@@ -3938,6 +4392,24 @@ export default function FitnessApp() {
 
         {/* Toast */}
         {store.toastMessage && <div className="toast">{store.toastMessage}</div>}
+
+        {/* Sync Status Indicator */}
+        {(!store.isOnline || store.pendingSync) && (
+          <div className={`sync-indicator ${!store.isOnline ? 'offline' : store.syncStatus === 'syncing' ? 'syncing' : store.syncStatus === 'error' ? 'error' : 'pending'}`}>
+            <span className="sync-icon">
+              {!store.isOnline ? '📵' : store.syncStatus === 'syncing' ? '🔄' : store.syncStatus === 'error' ? '⚠️' : '☁️'}
+            </span>
+            <span className="sync-text">
+              {!store.isOnline
+                ? 'Offline - changes saved locally'
+                : store.syncStatus === 'syncing'
+                  ? 'Syncing...'
+                  : store.syncStatus === 'error'
+                    ? `Sync failed (retry ${store.syncRetryCount}/5)`
+                    : 'Pending sync'}
+            </span>
+          </div>
+        )}
 
         {/* Hidden file input for CSV import */}
         <input

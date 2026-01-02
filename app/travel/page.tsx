@@ -15,6 +15,7 @@ import XPBar from "@/components/ui/XPBar";
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import AppLandingPage from "@/components/AppLandingPage";
+import TravelApp from "./TravelApp";
 
 const FEATURES = [
   {
@@ -136,6 +137,7 @@ export default async function TravelDashboardPage() {
   const stats = await getStats(user.id);
 
   return (
+    <TravelApp isLoggedIn={true}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Welcome Section */}
       <div className="mb-8">
@@ -370,6 +372,7 @@ export default async function TravelDashboardPage() {
         </div>
       </div>
     </div>
+    </TravelApp>
   );
 }
 

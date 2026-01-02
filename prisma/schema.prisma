@@ -9,6 +9,83 @@ datasource db {
 }
 
 // ============================================
+// PERMISSIONS & SUBSCRIPTIONS
+// ============================================
+
+enum user_role {
+  USER
+  ADMIN
+}
+
+enum subscription_tier {
+  FREE
+  PREMIUM
+  COACH
+  PRO
+}
+
+enum subscription_status {
+  ACTIVE
+  TRIAL
+  CANCELLED
+  EXPIRED
+  PAUSED
+}
+
+/// Global user roles (admin, user)
+model user_roles {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @unique @db.Uuid
+  user       profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role       user_role @default(USER)
+  granted_at DateTime  @default(now()) @db.Timestamptz(6)
+  granted_by String?   @db.Uuid
+
+  @@index([user_id])
+  @@index([role])
+}
+
+/// Per-app subscriptions/tiers
+model user_subscriptions {
+  id                     String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                String              @db.Uuid
+  user                   profiles            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  app_id                 String              // 'fitness', 'today', 'travel', 'global'
+  tier                   subscription_tier   @default(FREE)
+  status                 subscription_status @default(ACTIVE)
+  features               String[]            @default([]) // Additional feature flags
+  started_at             DateTime            @default(now()) @db.Timestamptz(6)
+  expires_at             DateTime?           @db.Timestamptz(6)
+  trial_ends_at          DateTime?           @db.Timestamptz(6)
+  stripe_subscription_id String?
+  stripe_customer_id     String?
+  cancelled_at           DateTime?           @db.Timestamptz(6)
+  created_at             DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime            @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, app_id])
+  @@index([user_id])
+  @@index([app_id])
+  @@index([tier])
+  @@index([status])
+}
+
+/// Feature definitions per app (for documentation and admin)
+model app_features {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  app_id      String            // 'fitness', 'today', 'travel', 'global'
+  feature_key String            // 'unlimited_templates', 'client_management'
+  name        String
+  description String?
+  min_tier    subscription_tier @default(FREE)
+  created_at  DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@unique([app_id, feature_key])
+  @@index([app_id])
+  @@index([min_tier])
+}
+
+// ============================================
 // UNIFIED CORE TABLES (existing)
 // ============================================
 
@@ -58,6 +135,10 @@ model profiles {
   // Coaching relations
   coach_profile        coach_profiles?
   coached_by           coaching_relationships[] @relation("AthleteCoaching")
+
+  // Permission relations
+  user_role            user_roles?
+  subscriptions        user_subscriptions[]
 
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")

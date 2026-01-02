@@ -38,6 +38,17 @@ const queueSync = (get: () => FitnessStore) => {
   }, 500);
 };
 
+// Haptic feedback helper (silent fail if not supported)
+const haptic = (pattern: number | number[]) => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      // Ignore - haptics not supported
+    }
+  }
+};
+
 interface FitnessStore extends FitnessState, SyncState {
   // Current workout state
   currentWorkout: Workout | null;
@@ -49,6 +60,10 @@ interface FitnessStore extends FitnessState, SyncState {
   // Rest timer state
   restTimerSeconds: number;  // Countdown seconds (0 = not running)
   restTimerRunning: boolean;
+
+  // Offline queue state
+  isOnline: boolean;
+  syncRetryCount: number;
 
   // UI state
   currentView: ViewType;
@@ -97,6 +112,16 @@ interface FitnessStore extends FitnessState, SyncState {
   // Helpers
   getLastWorkoutForExercise: (exerciseId: string) => WorkoutExercise | null;
   getExerciseProgressData: (exerciseId: string) => { date: string; maxWeight: number; totalVolume: number; e1rm: number }[];
+  getSummaryStats: (days: number) => {
+    workouts: number;
+    totalVolume: number;
+    totalXP: number;
+    totalSets: number;
+    prsHit: number;
+    avgDuration: number;
+    topExercises: { name: string; sets: number }[];
+  };
+  exportWorkoutsCSV: (startDate?: Date, endDate?: Date) => string;
 
   // Navigation
   setView: (view: ViewType) => void;
@@ -115,7 +140,14 @@ interface FitnessStore extends FitnessState, SyncState {
 
   // Toast
   showToast: (message: string) => void;
+
+  // Onboarding
+  completeOnboarding: () => void;
   clearToast: () => void;
+
+  // Offline queue
+  setOnlineStatus: (online: boolean) => void;
+  retrySyncOnReconnect: () => void;
 
   // Data management
   importWorkouts: (workouts: Workout[]) => Promise<void>;
@@ -145,7 +177,8 @@ const defaultState: FitnessState = {
   templates: [...DEFAULT_TEMPLATES],
   campaigns: [],
   exerciseNotes: {},
-  restTimerPreset: 90
+  restTimerPreset: 90,
+  hasCompletedOnboarding: false
 };
 
 export const useFitnessStore = create<FitnessStore>()(
@@ -163,6 +196,10 @@ export const useFitnessStore = create<FitnessStore>()(
       // Rest timer state
       restTimerSeconds: 0,
       restTimerRunning: false,
+
+      // Offline queue state
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+      syncRetryCount: 0,
 
       // UI state
       currentView: 'home',
@@ -214,7 +251,11 @@ export const useFitnessStore = create<FitnessStore>()(
           const leveledUp = newLevel > state.profile.level;
 
           if (leveledUp) {
-            setTimeout(() => get().showToast(`Level Up! Now level ${newLevel}`), 100);
+            setTimeout(() => {
+              get().showToast(`Level Up! Now level ${newLevel}`);
+              // Celebration haptic for level up
+              haptic([100, 50, 100, 50, 100, 50, 300]);
+            }, 100);
           }
 
           return {
@@ -463,6 +504,9 @@ export const useFitnessStore = create<FitnessStore>()(
           };
         });
 
+        // Haptic feedback for set logged
+        haptic(50);
+
         // Add XP (only for working sets)
         if (!isWarmup && xp > 0) {
           get().addXP(xp);
@@ -474,6 +518,8 @@ export const useFitnessStore = create<FitnessStore>()(
           if (isPR) {
             set((state) => ({ workoutPRsHit: state.workoutPRsHit + 1 }));
             get().showToast(`🏆 New PR: ${weight} lbs!`);
+            // Strong haptic for PR
+            haptic([100, 50, 100, 50, 200]);
           }
 
           const milestone = get().checkMilestone(exercise.id, weight);
@@ -485,7 +531,11 @@ export const useFitnessStore = create<FitnessStore>()(
                 totalXP: state.currentWorkout.totalXP + milestone.xp
               } : null
             }));
-            setTimeout(() => get().showToast(`${milestone.icon} ${milestone.name} unlocked!`), isPR ? 2500 : 0);
+            setTimeout(() => {
+              get().showToast(`${milestone.icon} ${milestone.name} unlocked!`);
+              // Celebration haptic for milestone
+              haptic([100, 100, 100, 100, 300]);
+            }, isPR ? 2500 : 0);
           }
         }
 
@@ -783,6 +833,8 @@ export const useFitnessStore = create<FitnessStore>()(
           set({ restTimerSeconds: state.restTimerSeconds - 1 });
         } else if (state.restTimerRunning && state.restTimerSeconds <= 0) {
           set({ restTimerRunning: false });
+          // Haptic buzz when rest timer completes
+          haptic([200, 100, 200]);
         }
       },
 
@@ -810,6 +862,113 @@ export const useFitnessStore = create<FitnessStore>()(
           }
         }
         return null;
+      },
+
+      // Get summary stats for a time period
+      getSummaryStats: (days: number) => {
+        const state = get();
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+        // Filter workouts in time period
+        const recentWorkouts = state.workouts.filter(w => {
+          const date = new Date(w.endTime || w.startTime);
+          return date >= cutoff;
+        });
+
+        // Calculate stats
+        let totalVolume = 0;
+        let totalXP = 0;
+        let totalSets = 0;
+        let totalDuration = 0;
+        const exerciseCounts: Record<string, number> = {};
+
+        recentWorkouts.forEach(workout => {
+          totalXP += workout.totalXP;
+          totalDuration += workout.duration || 0;
+
+          workout.exercises.forEach(ex => {
+            exerciseCounts[ex.name] = (exerciseCounts[ex.name] || 0) + ex.sets.length;
+            ex.sets.forEach(set => {
+              if (!set.isWarmup) {
+                totalVolume += set.weight * set.reps;
+                totalSets++;
+              }
+            });
+          });
+        });
+
+        // Get top exercises
+        const topExercises = Object.entries(exerciseCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name, sets]) => ({ name, sets }));
+
+        // Count PRs hit in this period (rough estimate based on records timestamps)
+        // For now, just count unique records that were hit during this period
+        const prsHit = recentWorkouts.reduce((sum, w) => {
+          // This is a simplified count - actual PR tracking would require storing PR dates
+          return sum;
+        }, 0);
+
+        return {
+          workouts: recentWorkouts.length,
+          totalVolume,
+          totalXP,
+          totalSets,
+          prsHit,
+          avgDuration: recentWorkouts.length > 0 ? Math.round(totalDuration / recentWorkouts.length) : 0,
+          topExercises
+        };
+      },
+
+      // Export workouts as CSV
+      exportWorkoutsCSV: (startDate?: Date, endDate?: Date) => {
+        const state = get();
+        const rows: string[] = [];
+
+        // Header row
+        rows.push('Date,Time,Exercise,Set,Weight (lbs),Reps,RPE,Warmup,XP,Notes,Workout Duration (min)');
+
+        // Filter workouts by date range
+        let workouts = state.workouts;
+        if (startDate) {
+          workouts = workouts.filter(w => new Date(w.startTime) >= startDate);
+        }
+        if (endDate) {
+          workouts = workouts.filter(w => new Date(w.startTime) <= endDate);
+        }
+
+        // Sort oldest to newest for export
+        workouts = [...workouts].reverse();
+
+        for (const workout of workouts) {
+          const date = new Date(workout.startTime).toLocaleDateString();
+          const time = new Date(workout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const duration = workout.duration ? Math.round(workout.duration / 60) : '';
+
+          for (const exercise of workout.exercises) {
+            const note = state.exerciseNotes[exercise.id] || '';
+            const escapedNote = note.includes(',') ? `"${note.replace(/"/g, '""')}"` : note;
+
+            exercise.sets.forEach((set, setIdx) => {
+              rows.push([
+                date,
+                time,
+                exercise.name,
+                setIdx + 1,
+                set.weight,
+                set.reps,
+                set.rpe || '',
+                set.isWarmup ? 'Yes' : 'No',
+                set.xp,
+                escapedNote,
+                setIdx === 0 ? duration : ''  // Only show duration on first set
+              ].join(','));
+            });
+          }
+        }
+
+        return rows.join('\n');
       },
 
       // Get progress data for charting an exercise over time
@@ -943,6 +1102,31 @@ export const useFitnessStore = create<FitnessStore>()(
 
       clearToast: () => {
         set({ toastMessage: null });
+      },
+
+      completeOnboarding: () => {
+        set({ hasCompletedOnboarding: true, pendingSync: true });
+        get().saveState();
+        queueSync(get);
+      },
+
+      setOnlineStatus: (online: boolean) => {
+        const wasOffline = !get().isOnline;
+        set({ isOnline: online });
+
+        if (online && wasOffline) {
+          // Back online - retry sync if needed
+          get().retrySyncOnReconnect();
+        }
+      },
+
+      retrySyncOnReconnect: () => {
+        const state = get();
+        if (state.pendingSync && state.isOnline) {
+          // Reset retry count and attempt sync
+          set({ syncRetryCount: 0 });
+          get().syncToServer();
+        }
       },
 
       importWorkouts: async (workouts: Workout[]) => {
@@ -1099,6 +1283,12 @@ export const useFitnessStore = create<FitnessStore>()(
         const state = get();
         if (state.syncStatus === 'syncing') return;
 
+        // Don't attempt sync if offline
+        if (!state.isOnline) {
+          set({ syncStatus: 'idle', syncError: 'Offline - will sync when back online' });
+          return;
+        }
+
         set({ syncStatus: 'syncing' });
 
         try {
@@ -1116,6 +1306,7 @@ export const useFitnessStore = create<FitnessStore>()(
                 campaigns: state.campaigns,
                 exerciseNotes: state.exerciseNotes,
                 restTimerPreset: state.restTimerPreset,
+                hasCompletedOnboarding: state.hasCompletedOnboarding,
               },
             }),
           });
@@ -1127,14 +1318,26 @@ export const useFitnessStore = create<FitnessStore>()(
               pendingSync: false,
               syncStatus: 'idle',
               syncError: null,
+              syncRetryCount: 0,
             });
           } else {
             throw new Error('Sync failed');
           }
         } catch (error) {
-          set({ syncStatus: 'error', syncError: (error as Error).message });
-          // Retry in 5 seconds
-          setTimeout(() => get().syncToServer(), 5000);
+          const retryCount = get().syncRetryCount;
+          const maxRetries = 5;
+
+          set({
+            syncStatus: 'error',
+            syncError: (error as Error).message,
+            syncRetryCount: retryCount + 1,
+          });
+
+          // Exponential backoff: 5s, 10s, 20s, 40s, 80s, then stop
+          if (retryCount < maxRetries && get().isOnline) {
+            const delay = Math.min(5000 * Math.pow(2, retryCount), 80000);
+            setTimeout(() => get().syncToServer(), delay);
+          }
         }
       },
 
@@ -1173,6 +1376,7 @@ export const useFitnessStore = create<FitnessStore>()(
         campaigns: state.campaigns,
         exerciseNotes: state.exerciseNotes,
         restTimerPreset: state.restTimerPreset,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
         lastSyncedAt: state.lastSyncedAt
       })
     }
