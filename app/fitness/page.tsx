@@ -421,20 +421,28 @@ export default function FitnessPage() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         .fitness-app {
-          --bg-base: #0a0a0a;
+          /* Gamify.it.com Design System - Iron Quest Theme */
+          --bg-primary: #0a0a0a;
+          --bg-secondary: #1a1a1a;
+          --bg-tertiary: #252525;
+          --bg-card: #1e1e28;
+          --bg-card-hover: #252530;
           --bg-elevated: #121218;
-          --bg-card: rgba(30, 30, 40, 0.6);
-          --bg-hover: rgba(40, 40, 50, 0.8);
-          --bg-active: rgba(50, 50, 60, 0.8);
-          --text-primary: #f5f5f7;
-          --text-secondary: #8e8e93;
-          --text-muted: #6b7280;
-          --accent: #ff6b6b;
-          --accent-glow: rgba(255, 107, 107, 0.15);
-          --success: #34c759;
-          --gold: #ffd700;
-          --border: rgba(255,255,255,0.06);
-          --border-light: rgba(255,255,255,0.1);
+          --text-primary: #ffffff;
+          --text-secondary: #aaaaaa;
+          --text-tertiary: #666666;
+          --border: #2a2a2a;
+          --border-light: #3a3a3a;
+          --accent: #FF6B6B;
+          --accent-dark: #CC5555;
+          --accent-glow: rgba(255, 107, 107, 0.3);
+          --gold: #FFD700;
+          --gold-glow: rgba(255, 215, 0, 0.3);
+          --teal: #5fbf8a;
+          --teal-glow: rgba(95, 191, 138, 0.3);
+          --success: #5fbf8a;
+          --warning: #FFD700;
+          --danger: #ff6b6b;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           font-size: 16px;
           line-height: 1.5;
@@ -579,7 +587,7 @@ export default function FitnessPage() {
         }
         .suggestion-subtitle {
           font-size: 0.8125rem;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           margin-top: 2px;
         }
         .suggestion-meta {
@@ -610,7 +618,7 @@ export default function FitnessPage() {
           box-shadow: 0 0 0 3px var(--accent-glow);
         }
         .command-input::placeholder {
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           font-weight: 400;
         }
 
@@ -684,7 +692,7 @@ export default function FitnessPage() {
           color: var(--gold);
         }
         .set-badge.empty {
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           font-style: italic;
         }
 
@@ -772,14 +780,14 @@ export default function FitnessPage() {
         }
         .input-label {
           font-size: 11px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           margin-top: 6px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         .input-divider {
           font-size: 28px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           font-weight: 300;
         }
 
@@ -864,7 +872,7 @@ export default function FitnessPage() {
           border-color: var(--accent);
           box-shadow: 0 0 0 3px var(--accent-glow);
         }
-        .modal-input::placeholder { color: var(--text-muted); }
+        .modal-input::placeholder { color: var(--text-tertiary); }
 
         .modal-actions {
           display: flex;
@@ -1012,7 +1020,7 @@ export default function FitnessPage() {
         }
         .stat-label {
           font-size: 10px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           margin-top: 6px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -1114,7 +1122,7 @@ export default function FitnessPage() {
         }
         .achievement-desc {
           font-size: 12px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
         }
         .achievement-check {
           color: var(--success);
@@ -1139,7 +1147,7 @@ export default function FitnessPage() {
         }
         .empty-subtitle {
           font-size: 14px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           max-width: 260px;
           margin: 0 auto;
           line-height: 1.5;
@@ -1196,7 +1204,7 @@ export default function FitnessPage() {
         .home-stat-label {
           font-size: 0.6875rem;
           font-weight: 600;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-top: 4px;
@@ -1325,7 +1333,7 @@ export default function FitnessPage() {
 
         .category-count {
           font-size: 11px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           margin-top: 4px;
         }
 
@@ -1386,7 +1394,7 @@ export default function FitnessPage() {
 
         .exercise-item-equipment {
           font-size: 12px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           text-transform: capitalize;
         }
 
@@ -1493,7 +1501,7 @@ export default function FitnessPage() {
         }
         .progress-text {
           font-size: 12px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
           flex-shrink: 0;
         }
 
@@ -1521,7 +1529,7 @@ export default function FitnessPage() {
         }
         .goal-target {
           font-size: 12px;
-          color: var(--text-muted);
+          color: var(--text-tertiary);
         }
         .goal-check {
           color: var(--success);
@@ -1797,7 +1805,7 @@ export default function FitnessPage() {
                       <div style={{ marginBottom: '16px' }}>
                         <div className="section-title">Goals</div>
                         {campaign.goals.length === 0 ? (
-                          <div style={{ color: 'var(--text-muted)', fontSize: '14px', padding: '16px 0' }}>
+                          <div style={{ color: 'var(--text-tertiary)', fontSize: '14px', padding: '16px 0' }}>
                             No goals yet. Add one below.
                           </div>
                         ) : (
@@ -2185,15 +2193,15 @@ function WorkoutDetailView({
       }}>
         <div>
           <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--accent)' }}>+{workout.totalXP}</div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>XP Earned</div>
+          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '4px' }}>XP Earned</div>
         </div>
         <div>
           <div style={{ fontSize: '22px', fontWeight: 700 }}>{workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}</div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Sets</div>
+          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '4px' }}>Sets</div>
         </div>
         <div>
           <div style={{ fontSize: '22px', fontWeight: 700 }}>{formatDuration(workout.duration)}</div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Duration</div>
+          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '4px' }}>Duration</div>
         </div>
       </div>
 
@@ -2260,7 +2268,7 @@ function WorkoutDetailView({
           background: 'transparent',
           border: '1px solid var(--border)',
           borderRadius: '12px',
-          color: 'var(--text-muted)',
+          color: 'var(--text-tertiary)',
           fontWeight: 500,
           fontSize: '13px',
           cursor: 'pointer',

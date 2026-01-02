@@ -17,6 +17,7 @@ import {
   calculateXPPreview,
   ACHIEVEMENTS
 } from './data';
+import { dispatchXPUpdate } from '@/components/XPContext';
 
 const STORAGE_KEY = 'gamify_life';
 
@@ -257,11 +258,42 @@ export const useTodayStore = create<TodayStore>()(
             daily_stats: updateDailyStats(state.daily_stats, today, xpEarned)
           }));
 
-          // Add XP
+          // Add XP locally
           const leveledUp = get().addXP(xpEarned);
 
-          // Check achievements
+          // Check local achievements
           const newAchievements = checkAchievements(get());
+
+          // Call unified XP API (async, don't block)
+          const newTotalTasks = get().profile.total_tasks_completed;
+          fetch('/api/xp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              appId: 'today',
+              action: 'task_complete',
+              xpAmount: xpEarned,
+              metadata: {
+                taskCount: newTotalTasks,
+                taskTier: task.tier,
+                difficulty: task.difficulty,
+              }
+            })
+          }).then(response => {
+            if (response.ok) {
+              return response.json();
+            }
+          }).then(data => {
+            if (data?.achievements?.length > 0) {
+              window.dispatchEvent(new CustomEvent('achievement-unlocked', {
+                detail: data.achievements
+              }));
+            }
+            // Update navbar XP
+            dispatchXPUpdate();
+          }).catch(() => {
+            // Silently fail - local XP already updated
+          });
 
           return { xpEarned, leveledUp, newAchievements };
         } else {

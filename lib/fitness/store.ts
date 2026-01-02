@@ -52,7 +52,7 @@ interface FitnessStore extends FitnessState {
   addCustomExercise: (name: string) => void;
   selectExercise: (index: number) => void;
   logSet: (weight: number, reps: number, rpe?: number) => void;
-  finishWorkout: () => void;
+  finishWorkout: () => Promise<void>;
   cancelWorkout: () => void;
 
   // Timer
@@ -369,7 +369,7 @@ export const useFitnessStore = create<FitnessStore>()(
         get().updateCampaignProgress();
       },
 
-      finishWorkout: () => {
+      finishWorkout: async () => {
         const state = get();
         if (!state.currentWorkout) return;
 
@@ -382,11 +382,20 @@ export const useFitnessStore = create<FitnessStore>()(
           duration
         };
 
+        // Calculate total volume for this workout
+        const workoutVolume = completedWorkout.exercises.reduce((total, ex) => {
+          return total + ex.sets.reduce((setTotal, s) => setTotal + (s.weight * s.reps), 0);
+        }, 0);
+
+        const newTotalWorkouts = state.profile.totalWorkouts + 1;
+        const newTotalVolume = state.profile.totalVolume + workoutVolume;
+
         set((state) => ({
           workouts: [completedWorkout, ...state.workouts],
           profile: {
             ...state.profile,
-            totalWorkouts: state.profile.totalWorkouts + 1
+            totalWorkouts: newTotalWorkouts,
+            totalVolume: newTotalVolume
           },
           currentWorkout: null,
           currentExerciseIndex: 0,
@@ -395,7 +404,47 @@ export const useFitnessStore = create<FitnessStore>()(
         }));
 
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
-        get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
+
+        // Call unified XP API
+        try {
+          const response = await fetch('/api/xp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              appId: 'fitness',
+              action: 'workout_complete',
+              xpAmount: completedWorkout.totalXP,
+              metadata: {
+                workoutCount: newTotalWorkouts,
+                totalVolume: newTotalVolume,
+                totalSets: completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0),
+              }
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            // Show achievements if any
+            if (data.achievements?.length > 0) {
+              // Dispatch achievement event for the popup
+              window.dispatchEvent(new CustomEvent('achievement-unlocked', {
+                detail: data.achievements
+              }));
+            }
+
+            // Show toast with streak info
+            const streakBonus = data.streakMultiplier > 1
+              ? ` (${Math.round((data.streakMultiplier - 1) * 100)}% streak bonus!)`
+              : '';
+            get().showToast(`Workout complete! +${data.xpAwarded} XP${streakBonus}`);
+          } else {
+            get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
+          }
+        } catch {
+          // Fallback if API fails
+          get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
+        }
 
         // Update navbar XP display
         dispatchXPUpdate();

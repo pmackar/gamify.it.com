@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 
 export interface Achievement {
   code: string;
@@ -29,6 +29,7 @@ export function useAchievements() {
 
 // Icon mapping for achievements
 const ICON_MAP: Record<string, string> = {
+  // Travel
   footprints: '👣',
   compass: '🧭',
   map: '🗺️',
@@ -46,15 +47,27 @@ const ICON_MAP: Record<string, string> = {
   cocktail: '🍸',
   tree: '🌲',
   mountain: '⛰️',
+  landmark: '🏛️',
+  camera: '📷',
+  'umbrella-beach': '🏖️',
+  waves: '🌊',
+  // Global
   flame: '🔥',
   fire: '🔥',
   trophy: '🏆',
   medal: '🏅',
   crown: '👑',
-  landmark: '🏛️',
-  camera: '📷',
-  'umbrella-beach': '🏖️',
-  waves: '🌊',
+  // Fitness
+  dumbbell: '🏋️',
+  muscle: '💪',
+  calendar: '📅',
+  shield: '🛡️',
+  weight: '⚖️',
+  // Productivity
+  check: '✅',
+  clipboard: '📋',
+  list: '📝',
+  badge: '🎖️',
 };
 
 function getIcon(iconName: string): string {
@@ -355,6 +368,30 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
   const dismissAchievement = useCallback((id: string) => {
     setQueue((prev) => prev.filter((item) => item.id !== id));
   }, []);
+
+  // Listen for achievement-unlocked events from stores
+  useEffect(() => {
+    const handleAchievementUnlocked = (event: CustomEvent) => {
+      const achievements = event.detail;
+      if (Array.isArray(achievements)) {
+        const mapped = achievements.map((a: { code: string; name: string; xpReward?: number; tier?: number; icon?: string }) => ({
+          code: a.code,
+          name: a.name,
+          description: '',
+          icon: a.icon || 'trophy',
+          xpReward: a.xpReward || 0,
+          category: '',
+          tier: a.tier || 1,
+        }));
+        showAchievements(mapped);
+      }
+    };
+
+    window.addEventListener('achievement-unlocked', handleAchievementUnlocked as EventListener);
+    return () => {
+      window.removeEventListener('achievement-unlocked', handleAchievementUnlocked as EventListener);
+    };
+  }, [showAchievements]);
 
   return (
     <AchievementContext.Provider value={{ showAchievement, showAchievements }}>
