@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUser } from "@/lib/auth";
+import { getAuthUser, getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 interface RouteParams {
@@ -10,7 +10,8 @@ export async function GET(
   req: NextRequest,
   { params }: RouteParams
 ) {
-  const user = await getUser();
+  // Use lightweight auth for read-only endpoint
+  const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -23,8 +24,16 @@ export async function GET(
       city: {
         select: { id: true, name: true, country: true },
       },
-      _count: {
-        select: { locations: true },
+      locations: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          avg_rating: true,
+          visited: true,
+          hotlist: true,
+        },
+        orderBy: { name: 'asc' },
       },
     },
   });
@@ -41,7 +50,14 @@ export async function GET(
     longitude: neighborhood.longitude,
     cityId: neighborhood.city_id,
     city: neighborhood.city,
-    locationCount: neighborhood._count.locations,
+    locations: neighborhood.locations.map(l => ({
+      id: l.id,
+      name: l.name,
+      type: l.type,
+      avgRating: l.avg_rating,
+      visited: l.visited,
+      hotlist: l.hotlist,
+    })),
   });
 }
 

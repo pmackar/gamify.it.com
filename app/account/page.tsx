@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import AvatarUpload from '@/components/AvatarUpload';
 
 // Icon mapping for achievements
 const ICON_MAP: Record<string, string> = {
@@ -335,13 +336,17 @@ export default function AccountPage() {
           {/* Welcome Card */}
           <div className="welcome-card">
             <div className="welcome-avatar">
-              {data.user.avatarUrl ? (
-                <img src={data.user.avatarUrl} alt={data.user.displayName} />
-              ) : (
-                <div className="avatar-placeholder">
-                  {data.user.displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <AvatarUpload
+                currentAvatar={data.user.avatarUrl}
+                displayName={data.user.displayName}
+                onAvatarChange={(newUrl) => {
+                  setData(prev => prev ? {
+                    ...prev,
+                    user: { ...prev.user, avatarUrl: newUrl }
+                  } : null);
+                }}
+                size={80}
+              />
               <div className="level-badge">LVL {data.mainStats.level}</div>
             </div>
             <div className="welcome-info">
