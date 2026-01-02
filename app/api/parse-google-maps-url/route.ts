@@ -5,7 +5,17 @@ interface ParsedLocation {
   latitude: number | null;
   longitude: number | null;
   address: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  country: string | null;
   placeId: string | null;
+}
+
+interface MapboxFeature {
+  place_type: string[];
+  place_name: string;
+  text: string;
+  context?: Array<{ id: string; text: string }>;
 }
 
 // Follow redirects to get the final URL (for short URLs like maps.app.goo.gl)
@@ -25,9 +35,21 @@ async function resolveShortUrl(url: string): Promise<string> {
   }
 }
 
-// Parse coordinates from URL like /@40.7128,-74.0060,17z
+// Parse coordinates - prioritize !3d/!4d data params (exact location) over @ (viewport)
 function parseCoordinates(url: string): { lat: number; lng: number } | null {
-  // Pattern: /@lat,lng or @lat,lng
+  // First try !3d (latitude) and !4d (longitude) from data params - these are exact place coords
+  const latMatch = url.match(/!3d(-?\d+\.?\d*)/);
+  const lngMatch = url.match(/!4d(-?\d+\.?\d*)/);
+
+  if (latMatch && lngMatch) {
+    const lat = parseFloat(latMatch[1]);
+    const lng = parseFloat(lngMatch[1]);
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return { lat, lng };
+    }
+  }
+
+  // Fallback to /@lat,lng (viewport center, less accurate)
   const coordMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
   if (coordMatch) {
     const lat = parseFloat(coordMatch[1]);
@@ -55,47 +77,38 @@ function parsePlaceName(url: string): string | null {
   // Pattern: /place/Place+Name/ or /place/Place%20Name/
   const placeMatch = url.match(/\/place\/([^/@]+)/);
   if (placeMatch) {
-    // Decode URL encoding and replace + with spaces
-    let name = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
-    // Clean up common patterns
-    name = name.replace(/,\s*$/, '').trim();
-    if (name.length > 0 && name.length < 200) {
-      return name;
+    try {
+      // Decode URL encoding and replace + with spaces
+      let name = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
+      // Clean up common patterns
+      name = name.replace(/,\s*$/, '').trim();
+      if (name.length > 0 && name.length < 200) {
+        return name;
+      }
+    } catch {
+      // If decode fails, try without decoding
+      const name = placeMatch[1].replace(/\+/g, ' ').trim();
+      if (name.length > 0 && name.length < 200) {
+        return name;
+      }
     }
   }
 
   // Try search query
   const searchMatch = url.match(/\/search\/([^/@?]+)/);
   if (searchMatch) {
-    let name = decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
-    name = name.replace(/,\s*$/, '').trim();
-    if (name.length > 0 && name.length < 200) {
-      return name;
-    }
-  }
-
-  return null;
-}
-
-// Parse address - often the place name in Google Maps URLs includes address
-function parseAddress(url: string, placeName: string | null): string | null {
-  // The place name often IS the address in Google Maps
-  // Try to extract a more complete address from the data parameter
-  const dataMatch = url.match(/!3s([^!]+)/);
-  if (dataMatch) {
     try {
-      const decoded = decodeURIComponent(dataMatch[1]);
-      if (decoded.includes(',') && decoded.length > 10) {
-        return decoded;
+      let name = decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
+      name = name.replace(/,\s*$/, '').trim();
+      if (name.length > 0 && name.length < 200) {
+        return name;
       }
     } catch {
-      // Ignore decode errors
+      const name = searchMatch[1].replace(/\+/g, ' ').trim();
+      if (name.length > 0 && name.length < 200) {
+        return name;
+      }
     }
-  }
-
-  // Use place name as fallback if it looks like an address
-  if (placeName && (placeName.includes(',') || /\d+/.test(placeName))) {
-    return placeName;
   }
 
   return null;
@@ -103,19 +116,97 @@ function parseAddress(url: string, placeName: string | null): string | null {
 
 // Extract Place ID if present
 function parsePlaceId(url: string): string | null {
-  // Pattern: place_id:... or !1s... in data parameter
-  const placeIdMatch = url.match(/place_id[=:]([^&]+)/);
-  if (placeIdMatch) {
-    return placeIdMatch[1];
+  // Hex format place IDs: !1s0x89c6c880240c3fff:0xf3b3e2101f5adf24
+  const hexMatch = url.match(/!1s(0x[a-f0-9]+:0x[a-f0-9]+)/i);
+  if (hexMatch) {
+    return hexMatch[1];
   }
 
-  // ChIJ format place IDs in data params
+  // ChIJ format place IDs
   const chiMatch = url.match(/!1s(ChIJ[^!&]+)/);
   if (chiMatch) {
     return chiMatch[1];
   }
 
+  // Query param format
+  const placeIdMatch = url.match(/place_id[=:]([^&]+)/);
+  if (placeIdMatch) {
+    return placeIdMatch[1];
+  }
+
   return null;
+}
+
+// Reverse geocode using Mapbox to get address from coordinates
+async function reverseGeocode(lat: number, lng: number): Promise<{
+  address: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  country: string | null;
+}> {
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+  if (!mapboxToken) {
+    console.warn('Mapbox token not configured for reverse geocoding');
+    return { address: null, neighborhood: null, city: null, country: null };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&types=address,neighborhood,place,country`
+    );
+
+    if (!response.ok) {
+      console.error('Mapbox reverse geocoding failed:', response.status);
+      return { address: null, neighborhood: null, city: null, country: null };
+    }
+
+    const data = await response.json();
+    const features: MapboxFeature[] = data.features || [];
+
+    let address: string | null = null;
+    let neighborhood: string | null = null;
+    let city: string | null = null;
+    let country: string | null = null;
+
+    for (const feature of features) {
+      const placeType = feature.place_type[0];
+
+      if (placeType === 'address' && !address) {
+        // Get just the street address part, not the full place_name
+        address = feature.place_name;
+      } else if (placeType === 'neighborhood' && !neighborhood) {
+        neighborhood = feature.text;
+      } else if (placeType === 'place' && !city) {
+        city = feature.text;
+      } else if (placeType === 'country' && !country) {
+        country = feature.text;
+      }
+    }
+
+    // If no address found but we have features, construct from first result
+    if (!address && features.length > 0) {
+      address = features[0].place_name;
+    }
+
+    // Try to extract city/country from context if not found
+    if (features.length > 0 && features[0].context) {
+      for (const ctx of features[0].context) {
+        if (ctx.id.startsWith('place.') && !city) {
+          city = ctx.text;
+        } else if (ctx.id.startsWith('country.') && !country) {
+          country = ctx.text;
+        } else if (ctx.id.startsWith('neighborhood.') && !neighborhood) {
+          neighborhood = ctx.text;
+        }
+      }
+    }
+
+    return { address, neighborhood, city, country };
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return { address: null, neighborhood: null, city: null, country: null };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -154,14 +245,22 @@ export async function POST(request: NextRequest) {
     // Parse the URL
     const coordinates = parseCoordinates(resolvedUrl);
     const name = parsePlaceName(resolvedUrl);
-    const address = parseAddress(resolvedUrl, name);
     const placeId = parsePlaceId(resolvedUrl);
+
+    // Reverse geocode to get address if we have coordinates
+    let geoData = { address: null as string | null, neighborhood: null as string | null, city: null as string | null, country: null as string | null };
+    if (coordinates) {
+      geoData = await reverseGeocode(coordinates.lat, coordinates.lng);
+    }
 
     const result: ParsedLocation = {
       name,
       latitude: coordinates?.lat ?? null,
       longitude: coordinates?.lng ?? null,
-      address,
+      address: geoData.address,
+      neighborhood: geoData.neighborhood,
+      city: geoData.city,
+      country: geoData.country,
       placeId,
     };
 

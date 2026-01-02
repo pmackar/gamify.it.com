@@ -127,6 +127,23 @@ export default function NewLocationPage() {
         setImportedCoords({ lat: location.latitude, lng: location.longitude });
       }
 
+      // Auto-select or create city if we have city/country from reverse geocoding
+      if (location.city && location.country) {
+        // Check if city already exists
+        const existingCity = cities.find(
+          (c) => c.name.toLowerCase() === location.city.toLowerCase() &&
+                 c.country.toLowerCase() === location.country.toLowerCase()
+        );
+        if (existingCity) {
+          setCityId(existingCity.id);
+          setIsNewCity(false);
+        } else {
+          // Pre-fill new city form
+          setNewCity({ name: location.city, country: location.country });
+          setIsNewCity(true);
+        }
+      }
+
       // Clear the URL field after successful import
       setGoogleMapsUrl("");
     } catch (error) {
