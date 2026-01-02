@@ -141,6 +141,43 @@ h1, h2, h3 {
   font-family: var(--font-pixel) !important;
 }
 
+/* ===== UNIVERSAL TEXT SIZING ===== */
+/* Consistent text sizes across all apps */
+
+.text-lg {
+  font-family: var(--font-pixel) !important;
+  font-size: 1.25rem !important;
+}
+
+.text-sm {
+  font-size: 0.9375rem !important;
+}
+
+.text-xs {
+  font-size: 0.8125rem !important;
+}
+
+/* Scale up arbitrary Tailwind text sizes for readability */
+[class*="text-[0.45rem]"] {
+  font-size: 0.75rem !important;
+}
+
+[class*="text-[0.5rem]"] {
+  font-size: 0.8125rem !important;
+}
+
+[class*="text-[0.55rem]"] {
+  font-size: 0.875rem !important;
+}
+
+[class*="text-[0.6rem]"] {
+  font-size: 0.9375rem !important;
+}
+
+[class*="text-[0.65rem]"] {
+  font-size: 1rem !important;
+}
+
 /* RPG Card Styles */
 .rpg-card {
   background: var(--rpg-card);
