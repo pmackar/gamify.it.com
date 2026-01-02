@@ -8,7 +8,8 @@ import { ArrowLeft, MapPin, Star, Building2 } from "lucide-react";
 interface Neighborhood {
   id: string;
   name: string;
-  _count: {
+  locationCount?: number;
+  _count?: {
     locations: number;
   };
 }
@@ -145,7 +146,7 @@ export default function CityDetailPage() {
             <h3 className="font-medium text-white">{neighborhood.name}</h3>
             <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
               <MapPin className="w-3 h-3" />
-              {neighborhood._count.locations} locations
+              {neighborhood.locationCount || neighborhood._count?.locations || 0} locations
             </p>
           </Link>
         ))}

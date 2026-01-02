@@ -13,7 +13,7 @@ interface City {
   locationCount: number;
   firstVisited: string | null;
   lastVisited: string | null;
-  _count: {
+  _count?: {
     locations: number;
   };
 }
@@ -144,7 +144,7 @@ export default function CitiesPage() {
                       <div className="flex items-center gap-4 text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" style={{ color: 'var(--rpg-teal)' }} />
-                          {city._count.locations} locations
+                          {city.locationCount || city._count?.locations || 0} locations
                         </span>
                         {city.lastVisited && (
                           <span className="flex items-center gap-1">

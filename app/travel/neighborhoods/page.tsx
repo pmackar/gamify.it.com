@@ -7,12 +7,13 @@ import { MapPin, Building2, Home } from "lucide-react";
 interface Neighborhood {
   id: string;
   name: string;
+  locationCount?: number;
   city: {
     id: string;
     name: string;
     country: string;
   };
-  _count: {
+  _count?: {
     locations: number;
   };
 }
@@ -121,7 +122,7 @@ export default function NeighborhoodsPage() {
                       </h3>
                       <p className="text-[0.5rem] mt-1 flex items-center gap-1" style={{ color: 'var(--rpg-muted)' }}>
                         <MapPin className="w-3 h-3" style={{ color: 'var(--rpg-teal)' }} />
-                        {neighborhood._count.locations} locations
+                        {neighborhood.locationCount || neighborhood._count?.locations || 0} locations
                       </p>
                     </div>
                   </div>
