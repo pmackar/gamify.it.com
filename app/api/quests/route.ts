@@ -246,11 +246,11 @@ export async function GET(request: NextRequest) {
   // Build where clause
   const where: {
     user_id: string;
-    status?: string;
+    status?: "PLANNING" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
   } = { user_id: user.id };
 
   if (status && ["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"].includes(status)) {
-    where.status = status;
+    where.status = status as "PLANNING" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
   }
 
   const [quests, total] = await Promise.all([

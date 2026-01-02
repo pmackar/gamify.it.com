@@ -110,3 +110,73 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     },
   });
 }
+
+// DELETE /api/quests/[questId]/items/[itemId] - Remove item from quest
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const user = await getAuthUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { questId, itemId } = await params;
+
+  // Get quest with party info
+  const quest = await prisma.travel_quests.findUnique({
+    where: { id: questId },
+    include: {
+      party: {
+        include: {
+          members: {
+            where: { status: "ACCEPTED" },
+          },
+        },
+      },
+    },
+  });
+
+  if (!quest) {
+    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
+  }
+
+  if (quest.status === "COMPLETED") {
+    return NextResponse.json(
+      { error: "Cannot modify completed quest" },
+      { status: 400 }
+    );
+  }
+
+  // Check if user has access (owner or party member)
+  const isOwner = quest.user_id === user.id;
+  const isPartyMember = quest.party?.members.some((m) => m.user_id === user.id);
+
+  if (!isOwner && !isPartyMember) {
+    return NextResponse.json({ error: "Access denied" }, { status: 403 });
+  }
+
+  // Verify item belongs to quest
+  const item = await prisma.travel_quest_items.findFirst({
+    where: { id: itemId, quest_id: questId },
+    include: {
+      location: { select: { name: true } },
+    },
+  });
+
+  if (!item) {
+    return NextResponse.json({ error: "Item not found" }, { status: 404 });
+  }
+
+  // Delete item
+  await prisma.travel_quest_items.delete({
+    where: { id: itemId },
+  });
+
+  // Update quest's updated_at
+  await prisma.travel_quests.update({
+    where: { id: questId },
+    data: { updated_at: new Date() },
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: `"${item.location.name}" removed from quest`,
+  });
+}
