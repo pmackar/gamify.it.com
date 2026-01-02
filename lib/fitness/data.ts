@@ -56,6 +56,19 @@ export interface Milestone {
   xp: number;
 }
 
+export interface GeneralAchievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  xp: number;
+}
+
+// General achievements (non-exercise based)
+export const GENERAL_ACHIEVEMENTS: GeneralAchievement[] = [
+  { id: 'importer', name: 'Data Importer', description: 'Import workout history from another app', icon: '📥', xp: 500 },
+];
+
 // Milestone achievements for key lifts
 export const MILESTONES: Record<string, Milestone[]> = {
   bench: [

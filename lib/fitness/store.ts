@@ -16,6 +16,7 @@ import { dispatchXPUpdate } from '@/components/XPContext';
 import {
   DEFAULT_TEMPLATES,
   MILESTONES,
+  GENERAL_ACHIEVEMENTS,
   calculateSetXP,
   getLevelFromXP,
   getExerciseById,
@@ -560,10 +561,14 @@ export const useFitnessStore = create<FitnessStore>()(
         const existingIds = new Set(state.workouts.map(w => w.id));
         const newWorkouts = workouts.filter(w => !existingIds.has(w.id));
 
-        // Calculate stats from imported workouts
+        if (newWorkouts.length === 0) {
+          get().showToast('No new workouts to import');
+          return;
+        }
+
+        // Calculate stats from imported workouts (no XP per set for imports)
         let totalSets = 0;
         let totalVolume = 0;
-        let totalXP = 0;
         const newRecords: Record<string, number> = { ...state.records };
 
         for (const workout of newWorkouts) {
@@ -571,7 +576,6 @@ export const useFitnessStore = create<FitnessStore>()(
             for (const s of exercise.sets) {
               totalSets++;
               totalVolume += s.weight * s.reps;
-              totalXP += s.xp || 0;
 
               // Update PRs
               if (s.weight > (newRecords[exercise.id] || 0)) {
@@ -585,20 +589,32 @@ export const useFitnessStore = create<FitnessStore>()(
         const allWorkouts = [...newWorkouts, ...state.workouts]
           .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
 
+        // Check if importer achievement should be awarded
+        const importerAchievement = GENERAL_ACHIEVEMENTS.find(a => a.id === 'importer');
+        const hasImporterAchievement = state.achievements.includes('importer');
+        const xpToAward = !hasImporterAchievement && importerAchievement ? importerAchievement.xp : 0;
+        const newAchievements = !hasImporterAchievement ? [...state.achievements, 'importer'] : state.achievements;
+
         set((state) => ({
           workouts: allWorkouts,
           records: newRecords,
+          achievements: newAchievements,
           profile: {
             ...state.profile,
             totalWorkouts: state.profile.totalWorkouts + newWorkouts.length,
             totalSets: state.profile.totalSets + totalSets,
             totalVolume: state.profile.totalVolume + totalVolume,
-            xp: state.profile.xp + totalXP,
-            level: getLevelFromXP(state.profile.xp + totalXP)
+            xp: state.profile.xp + xpToAward,
+            level: getLevelFromXP(state.profile.xp + xpToAward)
           }
         }));
 
-        get().showToast(`Imported ${newWorkouts.length} workouts, +${totalXP.toLocaleString()} XP`);
+        // Show appropriate toast message
+        if (!hasImporterAchievement && importerAchievement) {
+          get().showToast(`${importerAchievement.icon} ${importerAchievement.name} unlocked! +${xpToAward} XP`);
+        } else {
+          get().showToast(`Imported ${newWorkouts.length} workouts`);
+        }
       },
 
       eraseAllData: () => {

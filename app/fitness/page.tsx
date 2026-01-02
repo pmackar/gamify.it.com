@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
+import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 
@@ -1882,6 +1882,27 @@ export default function FitnessPage() {
                 <span className="view-title">Achievements</span>
               </div>
 
+              {/* General Achievements */}
+              {GENERAL_ACHIEVEMENTS.map(achievement => {
+                const unlocked = store.achievements.includes(achievement.id);
+                return (
+                  <div
+                    key={achievement.id}
+                    className={`achievement-card ${unlocked ? 'unlocked' : 'locked'}`}
+                  >
+                    <span className="achievement-icon">{achievement.icon}</span>
+                    <div className="achievement-info">
+                      <div className="achievement-name">{achievement.name}</div>
+                      <div className="achievement-desc">
+                        {achievement.description} · +{achievement.xp} XP
+                      </div>
+                    </div>
+                    {unlocked && <span className="achievement-check">✓</span>}
+                  </div>
+                );
+              })}
+
+              {/* Milestone Achievements */}
               {Object.entries(MILESTONES).flatMap(([exerciseId, milestones]) =>
                 milestones.map(milestone => {
                   const key = `${exerciseId}_${milestone.weight}`;
