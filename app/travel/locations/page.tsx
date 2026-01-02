@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Star, Filter, Plus, ChevronRight, X, LayoutGrid, List } from "lucide-react";
+import { MapPin, Star, Filter, Plus, ChevronRight, X, LayoutGrid, List, Loader2 } from "lucide-react";
 
 interface Location {
   id: string;
@@ -23,6 +23,13 @@ interface Location {
     visits: number;
     photos: number;
   };
+}
+
+interface Pagination {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }
 
 const LOCATION_TYPES = [
@@ -56,14 +63,58 @@ const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> 
 function LocationsContent() {
   const searchParams = useSearchParams();
   const [locations, setLocations] = useState<Location[]>([]);
-  const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [visitedFilter, setVisitedFilter] = useState<boolean | null>(null);
   const [hotlistFilter, setHotlistFilter] = useState<boolean | null>(null);
   const [viewMode, setViewMode] = useState<'sheet' | 'list'>('sheet');
+
+  // Build API URL with filters
+  const buildApiUrl = useCallback((offset = 0) => {
+    const params = new URLSearchParams();
+    params.set("limit", "50");
+    params.set("offset", offset.toString());
+    if (selectedType) params.set("type", selectedType);
+    if (visitedFilter === true) params.set("visited", "true");
+    else if (visitedFilter === false) params.set("visited", "false");
+    if (hotlistFilter === true) params.set("hotlist", "true");
+    if (searchQuery) params.set("search", searchQuery);
+    return `/api/locations?${params.toString()}`;
+  }, [selectedType, visitedFilter, hotlistFilter, searchQuery]);
+
+  // Fetch locations with server-side filtering
+  const fetchLocations = useCallback(async (append = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const offset = append && pagination ? pagination.offset + pagination.limit : 0;
+      const res = await fetch(buildApiUrl(offset));
+
+      if (res.ok) {
+        const result = await res.json();
+        if (append) {
+          setLocations(prev => [...prev, ...result.data]);
+        } else {
+          setLocations(result.data);
+        }
+        setPagination(result.pagination);
+      }
+    } catch (error) {
+      console.error("Failed to fetch locations:", error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [buildApiUrl, pagination]);
 
   // Read URL params on mount
   useEffect(() => {
@@ -72,7 +123,7 @@ function LocationsContent() {
     const hotlistParam = searchParams.get("hotlist");
 
     if (typeParam) {
-      setSelectedTypes([typeParam.toUpperCase()]);
+      setSelectedType(typeParam.toUpperCase());
       setShowFilters(true);
     }
     if (visitedParam === "true") {
@@ -85,56 +136,27 @@ function LocationsContent() {
     }
   }, [searchParams]);
 
+  // Fetch when filters change
   useEffect(() => {
-    async function fetchLocations() {
-      try {
-        const res = await fetch("/api/locations");
-        if (res.ok) {
-          const data = await res.json();
-          setLocations(data);
-          setFilteredLocations(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch locations:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchLocations();
-  }, []);
+    fetchLocations(false);
+  }, [selectedType, visitedFilter, hotlistFilter, searchQuery]);
 
+  // Debounced search
   useEffect(() => {
-    let filtered = locations;
-
-    if (selectedTypes.length > 0) {
-      filtered = filtered.filter((loc) => selectedTypes.includes(loc.type));
-    }
-
-    if (visitedFilter !== null) {
-      filtered = filtered.filter((loc) => loc.visited === visitedFilter);
-    }
-
-    if (hotlistFilter !== null) {
-      filtered = filtered.filter((loc) => loc.hotlist === hotlistFilter);
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (loc) =>
-          loc.name.toLowerCase().includes(query) ||
-          loc.city.name.toLowerCase().includes(query) ||
-          loc.city.country.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredLocations(filtered);
-  }, [selectedTypes, visitedFilter, hotlistFilter, searchQuery, locations]);
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const toggleType = (type: string) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
+    setSelectedType(prev => prev === type ? null : type);
+  };
+
+  const loadMore = () => {
+    if (pagination?.hasMore && !loadingMore) {
+      fetchLocations(true);
+    }
   };
 
   if (loading) {
@@ -166,7 +188,7 @@ function LocationsContent() {
             Locations
           </h1>
           <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
-            {locations.length} places visited or on your list
+            {pagination?.total || 0} places visited or on your list
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -208,8 +230,8 @@ function LocationsContent() {
           <input
             type="text"
             placeholder="Search locations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="rpg-input w-full"
           />
         </div>
@@ -217,18 +239,18 @@ function LocationsContent() {
           onClick={() => setShowFilters(!showFilters)}
           className="rpg-btn rpg-btn-secondary flex items-center justify-center gap-2"
           style={{
-            background: showFilters || selectedTypes.length > 0 ? 'var(--rpg-teal)' : 'var(--rpg-card)',
-            color: showFilters || selectedTypes.length > 0 ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
+            background: showFilters || selectedType || visitedFilter !== null || hotlistFilter !== null ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+            color: showFilters || selectedType || visitedFilter !== null || hotlistFilter !== null ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
           }}
         >
           <Filter className="w-3 h-3" />
           Filter
-          {selectedTypes.length > 0 && (
+          {(selectedType || visitedFilter !== null || hotlistFilter !== null) && (
             <span
               className="px-2 py-0.5 rounded text-[0.45rem]"
               style={{ background: 'rgba(255,255,255,0.2)' }}
             >
-              {selectedTypes.length}
+              {[selectedType, visitedFilter !== null, hotlistFilter !== null].filter(Boolean).length}
             </span>
           )}
         </button>
@@ -271,18 +293,18 @@ function LocationsContent() {
               onClick={() => toggleType(type)}
               className="px-3 py-1.5 rounded text-[0.5rem] transition-colors capitalize"
               style={{
-                background: selectedTypes.includes(type) ? 'var(--rpg-teal)' : 'var(--rpg-bg-dark)',
-                color: selectedTypes.includes(type) ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
-                border: `2px solid ${selectedTypes.includes(type) ? 'var(--rpg-teal-dark)' : 'var(--rpg-border)'}`,
+                background: selectedType === type ? 'var(--rpg-teal)' : 'var(--rpg-bg-dark)',
+                color: selectedType === type ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+                border: `2px solid ${selectedType === type ? 'var(--rpg-teal-dark)' : 'var(--rpg-border)'}`,
               }}
             >
               {type.toLowerCase()}
             </button>
           ))}
-          {(selectedTypes.length > 0 || visitedFilter !== null || hotlistFilter !== null) && (
+          {(selectedType || visitedFilter !== null || hotlistFilter !== null) && (
             <button
               onClick={() => {
-                setSelectedTypes([]);
+                setSelectedType(null);
                 setVisitedFilter(null);
                 setHotlistFilter(null);
               }}
@@ -297,7 +319,7 @@ function LocationsContent() {
       )}
 
       {/* Results */}
-      {filteredLocations.length === 0 ? (
+      {locations.length === 0 ? (
         <div className="text-center py-16">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-lg mb-4"
@@ -306,14 +328,14 @@ function LocationsContent() {
             <MapPin className="w-8 h-8" style={{ color: 'var(--rpg-muted)' }} />
           </div>
           <h2 className="text-sm mb-2" style={{ color: 'var(--rpg-text)' }}>
-            {locations.length === 0 ? "No locations yet" : "No matching locations"}
+            {pagination?.total === 0 ? "No locations yet" : "No matching locations"}
           </h2>
           <p className="text-[0.5rem] mb-6" style={{ color: 'var(--rpg-muted)' }}>
-            {locations.length === 0
+            {pagination?.total === 0
               ? "Add places you've visited or want to explore"
               : "Try adjusting your filters or search query"}
           </p>
-          {locations.length === 0 && (
+          {pagination?.total === 0 && (
             <Link href="/travel/locations/new" className="rpg-btn">
               <Plus className="w-3 h-3 inline mr-2" />
               Add Your First Location
@@ -323,7 +345,7 @@ function LocationsContent() {
       ) : viewMode === 'sheet' ? (
         /* Sheet/Grid View */
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLocations.map((location) => (
+          {locations.map((location) => (
             <Link
               key={location.id}
               href={`/travel/locations/${location.id}`}
@@ -379,14 +401,14 @@ function LocationsContent() {
       ) : (
         /* List View */
         <div className="rounded-lg overflow-hidden" style={{ border: '2px solid var(--rpg-border)' }}>
-          {filteredLocations.map((location, index) => (
+          {locations.map((location, index) => (
             <Link
               key={location.id}
               href={`/travel/locations/${location.id}`}
               className="flex items-center gap-4 p-4 transition-all hover:bg-opacity-50"
               style={{
                 background: index % 2 === 0 ? 'var(--rpg-card)' : 'var(--rpg-bg-dark)',
-                borderBottom: index < filteredLocations.length - 1 ? '1px solid var(--rpg-border)' : 'none',
+                borderBottom: index < locations.length - 1 ? '1px solid var(--rpg-border)' : 'none',
               }}
             >
               {/* Type Badge */}
@@ -426,6 +448,32 @@ function LocationsContent() {
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {pagination?.hasMore && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rpg-btn rpg-btn-secondary flex items-center gap-2"
+            style={{ minWidth: '200px' }}
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                Load More
+                <span className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
+                  ({locations.length} of {pagination.total})
+                </span>
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>

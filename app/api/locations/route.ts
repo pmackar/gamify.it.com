@@ -11,24 +11,45 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const cityId = searchParams.get("cityId");
+  const neighborhoodId = searchParams.get("neighborhoodId");
   const type = searchParams.get("type")?.toUpperCase() as travel_location_type | undefined;
   const noNeighborhood = searchParams.get("noNeighborhood") === "true";
   const visited = searchParams.get("visited");
   const hotlist = searchParams.get("hotlist");
+  const search = searchParams.get("search");
 
-  // Build where clause
+  // Pagination params
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+  const offset = parseInt(searchParams.get("offset") || "0");
+
+  // Build where clause with server-side filtering
   const where: {
-    user_id?: string;
+    user_id: string;
     city_id?: string;
+    neighborhood_id?: string | null;
     type?: travel_location_type;
-    neighborhood_id?: null;
+    visited?: boolean;
+    hotlist?: boolean;
+    name?: { contains: string; mode: 'insensitive' };
   } = {
     user_id: user.id,
   };
 
   if (cityId) where.city_id = cityId;
+  if (neighborhoodId) where.neighborhood_id = neighborhoodId;
   if (type) where.type = type;
   if (noNeighborhood) where.neighborhood_id = null;
+
+  // Server-side filtering for visited/hotlist
+  if (visited === "true") where.visited = true;
+  else if (visited === "false") where.visited = false;
+  if (hotlist === "true") where.hotlist = true;
+
+  // Search by name
+  if (search) where.name = { contains: search, mode: 'insensitive' };
+
+  // Get total count for pagination
+  const total = await prisma.travel_locations.count({ where });
 
   const locations = await prisma.travel_locations.findMany({
     where,
@@ -38,21 +59,12 @@ export async function GET(req: NextRequest) {
       _count: { select: { visits: true, photos: true, reviews: true } },
     },
     orderBy: { updated_at: "desc" },
+    take: limit,
+    skip: offset,
   });
 
-  // Filter by visited/hotlist if requested
-  let filteredLocations = locations;
-  if (visited === "true") {
-    filteredLocations = filteredLocations.filter((l) => l.visited);
-  } else if (visited === "false") {
-    filteredLocations = filteredLocations.filter((l) => !l.visited);
-  }
-  if (hotlist === "true") {
-    filteredLocations = filteredLocations.filter((l) => l.hotlist);
-  }
-
-  return NextResponse.json(
-    filteredLocations.map((location) => ({
+  return NextResponse.json({
+    data: locations.map((location) => ({
       id: location.id,
       name: location.name,
       type: location.type,
@@ -78,8 +90,14 @@ export async function GET(req: NextRequest) {
       _count: location._count,
       createdAt: location.created_at,
       updatedAt: location.updated_at,
-    }))
-  );
+    })),
+    pagination: {
+      total,
+      limit,
+      offset,
+      hasMore: offset + locations.length < total,
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {

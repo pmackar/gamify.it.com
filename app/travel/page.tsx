@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   MapPin,
@@ -13,78 +10,92 @@ import {
   TrendingUp,
 } from "lucide-react";
 import XPBar from "@/components/ui/XPBar";
+import { getUser } from "@/lib/auth";
+import prisma from "@/lib/db";
+import { redirect } from "next/navigation";
 
-interface Stats {
-  user: {
-    level: number;
-    xp: number;
-    xpToNext: number;
-    currentStreak: number;
-    longestStreak: number;
-  };
-  counts: {
-    cities: number;
-    locations: number;
-    visits: number;
-    countries: number;
-    recentVisits: number;
-  };
-  achievements: {
-    unlocked: number;
-    total: number;
-  };
-  topLocations: Array<{
-    id: string;
-    name: string;
-    type: string;
-    avgRating: number;
-    city: { name: string; country: string };
-  }>;
-  character?: {
-    name: string;
+async function getStats(userId: string) {
+  const [
+    citiesCount,
+    locationsCount,
+    visitsCount,
+    achievementsCount,
+    totalAchievements,
+  ] = await Promise.all([
+    prisma.travel_cities.count({
+      where: { user_id: userId },
+    }),
+    prisma.travel_locations.count({
+      where: { user_id: userId },
+    }),
+    prisma.travel_visits.count({
+      where: { user_id: userId },
+    }),
+    prisma.user_achievements.count({
+      where: {
+        user_id: userId,
+        is_completed: true,
+        achievements: { app_id: 'travel' },
+      },
+    }),
+    prisma.achievements.count({
+      where: { app_id: 'travel' },
+    }),
+  ]);
+
+  // Get unique countries
+  const cities = await prisma.travel_cities.findMany({
+    where: { user_id: userId },
+    select: { country: true },
+  });
+  const uniqueCountries = new Set(cities.map((c) => c.country));
+
+  // Get top rated locations
+  const topLocations = await prisma.travel_locations.findMany({
+    where: {
+      user_id: userId,
+      avg_rating: { not: null },
+    },
+    orderBy: { avg_rating: 'desc' },
+    take: 3,
+    include: {
+      city: {
+        select: { name: true, country: true },
+      },
+    },
+  });
+
+  return {
+    counts: {
+      cities: citiesCount,
+      locations: locationsCount,
+      visits: visitsCount,
+      countries: uniqueCountries.size,
+    },
+    achievements: {
+      unlocked: achievementsCount,
+      total: totalAchievements,
+    },
+    topLocations: topLocations.map((loc) => ({
+      id: loc.id,
+      name: loc.name,
+      type: loc.type,
+      avgRating: loc.avg_rating,
+      city: {
+        name: loc.city.name,
+        country: loc.city.country,
+      },
+    })),
   };
 }
 
-export default function TravelDashboardPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch("/api/stats");
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div
-          className="w-12 h-12 rounded"
-          style={{
-            border: '4px solid var(--rpg-border)',
-            borderTop: '4px solid var(--rpg-teal)',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-        <style jsx>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
+export default async function TravelDashboardPage() {
+  const user = await getUser();
+  if (!user) {
+    redirect("/login");
   }
+
+  const stats = await getStats(user.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -114,14 +125,14 @@ export default function TravelDashboardPage() {
           <div>
             <p className="text-sm mb-1" style={{ color: 'var(--rpg-muted)' }}>Your Progress</p>
             <p className="text-2xl" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
-              Level {stats?.user.level || 1}
+              Level {user.travel.level}
             </p>
           </div>
           <div className="flex-1 max-w-md">
             <XPBar
-              level={stats?.user.level || 1}
-              currentXP={stats?.user.xp || 0}
-              xpToNext={stats?.user.xpToNext || 100}
+              level={user.travel.level}
+              currentXP={user.travel.xp}
+              xpToNext={user.travel.xpToNext}
               size="lg"
             />
           </div>
@@ -133,28 +144,28 @@ export default function TravelDashboardPage() {
         <StatCard
           icon={<Building2 className="w-4 h-4" />}
           label="Cities"
-          value={stats?.counts.cities || 0}
+          value={stats.counts.cities}
           color="teal"
           href="/travel/cities"
         />
         <StatCard
           icon={<MapPin className="w-4 h-4" />}
           label="Locations"
-          value={stats?.counts.locations || 0}
+          value={stats.counts.locations}
           color="purple"
           href="/travel/locations"
         />
         <StatCard
           icon={<Globe className="w-4 h-4" />}
           label="Countries"
-          value={stats?.counts.countries || 0}
+          value={stats.counts.countries}
           color="cyan"
           href="/travel/cities"
         />
         <StatCard
           icon={<Flame className="w-4 h-4" />}
           label="Day Streak"
-          value={stats?.user.currentStreak || 0}
+          value={user.currentStreak}
           color="gold"
           href="/travel/profile"
         />
@@ -249,7 +260,7 @@ export default function TravelDashboardPage() {
                   className="h-full transition-all duration-500"
                   style={{
                     width: `${
-                      stats?.achievements
+                      stats.achievements.total > 0
                         ? (stats.achievements.unlocked / stats.achievements.total) * 100
                         : 0
                     }%`,
@@ -259,7 +270,7 @@ export default function TravelDashboardPage() {
               </div>
             </div>
             <span className="text-sm font-medium" style={{ color: 'var(--rpg-muted)' }}>
-              {stats?.achievements.unlocked || 0} / {stats?.achievements.total || 0}
+              {stats.achievements.unlocked} / {stats.achievements.total}
             </span>
           </div>
           <p className="mt-3 text-sm" style={{ color: 'var(--rpg-muted)' }}>
@@ -289,9 +300,9 @@ export default function TravelDashboardPage() {
               View all
             </Link>
           </div>
-          {stats?.topLocations && stats.topLocations.length > 0 ? (
+          {stats.topLocations.length > 0 ? (
             <div className="space-y-3">
-              {stats.topLocations.slice(0, 3).map((location) => (
+              {stats.topLocations.map((location) => (
                 <Link
                   key={location.id}
                   href={`/travel/locations/${location.id}`}
