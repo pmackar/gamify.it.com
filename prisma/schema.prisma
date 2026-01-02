@@ -55,6 +55,10 @@ model profiles {
   activity_feed_owned  activity_feed[] @relation("ActivityFeedOwner")
   activity_feed_actor  activity_feed[] @relation("ActivityFeedActor")
 
+  // Coaching relations
+  coach_profile        coach_profiles?
+  coached_by           coaching_relationships[] @relation("AthleteCoaching")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
