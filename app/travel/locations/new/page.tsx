@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Check, Sparkles, Search } from "lucide-react";
+import { ArrowLeft, MapPin, Check, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface City {
@@ -25,10 +25,29 @@ const LOCATION_TYPES = [
   { value: "OTHER", label: "Other", icon: "📍" },
 ];
 
+// Geocode address using Nominatim (OpenStreetMap)
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const encoded = encodeURIComponent(address);
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
+      { headers: { 'User-Agent': 'GamifyTravel/1.0' } }
+    );
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function NewLocationPage() {
   const router = useRouter();
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [success, setSuccess] = useState<{ xpGained: number; leveledUp: boolean } | null>(null);
 
   // Form state
@@ -38,8 +57,6 @@ export default function NewLocationPage() {
   const [newCity, setNewCity] = useState({ name: "", country: "" });
   const [isNewCity, setIsNewCity] = useState(false);
   const [address, setAddress] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
   const [description, setDescription] = useState("");
   const [website, setWebsite] = useState("");
   const [priceLevel, setPriceLevel] = useState<number | null>(null);
@@ -61,27 +78,20 @@ export default function NewLocationPage() {
     fetchCities();
   }, []);
 
-  // Get current location
-  const getCurrentLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLatitude(position.coords.latitude.toString());
-          setLongitude(position.coords.longitude.toString());
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          alert("Could not get your location. Please enter coordinates manually.");
-        }
-      );
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setGeocoding(true);
 
     try {
+      // Geocode address to get coordinates
+      const coords = await geocodeAddress(address);
+      setGeocoding(false);
+
+      if (!coords) {
+        throw new Error("Could not find coordinates for this address. Please check the address and try again.");
+      }
+
       let finalCityId = cityId;
 
       // Create new city if needed
@@ -92,8 +102,8 @@ export default function NewLocationPage() {
           body: JSON.stringify({
             name: newCity.name,
             country: newCity.country,
-            latitude: parseFloat(latitude) || undefined,
-            longitude: parseFloat(longitude) || undefined,
+            latitude: coords.lat,
+            longitude: coords.lng,
           }),
         });
 
@@ -114,8 +124,8 @@ export default function NewLocationPage() {
           type,
           cityId: finalCityId,
           address,
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude),
+          latitude: coords.lat,
+          longitude: coords.lng,
           description,
           website,
           priceLevel,
@@ -143,6 +153,7 @@ export default function NewLocationPage() {
       alert(error instanceof Error ? error.message : "Failed to create location");
     } finally {
       setLoading(false);
+      setGeocoding(false);
     }
   };
 
@@ -223,6 +234,24 @@ export default function NewLocationPage() {
           </div>
         </div>
 
+        {/* Address */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Address *
+          </label>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="e.g., 123 Main St, Philadelphia, PA 19103"
+            required
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Full address including city and country for accurate location
+          </p>
+        </div>
+
         {/* City Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -292,59 +321,11 @@ export default function NewLocationPage() {
           </div>
         </div>
 
-        {/* Coordinates */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-300">
-              Coordinates *
-            </label>
-            <button
-              type="button"
-              onClick={getCurrentLocation}
-              className="flex items-center gap-1 text-sm text-cyan-400 hover:text-cyan-300"
-            >
-              <MapPin className="w-4 h-4" />
-              Use current location
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="number"
-              step="any"
-              value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
-              placeholder="Latitude"
-              required
-              className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-            />
-            <input
-              type="number"
-              step="any"
-              value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
-              placeholder="Longitude"
-              required
-              className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-        </div>
-
         {/* Optional Fields */}
         <div className="border-t border-gray-800 pt-6">
           <h3 className="text-sm font-medium text-gray-400 mb-4">Optional Details</h3>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Address</label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street address"
-                className="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-
             <div>
               <label className="block text-sm text-gray-400 mb-1">Description</label>
               <textarea
@@ -403,11 +384,23 @@ export default function NewLocationPage() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading || !name || !type || (!cityId && (!newCity.name || !newCity.country)) || !latitude || !longitude}
+          disabled={loading || !name || !type || !address || (!cityId && (!newCity.name || !newCity.country))}
           className="w-full py-3 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white" />
+            <>
+              {geocoding ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Finding location...
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Creating...
+                </>
+              )}
+            </>
           ) : (
             <>
               <MapPin className="w-5 h-5" />

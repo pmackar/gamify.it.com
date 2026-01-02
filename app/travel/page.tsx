@@ -135,24 +135,28 @@ export default function TravelDashboardPage() {
           label="Cities"
           value={stats?.counts.cities || 0}
           color="teal"
+          href="/travel/cities"
         />
         <StatCard
           icon={<MapPin className="w-4 h-4" />}
           label="Locations"
           value={stats?.counts.locations || 0}
           color="purple"
+          href="/travel/locations"
         />
         <StatCard
           icon={<Globe className="w-4 h-4" />}
           label="Countries"
           value={stats?.counts.countries || 0}
           color="cyan"
+          href="/travel/cities"
         />
         <StatCard
           icon={<Flame className="w-4 h-4" />}
           label="Day Streak"
           value={stats?.user.currentStreak || 0}
           color="gold"
+          href="/travel/profile"
         />
       </div>
 
@@ -288,9 +292,10 @@ export default function TravelDashboardPage() {
           {stats?.topLocations && stats.topLocations.length > 0 ? (
             <div className="space-y-3">
               {stats.topLocations.slice(0, 3).map((location) => (
-                <div
+                <Link
                   key={location.id}
-                  className="flex items-center justify-between py-2"
+                  href={`/travel/locations/${location.id}`}
+                  className="flex items-center justify-between py-2 transition-colors hover:opacity-80"
                   style={{ borderBottom: '1px solid var(--rpg-border)' }}
                 >
                   <div>
@@ -305,7 +310,7 @@ export default function TravelDashboardPage() {
                     </span>
                     <span className="text-[0.45rem]">★</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
@@ -324,11 +329,13 @@ function StatCard({
   label,
   value,
   color,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   color: "teal" | "purple" | "cyan" | "gold";
+  href: string;
 }) {
   const colors = {
     teal: { bg: 'rgba(95, 191, 138, 0.2)', border: 'var(--rpg-teal)', text: 'var(--rpg-teal)' },
@@ -338,8 +345,9 @@ function StatCard({
   };
 
   return (
-    <div
-      className="rounded-lg p-4"
+    <Link
+      href={href}
+      className="rounded-lg p-4 block transition-all hover:scale-[1.02]"
       style={{
         background: 'var(--rpg-card)',
         border: '2px solid var(--rpg-border)',
@@ -356,6 +364,6 @@ function StatCard({
         {value}
       </p>
       <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>{label}</p>
-    </div>
+    </Link>
   );
 }
