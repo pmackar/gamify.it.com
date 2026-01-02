@@ -211,7 +211,16 @@ async function reverseGeocode(lat: number, lng: number): Promise<{
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    const { url } = body;
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json(
@@ -250,7 +259,12 @@ export async function POST(request: NextRequest) {
     // Reverse geocode to get address if we have coordinates
     let geoData = { address: null as string | null, neighborhood: null as string | null, city: null as string | null, country: null as string | null };
     if (coordinates) {
-      geoData = await reverseGeocode(coordinates.lat, coordinates.lng);
+      try {
+        geoData = await reverseGeocode(coordinates.lat, coordinates.lng);
+      } catch (geoError) {
+        console.error('Reverse geocoding failed, continuing without address:', geoError);
+        // Continue without address data - don't fail the whole request
+      }
     }
 
     const result: ParsedLocation = {
@@ -283,8 +297,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error parsing Google Maps URL:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to parse URL. Please try again.' },
+      { error: 'Failed to parse URL. Please try again.', details: errorMessage },
       { status: 500 }
     );
   }
