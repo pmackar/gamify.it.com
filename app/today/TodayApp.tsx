@@ -1281,7 +1281,7 @@ export default function TodayApp() {
           display: flex;
           align-items: flex-start;
           gap: 14px;
-          padding: 14px 0;
+          padding: 14px 16px;
           border-bottom: 1px solid var(--border);
           transition: all 0.15s ease;
         }
@@ -1292,8 +1292,6 @@ export default function TodayApp() {
 
         .task-card:hover {
           background: var(--bg-tertiary);
-          margin: 0 -16px;
-          padding: 14px 16px;
           border-radius: 8px;
           border-bottom-color: transparent;
         }
@@ -1304,8 +1302,6 @@ export default function TodayApp() {
 
         .task-card.keyboard-selected {
           background: rgba(92, 201, 245, 0.1);
-          margin: 0 -16px;
-          padding: 14px 16px;
           border-radius: 8px;
           border-bottom-color: transparent;
         }
