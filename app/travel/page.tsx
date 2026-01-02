@@ -299,22 +299,22 @@ export default function TravelDashboardPage() {
                   style={{ borderBottom: '1px solid var(--rpg-border)' }}
                 >
                   <div>
-                    <p className="text-[0.55rem]" style={{ color: 'var(--rpg-text)' }}>{location.name}</p>
-                    <p className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
+                    <p className="text-base" style={{ color: 'var(--rpg-text)' }}>{location.name}</p>
+                    <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
                       {location.city.name}, {location.city.country}
                     </p>
                   </div>
                   <div className="flex items-center gap-1" style={{ color: 'var(--rpg-gold)' }}>
-                    <span className="text-[0.55rem]">
+                    <span className="text-base font-medium">
                       {location.avgRating?.toFixed(1)}
                     </span>
-                    <span className="text-[0.45rem]">★</span>
+                    <span className="text-sm">★</span>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+            <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
               No rated locations yet. Start exploring!
             </p>
           )}
@@ -360,10 +360,10 @@ function StatCard({
       >
         <span style={{ color: colors[color].text }}>{icon}</span>
       </div>
-      <p className="text-lg" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 8px var(--rpg-gold-glow)' }}>
+      <p className="text-2xl" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 8px var(--rpg-gold-glow)' }}>
         {value}
       </p>
-      <p className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>{label}</p>
+      <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>{label}</p>
     </Link>
   );
 }
