@@ -6,6 +6,7 @@ import { NavBarProvider } from "@/components/NavBarContext";
 import { XPProvider } from "@/components/XPContext";
 import { ThemeProvider } from "@/components/ThemeContext";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import AppSwitcher from "@/components/AppSwitcher";
 
 // Inline script to prevent FOUC (flash of unstyled content)
 const themeScript = `
@@ -88,6 +89,7 @@ export default function RootLayout({
             <XPProvider>
               <AchievementProvider>
                 <RetroNavBar />
+                <AppSwitcher />
                 {children}
               </AchievementProvider>
             </XPProvider>
