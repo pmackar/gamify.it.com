@@ -127,15 +127,15 @@ html.terminal body {
 /* ===== MARIO / NES THEME ===== */
 html.mario {
   --theme-bg-base: #5C94FC;           /* Classic NES sky blue */
-  --theme-bg-elevated: #6BA4FF;
-  --theme-bg-card: #E52521;           /* Mario red */
-  --theme-bg-card-hover: #FF3B36;
-  --theme-bg-tertiary: #049CD8;       /* Bright blue */
+  --theme-bg-elevated: #049CD8;       /* Darker blue for elevated */
+  --theme-bg-card: #D07030;           /* Question block orange */
+  --theme-bg-card-hover: #E08040;
+  --theme-bg-tertiary: #C84C0C;       /* Brick brown */
   --theme-text-primary: #FFFFFF;
-  --theme-text-secondary: #FBD000;    /* Coin gold */
-  --theme-text-muted: rgba(255, 255, 255, 0.7);
+  --theme-text-secondary: #FFFFFF;    /* White for readability */
+  --theme-text-muted: rgba(255, 255, 255, 0.85);
   --theme-border: #000000;
-  --theme-border-light: #1a1a1a;
+  --theme-border-light: #000000;
   --theme-gold: #FBD000;              /* Coin/Star gold */
   --theme-gold-glow: rgba(251, 208, 0, 0.5);
   --theme-success: #43B047;           /* Pipe/Grass green */
@@ -151,14 +151,20 @@ html.mario {
   --mario-sky: #5C94FC;
   --mario-cloud: #FCFCFC;
 
-  /* Update RPG vars for Mario theme */
+  /* Update RPG vars for Mario theme - high contrast */
   --rpg-bg: #5C94FC;
-  --rpg-card: #E52521;
-  --rpg-card-hover: #FF3B36;
-  --rpg-teal: #43B047;
-  --rpg-teal-glow: rgba(67, 176, 71, 0.5);
+  --rpg-bg-dark: #1a1a1a;
+  --rpg-card: #D07030;                /* Question block orange */
+  --rpg-card-hover: #E08040;
+  --rpg-teal: #FBD000;                /* Use gold instead of teal */
+  --rpg-teal-dark: #E6A000;
+  --rpg-teal-glow: rgba(251, 208, 0, 0.5);
+  --rpg-border: #000000;
   --rpg-border-light: #000000;
   --rpg-gold: #FBD000;
+  --rpg-muted: rgba(255, 255, 255, 0.85);
+  --rpg-text: #FFFFFF;
+  --rpg-text-dim: rgba(255, 255, 255, 0.9);
 }
 
 html.mario body {
@@ -166,11 +172,120 @@ html.mario body {
   color: var(--theme-text-primary) !important;
 }
 
-/* Mario theme pixel borders */
+/* Mario theme - force white text everywhere */
+html.mario,
+html.mario * {
+  color: #FFFFFF;
+}
+
+/* Mario theme pixel borders and cards */
 html.mario .theme-card,
-html.mario [class*="card"] {
+html.mario [class*="card"],
+html.mario .rpg-card {
+  background: #D07030 !important;     /* Question block orange */
   border: 3px solid #000000 !important;
   box-shadow: 4px 4px 0 #000000;
+  color: #FFFFFF !important;
+}
+
+html.mario .theme-card:hover,
+html.mario [class*="card"]:hover,
+html.mario .rpg-card:hover {
+  background: #E08040 !important;
+}
+
+/* Mario badges - use red instead of teal */
+html.mario .rpg-badge,
+html.mario .rpg-badge-teal,
+html.mario [class*="badge"] {
+  background: #E52521 !important;
+  border: 2px solid #000000 !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0 #000000;
+}
+
+html.mario .rpg-badge-gold {
+  background: #FBD000 !important;
+  color: #000000 !important;
+}
+
+/* Mario buttons */
+html.mario .rpg-btn,
+html.mario button {
+  background: linear-gradient(180deg, #43B047 0%, #2E8A32 100%) !important;
+  border: 2px solid #000000 !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0 #000000;
+  border-radius: 0 !important;
+}
+
+html.mario .rpg-btn:hover,
+html.mario button:hover {
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0 #000000;
+}
+
+html.mario .rpg-btn-gold {
+  background: linear-gradient(180deg, #FBD000 0%, #E6A000 100%) !important;
+  color: #000000 !important;
+}
+
+/* Mario inputs */
+html.mario input,
+html.mario textarea,
+html.mario select,
+html.mario .rpg-input {
+  background: #1a1a1a !important;
+  border: 2px solid #000000 !important;
+  color: #FFFFFF !important;
+  border-radius: 0 !important;
+}
+
+/* Mario progress bars */
+html.mario .rpg-progress {
+  background: #1a1a1a !important;
+  border: 2px solid #000000 !important;
+  border-radius: 0 !important;
+}
+
+html.mario .rpg-progress-fill {
+  background: linear-gradient(90deg, #43B047 0%, #5CC965 100%) !important;
+  border-radius: 0 !important;
+}
+
+/* Mario stat values - gold with black shadow */
+html.mario .rpg-stat-value {
+  color: #FBD000 !important;
+  text-shadow: 2px 2px 0 #000000;
+}
+
+html.mario .rpg-stat-label {
+  color: #FFFFFF !important;
+}
+
+/* Mario titles */
+html.mario .rpg-title {
+  color: #FBD000 !important;
+  text-shadow: 2px 2px 0 #000000;
+}
+
+html.mario .rpg-subtitle {
+  color: #FFFFFF !important;
+}
+
+/* Mario checkboxes/circles */
+html.mario input[type="checkbox"],
+html.mario input[type="radio"] {
+  accent-color: #43B047;
+}
+
+/* Mario links */
+html.mario a {
+  color: #FBD000 !important;
+}
+
+html.mario a:hover {
+  color: #FFFFFF !important;
 }
 
 html, body {
