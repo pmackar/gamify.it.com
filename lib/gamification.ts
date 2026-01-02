@@ -9,6 +9,7 @@ export const XP_VALUES = {
 
   // Visit actions
   visit: 25,
+  first_visit: 50,
   visit_with_rating: 40,
   visit_with_review: 60,
   visit_with_photo: 75,
@@ -57,6 +58,7 @@ export function calculateLocationXP(
     new_city: XP_VALUES.new_city,
     new_country: XP_VALUES.new_country,
     visit: XP_VALUES.visit,
+    first_visit: XP_VALUES.first_visit,
     visit_with_rating: XP_VALUES.visit_with_rating,
     visit_with_review: XP_VALUES.visit_with_review,
     visit_with_photo: XP_VALUES.visit_with_photo,
@@ -80,23 +82,39 @@ export function calculateLocationXP(
   return Math.floor(baseXP * typeMultiplier * streakMultiplier);
 }
 
-// Add XP and handle level-ups
+// Add XP to travel app profile and handle level-ups
 export async function addXP(userId: string, amount: number): Promise<{
   newXP: number;
   newLevel: number;
   leveledUp: boolean;
   xpToNext: number;
 }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { xp: true, level: true, xpToNext: true },
+  // Get or create travel app profile
+  let appProfile = await prisma.app_profiles.findUnique({
+    where: {
+      user_id_app_id: {
+        user_id: userId,
+        app_id: 'travel',
+      },
+    },
   });
 
-  if (!user) throw new Error("User not found");
+  if (!appProfile) {
+    appProfile = await prisma.app_profiles.create({
+      data: {
+        user_id: userId,
+        app_id: 'travel',
+        xp: 0,
+        level: 1,
+        xp_to_next: 100,
+        stats: {},
+      },
+    });
+  }
 
-  let newXP = user.xp + amount;
-  let newLevel = user.level;
-  let xpToNext = user.xpToNext;
+  let newXP = (appProfile.xp || 0) + amount;
+  let newLevel = appProfile.level || 1;
+  let xpToNext = appProfile.xp_to_next || 100;
   let leveledUp = false;
 
   // Level up loop
@@ -107,9 +125,17 @@ export async function addXP(userId: string, amount: number): Promise<{
     leveledUp = true;
   }
 
-  await prisma.user.update({
+  await prisma.app_profiles.update({
+    where: { id: appProfile.id },
+    data: { xp: newXP, level: newLevel, xp_to_next: xpToNext },
+  });
+
+  // Also update global profile XP
+  await prisma.profiles.update({
     where: { id: userId },
-    data: { xp: newXP, level: newLevel, xpToNext },
+    data: {
+      total_xp: { increment: amount },
+    },
   });
 
   return { newXP, newLevel, leveledUp, xpToNext };
@@ -117,40 +143,40 @@ export async function addXP(userId: string, amount: number): Promise<{
 
 // Update streak
 export async function updateStreak(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({
+  const profile = await prisma.profiles.findUnique({
     where: { id: userId },
-    select: { currentStreak: true, longestStreak: true, lastActiveDate: true },
+    select: { current_streak: true, longest_streak: true, last_activity_date: true },
   });
 
-  if (!user) return 0;
+  if (!profile) return 0;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   let newStreak = 1;
 
-  if (user.lastActiveDate) {
-    const lastActive = new Date(user.lastActiveDate);
+  if (profile.last_activity_date) {
+    const lastActive = new Date(profile.last_activity_date);
     lastActive.setHours(0, 0, 0, 0);
 
     const diffDays = Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
       // Same day, no change
-      return user.currentStreak;
+      return profile.current_streak || 1;
     } else if (diffDays === 1) {
       // Consecutive day
-      newStreak = user.currentStreak + 1;
+      newStreak = (profile.current_streak || 0) + 1;
     }
     // Otherwise streak resets to 1
   }
 
-  await prisma.user.update({
+  await prisma.profiles.update({
     where: { id: userId },
     data: {
-      currentStreak: newStreak,
-      longestStreak: Math.max(newStreak, user.longestStreak),
-      lastActiveDate: today,
+      current_streak: newStreak,
+      longest_streak: Math.max(newStreak, profile.longest_streak || 0),
+      last_activity_date: today,
     },
   });
 
@@ -160,17 +186,31 @@ export async function updateStreak(userId: string): Promise<number> {
 // Update user stats
 export async function updateUserStats(userId: string): Promise<void> {
   const [citiesCount, locationsCount, visitsCount] = await Promise.all([
-    prisma.city.count({ where: { userId } }),
-    prisma.location.count({ where: { userId } }),
-    prisma.visit.count({ where: { userId } }),
+    prisma.travel_cities.count({ where: { user_id: userId } }),
+    prisma.travel_locations.count({ where: { user_id: userId } }),
+    prisma.travel_visits.count({ where: { user_id: userId } }),
   ]);
 
-  await prisma.user.update({
-    where: { id: userId },
+  // Get unique countries
+  const cities = await prisma.travel_cities.findMany({
+    where: { user_id: userId },
+    select: { country: true },
+  });
+  const countriesCount = new Set(cities.map(c => c.country)).size;
+
+  // Update app profile stats
+  await prisma.app_profiles.updateMany({
+    where: {
+      user_id: userId,
+      app_id: 'travel',
+    },
     data: {
-      totalCities: citiesCount,
-      totalLocations: locationsCount,
-      totalVisits: visitsCount,
+      stats: {
+        totalCities: citiesCount,
+        totalLocations: locationsCount,
+        totalVisits: visitsCount,
+        totalCountries: countriesCount,
+      },
     },
   });
 }

@@ -16,7 +16,7 @@ export interface AchievementDef {
   };
 }
 
-// Achievement definitions
+// Achievement definitions for travel app
 export const ACHIEVEMENTS: AchievementDef[] = [
   // EXPLORATION
   { code: "first_steps", name: "First Steps", description: "Log your first location", icon: "footprints", xpReward: 100, category: "exploration", tier: 1, criteria: { type: "locations_count", count: 1 } },
@@ -67,35 +67,76 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 ];
 
 export async function checkAchievements(userId: string): Promise<AchievementDef[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      achievements: { include: { achievement: true } },
-      cities: true,
-      locations: true,
-    },
+  // Get user profile and travel app profile
+  const [profile, appProfile] = await Promise.all([
+    prisma.profiles.findUnique({
+      where: { id: userId },
+      select: {
+        current_streak: true,
+        main_level: true,
+      },
+    }),
+    prisma.app_profiles.findUnique({
+      where: {
+        user_id_app_id: {
+          user_id: userId,
+          app_id: 'travel',
+        },
+      },
+      select: { level: true },
+    }),
+  ]);
+
+  if (!profile) return [];
+
+  // Get user's completed achievements
+  const userAchievements = await prisma.user_achievements.findMany({
+    where: { user_id: userId },
+    include: { achievements: true },
   });
 
-  if (!user) return [];
+  const unlockedCodes = new Set(
+    userAchievements
+      .filter(ua => ua.is_completed)
+      .map(ua => ua.achievements.code)
+  );
 
-  const unlockedCodes = new Set(user.achievements.map((ua: { achievement: { code: string } }) => ua.achievement.code));
-  const newAchievements: AchievementDef[] = [];
+  // Get travel stats
+  const [citiesCount, locationsCount] = await Promise.all([
+    prisma.travel_cities.count({ where: { user_id: userId } }),
+    prisma.travel_locations.count({ where: { user_id: userId } }),
+  ]);
 
-  // Get stats for checking
+  // Get unique countries
+  const cities = await prisma.travel_cities.findMany({
+    where: { user_id: userId },
+    select: { country: true },
+  });
+  const countriesCount = new Set(cities.map(c => c.country)).size;
+
+  // Get location type counts
+  const locationTypes = await prisma.travel_locations.groupBy({
+    by: ['type'],
+    where: { user_id: userId },
+    _count: { type: true },
+  });
+
+  const locationTypeCounts: Record<string, number> = {};
+  for (const lt of locationTypes) {
+    locationTypeCounts[lt.type] = lt._count.type;
+  }
+
+  // Build stats object
   const stats = {
-    locationsCount: user.locations.length,
-    citiesCount: user.cities.length,
-    countriesCount: new Set(user.cities.map((c: { country: string }) => c.country)).size,
-    currentStreak: user.currentStreak,
-    level: user.level,
-    locationTypeCounts: {} as Record<string, number>,
+    locationsCount,
+    citiesCount,
+    countriesCount,
+    currentStreak: profile.current_streak || 0,
+    level: appProfile?.level || profile.main_level || 1,
+    locationTypeCounts,
   };
 
-  // Count by location type
-  for (const location of user.locations) {
-    const type = location.type;
-    stats.locationTypeCounts[type] = (stats.locationTypeCounts[type] || 0) + 1;
-  }
+  const newAchievements: AchievementDef[] = [];
 
   // Check each achievement
   for (const achievement of ACHIEVEMENTS) {
@@ -127,18 +168,19 @@ export async function checkAchievements(userId: string): Promise<AchievementDef[
 
     if (unlocked) {
       // Find or create achievement in DB
-      let dbAchievement = await prisma.achievement.findUnique({
+      let dbAchievement = await prisma.achievements.findUnique({
         where: { code: achievement.code },
       });
 
       if (!dbAchievement) {
-        dbAchievement = await prisma.achievement.create({
+        dbAchievement = await prisma.achievements.create({
           data: {
             code: achievement.code,
+            app_id: 'travel',
             name: achievement.name,
             description: achievement.description,
             icon: achievement.icon,
-            xpReward: achievement.xpReward,
+            xp_reward: achievement.xpReward,
             category: achievement.category,
             tier: achievement.tier,
             criteria: achievement.criteria,
@@ -147,10 +189,22 @@ export async function checkAchievements(userId: string): Promise<AchievementDef[
       }
 
       // Create user achievement record
-      await prisma.userAchievement.create({
-        data: {
-          userId,
-          achievementId: dbAchievement.id,
+      await prisma.user_achievements.upsert({
+        where: {
+          user_id_achievement_id: {
+            user_id: userId,
+            achievement_id: dbAchievement.id,
+          },
+        },
+        update: {
+          is_completed: true,
+          completed_at: new Date(),
+        },
+        create: {
+          user_id: userId,
+          achievement_id: dbAchievement.id,
+          is_completed: true,
+          completed_at: new Date(),
         },
       });
 
@@ -166,23 +220,24 @@ export async function checkAchievements(userId: string): Promise<AchievementDef[
 // Seed achievements to database
 export async function seedAchievements(): Promise<void> {
   for (const achievement of ACHIEVEMENTS) {
-    await prisma.achievement.upsert({
+    await prisma.achievements.upsert({
       where: { code: achievement.code },
       update: {
         name: achievement.name,
         description: achievement.description,
         icon: achievement.icon,
-        xpReward: achievement.xpReward,
+        xp_reward: achievement.xpReward,
         category: achievement.category,
         tier: achievement.tier,
         criteria: achievement.criteria,
       },
       create: {
         code: achievement.code,
+        app_id: 'travel',
         name: achievement.name,
         description: achievement.description,
         icon: achievement.icon,
-        xpReward: achievement.xpReward,
+        xp_reward: achievement.xpReward,
         category: achievement.category,
         tier: achievement.tier,
         criteria: achievement.criteria,
