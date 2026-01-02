@@ -76,6 +76,42 @@ const LifeIcon = () => (
   </svg>
 );
 
+const HomeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 64 64" fill="none">
+    <path d="M32 8L8 28V56H24V40H40V56H56V28L32 8Z" fill="#FFD700"/>
+    <path d="M32 14L14 30V52H22V38H42V52H50V30L32 14Z" fill="#E6A000"/>
+    <rect x="28" y="38" width="8" height="14" fill="#1a1a24"/>
+  </svg>
+);
+
+// Main app logo icon - pixel art "G" with game controller vibe
+const AppLogoIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+    {/* Outer glow effect */}
+    <rect x="16" y="8" width="32" height="48" rx="4" fill="url(#logoGradient)" />
+    {/* Inner dark background */}
+    <rect x="20" y="12" width="24" height="40" fill="#1a1a24" />
+    {/* Pixel art "G" */}
+    <rect x="26" y="18" width="12" height="4" fill="#FFD700" />
+    <rect x="24" y="22" width="4" height="4" fill="#FFD700" />
+    <rect x="24" y="26" width="4" height="8" fill="#FFD700" />
+    <rect x="24" y="34" width="4" height="4" fill="#FFD700" />
+    <rect x="26" y="38" width="12" height="4" fill="#FFD700" />
+    <rect x="34" y="30" width="4" height="8" fill="#FFD700" />
+    <rect x="30" y="30" width="4" height="4" fill="#FFD700" />
+    {/* Decorative pixels */}
+    <rect x="24" y="46" width="4" height="4" fill="#5fbf8a" opacity="0.8" />
+    <rect x="30" y="46" width="4" height="4" fill="#FF6B6B" opacity="0.8" />
+    <rect x="36" y="46" width="4" height="4" fill="#5CC9F5" opacity="0.8" />
+    <defs>
+      <linearGradient id="logoGradient" x1="32" y1="8" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#3a3a4a" />
+        <stop offset="1" stopColor="#2a2a3a" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 export interface AppMenuItem {
   label: string;
   href: string;
@@ -609,6 +645,23 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
         .nav-active-app:hover {
           filter: brightness(1.3);
+        }
+
+        .nav-active-app-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .nav-active-app-icon:hover {
+          filter: brightness(1.3);
+          transform: scale(1.1);
+        }
+
+        .nav-active-app-icon svg {
+          opacity: 1 !important;
         }
 
         .nav-apps-dropdown {
@@ -1423,23 +1476,33 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                 </div>
               )}
               </div>
-              {/* Active app indicator */}
+              {/* Active app indicator - using icons */}
               {(isFitness || isToday || pathname === '/account') && (
                 <>
                   <span className="nav-separator">/</span>
-                  {isFitness && <Link href="/fitness" className="nav-active-app fitness">IRON QUEST</Link>}
-                  {isToday && <Link href="/today" className="nav-active-app today">DAY QUEST</Link>}
-                  {pathname === '/account' && <Link href="/account" className="nav-active-app home">HOME</Link>}
+                  {isFitness && <Link href="/fitness" className="nav-active-app-icon"><DumbbellIcon active /></Link>}
+                  {isToday && <Link href="/today" className="nav-active-app-icon"><ChecklistIcon active /></Link>}
+                  {pathname === '/account' && <Link href="/account" className="nav-active-app-icon"><HomeIcon /></Link>}
                 </>
               )}
               {/* Travel full breadcrumb */}
               {isTravel && travelBreadcrumbs.map((crumb, index) => (
                 <span key={crumb.href} style={{ display: 'flex', alignItems: 'center' }}>
                   <span className="nav-separator">/</span>
-                  {index === travelBreadcrumbs.length - 1 ? (
-                    <span className="nav-active-app travel" style={{ opacity: 1 }}>{crumb.label}</span>
+                  {index === 0 ? (
+                    // First segment (Explorer) - show icon
+                    index === travelBreadcrumbs.length - 1 ? (
+                      <span className="nav-active-app-icon"><PlaneIcon active /></span>
+                    ) : (
+                      <Link href={crumb.href} className="nav-active-app-icon" style={{ opacity: 0.6 }}><PlaneIcon active /></Link>
+                    )
                   ) : (
-                    <Link href={crumb.href} className="nav-active-app travel" style={{ opacity: 0.6 }}>{crumb.label}</Link>
+                    // Other segments - show text
+                    index === travelBreadcrumbs.length - 1 ? (
+                      <span className="nav-active-app travel" style={{ opacity: 1 }}>{crumb.label}</span>
+                    ) : (
+                      <Link href={crumb.href} className="nav-active-app travel" style={{ opacity: 0.6 }}>{crumb.label}</Link>
+                    )
                   )}
                 </span>
               ))}
