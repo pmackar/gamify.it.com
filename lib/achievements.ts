@@ -64,6 +64,19 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   // BEACH
   { code: "beach_bum", name: "Beach Bum", description: "Visit 5 beaches", icon: "umbrella-beach", xpReward: 300, category: "nature", tier: 1, criteria: { type: "location_type_count", locationType: "BEACH", count: 5 } },
   { code: "coastal_explorer", name: "Coastal Explorer", description: "Visit 15 beaches", icon: "waves", xpReward: 600, category: "nature", tier: 2, criteria: { type: "location_type_count", locationType: "BEACH", count: 15 } },
+
+  // SOCIAL - FRIENDS
+  { code: "first_friend", name: "First Friend", description: "Add your first friend", icon: "handshake", xpReward: 100, category: "social", tier: 1, criteria: { type: "friends_count", count: 1 } },
+  { code: "social_butterfly", name: "Social Butterfly", description: "Have 5 friends", icon: "users", xpReward: 250, category: "social", tier: 1, criteria: { type: "friends_count", count: 5 } },
+  { code: "networker", name: "Networker", description: "Have 10 friends", icon: "network", xpReward: 500, category: "social", tier: 2, criteria: { type: "friends_count", count: 10 } },
+  { code: "influencer", name: "Influencer", description: "Have 25 friends", icon: "star", xpReward: 1000, category: "social", tier: 3, criteria: { type: "friends_count", count: 25 } },
+  { code: "connector", name: "Connector", description: "Have 50 friends", icon: "heart", xpReward: 2000, category: "social", tier: 4, criteria: { type: "friends_count", count: 50 } },
+
+  // SOCIAL - PARTIES
+  { code: "party_starter", name: "Party Starter", description: "Create your first quest party", icon: "party", xpReward: 150, category: "social", tier: 1, criteria: { type: "parties_created", count: 1 } },
+  { code: "team_player", name: "Team Player", description: "Join 3 quest parties", icon: "users-group", xpReward: 300, category: "social", tier: 1, criteria: { type: "parties_joined", count: 3 } },
+  { code: "squad_goals", name: "Squad Goals", description: "Complete a quest with a party", icon: "trophy", xpReward: 500, category: "social", tier: 2, criteria: { type: "party_quests_completed", count: 1 } },
+  { code: "party_animal", name: "Party Animal", description: "Complete 5 quests with a party", icon: "confetti", xpReward: 1000, category: "social", tier: 3, criteria: { type: "party_quests_completed", count: 5 } },
 ];
 
 export async function checkAchievements(userId: string): Promise<AchievementDef[]> {
@@ -126,6 +139,36 @@ export async function checkAchievements(userId: string): Promise<AchievementDef[
     locationTypeCounts[lt.type] = lt._count.type;
   }
 
+  // Get social stats
+  const [friendsCount, partiesCreated, partiesJoined, partyQuestsCompleted] = await Promise.all([
+    // Count accepted friendships (user can be requester or addressee)
+    prisma.friendships.count({
+      where: {
+        OR: [{ requester_id: userId }, { addressee_id: userId }],
+        status: "ACCEPTED",
+      },
+    }),
+    // Count parties where user is owner
+    prisma.quest_party_members.count({
+      where: { user_id: userId, role: "OWNER" },
+    }),
+    // Count all parties user has joined (accepted status)
+    prisma.quest_party_members.count({
+      where: { user_id: userId, status: "ACCEPTED" },
+    }),
+    // Count completed quests that had parties
+    prisma.travel_quests.count({
+      where: {
+        status: "COMPLETED",
+        party: {
+          members: {
+            some: { user_id: userId, status: "ACCEPTED" },
+          },
+        },
+      },
+    }),
+  ]);
+
   // Build stats object
   const stats = {
     locationsCount,
@@ -134,6 +177,10 @@ export async function checkAchievements(userId: string): Promise<AchievementDef[
     currentStreak: profile.current_streak || 0,
     level: appProfile?.level || profile.main_level || 1,
     locationTypeCounts,
+    friendsCount,
+    partiesCreated,
+    partiesJoined,
+    partyQuestsCompleted,
   };
 
   const newAchievements: AchievementDef[] = [];
@@ -163,6 +210,18 @@ export async function checkAchievements(userId: string): Promise<AchievementDef[
         break;
       case "location_type_count":
         unlocked = (stats.locationTypeCounts[locationType || ""] || 0) >= (count || 0);
+        break;
+      case "friends_count":
+        unlocked = stats.friendsCount >= (count || 0);
+        break;
+      case "parties_created":
+        unlocked = stats.partiesCreated >= (count || 0);
+        break;
+      case "parties_joined":
+        unlocked = stats.partiesJoined >= (count || 0);
+        break;
+      case "party_quests_completed":
+        unlocked = stats.partyQuestsCompleted >= (count || 0);
         break;
     }
 

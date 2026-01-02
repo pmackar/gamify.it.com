@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import NotificationItem, { Notification } from './NotificationItem';
 
 export default function NotificationBell() {
@@ -8,9 +9,10 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/activity?limit=10');
@@ -24,14 +26,54 @@ export default function NotificationBell() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Fetch on mount and periodically
+  // Fetch on mount and set up Supabase Realtime subscription
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // Every minute
+
+    // Set up Supabase Realtime subscription
+    const supabase = createClient();
+
+    // Get current user ID for filtering
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+
+      const channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'activity_feed',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            // New notification received
+            setUnreadCount((prev) => prev + 1);
+            setHasNewNotification(true);
+
+            // If dropdown is open, fetch fresh data
+            if (isOpen) {
+              fetchNotifications();
+            }
+
+            // Clear the "new" animation after a bit
+            setTimeout(() => setHasNewNotification(false), 2000);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    });
+
+    // Also poll every 2 minutes as fallback
+    const interval = setInterval(fetchNotifications, 120000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications, isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -81,7 +123,9 @@ export default function NotificationBell() {
             fetchNotifications();
           }
         }}
-        className="relative p-2 text-gray-400 hover:text-white transition-colors"
+        className={`relative p-2 text-gray-400 hover:text-white transition-colors ${
+          hasNewNotification ? 'animate-bounce' : ''
+        }`}
         aria-label="Notifications"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +137,9 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-purple-500 rounded-full text-[10px] text-white flex items-center justify-center font-medium">
+          <span className={`absolute -top-0.5 -right-0.5 w-5 h-5 bg-purple-500 rounded-full text-[10px] text-white flex items-center justify-center font-medium ${
+            hasNewNotification ? 'animate-pulse' : ''
+          }`}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -146,7 +192,6 @@ export default function NotificationBell() {
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  // Could navigate to a full notifications page here
                 }}
                 className="text-xs text-gray-500 hover:text-gray-400 transition-colors w-full text-center"
               >

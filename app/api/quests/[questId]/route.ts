@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { addXP, XP_VALUES } from "@/lib/gamification";
+import { checkAchievements } from "@/lib/achievements";
 
 interface RouteParams {
   params: Promise<{ questId: string }>;
@@ -192,5 +194,147 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     isOwner,
     isPartyMember: isPartyMember || false,
     currentUserId: user.id,
+  });
+}
+
+// PATCH /api/quests/[questId] - Complete quest
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const user = await getAuthUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { questId } = await params;
+  const { action } = await request.json();
+
+  if (action !== "complete") {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
+
+  // Get quest with party and items
+  const quest = await prisma.travel_quests.findUnique({
+    where: { id: questId },
+    include: {
+      items: true,
+      party: {
+        include: {
+          members: {
+            where: { status: "ACCEPTED" },
+            include: {
+              user: {
+                select: { id: true, username: true, display_name: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!quest) {
+    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
+  }
+
+  if (quest.status === "COMPLETED") {
+    return NextResponse.json(
+      { error: "Quest is already completed" },
+      { status: 400 }
+    );
+  }
+
+  // Only owner can complete quest
+  if (quest.user_id !== user.id) {
+    return NextResponse.json(
+      { error: "Only the quest owner can complete it" },
+      { status: 403 }
+    );
+  }
+
+  // Check that all items are completed
+  const incompletItems = quest.items.filter((i) => !i.completed);
+  if (incompletItems.length > 0) {
+    return NextResponse.json(
+      { error: "All items must be completed before finishing the quest" },
+      { status: 400 }
+    );
+  }
+
+  // Calculate XP
+  const itemCount = quest.items.length;
+  let baseXP = XP_VALUES.quest_complete_base + itemCount * XP_VALUES.quest_complete_per_item;
+
+  const hasParty = quest.party && quest.party.members.length > 1;
+  const partyMembers = quest.party?.members || [];
+
+  let totalXP = baseXP;
+  if (hasParty) {
+    // Apply party bonus
+    totalXP = Math.floor(baseXP * XP_VALUES.party_bonus_multiplier);
+    // Add bonus per member
+    totalXP += (partyMembers.length - 1) * XP_VALUES.party_member_bonus;
+  }
+
+  // Mark quest as completed
+  await prisma.travel_quests.update({
+    where: { id: questId },
+    data: {
+      status: "COMPLETED",
+      updated_at: new Date(),
+    },
+  });
+
+  // Award XP to owner
+  const ownerXPResult = await addXP(user.id, totalXP);
+
+  // Award XP to party members (same amount for fairness)
+  const memberXPResults: { userId: string; username: string; xp: number }[] = [];
+  if (hasParty) {
+    for (const member of partyMembers) {
+      if (member.user_id !== user.id) {
+        await addXP(member.user_id, totalXP);
+        memberXPResults.push({
+          userId: member.user_id,
+          username: member.user.display_name || member.user.username || "Unknown",
+          xp: totalXP,
+        });
+
+        // Notify party members
+        await prisma.activity_feed.create({
+          data: {
+            user_id: member.user_id,
+            actor_id: user.id,
+            type: "QUEST_COMPLETED",
+            entity_type: "travel_quests",
+            entity_id: questId,
+            metadata: {
+              questId,
+              questName: quest.name,
+              xpAwarded: totalXP,
+            },
+          },
+        });
+      }
+    }
+  }
+
+  // Check achievements for all party members
+  const achievementChecks = [checkAchievements(user.id)];
+  for (const member of partyMembers) {
+    if (member.user_id !== user.id) {
+      achievementChecks.push(checkAchievements(member.user_id));
+    }
+  }
+  await Promise.all(achievementChecks);
+
+  return NextResponse.json({
+    success: true,
+    questId,
+    xpAwarded: {
+      base: baseXP,
+      partyBonus: hasParty ? totalXP - baseXP : 0,
+      total: totalXP,
+    },
+    partyMembers: memberXPResults,
+    ownerLevelUp: ownerXPResult.leveledUp,
+    ownerNewLevel: ownerXPResult.newLevel,
   });
 }

@@ -14,6 +14,12 @@ export const XP_VALUES = {
   visit_with_review: 60,
   visit_with_photo: 75,
 
+  // Quest completion
+  quest_complete_base: 100,        // Base XP for completing a quest
+  quest_complete_per_item: 15,     // XP per item completed
+  party_bonus_multiplier: 1.25,    // 25% bonus for party completion
+  party_member_bonus: 50,          // Extra XP for each party member
+
   // Type multipliers
   type_multipliers: {
     RESTAURANT: 1.0,
