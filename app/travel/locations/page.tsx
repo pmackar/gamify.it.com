@@ -14,11 +14,12 @@ interface Location {
   ratingCount: number;
   visited: boolean;
   hotlist: boolean;
+  totalVisits: number;
   city: {
     name: string;
     country: string;
   };
-  _count: {
+  _count?: {
     visits: number;
     photos: number;
   };
@@ -339,9 +340,9 @@ function LocationsContent() {
               </div>
 
               <p className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
-                {location._count.visits} visit{location._count.visits !== 1 ? "s" : ""}
-                {location._count.photos > 0 &&
-                  ` · ${location._count.photos} photo${location._count.photos !== 1 ? "s" : ""}`}
+                {location.totalVisits || location._count?.visits || 0} visit{(location.totalVisits || location._count?.visits || 0) !== 1 ? "s" : ""}
+                {(location._count?.photos ?? 0) > 0 &&
+                  ` · ${location._count?.photos} photo${(location._count?.photos ?? 0) !== 1 ? "s" : ""}`}
               </p>
             </Link>
           ))}
