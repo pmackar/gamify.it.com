@@ -67,6 +67,13 @@ export interface FitnessState {
   campaigns: Campaign[];
 }
 
+export interface SyncState {
+  lastSyncedAt: string | null;
+  pendingSync: boolean;
+  syncStatus: 'idle' | 'syncing' | 'error';
+  syncError: string | null;
+}
+
 export interface ActiveWorkout {
   workout: Workout;
   exerciseIndex: number;

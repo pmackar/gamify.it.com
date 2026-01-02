@@ -10,7 +10,8 @@ import type {
   Profile,
   Campaign,
   WorkoutTemplate,
-  ViewType
+  ViewType,
+  SyncState
 } from './types';
 import { dispatchXPUpdate } from '@/components/XPContext';
 import {
@@ -26,7 +27,18 @@ import {
 const STORAGE_KEY = 'gamify_fitness';
 const ACTIVE_WORKOUT_KEY = 'gamify_fitness_active';
 
-interface FitnessStore extends FitnessState {
+// Sync debounce timeout
+let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Queue sync helper
+const queueSync = (get: () => FitnessStore) => {
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(() => {
+    get().syncToServer();
+  }, 500);
+};
+
+interface FitnessStore extends FitnessState, SyncState {
   // Current workout state
   currentWorkout: Workout | null;
   currentExerciseIndex: number;
@@ -84,6 +96,10 @@ interface FitnessStore extends FitnessState {
   importWorkouts: (workouts: Workout[]) => Promise<void>;
   eraseAllData: () => void;
   deleteWorkout: (workoutId: string) => void;
+
+  // Sync
+  syncToServer: () => Promise<void>;
+  fetchFromServer: () => Promise<void>;
 }
 
 const defaultProfile: Profile = {
@@ -120,6 +136,12 @@ export const useFitnessStore = create<FitnessStore>()(
       currentView: 'home',
       selectedWorkoutId: null,
       toastMessage: null,
+
+      // Sync state
+      lastSyncedAt: null,
+      pendingSync: false,
+      syncStatus: 'idle',
+      syncError: null,
 
       loadState: () => {
         // Load active workout from separate storage
@@ -165,15 +187,19 @@ export const useFitnessStore = create<FitnessStore>()(
               ...state.profile,
               xp: newXP,
               level: newLevel
-            }
+            },
+            pendingSync: true
           };
         });
+        queueSync(get);
       },
 
       updateProfileName: (name: string) => {
         set((state) => ({
-          profile: { ...state.profile, name }
+          profile: { ...state.profile, name },
+          pendingSync: true
         }));
+        queueSync(get);
       },
 
       startWorkout: () => {
@@ -283,8 +309,10 @@ export const useFitnessStore = create<FitnessStore>()(
         // Add to custom exercises if not exists
         if (!state.customExercises.find(e => e.id === id)) {
           set((state) => ({
-            customExercises: [...state.customExercises, { id, name: formattedName, muscle: 'other' }]
+            customExercises: [...state.customExercises, { id, name: formattedName, muscle: 'other' }],
+            pendingSync: true
           }));
+          queueSync(get);
         }
 
         // If in workout, add to workout
@@ -415,10 +443,12 @@ export const useFitnessStore = create<FitnessStore>()(
           currentExerciseIndex: 0,
           workoutSeconds: 0,
           workoutPRsHit: 0,
-          currentView: 'home'
+          currentView: 'home',
+          pendingSync: true
         }));
 
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
+        queueSync(get);
 
         // Call unified XP API
         const prsHit = state.workoutPRsHit;
@@ -501,8 +531,10 @@ export const useFitnessStore = create<FitnessStore>()(
 
         if (weight > currentPR) {
           set((state) => ({
-            records: { ...state.records, [exerciseId]: weight }
+            records: { ...state.records, [exerciseId]: weight },
+            pendingSync: true
           }));
+          queueSync(get);
           return true;
         }
         return false;
@@ -517,8 +549,10 @@ export const useFitnessStore = create<FitnessStore>()(
           const key = `${exerciseId}_${milestone.weight}`;
           if (weight >= milestone.weight && !state.achievements.includes(key)) {
             set((state) => ({
-              achievements: [...state.achievements, key]
+              achievements: [...state.achievements, key],
+              pendingSync: true
             }));
+            queueSync(get);
             return milestone;
           }
         }
@@ -536,16 +570,20 @@ export const useFitnessStore = create<FitnessStore>()(
         };
 
         set((state) => ({
-          templates: [...state.templates, template]
+          templates: [...state.templates, template],
+          pendingSync: true
         }));
+        queueSync(get);
 
         get().showToast(`Template "${name}" saved`);
       },
 
       addCampaign: (campaign: Campaign) => {
         set((state) => ({
-          campaigns: [...state.campaigns, campaign]
+          campaigns: [...state.campaigns, campaign],
+          pendingSync: true
         }));
+        queueSync(get);
       },
 
       updateCampaignProgress: () => {
@@ -558,8 +596,10 @@ export const useFitnessStore = create<FitnessStore>()(
               ...goal,
               currentPR: state.records[goal.exerciseId] || goal.currentPR
             }))
-          }))
+          })),
+          pendingSync: true
         }));
+        queueSync(get);
       },
 
       showToast: (message: string) => {
@@ -623,8 +663,10 @@ export const useFitnessStore = create<FitnessStore>()(
             totalVolume: state.profile.totalVolume + totalVolume,
             xp: state.profile.xp + xpToAward,
             level: getLevelFromXP(state.profile.xp + xpToAward)
-          }
+          },
+          pendingSync: true
         }));
+        queueSync(get);
 
         // Sync to unified XP API if achievement was awarded
         if (xpToAward > 0) {
@@ -665,9 +707,11 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: null,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
-          currentView: 'home'
+          currentView: 'home',
+          pendingSync: true
         });
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
+        queueSync(get);
         get().showToast('All data erased');
       },
 
@@ -709,9 +753,75 @@ export const useFitnessStore = create<FitnessStore>()(
             totalSets: Math.max(0, state.profile.totalSets - workoutSets),
           },
           currentView: 'history',
-          selectedWorkoutId: null
+          selectedWorkoutId: null,
+          pendingSync: true
         }));
+        queueSync(get);
         get().showToast('Workout deleted');
+      },
+
+      syncToServer: async () => {
+        const state = get();
+        if (state.syncStatus === 'syncing') return;
+
+        set({ syncStatus: 'syncing' });
+
+        try {
+          const res = await fetch('/api/fitness/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              data: {
+                profile: state.profile,
+                workouts: state.workouts,
+                records: state.records,
+                achievements: state.achievements,
+                customExercises: state.customExercises,
+                templates: state.templates,
+                campaigns: state.campaigns,
+              },
+            }),
+          });
+
+          if (res.ok) {
+            const { updated_at } = await res.json();
+            set({
+              lastSyncedAt: updated_at,
+              pendingSync: false,
+              syncStatus: 'idle',
+              syncError: null,
+            });
+          } else {
+            throw new Error('Sync failed');
+          }
+        } catch (error) {
+          set({ syncStatus: 'error', syncError: (error as Error).message });
+          // Retry in 5 seconds
+          setTimeout(() => get().syncToServer(), 5000);
+        }
+      },
+
+      fetchFromServer: async () => {
+        try {
+          const res = await fetch('/api/fitness/sync');
+          if (!res.ok) return;
+
+          const serverData = await res.json();
+          if (!serverData) return; // No server data yet
+
+          const localLastSynced = get().lastSyncedAt;
+
+          if (!localLastSynced) {
+            // First sync - server wins (user logged in on new device)
+            set({ ...serverData.data, lastSyncedAt: serverData.updated_at });
+          } else if (serverData.updated_at > localLastSynced && !get().pendingSync) {
+            // Server is newer and no pending local changes - use server
+            set({ ...serverData.data, lastSyncedAt: serverData.updated_at });
+          }
+          // Otherwise: local wins (we have pending changes)
+        } catch (error) {
+          console.error('Failed to fetch from server:', error);
+        }
       }
     }),
     {
@@ -723,7 +833,8 @@ export const useFitnessStore = create<FitnessStore>()(
         achievements: state.achievements,
         customExercises: state.customExercises,
         templates: state.templates,
-        campaigns: state.campaigns
+        campaigns: state.campaigns,
+        lastSyncedAt: state.lastSyncedAt
       })
     }
   )

@@ -118,6 +118,13 @@ model gamify_today_data {
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
 }
 
+/// Fitness app specific data
+model gamify_fitness_data {
+  user_id    String    @id @db.Uuid
+  data       Json      @default("{}")
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
 // ============================================
 // TRAVEL APP TABLES
 // ============================================

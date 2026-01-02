@@ -68,6 +68,30 @@ export default function FitnessPage() {
   useEffect(() => {
     setMounted(true);
     store.loadState();
+    store.fetchFromServer();
+  }, []);
+
+  // Sync to server on page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      const state = useFitnessStore.getState();
+      if (state.pendingSync) {
+        navigator.sendBeacon('/api/fitness/sync', JSON.stringify({
+          data: {
+            profile: state.profile,
+            workouts: state.workouts,
+            records: state.records,
+            achievements: state.achievements,
+            customExercises: state.customExercises,
+            templates: state.templates,
+            campaigns: state.campaigns,
+          },
+        }));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
 
   // Global keyboard shortcuts
