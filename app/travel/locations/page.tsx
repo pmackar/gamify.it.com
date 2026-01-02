@@ -166,7 +166,7 @@ function LocationsContent() {
             Locations
           </h1>
           <p className="text-[0.55rem]" style={{ color: 'var(--rpg-muted)' }}>
-            {locations.length} places you've been
+            {locations.length} places visited or on your list
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -310,7 +310,7 @@ function LocationsContent() {
           </h2>
           <p className="text-[0.5rem] mb-6" style={{ color: 'var(--rpg-muted)' }}>
             {locations.length === 0
-              ? "Start tracking your travels by adding your first location"
+              ? "Add places you've visited or want to explore"
               : "Try adjusting your filters or search query"}
           </p>
           {locations.length === 0 && (

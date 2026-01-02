@@ -123,7 +123,7 @@ export default function CitiesPage() {
           </div>
           <h2 className="text-sm mb-2" style={{ color: 'var(--rpg-text)' }}>No cities yet</h2>
           <p className="text-[0.5rem] mb-6" style={{ color: 'var(--rpg-muted)' }}>
-            Start adding locations to see your cities here
+            Add places you've visited or want to explore
           </p>
           <Link href="/travel/locations/new" className="rpg-btn">
             <Plus className="w-3 h-3 inline mr-2" />
