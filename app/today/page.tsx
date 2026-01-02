@@ -799,10 +799,10 @@ export default function TodayPage() {
       <style jsx global>{`
         :root {
           /* Day Quest Theme - Uses universal theme system */
-          /* App-specific accent (cyan) */
-          --accent: #5CC9F5;
-          --accent-glow: rgba(92, 201, 245, 0.3);
-          --accent-hover: #4ab8e4;
+          /* App-specific accent from globals.css */
+          --accent: var(--app-today);
+          --accent-glow: var(--app-today-glow);
+          --accent-hover: var(--app-today-dark);
 
           /* Map local vars to theme system for dark/light/terminal support */
           --bg-primary: var(--theme-bg-base);

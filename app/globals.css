@@ -19,6 +19,29 @@
   --theme-success: #5fbf8a;
   --theme-danger: #ff6b6b;
 
+  /* ===== APP ACCENT COLORS ===== */
+  /* Each app has a unique accent color for identity */
+
+  /* Iron Quest (Fitness) - Red */
+  --app-fitness: #FF6B6B;
+  --app-fitness-dark: #CC5555;
+  --app-fitness-glow: rgba(255, 107, 107, 0.3);
+
+  /* Day Quest (Today/Tasks) - Cyan */
+  --app-today: #5CC9F5;
+  --app-today-dark: #4AB8E4;
+  --app-today-glow: rgba(92, 201, 245, 0.3);
+
+  /* Explorer (Travel) - Teal */
+  --app-travel: #5fbf8a;
+  --app-travel-dark: #4a9d70;
+  --app-travel-glow: rgba(95, 191, 138, 0.3);
+
+  /* Life (Coming Soon) - Purple */
+  --app-life: #a855f7;
+  --app-life-dark: #9333ea;
+  --app-life-glow: rgba(168, 85, 247, 0.3);
+
   /* RPG Theme Colors (backwards compatibility) */
   --rpg-bg: #1a1a1a;
   --rpg-bg-dark: var(--theme-bg-base);

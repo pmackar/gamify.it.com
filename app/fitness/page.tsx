@@ -600,10 +600,10 @@ export default function FitnessPage() {
 
         .fitness-app {
           /* Iron Quest Theme - Uses universal theme system */
-          /* App-specific accent (red) */
-          --accent: #FF6B6B;
-          --accent-dark: #CC5555;
-          --accent-glow: rgba(255, 107, 107, 0.3);
+          /* App-specific accent from globals.css */
+          --accent: var(--app-fitness);
+          --accent-dark: var(--app-fitness-dark);
+          --accent-glow: var(--app-fitness-glow);
 
           /* Map local vars to theme system for dark/light/terminal support */
           --bg-primary: var(--theme-bg-base);
