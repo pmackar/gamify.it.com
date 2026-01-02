@@ -71,11 +71,25 @@ export default function FitnessApp() {
   const [heightFeet, setHeightFeet] = useState(5);
   const [heightInches, setHeightInches] = useState(10);
   const [bodyWeight, setBodyWeight] = useState(0);
+  const [unifiedProfile, setUnifiedProfile] = useState<{ level: number; xp: number; xpToNext: number } | null>(null);
 
   useEffect(() => {
     setMounted(true);
     store.loadState();
     store.fetchFromServer();
+    // Fetch unified profile for accurate level display
+    fetch('/api/profile')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.apps?.fitness) {
+          setUnifiedProfile({
+            level: data.apps.fitness.level,
+            xp: data.apps.fitness.xp,
+            xpToNext: data.apps.fitness.xpToNext
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Sync to server on page unload
@@ -489,11 +503,24 @@ export default function FitnessApp() {
     }
   };
 
-  const handleFinishWorkout = (saveTemplate: boolean) => {
+  const handleFinishWorkout = async (saveTemplate: boolean) => {
     if (saveTemplate && templateName.trim()) store.saveTemplate(templateName.trim());
-    store.finishWorkout();
+    await store.finishWorkout();
     setShowSaveModal(false);
     setTemplateName('');
+    // Refresh unified profile to show updated level/XP
+    fetch('/api/profile')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.apps?.fitness) {
+          setUnifiedProfile({
+            level: data.apps.fitness.level,
+            xp: data.apps.fitness.xp,
+            xpToNext: data.apps.fitness.xpToNext
+          });
+        }
+      })
+      .catch(() => {});
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -2201,10 +2228,13 @@ export default function FitnessApp() {
               <div className="profile-hero">
                 <div className="profile-level-ring">
                   <span className="profile-level-label">LEVEL</span>
-                  <span className="profile-level-value">{store.profile.level}</span>
+                  <span className="profile-level-value">{unifiedProfile?.level ?? store.profile.level}</span>
                 </div>
                 <div className="profile-name">{store.profile.name}</div>
-                <div className="profile-xp"><span>{store.profile.xp.toLocaleString()}</span> XP</div>
+                <div className="profile-xp">
+                  <span>{(unifiedProfile?.xp ?? store.profile.xp).toLocaleString()}</span> XP
+                  {unifiedProfile && <span style={{ opacity: 0.6 }}> / {unifiedProfile.xpToNext}</span>}
+                </div>
               </div>
 
               <div className="stats-grid">
