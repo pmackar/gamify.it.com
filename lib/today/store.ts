@@ -14,7 +14,9 @@ import {
   Streaks,
   StreakInfo,
   DailyQuest,
-  DailyQuestsState
+  DailyQuestsState,
+  RecurrenceRule,
+  RecurrenceFrequency
 } from './types';
 import {
   XP_CONFIG,
@@ -53,6 +55,15 @@ interface TodayStore extends TodayState, SyncState {
   deleteTask: (taskId: string) => void;
   toggleTaskComplete: (taskId: string) => { xpEarned: number; leveledUp: boolean; newAchievements: typeof ACHIEVEMENTS };
   reorderTasks: (taskIds: string[]) => void;
+
+  // Subtask helpers
+  getSubtasks: (parentId: string) => Task[];
+  getSubtaskProgress: (parentId: string) => { completed: number; total: number };
+  createSubtask: (parentId: string, data: Partial<Task>) => Task;
+
+  // Start date / Someday helpers
+  deferTask: (taskId: string, until?: string) => void;
+  undeferTask: (taskId: string) => void;
 
   // Project actions
   createProject: (data: Partial<Project>) => Project;
@@ -218,6 +229,68 @@ function updateStreak(streakInfo: StreakInfo | undefined, today: string): Streak
     // Streak broken
     return { current: 1, longest: info.longest, last_date: today };
   }
+}
+
+// Calculate next occurrence date for recurring tasks
+function calculateNextOccurrence(currentDate: string, rule: RecurrenceRule): string | null {
+  const current = new Date(currentDate);
+  const next = new Date(current);
+
+  switch (rule.frequency) {
+    case 'daily':
+      next.setDate(next.getDate() + rule.interval);
+      break;
+    case 'weekly':
+      if (rule.daysOfWeek && rule.daysOfWeek.length > 0) {
+        // Find next matching day of week
+        const currentDayOfWeek = next.getDay();
+        const sortedDays = [...rule.daysOfWeek].sort((a, b) => a - b);
+        let found = false;
+
+        // Look for next day in same week
+        for (const day of sortedDays) {
+          if (day > currentDayOfWeek) {
+            next.setDate(next.getDate() + (day - currentDayOfWeek));
+            found = true;
+            break;
+          }
+        }
+
+        // If not found, go to first day of next week cycle
+        if (!found) {
+          const daysUntilNext = 7 * rule.interval - currentDayOfWeek + sortedDays[0];
+          next.setDate(next.getDate() + daysUntilNext);
+        }
+      } else {
+        next.setDate(next.getDate() + 7 * rule.interval);
+      }
+      break;
+    case 'monthly':
+      next.setMonth(next.getMonth() + rule.interval);
+      if (rule.dayOfMonth) {
+        const lastDayOfMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+        next.setDate(Math.min(rule.dayOfMonth, lastDayOfMonth));
+      }
+      break;
+    case 'yearly':
+      next.setFullYear(next.getFullYear() + rule.interval);
+      break;
+  }
+
+  // Check if past end date
+  if (rule.endDate && next > new Date(rule.endDate)) {
+    return null;
+  }
+
+  return next.toISOString().split('T')[0];
+}
+
+// Check if a task is visible (not hidden by start_date)
+function isTaskVisible(task: Task): boolean {
+  if (!task.start_date) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(task.start_date) <= today;
 }
 
 // Queue sync helper

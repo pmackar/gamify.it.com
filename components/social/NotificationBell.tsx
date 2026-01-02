@@ -180,6 +180,7 @@ export default function NotificationBell() {
                     notification={notification}
                     onMarkRead={handleMarkRead}
                     onClose={() => setIsOpen(false)}
+                    onUpdate={fetchNotifications}
                   />
                 ))}
               </div>

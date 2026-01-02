@@ -2,6 +2,18 @@
  * Day Quest - Type Definitions
  */
 
+// Recurrence rule patterns
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurrenceRule {
+  frequency: RecurrenceFrequency;
+  interval: number;           // Every N days/weeks/months
+  daysOfWeek?: number[];      // 0=Sun, 1=Mon, ..., 6=Sat (for weekly)
+  dayOfMonth?: number;        // 1-31 (for monthly)
+  endDate?: string | null;    // When recurrence ends
+  count?: number | null;      // Max occurrences
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -11,12 +23,17 @@ export interface Task {
   tier: 'tier1' | 'tier2' | 'tier3';
   difficulty: 'easy' | 'medium' | 'hard' | 'epic';
   due_date?: string | null;
+  start_date?: string | null;           // Task hidden until this date
   is_completed: boolean;
   completed_at?: string | null;
   xp_earned: number;
   was_on_time?: boolean | null;
   project_id?: string | null;
   category_id?: string | null;
+  parent_task_id?: string | null;       // For subtasks
+  recurrence_rule?: RecurrenceRule | null;  // Recurrence pattern
+  recurrence_parent_id?: string | null; // Link to original recurring task
+  is_someday?: boolean;                 // Deferred indefinitely
   tags: string[];
   order_index: number;
   created_at: string;
@@ -115,6 +132,7 @@ export type ViewType =
   | 'today'
   | 'upcoming'
   | 'completed'
+  | 'someday'
   | 'stats'
   | `project-${string}`
   | `category-${string}`;

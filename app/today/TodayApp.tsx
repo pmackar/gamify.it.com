@@ -1433,6 +1433,145 @@ export default function TodayApp() {
           letter-spacing: 0.5px;
         }
 
+        /* Daily Quests Widget */
+        .daily-quests-widget {
+          margin: 0 16px 16px;
+          background: linear-gradient(180deg, rgba(92, 201, 245, 0.1) 0%, rgba(92, 201, 245, 0.05) 100%);
+          border: 1px solid rgba(92, 201, 245, 0.2);
+          border-radius: 12px;
+          padding: 12px;
+          box-shadow: 0 0 20px rgba(92, 201, 245, 0.1);
+        }
+
+        .daily-quests-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .daily-quests-icon {
+          font-size: 16px;
+        }
+
+        .daily-quests-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--accent);
+          text-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .daily-quests-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .daily-quest-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 10px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          transition: all 0.2s ease;
+        }
+
+        .daily-quest-item:hover {
+          border-color: var(--border-light);
+          background: var(--bg-secondary);
+        }
+
+        .daily-quest-item.completed {
+          background: rgba(80, 200, 120, 0.1);
+          border-color: rgba(80, 200, 120, 0.3);
+        }
+
+        .daily-quest-check {
+          min-width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-light);
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-tertiary);
+        }
+
+        .daily-quest-item.completed .daily-quest-check {
+          background: linear-gradient(135deg, var(--success), #40a060);
+          border-color: var(--success);
+          color: white;
+          font-size: 12px;
+          box-shadow: 0 0 10px rgba(80, 200, 120, 0.4);
+        }
+
+        .daily-quest-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .daily-quest-title {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .daily-quest-item.completed .daily-quest-title {
+          color: var(--success);
+        }
+
+        .daily-quest-desc {
+          font-size: 9px;
+          color: var(--text-tertiary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .daily-quest-xp {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--gold);
+          text-shadow: 0 0 6px var(--gold-glow);
+          white-space: nowrap;
+        }
+
+        .daily-quest-item.completed .daily-quest-xp {
+          color: var(--success);
+          text-shadow: 0 0 6px rgba(80, 200, 120, 0.4);
+        }
+
+        .daily-quests-bonus {
+          margin-top: 10px;
+          padding: 10px;
+          background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 180, 0, 0.1) 100%);
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--gold);
+          text-align: center;
+          text-shadow: 0 0 8px var(--gold-glow);
+          animation: quest-bonus-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes quest-bonus-glow {
+          0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+          50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+        }
+
         .sidebar-nav {
           flex: 1;
           padding: 16px;
