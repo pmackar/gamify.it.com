@@ -9,6 +9,7 @@ import { useNavBarContent, useNavBarTheme } from './NavBarContext';
 import { useXP, XPState } from './XPContext';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { useTheme } from './ThemeContext';
+import NotificationBell from './social/NotificationBell';
 
 // Compact XP bar for when app content is active
 const CompactXPBar = ({ xp }: { xp: XPState }) => (
@@ -1667,6 +1668,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
             {authStatus === 'authenticated' && user && (
               <div className="nav-user-info">
+                <NotificationBell />
                 <div style={{ position: 'relative' }} className="nav-dropdown-zone">
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
