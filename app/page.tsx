@@ -209,6 +209,7 @@ function SplashIntro() {
   const [secondLineText, setSecondLineText] = useState('');
   const [blinkDots, setBlinkDots] = useState(true);
   const [introComplete, setIntroComplete] = useState(false);
+  const [showLoginButton, setShowLoginButton] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [crtFlash, setCrtFlash] = useState(false);
@@ -218,10 +219,20 @@ function SplashIntro() {
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
 
+  const handleLogin = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+  };
+
   useEffect(() => { videos.forEach((src) => { const video = document.createElement('video'); video.preload = 'auto'; video.src = src; video.load(); }); }, []);
   useEffect(() => { if (primaryVideoRef.current) { primaryVideoRef.current.src = videos[0]; primaryVideoRef.current.load(); } if (secondaryVideoRef.current) { secondaryVideoRef.current.src = videos[1]; secondaryVideoRef.current.load(); } }, []);
   useEffect(() => { if (!showVideo) return; const cycleInterval = setInterval(() => { const nextIdx = (currentVideoIndex + 1) % videos.length; const nextVideo = primaryActive ? secondaryVideoRef.current : primaryVideoRef.current; if (nextVideo) { nextVideo.src = videos[nextIdx]; nextVideo.load(); nextVideo.play().catch(() => {}); } setPrimaryActive(!primaryActive); setCurrentVideoIndex(nextIdx); }, 15000); return () => clearInterval(cycleInterval); }, [showVideo, currentVideoIndex, primaryActive]);
-  useEffect(() => { let charIndex = 0; let dotBlinks = 0; const typeFirstLine = setInterval(() => { if (charIndex < firstLine.length) { setTypedText(firstLine.slice(0, charIndex + 1)); charIndex++; } else { clearInterval(typeFirstLine); const blinkInterval = setInterval(() => { dotBlinks++; setBlinkDots((prev) => !prev); if (dotBlinks >= 6) { clearInterval(blinkInterval); setShowSecondLine(true); let secondCharIndex = 0; const typeSecondLine = setInterval(() => { if (secondCharIndex < secondLine.length) { setSecondLineText(secondLine.slice(0, secondCharIndex + 1)); secondCharIndex++; } else { clearInterval(typeSecondLine); setTimeout(() => { setCrtFlash(true); setTimeout(() => { setShowVideo(true); primaryVideoRef.current?.play().catch(() => {}); setCrtFlash(false); setIntroComplete(true); }, 300); }, 500); } }, 80); } }, 300); } }, 100); return () => clearInterval(typeFirstLine); }, []);
+  useEffect(() => { let charIndex = 0; let dotBlinks = 0; const typeFirstLine = setInterval(() => { if (charIndex < firstLine.length) { setTypedText(firstLine.slice(0, charIndex + 1)); charIndex++; } else { clearInterval(typeFirstLine); const blinkInterval = setInterval(() => { dotBlinks++; setBlinkDots((prev) => !prev); if (dotBlinks >= 6) { clearInterval(blinkInterval); setShowSecondLine(true); let secondCharIndex = 0; const typeSecondLine = setInterval(() => { if (secondCharIndex < secondLine.length) { setSecondLineText(secondLine.slice(0, secondCharIndex + 1)); secondCharIndex++; } else { clearInterval(typeSecondLine); setShowLoginButton(true); setTimeout(() => { setCrtFlash(true); setTimeout(() => { setShowVideo(true); primaryVideoRef.current?.play().catch(() => {}); setCrtFlash(false); setIntroComplete(true); }, 300); }, 500); } }, 80); } }, 300); } }, 100); return () => clearInterval(typeFirstLine); }, []);
 
   return (
     <div className="crt-wrapper">
@@ -250,6 +261,12 @@ function SplashIntro() {
                 {secondLineText.length < secondLine.length && <span className="typing-cursor" />}
               </div>
             )}
+            <button
+              className={`player-login-btn ${showLoginButton ? 'visible' : ''}`}
+              onClick={handleLogin}
+            >
+              Player 1: Click to Continue
+            </button>
           </div>
           <div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>
             SCROLL TO BEGIN
@@ -828,6 +845,11 @@ export default function LandingPage() {
         .typing-line-second { display: block; margin-top: 0.5rem; background: linear-gradient(90deg, #fff 0%, #fff 35%, #ff6b6b 42%, #FFD700 50%, #00ff00 58%, #fff 65%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: rgb-shimmer 4s ease-in-out infinite; filter: drop-shadow(0 0 10px rgba(255,215,0,0.5)); }
         .typing-cursor { display: inline-block; width: 0.5em; height: 1em; background: currentColor; margin-left: 0.15em; animation: cursor-blink 0.8s infinite; vertical-align: middle; box-shadow: 0 0 10px currentColor; }
         .dots { color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); transition: opacity 0.15s; }
+        .player-login-btn { margin-top: 2.5rem; padding: 1rem 2rem; background: transparent; border: 2px solid var(--theme-gold); border-radius: 8px; font-family: 'Press Start 2P', monospace; font-size: clamp(0.45rem, 1.5vw, 0.65rem); color: var(--theme-gold); cursor: pointer; opacity: 0; transform: translateY(20px); transition: all 0.5s ease; pointer-events: none; position: relative; overflow: hidden; }
+        .player-login-btn.visible { opacity: 1; transform: translateY(0); pointer-events: auto; animation: pulse-border 2s ease-in-out infinite; }
+        .player-login-btn:hover { background: var(--theme-gold); color: #1a1a1a; box-shadow: 0 0 30px var(--theme-gold-glow), 0 0 60px var(--theme-gold-glow); transform: scale(1.05); }
+        .player-login-btn:active { transform: scale(0.98); }
+        @keyframes pulse-border { 0%, 100% { box-shadow: 0 0 10px var(--theme-gold-glow); } 50% { box-shadow: 0 0 25px var(--theme-gold-glow), 0 0 40px var(--theme-gold-glow); } }
         .scroll-hint { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); font-size: 0.45rem; color: #666; opacity: 0; transition: opacity 0.5s; text-align: center; }
         .scroll-hint.visible { opacity: 1; animation: pulse-glow 2s infinite; }
         @keyframes pulse-glow { 0%, 100% { text-shadow: 0 0 5px rgba(255,215,0,0.3); } 50% { text-shadow: 0 0 15px rgba(255,215,0,0.6); color: #888; } }
