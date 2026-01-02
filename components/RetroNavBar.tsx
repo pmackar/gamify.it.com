@@ -118,13 +118,20 @@ export interface AppMenuItem {
   icon?: React.ReactNode;
 }
 
+export interface QuickAction {
+  label: string;
+  href: string;
+  icon?: React.ReactNode;
+}
+
 export interface RetroNavBarProps {
   appMenuItems?: AppMenuItem[];
+  quickActions?: QuickAction[];
   children?: React.ReactNode;
   theme?: 'dark' | 'light';
 }
 
-export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroNavBarProps = {}) {
+export function RetroNavBar({ appMenuItems, quickActions, children, theme: themeProp }: RetroNavBarProps = {}) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated' | 'error'>('loading');
@@ -788,6 +795,66 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           justify-content: center;
         }
 
+        .nav-quick-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .nav-quick-action {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 7px;
+          color: #aaa;
+          text-decoration: none;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+
+        .nav-quick-action:hover {
+          background: rgba(255, 215, 0, 0.15);
+          border-color: rgba(255, 215, 0, 0.3);
+          color: #FFD700;
+          transform: translateY(-1px);
+        }
+
+        .nav-quick-action-icon {
+          font-size: 10px;
+          line-height: 1;
+        }
+
+        /* Light theme quick actions */
+        .global-nav.theme-light .nav-quick-action {
+          background: rgba(0, 0, 0, 0.05);
+          border-color: rgba(0, 0, 0, 0.1);
+          color: #6b7280;
+        }
+
+        .global-nav.theme-light .nav-quick-action:hover {
+          background: rgba(99, 102, 241, 0.1);
+          border-color: rgba(99, 102, 241, 0.3);
+          color: #6366f1;
+        }
+
+        /* Terminal theme quick actions */
+        .global-nav.theme-terminal .nav-quick-action {
+          background: rgba(0, 50, 0, 0.3);
+          border-color: rgba(0, 255, 0, 0.2);
+          color: #00aa00;
+        }
+
+        .global-nav.theme-terminal .nav-quick-action:hover {
+          background: rgba(0, 255, 0, 0.15);
+          border-color: rgba(0, 255, 0, 0.4);
+          color: #00ff00;
+        }
+
         .nav-menu-items {
           display: flex;
           align-items: center;
@@ -1386,6 +1453,31 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
             display: none;
           }
 
+          /* Quick actions on mobile - show fewer, smaller */
+          .nav-quick-actions {
+            gap: 4px;
+          }
+
+          .nav-quick-action {
+            padding: 4px 8px;
+            font-size: 6px;
+            gap: 4px;
+          }
+
+          .nav-quick-action-icon {
+            font-size: 9px;
+          }
+
+          /* Hide labels on very small screens, show only icons */
+          @media (max-width: 480px) {
+            .nav-quick-action-label {
+              display: none;
+            }
+            .nav-quick-action {
+              padding: 6px;
+            }
+          }
+
           .nav-left {
             gap: 4px;
           }
@@ -1511,6 +1603,40 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
 
           {/* Center section: app content only */}
           <div className="nav-center">
+            {/* Quick action buttons - from props or default travel actions */}
+            {(quickActions && quickActions.length > 0) && (
+              <div className="nav-quick-actions">
+                {quickActions.map((action) => (
+                  <Link
+                    key={action.href}
+                    href={action.href}
+                    className="nav-quick-action"
+                  >
+                    {action.icon && <span className="nav-quick-action-icon">{action.icon}</span>}
+                    <span className="nav-quick-action-label">{action.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Travel app quick actions */}
+            {isTravel && !quickActions && (
+              <div className="nav-quick-actions">
+                <Link href="/travel/locations/new" className="nav-quick-action">
+                  <span className="nav-quick-action-icon">+</span>
+                  <span className="nav-quick-action-label">ADD</span>
+                </Link>
+                <Link href="/travel/map" className="nav-quick-action">
+                  <span className="nav-quick-action-icon">🗺️</span>
+                  <span className="nav-quick-action-label">MAP</span>
+                </Link>
+                <Link href="/travel/cities" className="nav-quick-action">
+                  <span className="nav-quick-action-icon">🏙️</span>
+                  <span className="nav-quick-action-label">CITIES</span>
+                </Link>
+              </div>
+            )}
+
             {/* App-specific content from context */}
             {contextContent && (
               <div className="nav-app-content">

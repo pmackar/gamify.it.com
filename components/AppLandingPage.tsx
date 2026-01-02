@@ -339,9 +339,9 @@ export default function AppLandingPage({
 
         .hero-cta {
           display: flex;
-          gap: 1rem;
-          flex-wrap: wrap;
-          justify-content: center;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
         }
 
         .cta-primary {
