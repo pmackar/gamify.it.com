@@ -32,21 +32,27 @@ export async function GET() {
     .eq('user_id', user.id)
     .eq('is_completed', true);
 
-  // Calculate XP needed for next main level
-  const xpForLevel = (level: number) => {
-    let total = 0;
-    let needed = 100;
-    for (let i = 1; i < level; i++) {
-      total += needed;
-      needed = Math.floor(needed * 1.5);
+  // Calculate level and XP progress from total XP
+  const calculateLevelFromXP = (totalXp: number) => {
+    let level = 1;
+    let xpNeeded = 100;
+    let cumulativeXP = 0;
+
+    while (cumulativeXP + xpNeeded <= totalXp) {
+      cumulativeXP += xpNeeded;
+      level++;
+      xpNeeded = Math.floor(xpNeeded * 1.5);
     }
-    return { total, needed };
+
+    return {
+      level,
+      currentLevelXP: totalXp - cumulativeXP,
+      xpToNext: xpNeeded,
+    };
   };
 
-  const mainLevel = profile?.main_level || 1;
   const totalXP = profile?.total_xp || 0;
-  const { total: xpAtCurrentLevel, needed: xpToNext } = xpForLevel(mainLevel);
-  const currentLevelXP = totalXP - xpAtCurrentLevel;
+  const { level: mainLevel, currentLevelXP, xpToNext } = calculateLevelFromXP(totalXP);
 
   // Build app data with icons and colors
   const appData = [
