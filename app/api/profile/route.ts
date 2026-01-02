@@ -2,21 +2,24 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/db";
 
-// Calculate XP progress within current level
-function calculateXPProgress(totalXp: number, level: number) {
-  let xpUsed = 0;
+// Calculate level and XP progress from total XP
+function calculateLevelFromXP(totalXp: number) {
+  let level = 1;
   let xpNeeded = 100;
+  let cumulativeXP = 0;
 
-  // Sum XP for all previous levels
-  for (let i = 1; i < level; i++) {
-    xpUsed += xpNeeded;
+  // Level up while we have enough XP
+  while (cumulativeXP + xpNeeded <= totalXp) {
+    cumulativeXP += xpNeeded;
+    level++;
     xpNeeded = Math.floor(xpNeeded * 1.5);
   }
 
-  const xpInCurrentLevel = totalXp - xpUsed;
-  const xpToNextLevel = xpNeeded;
-
-  return { xpInCurrentLevel, xpToNextLevel };
+  return {
+    level,
+    xpInCurrentLevel: totalXp - cumulativeXP,
+    xpToNextLevel: xpNeeded,
+  };
 }
 
 // Calculate XP to next level for app profiles
@@ -46,8 +49,8 @@ export async function GET() {
     ]);
 
     const totalXp = user.totalXP || 0;
-    const level = user.mainLevel || 1;
-    const { xpInCurrentLevel, xpToNextLevel } = calculateXPProgress(totalXp, level);
+    // Always calculate level from total XP to ensure accuracy
+    const { level, xpInCurrentLevel, xpToNextLevel } = calculateLevelFromXP(totalXp);
 
     // Build app XP map
     const apps: Record<string, { xp: number; level: number; xpToNext: number }> = {};
