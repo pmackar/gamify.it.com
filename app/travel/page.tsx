@@ -43,37 +43,38 @@ const FEATURES = [
 ];
 
 async function getStats(userId: string) {
-  const [
-    citiesCount,
-    locationsCount,
-    visitsCount,
-    achievementsCount,
-    totalAchievements,
-    hotlistCount,
-  ] = await Promise.all([
-    prisma.travel_cities.count({
-      where: { user_id: userId },
-    }),
-    prisma.travel_locations.count({
-      where: { user_id: userId },
-    }),
-    prisma.travel_visits.count({
-      where: { user_id: userId },
-    }),
-    prisma.user_achievements.count({
-      where: {
-        user_id: userId,
-        is_completed: true,
-        achievements: { app_id: 'travel' },
-      },
-    }),
-    prisma.achievements.count({
-      where: { app_id: 'travel' },
-    }),
-    prisma.travel_user_location_data.count({
-      where: { user_id: userId, hotlist: true },
-    }),
-  ]);
+  try {
+    const [
+      citiesCount,
+      locationsCount,
+      visitsCount,
+      achievementsCount,
+      totalAchievements,
+      hotlistCount,
+    ] = await Promise.all([
+      prisma.travel_cities.count({
+        where: { user_id: userId },
+      }),
+      prisma.travel_locations.count({
+        where: { user_id: userId },
+      }),
+      prisma.travel_visits.count({
+        where: { user_id: userId },
+      }),
+      prisma.user_achievements.count({
+        where: {
+          user_id: userId,
+          is_completed: true,
+          achievements: { app_id: 'travel' },
+        },
+      }),
+      prisma.achievements.count({
+        where: { app_id: 'travel' },
+      }),
+      prisma.travel_user_location_data.count({
+        where: { user_id: userId, hotlist: true },
+      }),
+    ]);
 
   // Get unique countries
   const cities = await prisma.travel_cities.findMany({
@@ -146,6 +147,25 @@ async function getStats(userId: string) {
       completedCount: quest.items.filter((i) => i.completed).length,
     })),
   };
+  } catch (error) {
+    console.error("Error fetching travel stats:", error);
+    // Return default values on error
+    return {
+      counts: {
+        cities: 0,
+        locations: 0,
+        visits: 0,
+        countries: 0,
+        hotlist: 0,
+      },
+      achievements: {
+        unlocked: 0,
+        total: 0,
+      },
+      topLocations: [],
+      activeQuests: [],
+    };
+  }
 }
 
 export default async function TravelDashboardPage() {
