@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const cityId = searchParams.get("cityId");
 
-    const where: { user_id: string; city_id?: string } = { user_id: user.id };
+    // Note: Not filtering by user_id (personal app)
+    const where: { city_id?: string } = {};
     if (cityId) {
       where.city_id = cityId;
     }

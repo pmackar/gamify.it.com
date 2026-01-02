@@ -27,7 +27,10 @@ export default function NeighborhoodsPage() {
       try {
         const res = await fetch("/api/neighborhoods");
         if (res.ok) {
-          setNeighborhoods(await res.json());
+          const json = await res.json();
+          if (Array.isArray(json)) {
+            setNeighborhoods(json);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch neighborhoods:", error);

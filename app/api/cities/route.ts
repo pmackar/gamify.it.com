@@ -9,8 +9,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Note: Not filtering by user_id (personal app)
     const cities = await prisma.travel_cities.findMany({
-      where: { user_id: user.id },
       include: {
         locations: {
           select: { id: true },

@@ -56,12 +56,14 @@ export default function CityDetailPage() {
           setCity(await cityRes.json());
         }
         if (neighborhoodsRes.ok) {
-          setNeighborhoods(await neighborhoodsRes.json());
+          const json = await neighborhoodsRes.json();
+          setNeighborhoods(Array.isArray(json) ? json : json.data || []);
         }
         if (locationsRes.ok) {
-          const locs = await locationsRes.json();
+          const json = await locationsRes.json();
+          const locs = Array.isArray(json) ? json : json.data || [];
           // Filter to only those without neighborhood
-          setLocationsWithoutNeighborhood(locs.filter((l: any) => !l.neighborhoodId));
+          setLocationsWithoutNeighborhood(locs.filter((l: any) => !l.neighborhoodId && !l.neighborhood));
         }
       } catch (error) {
         console.error("Failed to fetch city:", error);
