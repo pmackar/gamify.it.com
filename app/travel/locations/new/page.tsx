@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Check, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Check, Sparkles, Loader2, Link2, X } from "lucide-react";
 import Link from "next/link";
 
 interface City {
@@ -62,6 +62,12 @@ export default function NewLocationPage() {
   const [priceLevel, setPriceLevel] = useState<number | null>(null);
   const [tags, setTags] = useState("");
 
+  // Google Maps import state
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importedCoords, setImportedCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   // Fetch existing cities
   useEffect(() => {
     async function fetchCities() {
@@ -78,14 +84,67 @@ export default function NewLocationPage() {
     fetchCities();
   }, []);
 
+  // Import from Google Maps URL
+  const handleGoogleMapsImport = async () => {
+    if (!googleMapsUrl.trim()) return;
+
+    setImportLoading(true);
+    setImportError(null);
+
+    try {
+      const res = await fetch("/api/parse-google-maps-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: googleMapsUrl }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to parse URL");
+      }
+
+      const { location } = data;
+
+      // Auto-fill form fields
+      if (location.name) {
+        setName(location.name);
+      }
+      if (location.address) {
+        setAddress(location.address);
+      } else if (location.name) {
+        // Use name as address hint if no explicit address
+        setAddress(location.name);
+      }
+      if (location.latitude && location.longitude) {
+        setImportedCoords({ lat: location.latitude, lng: location.longitude });
+      }
+
+      // Clear the URL field after successful import
+      setGoogleMapsUrl("");
+    } catch (error) {
+      console.error("Import error:", error);
+      setImportError(error instanceof Error ? error.message : "Failed to import location");
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const clearImportedCoords = () => {
+    setImportedCoords(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setGeocoding(true);
 
     try {
-      // Geocode address to get coordinates
-      const coords = await geocodeAddress(address);
+      // Use imported coordinates if available, otherwise geocode
+      let coords = importedCoords;
+      if (!coords) {
+        coords = await geocodeAddress(address);
+      }
       setGeocoding(false);
 
       if (!coords) {
@@ -195,6 +254,61 @@ export default function NewLocationPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Google Maps Import */}
+        <div className="p-4 rounded-lg border border-dashed border-gray-700 bg-gray-900/50">
+          <div className="flex items-center gap-2 mb-3">
+            <Link2 className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-gray-300">Import from Google Maps</span>
+            <span className="text-xs text-gray-500">(optional)</span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={googleMapsUrl}
+              onChange={(e) => {
+                setGoogleMapsUrl(e.target.value);
+                setImportError(null);
+              }}
+              placeholder="Paste Google Maps link here..."
+              className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              type="button"
+              onClick={handleGoogleMapsImport}
+              disabled={importLoading || !googleMapsUrl.trim()}
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              {importLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                "Import"
+              )}
+            </button>
+          </div>
+          {importError && (
+            <p className="mt-2 text-sm text-red-400">{importError}</p>
+          )}
+          {importedCoords && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-green-400">
+              <Check className="w-4 h-4" />
+              <span>Location imported ({importedCoords.lat.toFixed(4)}, {importedCoords.lng.toFixed(4)})</span>
+              <button
+                type="button"
+                onClick={clearImportedCoords}
+                className="ml-auto p-1 hover:bg-gray-800 rounded"
+              >
+                <X className="w-4 h-4 text-gray-400 hover:text-white" />
+              </button>
+            </div>
+          )}
+          <p className="mt-2 text-xs text-gray-500">
+            Copy a place link from Google Maps app or website to auto-fill the form
+          </p>
+        </div>
+
         {/* Location Name */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
