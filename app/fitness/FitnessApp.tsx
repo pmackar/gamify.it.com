@@ -51,6 +51,12 @@ export default function FitnessApp() {
   const [setIsWarmup, setSetIsWarmup] = useState(false);
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
   const [showExerciseNotes, setShowExerciseNotes] = useState(false);
+  const [showProgressChart, setShowProgressChart] = useState(false);
+  const [chartExerciseId, setChartExerciseId] = useState<string | null>(null);
+  const [chartMetric, setChartMetric] = useState<'maxWeight' | 'e1rm' | 'totalVolume'>('maxWeight');
+  const [showPlateCalc, setShowPlateCalc] = useState(false);
+  const [plateCalcWeight, setPlateCalcWeight] = useState(135);
+  const [plateCalcBar, setPlateCalcBar] = useState(45);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
@@ -1505,6 +1511,310 @@ export default function FitnessApp() {
           color: white;
         }
 
+        /* Chart Button */
+        .chart-btn {
+          background: none;
+          border: none;
+          padding: 4px 8px;
+          cursor: pointer;
+          font-size: 16px;
+          opacity: 0.7;
+          transition: opacity 0.15s;
+        }
+        .chart-btn:hover {
+          opacity: 1;
+        }
+
+        /* Chart Modal */
+        .chart-modal {
+          max-width: 380px;
+        }
+        .chart-metric-tabs {
+          display: flex;
+          gap: 4px;
+          margin: 16px 0;
+          padding: 4px;
+          background: var(--bg-secondary);
+          border-radius: 8px;
+        }
+        .chart-metric-tab {
+          flex: 1;
+          padding: 8px 12px;
+          background: none;
+          border: none;
+          border-radius: 6px;
+          color: var(--text-secondary);
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .chart-metric-tab:hover {
+          color: var(--text-primary);
+        }
+        .chart-metric-tab.active {
+          background: var(--accent);
+          color: white;
+        }
+        .chart-container {
+          margin: 16px 0;
+        }
+        .progress-chart {
+          width: 100%;
+          height: auto;
+        }
+        .chart-line {
+          stroke: var(--accent);
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+        .chart-point {
+          fill: var(--accent);
+          stroke: var(--bg-primary);
+          stroke-width: 2;
+        }
+        .chart-point-label {
+          fill: var(--text-primary);
+          font-size: 10px;
+          font-weight: 600;
+        }
+        .chart-label {
+          fill: var(--text-tertiary);
+          font-size: 10px;
+        }
+        .chart-grid {
+          stroke: var(--border);
+          stroke-width: 1;
+          stroke-dasharray: 4 4;
+        }
+        .chart-empty {
+          text-align: center;
+          padding: 32px 16px;
+        }
+        .chart-empty-icon {
+          font-size: 32px;
+          margin-bottom: 12px;
+        }
+        .chart-empty-text {
+          color: var(--text-secondary);
+          font-size: 14px;
+          font-weight: 500;
+        }
+        .chart-empty-hint {
+          color: var(--text-tertiary);
+          font-size: 12px;
+          margin-top: 4px;
+        }
+
+        /* Superset Styles */
+        .exercise-pill.superset {
+          border-left: 3px solid var(--accent);
+        }
+        .exercise-pill.superset.superset-cont {
+          margin-top: -4px;
+          border-top-left-radius: 0;
+          border-top-right-radius: 0;
+        }
+        .superset-badge {
+          position: absolute;
+          top: -8px;
+          right: 32px;
+          background: var(--accent);
+          color: white;
+          font-size: 9px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          letter-spacing: 0.5px;
+        }
+        .superset-btn {
+          background: none;
+          border: none;
+          padding: 4px 8px;
+          cursor: pointer;
+          font-size: 16px;
+          opacity: 0.7;
+          transition: opacity 0.15s;
+        }
+        .superset-btn:hover {
+          opacity: 1;
+        }
+        .superset-btn.active {
+          opacity: 1;
+        }
+
+        /* Plate Calculator */
+        .plate-calc-btn {
+          background: none;
+          border: none;
+          padding: 0 4px;
+          cursor: pointer;
+          font-size: 12px;
+          opacity: 0.6;
+          transition: opacity 0.15s;
+          margin-left: 4px;
+        }
+        .plate-calc-btn:hover {
+          opacity: 1;
+        }
+        .plate-calc-modal {
+          max-width: 340px;
+        }
+        .plate-calc-inputs {
+          margin: 16px 0;
+        }
+        .plate-calc-input-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .plate-calc-input-group label {
+          flex: 0 0 100px;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .plate-calc-input-group input {
+          flex: 1;
+          padding: 10px 12px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 18px;
+          font-weight: 600;
+          text-align: center;
+        }
+        .plate-calc-input-group span {
+          font-size: 13px;
+          color: var(--text-tertiary);
+        }
+        .plate-calc-bar-options {
+          display: flex;
+          gap: 6px;
+        }
+        .plate-calc-bar-btn {
+          padding: 8px 14px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-secondary);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .plate-calc-bar-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .plate-calc-bar-btn.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: white;
+        }
+        .plate-calc-result {
+          background: var(--bg-secondary);
+          border-radius: 12px;
+          padding: 16px;
+          text-align: center;
+        }
+        .plate-calc-label {
+          font-size: 14px;
+          color: var(--text-secondary);
+          margin-bottom: 12px;
+        }
+        .plate-visual {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+          margin-bottom: 12px;
+        }
+        .plate-bar-end {
+          width: 8px;
+          height: 24px;
+          background: #555;
+          border-radius: 2px;
+        }
+        .plate-collar {
+          width: 6px;
+          height: 20px;
+          background: #777;
+          border-radius: 2px;
+        }
+        .plate {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9px;
+          font-weight: 700;
+          color: white;
+          border-radius: 2px;
+        }
+        .plate-45 {
+          width: 14px;
+          height: 60px;
+          background: #1a5f2a;
+        }
+        .plate-35 {
+          width: 12px;
+          height: 52px;
+          background: #c4a700;
+        }
+        .plate-25 {
+          width: 11px;
+          height: 44px;
+          background: #1a3f5f;
+        }
+        .plate-10 {
+          width: 10px;
+          height: 36px;
+          background: #5f1a1a;
+        }
+        .plate-5 {
+          width: 8px;
+          height: 28px;
+          background: #444;
+        }
+        .plate-2-5 {
+          width: 6px;
+          height: 22px;
+          background: #666;
+          font-size: 7px;
+        }
+        .plate-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: center;
+        }
+        .plate-count {
+          padding: 4px 10px;
+          background: var(--bg-tertiary);
+          border-radius: 6px;
+          font-size: 12px;
+          color: var(--text-secondary);
+        }
+        .plate-calc-error {
+          background: rgba(255, 100, 100, 0.1);
+          border: 1px solid rgba(255, 100, 100, 0.3);
+          border-radius: 8px;
+          padding: 12px;
+          color: #ff6b6b;
+          font-size: 13px;
+          text-align: center;
+        }
+        .plate-calc-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 16px;
+        }
+        .plate-calc-actions .modal-btn {
+          flex: 1;
+        }
+
         /* Warmup indicator on set badges */
         .set-badge.warmup {
           opacity: 0.6;
@@ -2457,10 +2767,19 @@ export default function FitnessApp() {
                   <div className="empty-subtitle">Search for an exercise below to start building your workout</div>
                 </div>
               ) : (
-                store.currentWorkout.exercises.map((exercise, idx) => (
+                store.currentWorkout.exercises.map((exercise, idx) => {
+                  const isInSuperset = !!exercise.supersetGroup;
+                  const prevInSameSuperset = idx > 0 &&
+                    store.currentWorkout!.exercises[idx - 1].supersetGroup === exercise.supersetGroup &&
+                    exercise.supersetGroup;
+                  const nextInSameSuperset = idx < store.currentWorkout!.exercises.length - 1 &&
+                    store.currentWorkout!.exercises[idx + 1].supersetGroup === exercise.supersetGroup &&
+                    exercise.supersetGroup;
+
+                  return (
                   <div
                     key={exercise.id + idx}
-                    className={`exercise-pill ${idx === store.currentExerciseIndex ? 'active' : ''}`}
+                    className={`exercise-pill ${idx === store.currentExerciseIndex ? 'active' : ''} ${isInSuperset ? 'superset' : ''} ${prevInSameSuperset ? 'superset-cont' : ''}`}
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('text/plain', String(idx));
@@ -2514,6 +2833,9 @@ export default function FitnessApp() {
                         )}
                       </div>
                     </div>
+                    {isInSuperset && !prevInSameSuperset && (
+                      <span className="superset-badge" title="Superset">SS</span>
+                    )}
                     <button
                       className="exercise-remove-btn"
                       onClick={(e) => {
@@ -2525,7 +2847,8 @@ export default function FitnessApp() {
                       ✕
                     </button>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
@@ -2996,8 +3319,11 @@ export default function FitnessApp() {
         {/* Set Panel */}
         {showSetPanel && store.currentWorkout && (() => {
           const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+          const currentIdx = store.currentExerciseIndex;
           const lastWorkoutEx = currentEx ? store.getLastWorkoutForExercise(currentEx.id) : null;
           const exerciseNote = currentEx ? store.exerciseNotes[currentEx.id] || '' : '';
+          const isInSuperset = !!currentEx?.supersetGroup;
+          const canLinkToPrev = currentIdx > 0;
           return (
           <>
             <div className="set-panel-overlay" onClick={() => setShowSetPanel(false)} />
@@ -3005,6 +3331,33 @@ export default function FitnessApp() {
               <div className="set-panel-header">
                 <span className="set-panel-title">{currentEx?.name}</span>
                 <div className="set-panel-header-actions">
+                  {canLinkToPrev && (
+                    <button
+                      className={`superset-btn ${isInSuperset ? 'active' : ''}`}
+                      onClick={() => {
+                        if (isInSuperset) {
+                          store.unlinkSuperset(currentIdx);
+                        } else {
+                          store.linkSuperset(currentIdx);
+                        }
+                      }}
+                      title={isInSuperset ? 'Unlink superset' : 'Link with previous exercise'}
+                    >
+                      {isInSuperset ? '🔗' : '⛓️'}
+                    </button>
+                  )}
+                  <button
+                    className="chart-btn"
+                    onClick={() => {
+                      if (currentEx) {
+                        setChartExerciseId(currentEx.id);
+                        setShowProgressChart(true);
+                      }
+                    }}
+                    title="View progress chart"
+                  >
+                    📈
+                  </button>
                   {exerciseNote && <span className="note-indicator" title="Has note">📝</span>}
                   <button className="close-btn" onClick={() => setShowSetPanel(false)}>×</button>
                 </div>
@@ -3070,7 +3423,20 @@ export default function FitnessApp() {
                     inputMode="decimal"
                     autoFocus
                   />
-                  <div className="input-label">lbs</div>
+                  <div className="input-label">
+                    lbs
+                    <button
+                      className="plate-calc-btn"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPlateCalcWeight(setWeight);
+                        setShowPlateCalc(true);
+                      }}
+                      title="Plate calculator"
+                    >
+                      🧮
+                    </button>
+                  </div>
                 </div>
                 <div className="input-divider">×</div>
                 <div className="input-group">
@@ -3226,6 +3592,272 @@ export default function FitnessApp() {
             </div>
           </div>
         )}
+
+        {/* Progress Chart Modal */}
+        {showProgressChart && chartExerciseId && (() => {
+          const progressData = store.getExerciseProgressData(chartExerciseId);
+          const exerciseName = getExerciseById(chartExerciseId)?.name || 'Exercise';
+          const currentPR = store.records[chartExerciseId] || 0;
+
+          // Calculate chart dimensions
+          const chartWidth = 300;
+          const chartHeight = 150;
+          const padding = { top: 20, right: 10, bottom: 30, left: 45 };
+          const innerWidth = chartWidth - padding.left - padding.right;
+          const innerHeight = chartHeight - padding.top - padding.bottom;
+
+          // Get data for selected metric
+          const values = progressData.map(d => d[chartMetric]);
+          const minVal = values.length > 0 ? Math.min(...values) * 0.9 : 0;
+          const maxVal = values.length > 0 ? Math.max(...values) * 1.1 : 100;
+
+          // Generate path
+          const getPath = () => {
+            if (progressData.length === 0) return '';
+            return progressData.map((d, i) => {
+              const x = padding.left + (i / Math.max(progressData.length - 1, 1)) * innerWidth;
+              const y = padding.top + innerHeight - ((d[chartMetric] - minVal) / (maxVal - minVal || 1)) * innerHeight;
+              return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+            }).join(' ');
+          };
+
+          // Get points for circles
+          const getPoints = () => {
+            return progressData.map((d, i) => ({
+              x: padding.left + (i / Math.max(progressData.length - 1, 1)) * innerWidth,
+              y: padding.top + innerHeight - ((d[chartMetric] - minVal) / (maxVal - minVal || 1)) * innerHeight,
+              value: d[chartMetric],
+              date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            }));
+          };
+
+          return (
+            <div className="modal-overlay" onClick={() => setShowProgressChart(false)}>
+              <div className="modal chart-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">{exerciseName}</div>
+                <div className="modal-subtitle">
+                  PR: {currentPR} lbs · {progressData.length} sessions
+                </div>
+
+                {/* Metric Selector */}
+                <div className="chart-metric-tabs">
+                  <button
+                    className={`chart-metric-tab ${chartMetric === 'maxWeight' ? 'active' : ''}`}
+                    onClick={() => setChartMetric('maxWeight')}
+                  >
+                    Max Weight
+                  </button>
+                  <button
+                    className={`chart-metric-tab ${chartMetric === 'e1rm' ? 'active' : ''}`}
+                    onClick={() => setChartMetric('e1rm')}
+                  >
+                    Est. 1RM
+                  </button>
+                  <button
+                    className={`chart-metric-tab ${chartMetric === 'totalVolume' ? 'active' : ''}`}
+                    onClick={() => setChartMetric('totalVolume')}
+                  >
+                    Volume
+                  </button>
+                </div>
+
+                {progressData.length === 0 ? (
+                  <div className="chart-empty">
+                    <div className="chart-empty-icon">📊</div>
+                    <div className="chart-empty-text">No data yet</div>
+                    <div className="chart-empty-hint">Complete workouts with this exercise to see progress</div>
+                  </div>
+                ) : (
+                  <div className="chart-container">
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="progress-chart">
+                      {/* Y-axis labels */}
+                      <text x={padding.left - 5} y={padding.top} className="chart-label" textAnchor="end">
+                        {chartMetric === 'totalVolume' ? `${Math.round(maxVal / 1000)}k` : Math.round(maxVal)}
+                      </text>
+                      <text x={padding.left - 5} y={padding.top + innerHeight} className="chart-label" textAnchor="end">
+                        {chartMetric === 'totalVolume' ? `${Math.round(minVal / 1000)}k` : Math.round(minVal)}
+                      </text>
+
+                      {/* Grid lines */}
+                      <line
+                        x1={padding.left} y1={padding.top}
+                        x2={padding.left + innerWidth} y2={padding.top}
+                        className="chart-grid"
+                      />
+                      <line
+                        x1={padding.left} y1={padding.top + innerHeight / 2}
+                        x2={padding.left + innerWidth} y2={padding.top + innerHeight / 2}
+                        className="chart-grid"
+                      />
+                      <line
+                        x1={padding.left} y1={padding.top + innerHeight}
+                        x2={padding.left + innerWidth} y2={padding.top + innerHeight}
+                        className="chart-grid"
+                      />
+
+                      {/* Line */}
+                      <path d={getPath()} className="chart-line" fill="none" />
+
+                      {/* Points */}
+                      {getPoints().map((point, i) => (
+                        <g key={i}>
+                          <circle cx={point.x} cy={point.y} r={4} className="chart-point" />
+                          {/* Show label for first, last, and max */}
+                          {(i === 0 || i === progressData.length - 1 || point.value === Math.max(...values)) && (
+                            <text
+                              x={point.x}
+                              y={point.y - 8}
+                              className="chart-point-label"
+                              textAnchor="middle"
+                            >
+                              {chartMetric === 'totalVolume' ? `${Math.round(point.value / 1000)}k` : point.value}
+                            </text>
+                          )}
+                        </g>
+                      ))}
+
+                      {/* X-axis labels */}
+                      {progressData.length > 0 && (
+                        <>
+                          <text
+                            x={padding.left}
+                            y={chartHeight - 5}
+                            className="chart-label"
+                            textAnchor="start"
+                          >
+                            {new Date(progressData[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </text>
+                          <text
+                            x={padding.left + innerWidth}
+                            y={chartHeight - 5}
+                            className="chart-label"
+                            textAnchor="end"
+                          >
+                            {new Date(progressData[progressData.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </text>
+                        </>
+                      )}
+                    </svg>
+                  </div>
+                )}
+
+                <button
+                  className="modal-btn primary"
+                  style={{ marginTop: '16px', width: '100%' }}
+                  onClick={() => setShowProgressChart(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Plate Calculator Modal */}
+        {showPlateCalc && (() => {
+          const PLATES = [45, 35, 25, 10, 5, 2.5];
+          const weightPerSide = (plateCalcWeight - plateCalcBar) / 2;
+          const plates: number[] = [];
+          let remaining = weightPerSide;
+
+          for (const plate of PLATES) {
+            while (remaining >= plate) {
+              plates.push(plate);
+              remaining -= plate;
+            }
+          }
+
+          const isValid = remaining === 0 && weightPerSide >= 0;
+
+          return (
+            <div className="modal-overlay" onClick={() => setShowPlateCalc(false)}>
+              <div className="modal plate-calc-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">Plate Calculator</div>
+                <div className="modal-subtitle">Calculate plates needed per side</div>
+
+                <div className="plate-calc-inputs">
+                  <div className="plate-calc-input-group">
+                    <label>Target Weight</label>
+                    <input
+                      type="number"
+                      value={plateCalcWeight}
+                      onChange={(e) => setPlateCalcWeight(Number(e.target.value))}
+                      inputMode="decimal"
+                    />
+                    <span>lbs</span>
+                  </div>
+                  <div className="plate-calc-input-group">
+                    <label>Bar Weight</label>
+                    <div className="plate-calc-bar-options">
+                      {[45, 35, 15].map(w => (
+                        <button
+                          key={w}
+                          className={`plate-calc-bar-btn ${plateCalcBar === w ? 'active' : ''}`}
+                          onClick={() => setPlateCalcBar(w)}
+                        >
+                          {w}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {!isValid ? (
+                  <div className="plate-calc-error">
+                    {weightPerSide < 0
+                      ? 'Target weight must be greater than bar weight'
+                      : `Cannot make ${weightPerSide} lbs with standard plates (${remaining} lbs remaining)`
+                    }
+                  </div>
+                ) : (
+                  <div className="plate-calc-result">
+                    <div className="plate-calc-label">Per Side: {weightPerSide} lbs</div>
+                    <div className="plate-visual">
+                      <div className="plate-bar-end" />
+                      {plates.map((plate, i) => (
+                        <div
+                          key={i}
+                          className={`plate plate-${plate.toString().replace('.', '-')}`}
+                          title={`${plate} lb`}
+                        >
+                          {plate}
+                        </div>
+                      ))}
+                      <div className="plate-collar" />
+                    </div>
+                    <div className="plate-list">
+                      {Object.entries(
+                        plates.reduce((acc, p) => ({ ...acc, [p]: (acc[p] || 0) + 1 }), {} as Record<number, number>)
+                      ).map(([plate, count]) => (
+                        <span key={plate} className="plate-count">
+                          {count}× {plate} lb
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="plate-calc-actions">
+                  <button
+                    className="modal-btn secondary"
+                    onClick={() => setShowPlateCalc(false)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    className="modal-btn primary"
+                    onClick={() => {
+                      setSetWeight(plateCalcWeight);
+                      setShowPlateCalc(false);
+                    }}
+                  >
+                    Use Weight
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Exercise Picker Modal */}
         {showExercisePicker && (
@@ -3494,24 +4126,79 @@ function WorkoutDetailView({
         </div>
       ))}
 
-      <button
-        onClick={() => onRepeat(workout)}
-        style={{
-          width: '100%',
-          padding: '16px',
-          background: 'var(--accent)',
-          border: 'none',
-          borderRadius: '14px',
-          color: 'white',
-          fontWeight: 600,
-          fontSize: '15px',
-          cursor: 'pointer',
-          marginTop: '16px',
-          transition: 'all 0.2s'
-        }}
-      >
-        Repeat This Workout
-      </button>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+        <button
+          onClick={() => onRepeat(workout)}
+          style={{
+            flex: 1,
+            padding: '16px',
+            background: 'var(--accent)',
+            border: 'none',
+            borderRadius: '14px',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '15px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Repeat
+        </button>
+
+        <button
+          onClick={async () => {
+            const totalVolume = workout.exercises.reduce((sum, ex) =>
+              sum + ex.sets.reduce((s, set) => s + (set.isWarmup ? 0 : set.weight * set.reps), 0), 0
+            );
+            const exerciseList = workout.exercises.map(ex => {
+              const bestSet = ex.sets.reduce((best, set) =>
+                set.weight > (best?.weight || 0) ? set : best, ex.sets[0]);
+              return `${ex.name}: ${bestSet?.weight || 0}×${bestSet?.reps || 0}`;
+            }).join('\n');
+
+            const shareText = `Iron Quest Workout
+
+${new Date(workout.startTime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+${workout.exercises.length} exercises · ${workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets · ${formatDuration(workout.duration)}
+
+${exerciseList}
+
++${workout.totalXP} XP earned
+${Math.round(totalVolume).toLocaleString()} lbs total volume
+
+gamify.it.com/fitness`;
+
+            if (navigator.share) {
+              try {
+                await navigator.share({ text: shareText });
+              } catch (e) {
+                // User cancelled or share failed
+              }
+            } else {
+              await navigator.clipboard.writeText(shareText);
+              // Show copied feedback
+              const btn = document.activeElement as HTMLButtonElement;
+              const originalText = btn.textContent;
+              btn.textContent = 'Copied!';
+              setTimeout(() => { btn.textContent = originalText; }, 1500);
+            }
+          }}
+          style={{
+            flex: 1,
+            padding: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            color: 'var(--text-primary)',
+            fontWeight: 600,
+            fontSize: '15px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Share
+        </button>
+      </div>
 
       <button
         onClick={() => {

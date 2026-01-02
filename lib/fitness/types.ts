@@ -16,6 +16,7 @@ export interface WorkoutExercise {
   name: string;
   sets: Set[];
   isCustom?: boolean;
+  supersetGroup?: number;  // Exercises with same group number are in a superset
 }
 
 export interface Workout {

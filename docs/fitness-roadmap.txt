@@ -1,0 +1,185 @@
+IRON QUEST FITNESS APP - FEATURE ROADMAP
+=========================================
+Competitive analysis vs Strong, Hevy, JEFIT
+Generated: January 2026
+
+===========================================
+PHASE 1: TABLE STAKES (COMPLETED)
+===========================================
+Essential features every top fitness app has.
+
+[x] 1. Rest Timer with Presets
+    - Auto-start after logging set
+    - Presets: 60s, 90s, 120s, 180s
+    - Visual countdown bar
+    - Skip button
+
+[x] 2. Previous Workout Values
+    - Show last session's sets for current exercise
+    - Clickable badges to auto-fill weight/reps
+    - Format: "Last: 225x8, 225x8, 230x6"
+
+[x] 3. Exercise-Specific Notes
+    - Per-exercise notes persist across workouts
+    - Examples: "Use narrow grip", "Pause at bottom"
+    - Collapsible section in set panel
+
+[x] 4. Warmup Set Toggle
+    - Mark sets as warmup vs working
+    - Warmup excluded from XP, volume, PR tracking
+    - Visual "W" badge indicator
+
+[x] 5. Repeat Last Set Button
+    - One-tap to log same weight/reps/RPE
+    - Shows after first set logged
+
+
+===========================================
+PHASE 2: DIFFERENTIATION
+===========================================
+Features that set top apps apart.
+
+[ ] 1. Exercise Progress Charts
+    - Line graph showing weight over time
+    - Volume trends (sets x reps x weight)
+    - Per-exercise and overall views
+    - Time filters: 1M, 3M, 6M, 1Y, All
+
+[ ] 2. 1RM Estimates
+    - Calculate estimated 1-rep max from working sets
+    - Formula: Epley (weight × (1 + reps/30))
+    - Show alongside PR in exercise history
+    - Track e1RM progress over time
+
+[ ] 3. Workout Sharing
+    - Share completed workout as image/link
+    - Include exercises, volume, XP earned
+    - Social card with gamify.it branding
+    - Copy link or download image
+
+[ ] 4. Superset/Circuit Support
+    - Group 2+ exercises together
+    - Visual indicator linking exercises
+    - Shared rest timer between superset exercises
+    - "Add to superset" option
+
+[ ] 5. Plate Calculator
+    - Input target weight
+    - Show plates needed per side
+    - Configurable bar weight (45/35/15 lb)
+    - Configurable available plates
+
+
+===========================================
+PHASE 3: POLISH & RETENTION
+===========================================
+Features that improve long-term engagement.
+
+[ ] 1. Smart Onboarding
+    - Guided first workout
+    - Explain XP system, achievements
+    - Suggest starting exercises
+    - Import from other apps (CSV)
+
+[ ] 2. Haptic Feedback
+    - Vibration on set logged
+    - Vibration on PR achieved
+    - Timer completion buzz
+    - Level up celebration
+
+[ ] 3. Monthly/Weekly Summaries
+    - Total workouts, volume, XP
+    - PRs achieved
+    - Streak stats
+    - Shareable summary card
+
+[ ] 4. Enhanced CSV Export
+    - Export all workout history
+    - Configurable date range
+    - Include notes, RPE, timestamps
+    - Compatible with other apps
+
+[ ] 5. Offline Queue
+    - Log workouts without connection
+    - Sync when back online
+    - Visual indicator for pending sync
+    - Conflict resolution
+
+
+===========================================
+PHASE 4: ADVANCED FEATURES
+===========================================
+Power user and coaching features.
+
+[ ] 1. Program Builder
+    - Create multi-week training programs
+    - Assign to self or athletes (coach mode)
+    - Progressive overload suggestions
+    - Rest day scheduling
+
+[ ] 2. Body Composition Tracking
+    - Weight, body fat %, measurements
+    - Progress photos with date overlay
+    - Trend graphs
+    - Integration with smart scales
+
+[ ] 3. Nutrition Logging
+    - Macro tracking (protein focus)
+    - Calorie goals
+    - Water intake
+    - Meal templates
+
+[ ] 4. Social Features
+    - Follow other users
+    - Activity feed
+    - Challenges/competitions
+    - Leaderboards
+
+[ ] 5. AI Coaching
+    - Form tips based on exercise
+    - Plateau detection
+    - Deload recommendations
+    - Personalized suggestions
+
+
+===========================================
+PHASE 5: INTEGRATIONS
+===========================================
+Connect with other services.
+
+[ ] 1. Apple Health / Google Fit
+    - Sync workouts
+    - Import weight data
+    - Share activity data
+
+[ ] 2. Wearables
+    - Apple Watch companion
+    - Heart rate during workouts
+    - Rest timer on wrist
+
+[ ] 3. Gym Equipment
+    - Connect to smart equipment
+    - Auto-log weight/reps
+    - Cable machine presets
+
+[ ] 4. Music
+    - Spotify/Apple Music integration
+    - Workout playlists
+    - BPM-based suggestions
+
+
+===========================================
+UX IMPROVEMENTS (ONGOING)
+===========================================
+Polish items to address throughout.
+
+[ ] Keyboard shortcuts for desktop
+[ ] Swipe gestures for mobile
+[ ] Better empty states
+[ ] Loading skeletons
+[ ] Error recovery flows
+[ ] Accessibility (screen reader, contrast)
+[ ] Offline indicator
+[ ] Pull-to-refresh
+[ ] Undo for accidental deletions
+[ ] Batch operations (delete multiple)

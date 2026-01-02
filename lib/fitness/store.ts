@@ -76,6 +76,8 @@ interface FitnessStore extends FitnessState, SyncState {
   removeSet: (exerciseIndex: number, setIndex: number) => void;
   removeExercise: (exerciseIndex: number) => void;
   reorderExercises: (fromIndex: number, toIndex: number) => void;
+  linkSuperset: (exerciseIndex: number) => void;  // Link exercise to previous exercise's superset
+  unlinkSuperset: (exerciseIndex: number) => void;  // Remove exercise from superset
   finishWorkout: () => Promise<void>;
   cancelWorkout: () => void;
 
@@ -94,6 +96,7 @@ interface FitnessStore extends FitnessState, SyncState {
 
   // Helpers
   getLastWorkoutForExercise: (exerciseId: string) => WorkoutExercise | null;
+  getExerciseProgressData: (exerciseId: string) => { date: string; maxWeight: number; totalVolume: number; e1rm: number }[];
 
   // Navigation
   setView: (view: ViewType) => void;
@@ -602,6 +605,52 @@ export const useFitnessStore = create<FitnessStore>()(
         get().showToast('Exercise order updated');
       },
 
+      linkSuperset: (exerciseIndex: number) => {
+        const state = get();
+        if (!state.currentWorkout || exerciseIndex <= 0) return;
+
+        // Find the previous exercise's superset group, or create a new one
+        const prevExercise = state.currentWorkout.exercises[exerciseIndex - 1];
+        const supersetGroup = prevExercise.supersetGroup || Date.now();
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+          const exercises = state.currentWorkout.exercises.map((ex, i) => {
+            if (i === exerciseIndex - 1 && !ex.supersetGroup) {
+              return { ...ex, supersetGroup };
+            }
+            if (i === exerciseIndex) {
+              return { ...ex, supersetGroup };
+            }
+            return ex;
+          });
+          return { currentWorkout: { ...state.currentWorkout, exercises } };
+        });
+
+        get().saveState();
+        get().showToast('Exercises linked as superset');
+      },
+
+      unlinkSuperset: (exerciseIndex: number) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+          const exercises = state.currentWorkout.exercises.map((ex, i) => {
+            if (i === exerciseIndex) {
+              const { supersetGroup, ...rest } = ex;
+              return rest as typeof ex;
+            }
+            return ex;
+          });
+          return { currentWorkout: { ...state.currentWorkout, exercises } };
+        });
+
+        get().saveState();
+        get().showToast('Exercise unlinked from superset');
+      },
+
       finishWorkout: async () => {
         const state = get();
         if (!state.currentWorkout) return;
@@ -761,6 +810,45 @@ export const useFitnessStore = create<FitnessStore>()(
           }
         }
         return null;
+      },
+
+      // Get progress data for charting an exercise over time
+      getExerciseProgressData: (exerciseId: string) => {
+        const state = get();
+        const dataPoints: { date: string; maxWeight: number; totalVolume: number; e1rm: number }[] = [];
+
+        // Go through all workouts (oldest to newest for charting)
+        const sortedWorkouts = [...state.workouts].reverse();
+
+        for (const workout of sortedWorkouts) {
+          const exercise = workout.exercises.find(e => e.id === exerciseId);
+          if (exercise && exercise.sets.length > 0) {
+            // Filter out warmup sets
+            const workingSets = exercise.sets.filter(s => !s.isWarmup);
+            if (workingSets.length === 0) continue;
+
+            // Calculate metrics
+            const maxWeight = Math.max(...workingSets.map(s => s.weight));
+            const totalVolume = workingSets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
+
+            // Calculate estimated 1RM using Epley formula: weight × (1 + reps/30)
+            // Use the set with highest e1RM
+            let bestE1rm = 0;
+            for (const set of workingSets) {
+              const e1rm = set.weight * (1 + set.reps / 30);
+              if (e1rm > bestE1rm) bestE1rm = e1rm;
+            }
+
+            dataPoints.push({
+              date: workout.endTime || workout.startTime,
+              maxWeight,
+              totalVolume,
+              e1rm: Math.round(bestE1rm)
+            });
+          }
+        }
+
+        return dataPoints;
       },
 
       setView: (view: ViewType) => {
