@@ -151,8 +151,8 @@ export default function AppSwitcher() {
         }
 
         .switcher-title {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.5rem;
+          font-family: var(--font-pixel, 'Press Start 2P', monospace);
+          font-size: 0.7rem;
           color: var(--theme-text-muted, #666);
           text-align: center;
           margin-bottom: 20px;
@@ -206,24 +206,24 @@ export default function AppSwitcher() {
         }
 
         .app-name {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.5rem;
+          font-family: var(--font-pixel, 'Press Start 2P', monospace);
+          font-size: 0.65rem;
           color: var(--theme-text-primary, #fff);
         }
 
         .app-key {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.35rem;
+          font-family: var(--font-pixel, 'Press Start 2P', monospace);
+          font-size: 0.5rem;
           color: var(--theme-text-muted, #666);
           background: var(--theme-bg-base, #0a0a0a);
-          padding: 4px 8px;
+          padding: 4px 10px;
           border-radius: 4px;
           border: 1px solid var(--theme-border, #2a2a2a);
         }
 
         .switcher-hint {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.35rem;
+          font-family: var(--font-pixel, 'Press Start 2P', monospace);
+          font-size: 0.5rem;
           color: var(--theme-text-muted, #666);
           text-align: center;
           margin-top: 20px;
@@ -232,10 +232,10 @@ export default function AppSwitcher() {
         .hint-key {
           color: var(--theme-text-secondary, #aaa);
           background: var(--theme-bg-base, #0a0a0a);
-          padding: 2px 6px;
+          padding: 3px 8px;
           border-radius: 3px;
           border: 1px solid var(--theme-border, #2a2a2a);
-          margin: 0 2px;
+          margin: 0 4px;
         }
       `}</style>
 
