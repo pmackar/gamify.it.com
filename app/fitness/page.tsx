@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES } from '@/lib/fitness/data';
-import { CommandSuggestion, Workout } from '@/lib/fitness/types';
+import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
+import { CommandSuggestion, Workout, WorkoutExercise, Set } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
@@ -61,6 +61,9 @@ export default function FitnessPage() {
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, unmapped: [] as string[] });
 
   useEffect(() => {
     setMounted(true);
@@ -413,7 +416,7 @@ export default function FitnessPage() {
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  if (!mounted) return <div className="min-h-screen" style={{ background: '#08080c' }} />;
+  if (!mounted) return <div className="min-h-screen" style={{ background: 'var(--theme-bg-base)' }} />;
 
   return (
     <>
@@ -421,33 +424,37 @@ export default function FitnessPage() {
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
 
         .fitness-app {
-          /* Gamify.it.com Design System - Iron Quest Theme */
-          --bg-primary: #0a0a0a;
-          --bg-secondary: #1a1a1a;
-          --bg-tertiary: #252525;
-          --bg-card: #1e1e28;
-          --bg-card-hover: #252530;
-          --bg-elevated: #121218;
-          --text-primary: #ffffff;
-          --text-secondary: #aaaaaa;
-          --text-tertiary: #666666;
-          --border: #2a2a2a;
-          --border-light: #3a3a3a;
+          /* Iron Quest Theme - Uses universal theme system */
+          /* App-specific accent (red) */
           --accent: #FF6B6B;
           --accent-dark: #CC5555;
           --accent-glow: rgba(255, 107, 107, 0.3);
-          --gold: #FFD700;
-          --gold-glow: rgba(255, 215, 0, 0.3);
-          --teal: #5fbf8a;
+
+          /* Map local vars to theme system for dark/light/terminal support */
+          --bg-primary: var(--theme-bg-base);
+          --bg-secondary: var(--theme-bg-elevated);
+          --bg-tertiary: var(--theme-bg-tertiary);
+          --bg-card: var(--theme-bg-card);
+          --bg-card-hover: var(--theme-bg-card-hover);
+          --bg-elevated: var(--theme-bg-elevated);
+          --text-primary: var(--theme-text-primary);
+          --text-secondary: var(--theme-text-secondary);
+          --text-tertiary: var(--theme-text-muted);
+          --border: var(--theme-border);
+          --border-light: var(--theme-border-light);
+          --gold: var(--theme-gold);
+          --gold-glow: var(--theme-gold-glow);
+          --teal: var(--theme-success);
           --teal-glow: rgba(95, 191, 138, 0.3);
-          --success: #5fbf8a;
-          --warning: #FFD700;
-          --danger: #ff6b6b;
+          --success: var(--theme-success);
+          --warning: var(--theme-gold);
+          --danger: var(--theme-danger);
+
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           font-size: 16px;
           line-height: 1.5;
           -webkit-font-smoothing: antialiased;
-          background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%);
+          background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
           min-height: 100vh;
           position: relative;
         }

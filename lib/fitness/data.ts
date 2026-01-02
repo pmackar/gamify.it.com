@@ -261,6 +261,276 @@ export const DEFAULT_TEMPLATES: WorkoutTemplate[] = [
   }
 ];
 
+// Strong App exercise name mappings
+// Maps Strong CSV exercise names to our internal exercise IDs
+export const STRONG_EXERCISE_MAPPINGS: Record<string, string> = {
+  // Chest
+  'Bench Press (Barbell)': 'bench',
+  'Bench Press': 'bench',
+  'Barbell Bench Press': 'bench',
+  'Incline Bench Press': 'incline_bench',
+  'Incline Bench Press (Barbell)': 'incline_bench',
+  'Decline Bench Press': 'decline_bench',
+  'Decline Bench Press (Barbell)': 'decline_bench',
+  'Dumbbell Bench Press': 'db_bench',
+  'Bench Press (Dumbbell)': 'db_bench',
+  'Incline Dumbbell Press': 'incline_db',
+  'Incline Bench Press (Dumbbell)': 'incline_db',
+  'Decline Dumbbell Press': 'decline_db',
+  'Dumbbell Fly': 'db_flies',
+  'Dumbbell Flies': 'db_flies',
+  'Incline Dumbbell Fly': 'incline_flies',
+  'Cable Fly': 'cable_flies',
+  'Cable Flies': 'cable_flies',
+  'Cable Crossover': 'cable_flies',
+  'Chest Press Machine': 'chest_press_machine',
+  'Machine Chest Press': 'chest_press_machine',
+  'Pec Deck': 'pec_deck',
+  'Pec Deck Machine': 'pec_deck',
+  'Push Up': 'pushups',
+  'Push-Up': 'pushups',
+  'Push Ups': 'pushups',
+  'Chest Dip': 'dips_chest',
+
+  // Back
+  'Deadlift': 'deadlift',
+  'Deadlift (Barbell)': 'deadlift',
+  'Barbell Deadlift': 'deadlift',
+  'Conventional Deadlift': 'deadlift',
+  'Barbell Row': 'rows',
+  'Bent Over Row': 'rows',
+  'Bent Over Row (Barbell)': 'rows',
+  'Barbell Rows': 'rows',
+  'Pendlay Row': 'pendlay_row',
+  'T-Bar Row': 'tbar_row',
+  'T Bar Row': 'tbar_row',
+  'Dumbbell Row': 'db_row',
+  'One Arm Dumbbell Row': 'db_row',
+  'Bent Over Row (Dumbbell)': 'db_row',
+  'Single Arm Dumbbell Row': 'db_row',
+  'Pull Up': 'pullups',
+  'Pull-Up': 'pullups',
+  'Pull Ups': 'pullups',
+  'Chin Up': 'chinups',
+  'Chin-Up': 'chinups',
+  'Chin Ups': 'chinups',
+  'Lat Pulldown': 'lat_pulldown',
+  'Lat Pulldown (Cable)': 'lat_pulldown',
+  'Wide Grip Lat Pulldown': 'lat_pulldown',
+  'Close Grip Lat Pulldown': 'close_grip_pulldown',
+  'Seated Cable Row': 'seated_cable_row',
+  'Seated Row': 'seated_cable_row',
+  'Cable Row': 'seated_cable_row',
+  'Cable Pullover': 'cable_pullover',
+  'Face Pull': 'facepull',
+  'Face Pulls': 'facepull',
+  'Machine Row': 'machine_row',
+  'Seated Row (Machine)': 'machine_row',
+  'Chest Supported Row': 'chest_supported_row',
+  'Hyperextension': 'hyperextension',
+  'Back Extension': 'hyperextension',
+  'Rack Pull': 'rack_pull',
+
+  // Shoulders
+  'Overhead Press': 'ohp',
+  'Overhead Press (Barbell)': 'ohp',
+  'Military Press': 'ohp',
+  'Barbell Shoulder Press': 'ohp',
+  'Standing Barbell Press': 'ohp',
+  'Push Press': 'push_press',
+  'Dumbbell Shoulder Press': 'db_shoulder_press',
+  'Seated Dumbbell Press': 'db_shoulder_press',
+  'Shoulder Press (Dumbbell)': 'db_shoulder_press',
+  'Arnold Press': 'arnold_press',
+  'Lateral Raise': 'laterals',
+  'Lateral Raises': 'laterals',
+  'Dumbbell Lateral Raise': 'laterals',
+  'Side Lateral Raise': 'laterals',
+  'Cable Lateral Raise': 'cable_lateral',
+  'Front Raise': 'front_raise',
+  'Front Raises': 'front_raise',
+  'Dumbbell Front Raise': 'front_raise',
+  'Rear Delt Fly': 'rear_delt_fly',
+  'Rear Delt Flies': 'rear_delt_fly',
+  'Reverse Fly': 'rear_delt_fly',
+  'Rear Delt Machine Fly': 'reverse_pec_deck',
+  'Reverse Pec Deck': 'reverse_pec_deck',
+  'Upright Row': 'upright_row',
+  'Upright Row (Barbell)': 'upright_row',
+  'Barbell Shrug': 'shrugs_bb',
+  'Shrugs': 'shrugs_bb',
+  'Shrugs (Barbell)': 'shrugs_bb',
+  'Dumbbell Shrug': 'shrugs_db',
+  'Shrugs (Dumbbell)': 'shrugs_db',
+  'Shoulder Press Machine': 'shoulder_press_machine',
+  'Machine Shoulder Press': 'shoulder_press_machine',
+  'Landmine Press': 'landmine_press',
+  'Klokov Press': 'ohp',
+  'Clean Shrug (from Rack)': 'shrugs_bb',
+
+  // Biceps
+  'Barbell Curl': 'curls',
+  'Bicep Curl': 'curls',
+  'Bicep Curl (Barbell)': 'curls',
+  'EZ Bar Curl': 'ez_bar_curl',
+  'EZ-Bar Curl': 'ez_bar_curl',
+  'Dumbbell Curl': 'db_curl',
+  'Bicep Curl (Dumbbell)': 'db_curl',
+  'Alternating Dumbbell Curl': 'db_curl',
+  'Hammer Curl': 'hammercurl',
+  'Hammer Curls': 'hammercurl',
+  'Incline Dumbbell Curl': 'incline_curl',
+  'Concentration Curl': 'concentration_curl',
+  'Preacher Curl': 'preacher_curl',
+  'EZ-Bar Preacher Curl': 'preacher_curl',
+  'Cable Curl': 'cable_curl',
+  'Cable Bicep Curl': 'cable_curl',
+  'Spider Curl': 'spider_curl',
+  'Machine Curl': 'machine_curl',
+
+  // Triceps
+  'Tricep Pushdown': 'tricep',
+  'Triceps Pushdown': 'tricep',
+  'Tricep Cable Push down (straight Handle)': 'tricep',
+  'Cable Pushdown': 'tricep',
+  'Tricep Pushdown (Cable)': 'tricep',
+  'Rope Pushdown': 'rope_pushdown',
+  'Tri Rope Pushdown': 'rope_pushdown',
+  'Tricep Rope Pushdown': 'rope_pushdown',
+  'Overhead Tricep Extension': 'overhead_tricep',
+  'Tricep Extension': 'overhead_tricep',
+  'Cable Overhead Tricep Extension': 'overhead_tricep',
+  'Skull Crusher': 'skull_crushers',
+  'Skull Crushers': 'skull_crushers',
+  'Lying Tricep Extension': 'skull_crushers',
+  'EZ-Bar Skull Crusher': 'skull_crushers',
+  'Close Grip Bench Press': 'close_grip_bench',
+  'Close Grip Bench Press (Barbell)': 'close_grip_bench',
+  'Dip': 'dip',
+  'Dips': 'dip',
+  'Tricep Dip': 'tricep_dips',
+  'Tricep Dips': 'tricep_dips',
+  'Dumbbell Tricep Extension': 'db_tricep_ext',
+  'Tricep Kickback': 'kickbacks',
+  'Tricep Kickbacks': 'kickbacks',
+  'Diamond Push Up': 'diamond_pushup',
+
+  // Legs - Quads
+  'Squat': 'squat',
+  'Squat (Barbell)': 'squat',
+  'Barbell Squat': 'squat',
+  'Back Squat': 'squat',
+  'Front Squat': 'front_squat',
+  'Front Squat (Barbell)': 'front_squat',
+  'Goblet Squat': 'goblet_squat',
+  'Leg Press': 'legpress',
+  'Leg Press (Machine)': 'legpress',
+  'Hack Squat': 'hack_squat',
+  'Hack Squat (Machine)': 'hack_squat',
+  'Leg Extension': 'legext',
+  'Leg Extensions': 'legext',
+  'Leg Extension (Machine)': 'legext',
+  'Lunge': 'lunges',
+  'Lunges': 'lunges',
+  'Walking Lunge': 'walking_lunge',
+  'Walking Lunges': 'walking_lunge',
+  'Bulgarian Split Squat': 'split_squat',
+  'Split Squat': 'split_squat',
+  'Step Up': 'step_ups',
+  'Step Ups': 'step_ups',
+
+  // Legs - Hamstrings
+  'Romanian Deadlift': 'rdl',
+  'Romanian Deadlift (Barbell)': 'rdl',
+  'RDL': 'rdl',
+  'Stiff Leg Deadlift': 'stiff_leg_dl',
+  'Stiff Legged Deadlift': 'stiff_leg_dl',
+  'Dumbbell Romanian Deadlift': 'db_rdl',
+  'Lying Leg Curl': 'legcurl',
+  'Leg Curl': 'legcurl',
+  'Leg Curl (Machine)': 'legcurl',
+  'Seated Leg Curl': 'seated_leg_curl',
+  'Nordic Curl': 'nordic_curl',
+  'Good Morning': 'good_morning',
+  'Good Mornings': 'good_morning',
+  'Glute Ham Raise': 'glute_ham_raise',
+
+  // Glutes
+  'Hip Thrust': 'hip_thrust',
+  'Barbell Hip Thrust': 'hip_thrust',
+  'Hip Thrust (Barbell)': 'hip_thrust',
+  'Glute Bridge': 'glute_bridge',
+  'Cable Kickback': 'cable_kickback',
+  'Sumo Deadlift': 'sumo_deadlift',
+  'Sumo Deadlift (Barbell)': 'sumo_deadlift',
+  'Cable Pull Through': 'cable_pull_through',
+  'Hip Abduction': 'hip_abduction',
+  'Hip Abduction Machine': 'hip_abduction',
+
+  // Calves
+  'Standing Calf Raise': 'calfraise',
+  'Calf Raise': 'calfraise',
+  'Standing Calf Raise (Machine)': 'calfraise',
+  'Seated Calf Raise': 'seated_calf',
+  'Seated Calf Raise (Machine)': 'seated_calf',
+  'Donkey Calf Raise': 'donkey_calf',
+  'Smith Machine Calf Raise': 'smith_calf',
+
+  // Core
+  'Plank': 'plank',
+  'Crunch': 'crunches',
+  'Crunches': 'crunches',
+  'Hanging Leg Raise': 'leg_raise',
+  'Leg Raise': 'leg_raise',
+  'Cable Crunch': 'cable_crunch',
+  'Ab Wheel Rollout': 'ab_rollout',
+  'Ab Rollout': 'ab_rollout',
+  'Russian Twist': 'russian_twist',
+  'Cable Woodchop': 'woodchop',
+  'Wood Chop': 'woodchop',
+  'Dead Bug': 'dead_bug',
+  'Pallof Press': 'pallof_press',
+  'Decline Sit Up': 'decline_situp',
+  'Decline Sit-Up': 'decline_situp',
+};
+
+// Fuzzy match exercise name to our exercise IDs
+export function matchExerciseFromCSV(csvName: string): string | null {
+  // First, try exact match from mappings
+  if (STRONG_EXERCISE_MAPPINGS[csvName]) {
+    return STRONG_EXERCISE_MAPPINGS[csvName];
+  }
+
+  // Try case-insensitive match
+  const lowerName = csvName.toLowerCase();
+  for (const [key, value] of Object.entries(STRONG_EXERCISE_MAPPINGS)) {
+    if (key.toLowerCase() === lowerName) {
+      return value;
+    }
+  }
+
+  // Try fuzzy matching - check if exercise name contains key parts
+  const normalized = lowerName
+    .replace(/\(.*?\)/g, '') // Remove parentheses content
+    .replace(/[^a-z\s]/g, '') // Remove non-letters
+    .trim();
+
+  // Check against our exercise list
+  for (const exercise of EXERCISES) {
+    const exNormalized = exercise.name.toLowerCase().replace(/[^a-z\s]/g, '');
+    if (normalized.includes(exNormalized) || exNormalized.includes(normalized)) {
+      return exercise.id;
+    }
+    // Check ID as well
+    if (normalized.replace(/\s+/g, '_').includes(exercise.id) ||
+        exercise.id.includes(normalized.replace(/\s+/g, '_'))) {
+      return exercise.id;
+    }
+  }
+
+  return null;
+}
+
 // Helper functions
 export function getExerciseTier(exerciseId: string): number {
   if (EXERCISE_TIERS.tier1.includes(exerciseId)) return 1;

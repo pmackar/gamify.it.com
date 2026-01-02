@@ -554,10 +554,51 @@ export const useFitnessStore = create<FitnessStore>()(
       },
 
       importWorkouts: (workouts: Workout[]) => {
+        const state = get();
+
+        // Merge with existing workouts, avoiding duplicates by ID
+        const existingIds = new Set(state.workouts.map(w => w.id));
+        const newWorkouts = workouts.filter(w => !existingIds.has(w.id));
+
+        // Calculate stats from imported workouts
+        let totalSets = 0;
+        let totalVolume = 0;
+        let totalXP = 0;
+        const newRecords: Record<string, number> = { ...state.records };
+
+        for (const workout of newWorkouts) {
+          for (const exercise of workout.exercises) {
+            for (const s of exercise.sets) {
+              totalSets++;
+              totalVolume += s.weight * s.reps;
+              totalXP += s.xp || 0;
+
+              // Update PRs
+              if (s.weight > (newRecords[exercise.id] || 0)) {
+                newRecords[exercise.id] = s.weight;
+              }
+            }
+          }
+        }
+
+        // Sort all workouts by date (newest first)
+        const allWorkouts = [...newWorkouts, ...state.workouts]
+          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
         set((state) => ({
-          workouts: [...workouts, ...state.workouts]
+          workouts: allWorkouts,
+          records: newRecords,
+          profile: {
+            ...state.profile,
+            totalWorkouts: state.profile.totalWorkouts + newWorkouts.length,
+            totalSets: state.profile.totalSets + totalSets,
+            totalVolume: state.profile.totalVolume + totalVolume,
+            xp: state.profile.xp + totalXP,
+            level: getLevelFromXP(state.profile.xp + totalXP)
+          }
         }));
-        get().showToast(`Imported ${workouts.length} workouts`);
+
+        get().showToast(`Imported ${newWorkouts.length} workouts, +${totalXP.toLocaleString()} XP`);
       },
 
       eraseAllData: () => {

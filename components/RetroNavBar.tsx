@@ -365,6 +365,109 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
           background: #6366f1;
         }
 
+        /* ===== TERMINAL THEME ===== */
+        .global-nav.theme-terminal .global-nav-inner {
+          background: rgba(0, 10, 0, 0.95);
+          border: 1px solid #003300;
+          box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+
+        .global-nav.theme-terminal .nav-logo {
+          background: linear-gradient(180deg, #00ff00 0%, #00cc00 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .global-nav.theme-terminal .nav-app-link:hover {
+          background: rgba(0, 255, 0, 0.1);
+        }
+
+        .global-nav.theme-terminal .nav-app-link.active {
+          background: rgba(0, 255, 0, 0.15);
+        }
+
+        .global-nav.theme-terminal .nav-app-link.active::after {
+          background: #00ff00;
+          box-shadow: 0 0 6px 1px rgba(0, 255, 0, 0.6);
+        }
+
+        .global-nav.theme-terminal .nav-login-btn {
+          background: linear-gradient(180deg, #00ff00 0%, #00aa00 100%);
+          color: #000;
+        }
+
+        .global-nav.theme-terminal .nav-avatar {
+          border: 2px solid rgba(0, 255, 0, 0.5);
+        }
+
+        .global-nav.theme-terminal .nav-avatar:hover {
+          border-color: #00ff00;
+          box-shadow: 0 0 12px rgba(0, 255, 0, 0.4);
+        }
+
+        .global-nav.theme-terminal .nav-avatar-placeholder {
+          background: linear-gradient(135deg, #00ff00 0%, #00aa00 100%);
+          color: #000;
+        }
+
+        .global-nav.theme-terminal .nav-level-badge {
+          background: linear-gradient(180deg, #00ff00 0%, #00aa00 100%);
+          color: #000;
+          box-shadow: 0 2px 0 #005500;
+        }
+
+        .global-nav.theme-terminal .nav-xp-fill {
+          background: linear-gradient(90deg, #00ff00 0%, #00cc00 100%);
+          box-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+        }
+
+        .global-nav.theme-terminal .nav-dropdown {
+          background: rgba(0, 10, 0, 0.98);
+          border: 1px solid #003300;
+        }
+
+        .global-nav.theme-terminal .nav-dropdown-email {
+          color: #00aa00;
+          border-bottom-color: #003300;
+        }
+
+        .global-nav.theme-terminal .nav-dropdown-item {
+          color: #00cc00;
+        }
+
+        .global-nav.theme-terminal .nav-dropdown-item:hover {
+          background: rgba(0, 255, 0, 0.1);
+          color: #00ff00;
+        }
+
+        .global-nav.theme-terminal .nav-dropdown-item.danger {
+          color: #ff0000;
+        }
+
+        .global-nav.theme-terminal .nav-apps-dropdown {
+          background: rgba(0, 10, 0, 0.98);
+          border: 1px solid #003300;
+        }
+
+        .global-nav.theme-terminal .nav-apps-dropdown-item {
+          color: #00cc00;
+        }
+
+        .global-nav.theme-terminal .nav-apps-dropdown-item:hover {
+          background: rgba(0, 255, 0, 0.1);
+          color: #00ff00;
+        }
+
+        .global-nav.theme-terminal .nav-apps-dropdown-item.active {
+          background: rgba(0, 255, 0, 0.15);
+          color: #00ff00;
+        }
+
+        .global-nav.theme-terminal .nav-loading {
+          background: #00ff00;
+        }
+
         .nav-logo {
           font-family: 'Press Start 2P', monospace;
           font-size: 9px;

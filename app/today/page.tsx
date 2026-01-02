@@ -798,27 +798,30 @@ export default function TodayPage() {
     <>
       <style jsx global>{`
         :root {
-          /* Gamify.it.com Design System - Dark Theme */
-          --bg-primary: #0a0a0a;
-          --bg-secondary: #1a1a1a;
-          --bg-tertiary: #252525;
-          --bg-card: #1e1e28;
-          --bg-card-hover: #252530;
-          --text-primary: #ffffff;
-          --text-secondary: #aaaaaa;
-          --text-tertiary: #666666;
-          --border: #2a2a2a;
-          --border-light: #3a3a3a;
+          /* Day Quest Theme - Uses universal theme system */
+          /* App-specific accent (cyan) */
           --accent: #5CC9F5;
           --accent-glow: rgba(92, 201, 245, 0.3);
           --accent-hover: #4ab8e4;
-          --gold: #FFD700;
-          --gold-glow: rgba(255, 215, 0, 0.3);
-          --teal: #5fbf8a;
+
+          /* Map local vars to theme system for dark/light/terminal support */
+          --bg-primary: var(--theme-bg-base);
+          --bg-secondary: var(--theme-bg-elevated);
+          --bg-tertiary: var(--theme-bg-tertiary);
+          --bg-card: var(--theme-bg-card);
+          --bg-card-hover: var(--theme-bg-card-hover);
+          --text-primary: var(--theme-text-primary);
+          --text-secondary: var(--theme-text-secondary);
+          --text-tertiary: var(--theme-text-muted);
+          --border: var(--theme-border);
+          --border-light: var(--theme-border-light);
+          --gold: var(--theme-gold);
+          --gold-glow: var(--theme-gold-glow);
+          --teal: var(--theme-success);
           --teal-glow: rgba(95, 191, 138, 0.3);
-          --success: #5fbf8a;
-          --warning: #FFD700;
-          --danger: #ff6b6b;
+          --success: var(--theme-success);
+          --warning: var(--theme-gold);
+          --danger: var(--theme-danger);
         }
 
         /* Pixel Particles */
