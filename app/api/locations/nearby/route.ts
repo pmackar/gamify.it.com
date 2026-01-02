@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { LocationType } from "@prisma/client";
+import { travel_location_type } from "@prisma/client";
 
 // Haversine formula to calculate distance between two coordinates
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const lat = parseFloat(searchParams.get("lat") || "");
   const lng = parseFloat(searchParams.get("lng") || "");
   const radiusKm = parseFloat(searchParams.get("radius") || "5");
-  const type = searchParams.get("type") as LocationType | null;
+  const type = searchParams.get("type")?.toUpperCase() as travel_location_type | null;
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
 
   if (isNaN(lat) || isNaN(lng)) {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   const where: {
     latitude: { gte: number; lte: number };
     longitude: { gte: number; lte: number };
-    type?: LocationType;
+    type?: travel_location_type;
   } = {
     latitude: { gte: minLat, lte: maxLat },
     longitude: { gte: minLng, lte: maxLng },
@@ -64,34 +64,55 @@ export async function GET(request: NextRequest) {
     where.type = type;
   }
 
-  const locations = await prisma.location.findMany({
+  const locations = await prisma.travel_locations.findMany({
     where,
     include: {
       city: { select: { id: true, name: true, country: true } },
       neighborhood: { select: { id: true, name: true } },
-      userData: {
-        where: { userId: user.id },
-        select: {
-          hotlist: true,
-          visited: true,
-          personalRating: true,
-        },
-      },
       _count: { select: { visits: true, reviews: true } },
     },
   });
 
+  // Get user's location data for these locations
+  const locationIds = locations.map((l) => l.id);
+  const userLocationData = await prisma.travel_user_location_data.findMany({
+    where: {
+      user_id: user.id,
+      location_id: { in: locationIds },
+    },
+    select: {
+      location_id: true,
+      hotlist: true,
+      visited: true,
+      personal_rating: true,
+    },
+  });
+
+  const userDataMap = new Map(
+    userLocationData.map((uld) => [uld.location_id, uld])
+  );
+
   // Calculate actual distance and filter by radius
   const locationsWithDistance = locations
     .map((loc) => {
-      const userLocationData = loc.userData[0] || null;
+      const userData = userDataMap.get(loc.id);
       return {
-        ...loc,
+        id: loc.id,
+        name: loc.name,
+        type: loc.type,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        address: loc.address,
+        blurb: loc.blurb,
+        city: loc.city,
+        neighborhood: loc.neighborhood,
+        avgRating: loc.avg_rating,
+        totalVisits: loc.total_visits,
+        _count: loc._count,
         distanceKm: calculateDistance(lat, lng, loc.latitude, loc.longitude),
-        userVisited: userLocationData?.visited ?? loc.visited ?? false,
-        userHotlist: userLocationData?.hotlist ?? loc.hotlist ?? false,
-        userRating: userLocationData?.personalRating ?? null,
-        userData: undefined,
+        userVisited: userData?.visited ?? loc.visited ?? false,
+        userHotlist: userData?.hotlist ?? loc.hotlist ?? false,
+        userRating: userData?.personal_rating ?? null,
       };
     })
     .filter((loc) => loc.distanceKm <= radiusKm)

@@ -15,35 +15,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const location = await prisma.location.findUnique({
+  const location = await prisma.travel_locations.findUnique({
     where: { id },
     include: {
       city: { select: { id: true, name: true, country: true } },
       neighborhood: { select: { id: true, name: true } },
-      createdBy: {
-        select: { id: true, name: true, image: true },
-      },
-      reviews: {
-        where: { status: "APPROVED" },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
-          author: {
-            select: { id: true, name: true, image: true },
-          },
-        },
-      },
       visits: {
-        where: { userId: user.id },
+        where: { user_id: user.id },
         orderBy: { date: "desc" },
         take: 10,
-      },
-      photos: {
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      },
-      _count: {
-        select: { visits: true, photos: true, reviews: true },
       },
     },
   });
@@ -53,54 +33,80 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   // Get user's personal data for this location
-  const userLocationData = await prisma.userLocationData.findUnique({
+  const userLocationData = await prisma.travel_user_location_data.findUnique({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId: id,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: id,
       },
     },
   });
 
   return NextResponse.json({
-    ...location,
-    // User-specific data (from UserLocationData or legacy fields as fallback)
-    userVisited: userLocationData?.visited ?? location.visited ?? false,
-    userHotlist: userLocationData?.hotlist ?? location.hotlist ?? false,
-    userRating: userLocationData?.personalRating ?? null,
-    userVisitCount: userLocationData?.visitCount ?? 0,
+    id: location.id,
+    name: location.name,
+    type: location.type,
+    cuisine: location.cuisine,
+    address: location.address,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    blurb: location.blurb,
+    description: location.description,
+    website: location.website,
+    phone: location.phone,
+    hours: location.hours,
+    priceLevel: location.price_level,
+    otherInfo: location.other_info,
+    tags: location.tags,
+    avgRating: location.avg_rating,
+    ratingCount: location.rating_count,
+    totalVisits: location.total_visits,
+    city: location.city,
+    neighborhood: location.neighborhood?.name || null,
+    visits: location.visits.map(v => ({
+      id: v.id,
+      date: v.date,
+      overallRating: v.overall_rating,
+      notes: v.notes,
+    })),
+    // User-specific data
+    visited: userLocationData?.visited ?? location.visited ?? false,
+    hotlist: userLocationData?.hotlist ?? location.hotlist ?? false,
+    userRating: userLocationData?.personal_rating ?? null,
+    userVisitCount: userLocationData?.visit_count ?? 0,
     userNotes: userLocationData?.notes ?? null,
   });
 }
 
-// PUT /api/locations/[id] - Update a location (creator only)
+// PUT /api/locations/[id] - Update a location
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
   const body = await request.json();
 
-  // Check if location exists and user is the creator
-  const existing = await prisma.location.findUnique({
+  // Check if location exists
+  const existing = await prisma.travel_locations.findUnique({
     where: { id },
-    select: { createdById: true },
+    select: { user_id: true },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "Location not found" }, { status: 404 });
   }
 
-  if (existing.createdById !== user.id) {
+  // Only allow creator to edit (or anyone if no creator set)
+  if (existing.user_id && existing.user_id !== user.id) {
     return NextResponse.json(
       { error: "You can only edit locations you created" },
       { status: 403 }
     );
   }
 
-  const location = await prisma.location.update({
+  const location = await prisma.travel_locations.update({
     where: { id },
     data: {
       ...(body.name && { name: body.name }),
@@ -114,10 +120,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       ...(body.website !== undefined && { website: body.website }),
       ...(body.phone !== undefined && { phone: body.phone }),
       ...(body.hours !== undefined && { hours: body.hours }),
-      ...(body.priceLevel !== undefined && { priceLevel: body.priceLevel }),
-      ...(body.otherInfo !== undefined && { otherInfo: body.otherInfo }),
+      ...(body.priceLevel !== undefined && { price_level: body.priceLevel }),
+      ...(body.otherInfo !== undefined && { other_info: body.otherInfo }),
       ...(body.tags && { tags: body.tags }),
-      ...(body.neighborhoodId !== undefined && { neighborhoodId: body.neighborhoodId }),
+      ...(body.neighborhoodId !== undefined && { neighborhood_id: body.neighborhoodId }),
     },
     include: {
       city: { select: { id: true, name: true, country: true } },
@@ -125,29 +131,36 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  return NextResponse.json(location);
+  return NextResponse.json({
+    id: location.id,
+    name: location.name,
+    type: location.type,
+    city: location.city,
+    neighborhood: location.neighborhood,
+  });
 }
 
-// DELETE /api/locations/[id] - Delete a location (creator only)
+// DELETE /api/locations/[id] - Delete a location
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
 
-  // Check if location exists and user is the creator
-  const existing = await prisma.location.findUnique({
+  // Check if location exists
+  const existing = await prisma.travel_locations.findUnique({
     where: { id },
-    select: { createdById: true, cityId: true },
+    select: { user_id: true, city_id: true },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "Location not found" }, { status: 404 });
   }
 
-  if (existing.createdById !== user.id) {
+  // Only allow creator to delete (or anyone if no creator set)
+  if (existing.user_id && existing.user_id !== user.id) {
     return NextResponse.json(
       { error: "You can only delete locations you created" },
       { status: 403 }
@@ -155,14 +168,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   // Delete the location (cascade will handle related records)
-  await prisma.location.delete({
+  await prisma.travel_locations.delete({
     where: { id },
   });
 
   // Update city location count
-  await prisma.city.update({
-    where: { id: existing.cityId },
-    data: { locationCount: { decrement: 1 } },
+  await prisma.travel_cities.update({
+    where: { id: existing.city_id },
+    data: { location_count: { decrement: 1 } },
   });
 
   return NextResponse.json({ message: "Location deleted" });
