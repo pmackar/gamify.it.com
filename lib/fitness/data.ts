@@ -247,6 +247,7 @@ export const DEFAULT_COMMANDS: Command[] = [
   { id: 'campaigns', title: 'Campaigns', subtitle: 'Goals and challenges', icon: '🎯' },
   { id: 'achievements', title: 'Achievements', subtitle: 'View unlocked milestones', icon: '🏆' },
   { id: 'import', title: 'Import CSV', subtitle: 'Import workout history from CSV', icon: '📥' },
+  { id: 'reset', title: 'Reset All Data', subtitle: 'Erase all workouts, achievements, and stats', icon: '🗑️' },
 ];
 
 export interface WorkoutTemplate {
