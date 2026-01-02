@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Star, Filter, Plus, ChevronRight, X } from "lucide-react";
+import { MapPin, Star, Filter, Plus, ChevronRight, X, LayoutGrid, List } from "lucide-react";
 
 interface Location {
   id: string;
@@ -63,6 +63,7 @@ function LocationsContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [visitedFilter, setVisitedFilter] = useState<boolean | null>(null);
   const [hotlistFilter, setHotlistFilter] = useState<boolean | null>(null);
+  const [viewMode, setViewMode] = useState<'sheet' | 'list'>('sheet');
 
   // Read URL params on mount
   useEffect(() => {
@@ -168,10 +169,37 @@ function LocationsContent() {
             {locations.length} places you've been
           </p>
         </div>
-        <Link href="/travel/locations/new" className="rpg-btn flex items-center justify-center gap-2">
-          <Plus className="w-3 h-3" />
-          Add Location
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '2px solid var(--rpg-border)' }}>
+            <button
+              onClick={() => setViewMode('sheet')}
+              className="p-2 transition-colors"
+              style={{
+                background: viewMode === 'sheet' ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                color: viewMode === 'sheet' ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+              }}
+              title="Grid view"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className="p-2 transition-colors"
+              style={{
+                background: viewMode === 'list' ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                color: viewMode === 'list' ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+              }}
+              title="List view"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+          <Link href="/travel/locations/new" className="rpg-btn flex items-center justify-center gap-2">
+            <Plus className="w-3 h-3" />
+            Add Location
+          </Link>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -292,7 +320,8 @@ function LocationsContent() {
             </Link>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'sheet' ? (
+        /* Sheet/Grid View */
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredLocations.map((location) => (
             <Link
@@ -344,6 +373,57 @@ function LocationsContent() {
                 {(location._count?.photos ?? 0) > 0 &&
                   ` · ${location._count?.photos} photo${(location._count?.photos ?? 0) !== 1 ? "s" : ""}`}
               </p>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="rounded-lg overflow-hidden" style={{ border: '2px solid var(--rpg-border)' }}>
+          {filteredLocations.map((location, index) => (
+            <Link
+              key={location.id}
+              href={`/travel/locations/${location.id}`}
+              className="flex items-center gap-4 p-4 transition-all hover:bg-opacity-50"
+              style={{
+                background: index % 2 === 0 ? 'var(--rpg-card)' : 'var(--rpg-bg-dark)',
+                borderBottom: index < filteredLocations.length - 1 ? '1px solid var(--rpg-border)' : 'none',
+              }}
+            >
+              {/* Type Badge */}
+              <span
+                className="px-2 py-1 rounded text-[0.45rem] capitalize flex-shrink-0 w-24 text-center"
+                style={{
+                  background: TYPE_COLORS[location.type]?.bg || TYPE_COLORS.OTHER.bg,
+                  border: `1px solid ${TYPE_COLORS[location.type]?.border || TYPE_COLORS.OTHER.border}`,
+                  color: TYPE_COLORS[location.type]?.text || TYPE_COLORS.OTHER.text,
+                }}
+              >
+                {location.type.toLowerCase()}
+              </span>
+
+              {/* Name & Location */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[0.6rem] truncate" style={{ color: 'var(--rpg-text)' }}>
+                  {location.name}
+                </h3>
+                <p className="text-[0.5rem] truncate" style={{ color: 'var(--rpg-muted)' }}>
+                  {location.city.name}, {location.city.country}
+                </p>
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 flex-shrink-0">
+                {location.avgRating && (
+                  <span className="flex items-center gap-1 text-[0.5rem]" style={{ color: 'var(--rpg-gold)' }}>
+                    <Star className="w-3 h-3 fill-current" />
+                    {location.avgRating.toFixed(1)}
+                  </span>
+                )}
+                <span className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
+                  {location.totalVisits || location._count?.visits || 0} visits
+                </span>
+                <ChevronRight className="w-4 h-4" style={{ color: 'var(--rpg-muted)' }} />
+              </div>
             </Link>
           ))}
         </div>

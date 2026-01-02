@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, MapPin, Calendar, ChevronRight, Plus } from "lucide-react";
+import { Building2, MapPin, Calendar, ChevronRight, Plus, LayoutGrid, List } from "lucide-react";
 
 interface City {
   id: string;
@@ -21,6 +21,7 @@ interface City {
 export default function CitiesPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'sheet' | 'list'>('sheet');
 
   useEffect(() => {
     async function fetchCities() {
@@ -79,10 +80,37 @@ export default function CitiesPage() {
             {cities.length} cities across {Object.keys(citiesByCountry).length} countries
           </p>
         </div>
-        <Link href="/travel/locations/new" className="rpg-btn flex items-center gap-2">
-          <Plus className="w-3 h-3" />
-          Add Location
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '2px solid var(--rpg-border)' }}>
+            <button
+              onClick={() => setViewMode('sheet')}
+              className="p-2 transition-colors"
+              style={{
+                background: viewMode === 'sheet' ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                color: viewMode === 'sheet' ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+              }}
+              title="Grid view"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className="p-2 transition-colors"
+              style={{
+                background: viewMode === 'list' ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                color: viewMode === 'list' ? 'var(--rpg-bg-dark)' : 'var(--rpg-muted)',
+              }}
+              title="List view"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+          <Link href="/travel/locations/new" className="rpg-btn flex items-center gap-2">
+            <Plus className="w-3 h-3" />
+            Add Location
+          </Link>
+        </div>
       </div>
 
       {cities.length === 0 ? (
@@ -102,7 +130,8 @@ export default function CitiesPage() {
             Add Your First Location
           </Link>
         </div>
-      ) : (
+      ) : viewMode === 'sheet' ? (
+        /* Sheet/Grid View */
         <div className="space-y-8">
           {Object.entries(citiesByCountry)
             .sort(([a], [b]) => a.localeCompare(b))
@@ -152,6 +181,64 @@ export default function CitiesPage() {
                             {new Date(city.lastVisited).toLocaleDateString()}
                           </span>
                         )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="space-y-6">
+          {Object.entries(citiesByCountry)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([country, countryCities]) => (
+              <div key={country}>
+                <h2
+                  className="text-[0.7rem] mb-3 flex items-center gap-2"
+                  style={{ color: 'var(--rpg-gold)', textShadow: '0 0 8px var(--rpg-gold-glow)' }}
+                >
+                  <span className="text-xl">{getCountryFlag(country)}</span>
+                  {country}
+                  <span className="text-[0.5rem]" style={{ color: 'var(--rpg-muted)' }}>
+                    ({countryCities.length} {countryCities.length === 1 ? "city" : "cities"})
+                  </span>
+                </h2>
+                <div className="rounded-lg overflow-hidden" style={{ border: '2px solid var(--rpg-border)' }}>
+                  {countryCities.map((city, index) => (
+                    <Link
+                      key={city.id}
+                      href={`/travel/cities/${city.id}`}
+                      className="flex items-center gap-4 p-4 transition-all hover:bg-opacity-50"
+                      style={{
+                        background: index % 2 === 0 ? 'var(--rpg-card)' : 'var(--rpg-bg-dark)',
+                        borderBottom: index < countryCities.length - 1 ? '1px solid var(--rpg-border)' : 'none',
+                      }}
+                    >
+                      {/* City Name */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[0.6rem] truncate" style={{ color: 'var(--rpg-text)' }}>
+                          {city.name}
+                        </h3>
+                        {city.region && (
+                          <p className="text-[0.5rem] truncate" style={{ color: 'var(--rpg-muted)' }}>{city.region}</p>
+                        )}
+                      </div>
+
+                      {/* Stats */}
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        <span className="flex items-center gap-1 text-[0.5rem]" style={{ color: 'var(--rpg-teal)' }}>
+                          <MapPin className="w-3 h-3" />
+                          {city.locationCount || city._count?.locations || 0}
+                        </span>
+                        {city.lastVisited && (
+                          <span className="flex items-center gap-1 text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
+                            <Calendar className="w-3 h-3" />
+                            {new Date(city.lastVisited).toLocaleDateString()}
+                          </span>
+                        )}
+                        <ChevronRight className="w-4 h-4" style={{ color: 'var(--rpg-muted)' }} />
                       </div>
                     </Link>
                   ))}
