@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Check, Sparkles, Loader2, Link2, X } from "lucide-react";
+import { ArrowLeft, MapPin, Check, Sparkles, Loader2, Link2, X, ChevronDown, ChevronUp, Star, Heart, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 interface City {
@@ -48,7 +48,7 @@ export default function NewLocationPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
-  const [success, setSuccess] = useState<{ xpGained: number; leveledUp: boolean } | null>(null);
+  const [success, setSuccess] = useState<{ xpGained: number; leveledUp: boolean; locationId: string } | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -67,6 +67,13 @@ export default function NewLocationPage() {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importedCoords, setImportedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [showHowTo, setShowHowTo] = useState(false);
+
+  // Status options (set on creation)
+  const [markVisited, setMarkVisited] = useState(true);
+  const [addToHotlist, setAddToHotlist] = useState(false);
+  const [initialRating, setInitialRating] = useState<number>(0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
 
   // Fetch existing cities
   useEffect(() => {
@@ -174,7 +181,7 @@ export default function NewLocationPage() {
         finalCityId = cityData.city.id;
       }
 
-      // Create location
+      // Create location with status options
       const res = await fetch("/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -189,6 +196,10 @@ export default function NewLocationPage() {
           website,
           priceLevel,
           tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+          // Status options
+          markVisited,
+          addToHotlist,
+          initialRating: initialRating > 0 ? initialRating : null,
         }),
       });
 
@@ -201,6 +212,7 @@ export default function NewLocationPage() {
       setSuccess({
         xpGained: data.xpGained,
         leveledUp: data.leveledUp,
+        locationId: data.location.id,
       });
 
       // Redirect after showing success
@@ -219,19 +231,31 @@ export default function NewLocationPage() {
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 mb-6">
-            <Check className="w-10 h-10 text-green-400" />
+        <div
+          className="text-center p-8 rounded-lg"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <div
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
+            style={{ background: 'rgba(95, 191, 138, 0.2)', border: '2px solid var(--rpg-teal)' }}
+          >
+            <Check className="w-10 h-10" style={{ color: 'var(--rpg-teal)' }} />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Location Added!</h1>
-          <div className="flex items-center justify-center gap-2 text-cyan-400 mb-4">
+          <h1 className="text-2xl mb-2" style={{ color: 'var(--rpg-text)' }}>Location Added!</h1>
+          <div className="flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--rpg-gold)' }}>
             <Sparkles className="w-5 h-5" />
             <span className="text-lg font-semibold">+{success.xpGained} XP</span>
           </div>
           {success.leveledUp && (
-            <p className="text-yellow-400 font-semibold mb-4">Level Up!</p>
+            <p className="font-semibold mb-4" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
+              Level Up!
+            </p>
           )}
-          <p className="text-gray-400">Redirecting...</p>
+          <p style={{ color: 'var(--rpg-muted)' }}>Redirecting...</p>
         </div>
       </div>
     );
@@ -243,23 +267,30 @@ export default function NewLocationPage() {
       <div className="flex items-center gap-4 mb-8">
         <Link
           href="/travel/locations"
-          className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors"
+          className="p-2 rounded-lg transition-colors"
+          style={{ color: 'var(--rpg-muted)' }}
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Add New Location</h1>
-          <p className="text-gray-400">Log a place you've visited</p>
+          <h1 className="text-xl md:text-2xl" style={{ color: 'var(--rpg-text)' }}>Add New Location</h1>
+          <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>Log a place you've visited</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Google Maps Import */}
-        <div className="p-4 rounded-lg border border-dashed border-gray-700 bg-gray-900/50">
+        <div
+          className="p-4 rounded-lg"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px dashed var(--rpg-border)',
+          }}
+        >
           <div className="flex items-center gap-2 mb-3">
-            <Link2 className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-medium text-gray-300">Import from Google Maps</span>
-            <span className="text-xs text-gray-500">(optional)</span>
+            <Link2 className="w-4 h-4" style={{ color: 'var(--rpg-teal)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Import from Google Maps</span>
+            <span className="text-xs" style={{ color: 'var(--rpg-muted)' }}>(optional)</span>
           </div>
           <div className="flex gap-2">
             <input
@@ -270,49 +301,97 @@ export default function NewLocationPage() {
                 setImportError(null);
               }}
               placeholder="Paste Google Maps link here..."
-              className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+              className="rpg-input flex-1 text-sm"
+              style={{ padding: '0.5rem 0.75rem' }}
             />
             <button
               type="button"
               onClick={handleGoogleMapsImport}
               disabled={importLoading || !googleMapsUrl.trim()}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+              className="rpg-btn"
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.875rem',
+                opacity: importLoading || !googleMapsUrl.trim() ? 0.5 : 1,
+                cursor: importLoading || !googleMapsUrl.trim() ? 'not-allowed' : 'pointer',
+              }}
             >
               {importLoading ? (
-                <>
+                <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Importing...
-                </>
+                </span>
               ) : (
                 "Import"
               )}
             </button>
           </div>
+
           {importError && (
-            <p className="mt-2 text-sm text-red-400">{importError}</p>
+            <p className="mt-2 text-sm" style={{ color: '#ff6b6b' }}>{importError}</p>
           )}
+
           {importedCoords && (
-            <div className="mt-2 flex items-center gap-2 text-sm text-green-400">
+            <div className="mt-2 flex items-center gap-2 text-sm" style={{ color: 'var(--rpg-teal)' }}>
               <Check className="w-4 h-4" />
-              <span>Location imported ({importedCoords.lat.toFixed(4)}, {importedCoords.lng.toFixed(4)})</span>
+              <span>Location imported successfully</span>
               <button
                 type="button"
                 onClick={clearImportedCoords}
-                className="ml-auto p-1 hover:bg-gray-800 rounded"
+                className="ml-auto p-1 rounded hover:opacity-70"
               >
-                <X className="w-4 h-4 text-gray-400 hover:text-white" />
+                <X className="w-4 h-4" style={{ color: 'var(--rpg-muted)' }} />
               </button>
             </div>
           )}
-          <p className="mt-2 text-xs text-gray-500">
-            Copy a place link from Google Maps app or website to auto-fill the form
-          </p>
+
+          {/* How To Section */}
+          <button
+            type="button"
+            onClick={() => setShowHowTo(!showHowTo)}
+            className="mt-3 flex items-center gap-1 text-xs transition-colors"
+            style={{ color: 'var(--rpg-muted)' }}
+          >
+            {showHowTo ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            How to get a Google Maps link
+          </button>
+
+          {showHowTo && (
+            <div
+              className="mt-3 p-3 rounded text-xs space-y-2"
+              style={{ background: 'var(--rpg-bg-dark)', border: '1px solid var(--rpg-border)' }}
+            >
+              <p className="font-medium" style={{ color: 'var(--rpg-text)' }}>On Mobile (Google Maps App):</p>
+              <ol className="list-decimal list-inside space-y-1" style={{ color: 'var(--rpg-muted)' }}>
+                <li>Open Google Maps and find the place</li>
+                <li>Tap on the place name to open details</li>
+                <li>Tap <strong>Share</strong> → <strong>Copy link</strong></li>
+                <li>Paste the link above</li>
+              </ol>
+
+              <p className="font-medium mt-3" style={{ color: 'var(--rpg-text)' }}>On Desktop (Browser):</p>
+              <ol className="list-decimal list-inside space-y-1" style={{ color: 'var(--rpg-muted)' }}>
+                <li>Go to <a href="https://maps.google.com" target="_blank" rel="noopener" className="underline" style={{ color: 'var(--rpg-teal)' }}>maps.google.com</a></li>
+                <li>Search for and click on the place</li>
+                <li>Copy the URL from your browser's address bar</li>
+                <li>Paste the link above</li>
+              </ol>
+
+              <p className="mt-3" style={{ color: 'var(--rpg-muted)' }}>
+                <strong style={{ color: 'var(--rpg-text)' }}>Supported formats:</strong>
+              </p>
+              <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--rpg-muted)' }}>
+                <li><code className="px-1 rounded" style={{ background: 'var(--rpg-border)' }}>maps.app.goo.gl/...</code> (share links)</li>
+                <li><code className="px-1 rounded" style={{ background: 'var(--rpg-border)' }}>google.com/maps/place/...</code> (full URLs)</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Location Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Location Name *
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--rpg-text)' }}>
+            Location Name <span style={{ color: 'var(--rpg-teal)' }}>*</span>
           </label>
           <input
             type="text"
@@ -320,14 +399,14 @@ export default function NewLocationPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., The Coffee House"
             required
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+            className="rpg-input w-full"
           />
         </div>
 
         {/* Location Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Type *
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--rpg-text)' }}>
+            Type <span style={{ color: 'var(--rpg-teal)' }}>*</span>
           </label>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {LOCATION_TYPES.map((t) => (
@@ -335,13 +414,15 @@ export default function NewLocationPage() {
                 key={t.value}
                 type="button"
                 onClick={() => setType(t.value)}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors flex flex-col items-center gap-1 ${
-                  type === t.value
-                    ? "bg-cyan-500 text-white"
-                    : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700"
-                }`}
+                className="px-3 py-3 rounded-lg text-sm transition-all flex flex-col items-center gap-1"
+                style={{
+                  background: type === t.value ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                  border: `2px solid ${type === t.value ? 'var(--rpg-teal)' : 'var(--rpg-border)'}`,
+                  color: type === t.value ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
+                  boxShadow: type === t.value ? '0 0 10px var(--rpg-teal-glow)' : 'none',
+                }}
               >
-                <span className="text-lg">{t.icon}</span>
+                <span className="text-xl">{t.icon}</span>
                 <span>{t.label}</span>
               </button>
             ))}
@@ -350,8 +431,8 @@ export default function NewLocationPage() {
 
         {/* Address */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Address *
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--rpg-text)' }}>
+            Address <span style={{ color: 'var(--rpg-teal)' }}>*</span>
           </label>
           <input
             type="text"
@@ -359,17 +440,20 @@ export default function NewLocationPage() {
             onChange={(e) => setAddress(e.target.value)}
             placeholder="e.g., 123 Main St, Philadelphia, PA 19103"
             required
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+            className="rpg-input w-full"
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Full address including city and country for accurate location
+          <p className="mt-1 text-xs" style={{ color: 'var(--rpg-muted)' }}>
+            {importedCoords
+              ? "Coordinates imported from Google Maps - address is for display only"
+              : "Full address including city and country for accurate location"
+            }
           </p>
         </div>
 
         {/* City Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            City *
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--rpg-text)' }}>
+            City <span style={{ color: 'var(--rpg-teal)' }}>*</span>
           </label>
           <div className="space-y-3">
             {/* Toggle */}
@@ -377,22 +461,24 @@ export default function NewLocationPage() {
               <button
                 type="button"
                 onClick={() => setIsNewCity(false)}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm transition-colors ${
-                  !isNewCity
-                    ? "bg-cyan-500 text-white"
-                    : "bg-gray-900 border border-gray-800 text-gray-400"
-                }`}
+                className="flex-1 px-4 py-2 rounded-lg text-sm transition-all"
+                style={{
+                  background: !isNewCity ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                  border: `2px solid ${!isNewCity ? 'var(--rpg-teal)' : 'var(--rpg-border)'}`,
+                  color: !isNewCity ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
+                }}
               >
                 Existing City
               </button>
               <button
                 type="button"
                 onClick={() => setIsNewCity(true)}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm transition-colors ${
-                  isNewCity
-                    ? "bg-cyan-500 text-white"
-                    : "bg-gray-900 border border-gray-800 text-gray-400"
-                }`}
+                className="flex-1 px-4 py-2 rounded-lg text-sm transition-all"
+                style={{
+                  background: isNewCity ? 'var(--rpg-teal)' : 'var(--rpg-card)',
+                  border: `2px solid ${isNewCity ? 'var(--rpg-teal)' : 'var(--rpg-border)'}`,
+                  color: isNewCity ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
+                }}
               >
                 New City
               </button>
@@ -406,7 +492,7 @@ export default function NewLocationPage() {
                   onChange={(e) => setNewCity({ ...newCity, name: e.target.value })}
                   placeholder="City name"
                   required={isNewCity}
-                  className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  className="rpg-input"
                 />
                 <input
                   type="text"
@@ -414,7 +500,7 @@ export default function NewLocationPage() {
                   onChange={(e) => setNewCity({ ...newCity, country: e.target.value })}
                   placeholder="Country"
                   required={isNewCity}
-                  className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  className="rpg-input"
                 />
               </div>
             ) : (
@@ -422,7 +508,7 @@ export default function NewLocationPage() {
                 value={cityId}
                 onChange={(e) => setCityId(e.target.value)}
                 required={!isNewCity}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="rpg-input w-full"
               >
                 <option value="">Select a city</option>
                 {cities.map((city) => (
@@ -435,46 +521,175 @@ export default function NewLocationPage() {
           </div>
         </div>
 
+        {/* Status Options */}
+        <div
+          className="p-4 rounded-lg space-y-4"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+          }}
+        >
+          <h3 className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Status</h3>
+
+          {/* Visited Toggle */}
+          <button
+            type="button"
+            onClick={() => setMarkVisited(!markVisited)}
+            className="w-full flex items-center gap-3 p-3 rounded-lg transition-all"
+            style={{
+              background: markVisited ? 'rgba(95, 191, 138, 0.2)' : 'var(--rpg-bg-dark)',
+              border: `2px solid ${markVisited ? 'var(--rpg-teal)' : 'var(--rpg-border)'}`,
+            }}
+          >
+            <CheckCircle2
+              className="w-5 h-5"
+              style={{ color: markVisited ? 'var(--rpg-teal)' : 'var(--rpg-muted)' }}
+            />
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Mark as Visited</p>
+              <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>I've been to this place</p>
+            </div>
+            <div
+              className="w-10 h-6 rounded-full relative transition-colors"
+              style={{ background: markVisited ? 'var(--rpg-teal)' : 'var(--rpg-border)' }}
+            >
+              <div
+                className="w-4 h-4 rounded-full absolute top-1 transition-all"
+                style={{
+                  background: 'white',
+                  left: markVisited ? '22px' : '4px',
+                }}
+              />
+            </div>
+          </button>
+
+          {/* Hotlist Toggle */}
+          <button
+            type="button"
+            onClick={() => setAddToHotlist(!addToHotlist)}
+            className="w-full flex items-center gap-3 p-3 rounded-lg transition-all"
+            style={{
+              background: addToHotlist ? 'rgba(255, 107, 107, 0.2)' : 'var(--rpg-bg-dark)',
+              border: `2px solid ${addToHotlist ? '#ff6b6b' : 'var(--rpg-border)'}`,
+            }}
+          >
+            <Heart
+              className="w-5 h-5"
+              style={{ color: addToHotlist ? '#ff6b6b' : 'var(--rpg-muted)', fill: addToHotlist ? '#ff6b6b' : 'none' }}
+            />
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Add to Hotlist</p>
+              <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Save to your favorites</p>
+            </div>
+            <div
+              className="w-10 h-6 rounded-full relative transition-colors"
+              style={{ background: addToHotlist ? '#ff6b6b' : 'var(--rpg-border)' }}
+            >
+              <div
+                className="w-4 h-4 rounded-full absolute top-1 transition-all"
+                style={{
+                  background: 'white',
+                  left: addToHotlist ? '22px' : '4px',
+                }}
+              />
+            </div>
+          </button>
+
+          {/* Rating */}
+          <div
+            className="p-3 rounded-lg"
+            style={{
+              background: 'var(--rpg-bg-dark)',
+              border: '2px solid var(--rpg-border)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <Star className="w-5 h-5" style={{ color: initialRating > 0 ? 'var(--rpg-gold)' : 'var(--rpg-muted)' }} />
+              <div className="flex-1">
+                <p className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Initial Rating</p>
+                <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Rate this place (optional)</p>
+              </div>
+            </div>
+            <div className="flex gap-1 mt-3">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setInitialRating(initialRating === star ? 0 : star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className="p-1 transition-transform hover:scale-110"
+                >
+                  <Star
+                    className="w-8 h-8"
+                    style={{
+                      color: (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'var(--rpg-border)',
+                      fill: (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'none',
+                    }}
+                  />
+                </button>
+              ))}
+              {initialRating > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setInitialRating(0)}
+                  className="ml-2 px-2 text-xs rounded"
+                  style={{ color: 'var(--rpg-muted)' }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Optional Fields */}
-        <div className="border-t border-gray-800 pt-6">
-          <h3 className="text-sm font-medium text-gray-400 mb-4">Optional Details</h3>
+        <div
+          className="p-4 rounded-lg"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+          }}
+        >
+          <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--rpg-text)' }}>Optional Details</h3>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <label className="block text-sm mb-1" style={{ color: 'var(--rpg-muted)' }}>Description / Notes</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Notes about this place..."
+                placeholder="Your notes about this place..."
                 rows={3}
-                className="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 resize-none"
+                className="rpg-input w-full resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Website</label>
+              <label className="block text-sm mb-1" style={{ color: 'var(--rpg-muted)' }}>Website</label>
               <input
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                className="rpg-input w-full"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Price Level</label>
+              <label className="block text-sm mb-1" style={{ color: 'var(--rpg-muted)' }}>Price Level</label>
               <div className="flex gap-2">
                 {[1, 2, 3, 4].map((level) => (
                   <button
                     key={level}
                     type="button"
                     onClick={() => setPriceLevel(priceLevel === level ? null : level)}
-                    className={`flex-1 py-2 rounded-lg text-sm transition-colors ${
-                      priceLevel === level
-                        ? "bg-cyan-500 text-white"
-                        : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
-                    }`}
+                    className="flex-1 py-2 rounded-lg text-sm transition-all"
+                    style={{
+                      background: priceLevel === level ? 'var(--rpg-gold)' : 'var(--rpg-bg-dark)',
+                      border: `2px solid ${priceLevel === level ? 'var(--rpg-gold)' : 'var(--rpg-border)'}`,
+                      color: priceLevel === level ? 'var(--rpg-bg-dark)' : 'var(--rpg-text)',
+                    }}
                   >
                     {"$".repeat(level)}
                   </button>
@@ -483,13 +698,13 @@ export default function NewLocationPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Tags</label>
+              <label className="block text-sm mb-1" style={{ color: 'var(--rpg-muted)' }}>Tags</label>
               <input
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="romantic, outdoor, family-friendly (comma separated)"
-                className="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                className="rpg-input w-full"
               />
             </div>
           </div>
@@ -499,7 +714,11 @@ export default function NewLocationPage() {
         <button
           type="submit"
           disabled={loading || !name || !type || !address || (!cityId && (!newCity.name || !newCity.country))}
-          className="w-full py-3 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="rpg-btn w-full py-3 flex items-center justify-center gap-2"
+          style={{
+            opacity: loading || !name || !type || !address || (!cityId && (!newCity.name || !newCity.country)) ? 0.5 : 1,
+            cursor: loading || !name || !type || !address || (!cityId && (!newCity.name || !newCity.country)) ? 'not-allowed' : 'pointer',
+          }}
         >
           {loading ? (
             <>

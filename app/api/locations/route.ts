@@ -115,6 +115,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Handle status options (support both old and new parameter names)
+  const markVisited = body.markVisited ?? body.visited ?? false;
+  const addToHotlist = body.addToHotlist ?? body.hotlist ?? false;
+  const initialRating = body.initialRating;
+
   // Create location
   const location = await prisma.travel_locations.create({
     data: {
@@ -134,8 +139,12 @@ export async function POST(req: NextRequest) {
       price_level: body.priceLevel,
       cuisine: body.cuisine,
       tags: body.tags || [],
-      hotlist: body.hotlist ?? false,
-      visited: body.visited ?? false,
+      hotlist: addToHotlist,
+      visited: markVisited,
+      // Set average rating if initial rating provided
+      avg_rating: initialRating || null,
+      rating_count: initialRating ? 1 : 0,
+      total_visits: markVisited ? 1 : 0,
     },
     include: {
       city: { select: { name: true, country: true } },
@@ -143,14 +152,42 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Create user-specific location data for rating/visited/hotlist
+  await prisma.travel_user_location_data.create({
+    data: {
+      user_id: user.id,
+      location_id: location.id,
+      visited: markVisited,
+      hotlist: addToHotlist,
+      rating: initialRating || null,
+      visit_count: markVisited ? 1 : 0,
+    },
+  });
+
+  // If visited, create initial visit record
+  if (markVisited) {
+    await prisma.travel_visits.create({
+      data: {
+        user_id: user.id,
+        location_id: location.id,
+        rating: initialRating || null,
+        notes: body.description || null,
+      },
+    });
+  }
+
   // Update city location count
   await prisma.travel_cities.update({
     where: { id: body.cityId },
     data: { location_count: { increment: 1 } },
   });
 
-  // Award XP for creating location (simple version)
-  const xpGained = 25;
+  // Award XP for creating location
+  // Base: 25 XP for adding, +15 XP bonus if marking as visited
+  const baseXP = 25;
+  const visitXP = markVisited ? 15 : 0;
+  const xpGained = baseXP + visitXP;
+
   await prisma.app_profiles.upsert({
     where: {
       user_id_app_id: {
@@ -177,7 +214,11 @@ export async function POST(req: NextRequest) {
       type: location.type,
       city: location.city,
       neighborhood: location.neighborhood,
+      visited: markVisited,
+      hotlist: addToHotlist,
+      rating: initialRating,
     },
     xpGained,
+    leveledUp: false, // TODO: Calculate if leveled up
   });
 }
