@@ -66,6 +66,8 @@ export default function FitnessApp() {
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [campaignForm, setCampaignForm] = useState({ title: '', description: '', targetDate: '' });
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [confirmDeleteCampaign, setConfirmDeleteCampaign] = useState(false);
   const [addingGoal, setAddingGoal] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [searchingExercises, setSearchingExercises] = useState(false);
@@ -3561,13 +3563,131 @@ gamify.it.com/fitness`;
 
           {/* Campaign Detail Modal */}
           {selectedCampaignId && !creatingCampaign && (
-            <div className="modal-overlay" onClick={() => setSelectedCampaignId(null)}>
+            <div className="modal-overlay" onClick={() => { setSelectedCampaignId(null); setEditingCampaignId(null); setConfirmDeleteCampaign(false); }}>
               <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
                 {(() => {
                   const campaign = store.campaigns.find(c => c.id === selectedCampaignId);
                   if (!campaign) return null;
                   const daysLeft = Math.ceil((new Date(campaign.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  const isEditing = editingCampaignId === selectedCampaignId;
 
+                  // Delete confirmation
+                  if (confirmDeleteCampaign) {
+                    return (
+                      <>
+                        <div className="modal-header">Delete Campaign?</div>
+                        <div className="modal-subtitle">
+                          This will permanently delete "{campaign.title}" and all its goals. This cannot be undone.
+                        </div>
+                        <div className="modal-actions">
+                          <button
+                            className="modal-btn secondary"
+                            onClick={() => setConfirmDeleteCampaign(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="modal-btn"
+                            style={{ background: '#dc2626', color: '#fff' }}
+                            onClick={() => {
+                              store.deleteCampaign(selectedCampaignId);
+                              setSelectedCampaignId(null);
+                              setConfirmDeleteCampaign(false);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    );
+                  }
+
+                  // Edit mode
+                  if (isEditing) {
+                    return (
+                      <>
+                        <div className="modal-header">Edit Campaign</div>
+                        <input
+                          type="text"
+                          className="modal-input"
+                          placeholder="Campaign name"
+                          value={campaignForm.title}
+                          onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              store.updateCampaign(selectedCampaignId, {
+                                title: campaignForm.title,
+                                description: campaignForm.description,
+                                targetDate: campaignForm.targetDate
+                              });
+                              setEditingCampaignId(null);
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <input
+                          type="text"
+                          className="modal-input"
+                          placeholder="Description (optional)"
+                          value={campaignForm.description}
+                          onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              store.updateCampaign(selectedCampaignId, {
+                                title: campaignForm.title,
+                                description: campaignForm.description,
+                                targetDate: campaignForm.targetDate
+                              });
+                              setEditingCampaignId(null);
+                            }
+                          }}
+                        />
+                        <input
+                          type="date"
+                          className="modal-input"
+                          value={campaignForm.targetDate}
+                          onChange={e => setCampaignForm({ ...campaignForm, targetDate: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              store.updateCampaign(selectedCampaignId, {
+                                title: campaignForm.title,
+                                description: campaignForm.description,
+                                targetDate: campaignForm.targetDate
+                              });
+                              setEditingCampaignId(null);
+                            }
+                          }}
+                        />
+                        <div className="modal-actions">
+                          <button
+                            className="modal-btn secondary"
+                            onClick={() => setEditingCampaignId(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="modal-btn primary"
+                            onClick={() => {
+                              if (!campaignForm.title.trim()) {
+                                store.showToast('Title is required');
+                                return;
+                              }
+                              store.updateCampaign(selectedCampaignId, {
+                                title: campaignForm.title,
+                                description: campaignForm.description,
+                                targetDate: campaignForm.targetDate
+                              });
+                              setEditingCampaignId(null);
+                            }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </>
+                    );
+                  }
+
+                  // Normal view
                   return (
                     <>
                       <div className="modal-header">{campaign.title}</div>
@@ -3598,12 +3718,26 @@ gamify.it.com/fitness`;
                         )}
                       </div>
 
-                      <div className="modal-actions">
+                      <div className="modal-actions" style={{ flexWrap: 'wrap', gap: '8px' }}>
+                        <button
+                          className="modal-btn"
+                          style={{ background: '#dc2626', color: '#fff' }}
+                          onClick={() => setConfirmDeleteCampaign(true)}
+                        >
+                          Delete
+                        </button>
                         <button
                           className="modal-btn secondary"
-                          onClick={() => setSelectedCampaignId(null)}
+                          onClick={() => {
+                            setCampaignForm({
+                              title: campaign.title || '',
+                              description: campaign.description || '',
+                              targetDate: campaign.targetDate || ''
+                            });
+                            setEditingCampaignId(selectedCampaignId);
+                          }}
                         >
-                          Close
+                          Edit
                         </button>
                         <button
                           className="modal-btn primary"

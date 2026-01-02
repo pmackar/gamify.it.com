@@ -136,6 +136,8 @@ interface FitnessStore extends FitnessState, SyncState {
 
   // Campaigns
   addCampaign: (campaign: Campaign) => void;
+  updateCampaign: (campaignId: string, updates: Partial<Campaign>) => void;
+  deleteCampaign: (campaignId: string) => void;
   updateCampaignProgress: () => void;
 
   // Toast
@@ -1077,6 +1079,26 @@ export const useFitnessStore = create<FitnessStore>()(
           pendingSync: true
         }));
         queueSync(get);
+      },
+
+      updateCampaign: (campaignId: string, updates: Partial<Campaign>) => {
+        set((state) => ({
+          campaigns: state.campaigns.map(c =>
+            c.id === campaignId ? { ...c, ...updates } : c
+          ),
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Campaign updated');
+      },
+
+      deleteCampaign: (campaignId: string) => {
+        set((state) => ({
+          campaigns: state.campaigns.filter(c => c.id !== campaignId),
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Campaign deleted');
       },
 
       updateCampaignProgress: () => {
