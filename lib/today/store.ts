@@ -87,7 +87,8 @@ const defaultState: TodayState = {
   personal_records: {}
 };
 
-function calculateTaskXP(task: Task, currentStreak: number): number {
+// Calculate base XP without streak (for API - API applies its own streak)
+function calculateBaseTaskXP(task: Task): number {
   let xp = XP_CONFIG.BASE_XP;
   xp *= XP_CONFIG.TIER_MULTIPLIER[task.tier] || XP_CONFIG.TIER_MULTIPLIER.tier3;
   xp *= XP_CONFIG.DIFFICULTY_MULTIPLIER[task.difficulty] || XP_CONFIG.DIFFICULTY_MULTIPLIER.medium;
@@ -100,14 +101,20 @@ function calculateTaskXP(task: Task, currentStreak: number): number {
     }
   }
 
+  return Math.floor(xp);
+}
+
+// Calculate XP with streak (for local UI)
+function calculateTaskXP(task: Task, currentStreak: number): number {
+  const baseXP = calculateBaseTaskXP(task);
+
   // Streak bonus
   const streakMultiplier = Math.min(
     1 + currentStreak * XP_CONFIG.STREAK_BONUS_PER_DAY,
     XP_CONFIG.MAX_STREAK_MULTIPLIER
   );
-  xp *= streakMultiplier;
 
-  return Math.floor(xp);
+  return Math.floor(baseXP * streakMultiplier);
 }
 
 export const useTodayStore = create<TodayStore>()(
@@ -265,6 +272,8 @@ export const useTodayStore = create<TodayStore>()(
           const newAchievements = checkAchievements(get());
 
           // Call unified XP API (async, don't block)
+          // Send BASE XP - API applies its own streak multiplier
+          const baseXP = calculateBaseTaskXP(task);
           const newTotalTasks = get().profile.total_tasks_completed;
           fetch('/api/xp', {
             method: 'POST',
@@ -272,7 +281,7 @@ export const useTodayStore = create<TodayStore>()(
             body: JSON.stringify({
               appId: 'today',
               action: 'task_complete',
-              xpAmount: xpEarned,
+              xpAmount: baseXP,
               metadata: {
                 taskCount: newTotalTasks,
                 taskTier: task.tier,
@@ -335,6 +344,23 @@ export const useTodayStore = create<TodayStore>()(
               }
             };
           });
+
+          // Revoke XP from global profile (async, don't block)
+          if (revokedXP > 0) {
+            fetch('/api/xp', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                appId: 'today',
+                xpAmount: revokedXP,
+                reason: 'task_uncompleted',
+              })
+            }).then(() => {
+              dispatchXPUpdate();
+            }).catch(() => {
+              // Silently fail - local XP already updated
+            });
+          }
 
           return { xpEarned: -revokedXP, leveledUp: false, newAchievements: [] };
         }
@@ -532,9 +558,9 @@ function checkAchievements(state: TodayStore): typeof ACHIEVEMENTS {
       !state.profile.achievements.includes(achievement.id) &&
       achievement.check({ profile: state.profile, tasks: state.tasks })
     ) {
-      // Add achievement
+      // Track achievement locally for UI purposes
+      // XP is awarded by the API to avoid double-counting
       state.profile.achievements.push(achievement.id);
-      state.addXP(achievement.xp);
       newAchievements.push(achievement);
     }
   });

@@ -31,6 +31,7 @@ interface FitnessStore extends FitnessState {
   currentWorkout: Workout | null;
   currentExerciseIndex: number;
   workoutSeconds: number;
+  workoutPRsHit: number;
 
   // UI state
   currentView: ViewType;
@@ -113,6 +114,7 @@ export const useFitnessStore = create<FitnessStore>()(
       currentWorkout: null,
       currentExerciseIndex: 0,
       workoutSeconds: 0,
+      workoutPRsHit: 0,
 
       // UI state
       currentView: 'home',
@@ -185,6 +187,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: workout,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutPRsHit: 0,
           currentView: 'workout'
         });
         get().saveState();
@@ -215,6 +218,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: workout,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutPRsHit: 0,
           currentView: 'workout'
         });
         get().saveState();
@@ -239,6 +243,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: workout,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutPRsHit: 0,
           currentView: 'workout'
         });
         get().saveState();
@@ -356,6 +361,7 @@ export const useFitnessStore = create<FitnessStore>()(
         // Check PR
         const isPR = get().checkPR(exercise.id, weight);
         if (isPR) {
+          set((state) => ({ workoutPRsHit: state.workoutPRsHit + 1 }));
           get().showToast(`🏆 New PR: ${weight} lbs!`);
         }
 
@@ -363,6 +369,13 @@ export const useFitnessStore = create<FitnessStore>()(
         const milestone = get().checkMilestone(exercise.id, weight);
         if (milestone) {
           get().addXP(milestone.xp);
+          // Add milestone XP to workout total so it syncs to API
+          set((state) => ({
+            currentWorkout: state.currentWorkout ? {
+              ...state.currentWorkout,
+              totalXP: state.currentWorkout.totalXP + milestone.xp
+            } : null
+          }));
           setTimeout(() => get().showToast(`${milestone.icon} ${milestone.name} unlocked!`), isPR ? 2500 : 0);
         }
 
@@ -401,12 +414,14 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: null,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutPRsHit: 0,
           currentView: 'home'
         }));
 
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
 
         // Call unified XP API
+        const prsHit = state.workoutPRsHit;
         try {
           const response = await fetch('/api/xp', {
             method: 'POST',
@@ -419,6 +434,7 @@ export const useFitnessStore = create<FitnessStore>()(
                 workoutCount: newTotalWorkouts,
                 totalVolume: newTotalVolume,
                 totalSets: completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0),
+                prsHit,
               }
             })
           });
@@ -456,6 +472,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentWorkout: null,
           currentExerciseIndex: 0,
           workoutSeconds: 0,
+          workoutPRsHit: 0,
           currentView: 'home'
         });
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
@@ -654,9 +671,43 @@ export const useFitnessStore = create<FitnessStore>()(
         get().showToast('All data erased');
       },
 
-      deleteWorkout: (workoutId: string) => {
+      deleteWorkout: async (workoutId: string) => {
+        const state = get();
+        const workout = state.workouts.find(w => w.id === workoutId);
+
+        if (workout && workout.totalXP && workout.totalXP > 0) {
+          // Revoke XP from global profile
+          try {
+            await fetch('/api/xp', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                appId: 'fitness',
+                xpAmount: workout.totalXP,
+                reason: 'workout_deleted',
+              }),
+            });
+            dispatchXPUpdate();
+          } catch (error) {
+            console.error('Failed to revoke XP:', error);
+          }
+        }
+
+        // Calculate stats to subtract
+        const workoutVolume = workout?.exercises.reduce((total, ex) => {
+          return total + ex.sets.reduce((setTotal, s) => setTotal + (s.weight * s.reps), 0);
+        }, 0) || 0;
+        const workoutSets = workout?.exercises.reduce((total, ex) => total + ex.sets.length, 0) || 0;
+
         set((state) => ({
           workouts: state.workouts.filter(w => w.id !== workoutId),
+          profile: {
+            ...state.profile,
+            xp: Math.max(0, state.profile.xp - (workout?.totalXP || 0)),
+            totalWorkouts: Math.max(0, state.profile.totalWorkouts - 1),
+            totalVolume: Math.max(0, state.profile.totalVolume - workoutVolume),
+            totalSets: Math.max(0, state.profile.totalSets - workoutSets),
+          },
           currentView: 'history',
           selectedWorkoutId: null
         }));

@@ -20,6 +20,120 @@ function getStreakMultiplier(streakDays: number): number {
   return 1.0;
 }
 
+// Calculate level from total XP
+function getLevelFromTotalXP(totalXP: number): { level: number; xpInLevel: number; xpToNext: number } {
+  let level = 1;
+  let xpNeeded = 100;
+  let cumulativeXP = 0;
+
+  while (cumulativeXP + xpNeeded <= totalXP) {
+    cumulativeXP += xpNeeded;
+    level++;
+    xpNeeded = Math.floor(xpNeeded * 1.5);
+  }
+
+  return {
+    level,
+    xpInLevel: totalXP - cumulativeXP,
+    xpToNext: xpNeeded,
+  };
+}
+
+// DELETE - Revoke XP (for deleted workouts/uncompleted tasks)
+export async function DELETE(request: Request) {
+  try {
+    const user = await getSupabaseUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { appId, xpAmount, reason } = body;
+
+    if (!appId || !xpAmount || xpAmount <= 0) {
+      return NextResponse.json({ error: 'Missing appId or valid xpAmount' }, { status: 400 });
+    }
+
+    // Get profile
+    const profile = await prisma.profiles.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
+    // Get app profile
+    const appProfile = await prisma.app_profiles.findUnique({
+      where: {
+        user_id_app_id: { user_id: user.id, app_id: appId },
+      },
+    });
+
+    if (!appProfile) {
+      return NextResponse.json({ error: 'App profile not found' }, { status: 404 });
+    }
+
+    // Calculate new global XP (don't go below 0)
+    const newGlobalTotalXP = Math.max(0, (profile.total_xp || 0) - xpAmount);
+    const globalLevelInfo = getLevelFromTotalXP(newGlobalTotalXP);
+
+    // Calculate new app XP
+    // First, calculate current total app XP
+    let currentAppTotalXP = appProfile.xp || 0;
+    let tempLevel = appProfile.level || 1;
+    let tempXPNeeded = 100;
+    for (let i = 1; i < tempLevel; i++) {
+      currentAppTotalXP += tempXPNeeded;
+      tempXPNeeded = Math.floor(tempXPNeeded * 1.5);
+    }
+
+    const newAppTotalXP = Math.max(0, currentAppTotalXP - xpAmount);
+    const appLevelInfo = getLevelFromTotalXP(newAppTotalXP);
+
+    // Update profile
+    await prisma.profiles.update({
+      where: { id: user.id },
+      data: {
+        total_xp: newGlobalTotalXP,
+        main_level: globalLevelInfo.level,
+        updated_at: new Date(),
+      },
+    });
+
+    // Update app profile
+    await prisma.app_profiles.update({
+      where: { id: appProfile.id },
+      data: {
+        xp: appLevelInfo.xpInLevel,
+        level: appLevelInfo.level,
+        xp_to_next: appLevelInfo.xpToNext,
+        updated_at: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      xpRevoked: xpAmount,
+      reason,
+      globalXP: {
+        level: globalLevelInfo.level,
+        xp: globalLevelInfo.xpInLevel,
+        xpToNext: globalLevelInfo.xpToNext,
+        totalXP: newGlobalTotalXP,
+      },
+      appXP: {
+        level: appLevelInfo.level,
+        xp: appLevelInfo.xpInLevel,
+        xpToNext: appLevelInfo.xpToNext,
+      },
+    });
+  } catch (error) {
+    console.error('XP revocation error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getSupabaseUser();
