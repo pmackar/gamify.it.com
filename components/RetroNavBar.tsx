@@ -589,6 +589,230 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           background: #00ff00;
         }
 
+        /* ===== MARIO / NES THEME ===== */
+        .global-nav.theme-mario .global-nav-inner {
+          background: rgba(92, 148, 252, 0.95);
+          border: 3px solid #000000;
+          box-shadow: 4px 4px 0 #000000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-logo {
+          background: linear-gradient(180deg, #FBD000 0%, #E6A000 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          text-shadow: 2px 2px 0 #000;
+        }
+
+        .global-nav.theme-mario .nav-app-link:hover {
+          background: rgba(229, 37, 33, 0.3);
+        }
+
+        .global-nav.theme-mario .nav-app-link.active {
+          background: rgba(229, 37, 33, 0.5);
+        }
+
+        .global-nav.theme-mario .nav-app-link.active::after {
+          background: #FBD000;
+          box-shadow: 0 0 6px 1px rgba(251, 208, 0, 0.8);
+        }
+
+        .global-nav.theme-mario .nav-login-btn {
+          background: linear-gradient(180deg, #E52521 0%, #CC1E1A 100%);
+          color: #fff;
+          border: 2px solid #000;
+          box-shadow: 2px 2px 0 #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-login-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 4px 4px 0 #000;
+        }
+
+        .global-nav.theme-mario .nav-avatar {
+          border: 3px solid #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-avatar:hover {
+          border-color: #FBD000;
+          box-shadow: 2px 2px 0 #000;
+        }
+
+        .global-nav.theme-mario .nav-avatar-placeholder {
+          background: linear-gradient(135deg, #E52521 0%, #CC1E1A 100%);
+          color: #fff;
+          border: 2px solid #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-level-badge {
+          background: linear-gradient(180deg, #FBD000 0%, #E6A000 100%);
+          color: #000;
+          border: 2px solid #000;
+          box-shadow: 2px 2px 0 #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-xp-bar {
+          background: #1a1a1a;
+          border: 2px solid #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-xp-fill {
+          background: linear-gradient(90deg, #43B047 0%, #5CC965 100%);
+          box-shadow: none;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-dropdown {
+          background: #049CD8;
+          border: 3px solid #000;
+          box-shadow: 4px 4px 0 #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-dropdown-email {
+          color: #FBD000;
+          border-bottom: 2px solid #000;
+        }
+
+        .global-nav.theme-mario .nav-dropdown-item {
+          color: #fff;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-dropdown-item:hover {
+          background: rgba(229, 37, 33, 0.5);
+          color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-dropdown-item.danger {
+          color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-dropdown-item.danger:hover {
+          background: #E52521;
+        }
+
+        .global-nav.theme-mario .nav-apps-dropdown {
+          background: #049CD8;
+          border: 3px solid #000;
+          box-shadow: 4px 4px 0 #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-apps-dropdown-item {
+          color: #fff;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-apps-dropdown-item:hover {
+          background: rgba(229, 37, 33, 0.5);
+          color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-apps-dropdown-item.active {
+          background: #E52521;
+          color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-quick-action {
+          background: #E52521;
+          border: 2px solid #000;
+          color: #fff;
+          border-radius: 0;
+          box-shadow: 2px 2px 0 #000;
+        }
+
+        .global-nav.theme-mario .nav-quick-action:hover {
+          background: #FF3B36;
+          border-color: #000;
+          color: #FBD000;
+          transform: translateY(-2px);
+          box-shadow: 4px 4px 0 #000;
+        }
+
+        .global-nav.theme-mario .theme-switcher {
+          border-bottom: 2px solid #000;
+        }
+
+        .global-nav.theme-mario .theme-toggle {
+          background: #1a1a1a;
+          border: 2px solid #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .toggle-thumb {
+          background: linear-gradient(135deg, #FBD000 0%, #E6A000 100%);
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .theme-option {
+          background: #1a1a1a;
+          border: 2px solid transparent;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .theme-option:hover {
+          background: #E52521;
+        }
+
+        .global-nav.theme-mario .theme-option.active {
+          background: #43B047;
+          border-color: #000;
+        }
+
+        .global-nav.theme-mario .nav-loading {
+          background: #FBD000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-separator {
+          color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-active-app {
+          text-shadow: 2px 2px 0 #000;
+        }
+
+        .global-nav.theme-mario .nav-login-dropdown {
+          background: #049CD8;
+          border: 3px solid #000;
+          box-shadow: 4px 4px 0 #000;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-login-title {
+          color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-input {
+          background: #1a1a1a;
+          border: 2px solid #000;
+          color: #fff;
+          border-radius: 0;
+        }
+
+        .global-nav.theme-mario .nav-input:focus {
+          border-color: #FBD000;
+        }
+
+        .global-nav.theme-mario .nav-submit-btn {
+          background: linear-gradient(180deg, #43B047 0%, #2E8A32 100%);
+          border: 2px solid #000;
+          color: #fff;
+          border-radius: 0;
+          box-shadow: 2px 2px 0 #000;
+        }
+
+        .global-nav.theme-mario .nav-submit-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 3px 3px 0 #000;
+        }
+
         .nav-logo {
           font-family: 'Press Start 2P', monospace;
           font-size: 9px;
@@ -1593,7 +1817,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
       `}</style>
 
-      <nav className={`global-nav ${theme === 'light' ? 'theme-light' : theme === 'terminal' ? 'theme-terminal' : ''}`}>
+      <nav className={`global-nav ${theme === 'light' ? 'theme-light' : theme === 'terminal' ? 'theme-terminal' : theme === 'mario' ? 'theme-mario' : ''}`}>
         <div className="global-nav-inner">
           {/* Left section: Logo with apps dropdown */}
           <div className="nav-left">

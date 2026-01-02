@@ -17,7 +17,7 @@ export function ThemeSwitcher() {
     } else if (theme === 'light') {
       setTheme('dark');
     } else {
-      // Terminal mode - toggle to dark
+      // Terminal or Mario mode - toggle to dark
       setTheme('dark');
     }
   };
@@ -53,6 +53,15 @@ export function ThemeSwitcher() {
         title="Terminal"
       >
         <span className="theme-icon">⌨️</span>
+      </button>
+
+      {/* Mario / NES */}
+      <button
+        className={`theme-option mario ${theme === 'mario' ? 'active' : ''}`}
+        onClick={() => setTheme('mario')}
+        title="Mario / NES"
+      >
+        <span className="theme-icon">🍄</span>
       </button>
     </div>
   );

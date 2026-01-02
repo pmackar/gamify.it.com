@@ -124,6 +124,55 @@ html.terminal body {
   color: var(--theme-text-primary) !important;
 }
 
+/* ===== MARIO / NES THEME ===== */
+html.mario {
+  --theme-bg-base: #5C94FC;           /* Classic NES sky blue */
+  --theme-bg-elevated: #6BA4FF;
+  --theme-bg-card: #E52521;           /* Mario red */
+  --theme-bg-card-hover: #FF3B36;
+  --theme-bg-tertiary: #049CD8;       /* Bright blue */
+  --theme-text-primary: #FFFFFF;
+  --theme-text-secondary: #FBD000;    /* Coin gold */
+  --theme-text-muted: rgba(255, 255, 255, 0.7);
+  --theme-border: #000000;
+  --theme-border-light: #1a1a1a;
+  --theme-gold: #FBD000;              /* Coin/Star gold */
+  --theme-gold-glow: rgba(251, 208, 0, 0.5);
+  --theme-success: #43B047;           /* Pipe/Grass green */
+  --theme-danger: #E52521;            /* Mario red */
+
+  /* Mario-specific accent colors */
+  --mario-red: #E52521;
+  --mario-blue: #049CD8;
+  --mario-green: #43B047;
+  --mario-gold: #FBD000;
+  --mario-brown: #C84C0C;             /* Brick color */
+  --mario-question: #D07030;          /* Question block */
+  --mario-sky: #5C94FC;
+  --mario-cloud: #FCFCFC;
+
+  /* Update RPG vars for Mario theme */
+  --rpg-bg: #5C94FC;
+  --rpg-card: #E52521;
+  --rpg-card-hover: #FF3B36;
+  --rpg-teal: #43B047;
+  --rpg-teal-glow: rgba(67, 176, 71, 0.5);
+  --rpg-border-light: #000000;
+  --rpg-gold: #FBD000;
+}
+
+html.mario body {
+  background-color: var(--theme-bg-base) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* Mario theme pixel borders */
+html.mario .theme-card,
+html.mario [class*="card"] {
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0 #000000;
+}
+
 html, body {
   background-color: #0a0a0a !important;
   color: #ffffff !important;

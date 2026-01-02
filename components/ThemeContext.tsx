@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-export type Theme = 'dark' | 'light' | 'terminal' | 'system';
-export type ResolvedTheme = 'dark' | 'light' | 'terminal';
+export type Theme = 'dark' | 'light' | 'terminal' | 'mario' | 'system';
+export type ResolvedTheme = 'dark' | 'light' | 'terminal' | 'mario';
 
 interface ThemeContextValue {
   theme: Theme;
@@ -24,7 +24,7 @@ function getStoredTheme(): Theme {
   if (typeof window === 'undefined') return 'system';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && ['dark', 'light', 'terminal', 'system'].includes(stored)) {
+    if (stored && ['dark', 'light', 'terminal', 'mario', 'system'].includes(stored)) {
       return stored as Theme;
     }
   } catch (e) {
@@ -58,7 +58,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!mounted) return;
 
     const root = document.documentElement;
-    root.classList.remove('dark', 'light', 'terminal');
+    root.classList.remove('dark', 'light', 'terminal', 'mario');
     root.classList.add(resolvedTheme);
   }, [resolvedTheme, mounted]);
 
