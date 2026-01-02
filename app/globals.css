@@ -288,6 +288,30 @@ html.mario a:hover {
   color: #FFFFFF !important;
 }
 
+/* Mario stat badges */
+html.mario .stat-badge,
+html.mario .stat-badges .stat-badge {
+  background: #C84C0C !important;       /* Brick brown */
+  border: 3px solid #000000 !important;
+  border-radius: 0 !important;
+  box-shadow: 2px 2px 0 #000000;
+  color: #FFFFFF !important;
+}
+
+html.mario .stat-badge-value {
+  color: #FBD000 !important;            /* Gold for values */
+  text-shadow: 1px 1px 0 #000000;
+}
+
+html.mario .stat-badge-label {
+  color: #FFFFFF !important;
+  text-transform: uppercase;
+}
+
+html.mario .stat-badge-icon {
+  filter: drop-shadow(1px 1px 0 #000000);
+}
+
 html, body {
   background-color: #0a0a0a !important;
   color: #ffffff !important;
