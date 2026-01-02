@@ -69,6 +69,24 @@ export default function NewLocationPage() {
   const [importedCoords, setImportedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showHowTo, setShowHowTo] = useState(false);
 
+  // Duplicate detection state
+  const [duplicateLocation, setDuplicateLocation] = useState<{
+    id: string;
+    name: string;
+    type: string;
+    address: string | null;
+    city: { name: string; country: string } | null;
+    visited: boolean;
+    hotlist: boolean;
+    rating: number | null;
+  } | null>(null);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateAction, setDuplicateAction] = useState<"visit" | null>(null);
+  const [duplicateRating, setDuplicateRating] = useState(0);
+  const [duplicateHoverRating, setDuplicateHoverRating] = useState(0);
+  const [duplicateReview, setDuplicateReview] = useState("");
+  const [duplicateActionLoading, setDuplicateActionLoading] = useState(false);
+
   // Status options (set on creation)
   const [markVisited, setMarkVisited] = useState(true);
   const [addToHotlist, setAddToHotlist] = useState(false);
@@ -128,6 +146,7 @@ export default function NewLocationPage() {
       }
 
       // Auto-select or create city if we have city/country from reverse geocoding
+      let matchedCityId: string | undefined;
       if (location.city && location.country) {
         // Check if city already exists
         const existingCity = cities.find(
@@ -137,6 +156,7 @@ export default function NewLocationPage() {
         if (existingCity) {
           setCityId(existingCity.id);
           setIsNewCity(false);
+          matchedCityId = existingCity.id;
         } else {
           // Pre-fill new city form
           setNewCity({ name: location.city, country: location.country });
@@ -144,7 +164,34 @@ export default function NewLocationPage() {
         }
       }
 
-      // Clear the URL field after successful import
+      // Check for duplicate location
+      if (location.latitude && location.longitude) {
+        const dupRes = await fetch("/api/locations/check-duplicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            name: location.name,
+            cityId: matchedCityId,
+          }),
+        });
+
+        if (dupRes.ok) {
+          const dupData = await dupRes.json();
+          if (dupData.isDuplicate && dupData.location) {
+            setDuplicateLocation(dupData.location);
+            setShowDuplicateModal(true);
+            setDuplicateAction(null);
+            setDuplicateRating(0);
+            setDuplicateReview("");
+            // Don't clear URL - user might want to try again
+            return;
+          }
+        }
+      }
+
+      // Clear the URL field after successful import (no duplicate found)
       setGoogleMapsUrl("");
     } catch (error) {
       console.error("Import error:", error);
@@ -156,6 +203,83 @@ export default function NewLocationPage() {
 
   const clearImportedCoords = () => {
     setImportedCoords(null);
+  };
+
+  const closeDuplicateModal = () => {
+    setShowDuplicateModal(false);
+    setDuplicateLocation(null);
+    setDuplicateAction(null);
+    setDuplicateRating(0);
+    setDuplicateHoverRating(0);
+    setDuplicateReview("");
+    setGoogleMapsUrl("");
+  };
+
+  const handleDuplicateMarkVisited = async () => {
+    if (!duplicateLocation) return;
+    setDuplicateActionLoading(true);
+
+    try {
+      const res = await fetch(`/api/locations/${duplicateLocation.id}/user-data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visited: true,
+          personalRating: duplicateRating > 0 ? duplicateRating : null,
+          notes: duplicateReview || null,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to mark as visited");
+      }
+
+      const data = await res.json();
+
+      // Show success and redirect
+      setSuccess({
+        xpGained: data.xpGained || 15,
+        leveledUp: false,
+        locationId: duplicateLocation.id,
+      });
+      closeDuplicateModal();
+
+      setTimeout(() => {
+        router.push(`/travel/locations/${duplicateLocation.id}`);
+      }, 2000);
+    } catch (error) {
+      console.error("Error marking as visited:", error);
+      alert("Failed to mark as visited. Please try again.");
+    } finally {
+      setDuplicateActionLoading(false);
+    }
+  };
+
+  const handleDuplicateAddToHotlist = async () => {
+    if (!duplicateLocation) return;
+    setDuplicateActionLoading(true);
+
+    try {
+      const res = await fetch(`/api/locations/${duplicateLocation.id}/user-data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hotlist: true,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to add to hotlist");
+      }
+
+      // Redirect to location page
+      router.push(`/travel/locations/${duplicateLocation.id}`);
+    } catch (error) {
+      console.error("Error adding to hotlist:", error);
+      alert("Failed to add to hotlist. Please try again.");
+    } finally {
+      setDuplicateActionLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,8 +402,250 @@ export default function NewLocationPage() {
     );
   }
 
+  // Duplicate detection modal
+  const DuplicateModal = () => {
+    if (!showDuplicateModal || !duplicateLocation) return null;
+
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: 'rgba(0, 0, 0, 0.8)' }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) closeDuplicateModal();
+        }}
+      >
+        <div
+          className="w-full max-w-md rounded-lg overflow-hidden"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          {/* Header */}
+          <div
+            className="p-4 flex items-center justify-between"
+            style={{ borderBottom: '2px solid var(--rpg-border)' }}
+          >
+            <h2 className="text-lg font-medium" style={{ color: 'var(--rpg-text)' }}>
+              Location Already Exists
+            </h2>
+            <button
+              onClick={closeDuplicateModal}
+              className="p-1 rounded hover:opacity-70 transition-opacity"
+              style={{ color: 'var(--rpg-muted)' }}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Location Info */}
+          <div className="p-4">
+            <div className="flex items-start gap-3 mb-4">
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(168, 85, 247, 0.2)', border: '2px solid var(--rpg-purple)' }}
+              >
+                <MapPin className="w-6 h-6" style={{ color: 'var(--rpg-purple)' }} />
+              </div>
+              <div>
+                <h3 className="text-base font-medium" style={{ color: 'var(--rpg-text)' }}>
+                  {duplicateLocation.name}
+                </h3>
+                <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
+                  {duplicateLocation.city?.name}, {duplicateLocation.city?.country}
+                </p>
+                {duplicateLocation.address && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--rpg-muted)' }}>
+                    {duplicateLocation.address}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Current status badges */}
+            <div className="flex gap-2 mb-4">
+              {duplicateLocation.visited && (
+                <span
+                  className="px-2 py-1 text-xs rounded flex items-center gap-1"
+                  style={{ background: 'rgba(95, 191, 138, 0.2)', color: 'var(--rpg-teal)' }}
+                >
+                  <CheckCircle2 className="w-3 h-3" /> Visited
+                </span>
+              )}
+              {duplicateLocation.hotlist && (
+                <span
+                  className="px-2 py-1 text-xs rounded flex items-center gap-1"
+                  style={{ background: 'rgba(255, 107, 107, 0.2)', color: '#ff6b6b' }}
+                >
+                  <Heart className="w-3 h-3" style={{ fill: '#ff6b6b' }} /> Hotlist
+                </span>
+              )}
+              {duplicateLocation.rating && (
+                <span
+                  className="px-2 py-1 text-xs rounded flex items-center gap-1"
+                  style={{ background: 'rgba(255, 215, 0, 0.2)', color: 'var(--rpg-gold)' }}
+                >
+                  <Star className="w-3 h-3" style={{ fill: 'var(--rpg-gold)' }} /> {duplicateLocation.rating}
+                </span>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2">
+              {/* Go to page */}
+              <Link
+                href={`/travel/locations/${duplicateLocation.id}`}
+                className="w-full p-3 rounded-lg flex items-center gap-3 transition-all"
+                style={{
+                  background: 'var(--rpg-bg-dark)',
+                  border: '2px solid var(--rpg-border)',
+                }}
+              >
+                <MapPin className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
+                <span className="flex-1 text-left" style={{ color: 'var(--rpg-text)' }}>Go to page</span>
+                <ArrowLeft className="w-4 h-4 rotate-180" style={{ color: 'var(--rpg-muted)' }} />
+              </Link>
+
+              {/* Mark as Visited */}
+              {!duplicateLocation.visited && (
+                <div>
+                  <button
+                    onClick={() => setDuplicateAction(duplicateAction === "visit" ? null : "visit")}
+                    className="w-full p-3 rounded-lg flex items-center gap-3 transition-all"
+                    style={{
+                      background: duplicateAction === "visit" ? 'rgba(95, 191, 138, 0.2)' : 'var(--rpg-bg-dark)',
+                      border: `2px solid ${duplicateAction === "visit" ? 'var(--rpg-teal)' : 'var(--rpg-border)'}`,
+                    }}
+                  >
+                    <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
+                    <span className="flex-1 text-left" style={{ color: 'var(--rpg-text)' }}>Mark as visited</span>
+                    {duplicateAction === "visit" ? (
+                      <ChevronUp className="w-4 h-4" style={{ color: 'var(--rpg-muted)' }} />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" style={{ color: 'var(--rpg-muted)' }} />
+                    )}
+                  </button>
+
+                  {/* Rating and Review fields */}
+                  {duplicateAction === "visit" && (
+                    <div
+                      className="mt-2 p-4 rounded-lg space-y-4"
+                      style={{ background: 'var(--rpg-bg-dark)', border: '2px solid var(--rpg-border)' }}
+                    >
+                      {/* Rating */}
+                      <div>
+                        <label className="block text-sm mb-2" style={{ color: 'var(--rpg-text)' }}>
+                          Rating (optional)
+                        </label>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setDuplicateRating(duplicateRating === star ? 0 : star)}
+                              onMouseEnter={() => setDuplicateHoverRating(star)}
+                              onMouseLeave={() => setDuplicateHoverRating(0)}
+                              className="p-1 transition-transform hover:scale-110"
+                            >
+                              <Star
+                                className="w-7 h-7"
+                                style={{
+                                  color: (duplicateHoverRating || duplicateRating) >= star ? 'var(--rpg-gold)' : 'var(--rpg-border)',
+                                  fill: (duplicateHoverRating || duplicateRating) >= star ? 'var(--rpg-gold)' : 'none',
+                                }}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Review */}
+                      <div>
+                        <label className="block text-sm mb-2" style={{ color: 'var(--rpg-text)' }}>
+                          Review (optional)
+                        </label>
+                        <textarea
+                          value={duplicateReview}
+                          onChange={(e) => setDuplicateReview(e.target.value)}
+                          placeholder="Your thoughts about this place..."
+                          rows={3}
+                          className="rpg-input w-full resize-none"
+                        />
+                      </div>
+
+                      {/* Submit button */}
+                      <button
+                        onClick={handleDuplicateMarkVisited}
+                        disabled={duplicateActionLoading}
+                        className="rpg-btn w-full py-2 flex items-center justify-center gap-2"
+                        style={{
+                          opacity: duplicateActionLoading ? 0.5 : 1,
+                          cursor: duplicateActionLoading ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {duplicateActionLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Save Visit
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Add to Hotlist */}
+              {!duplicateLocation.hotlist && (
+                <button
+                  onClick={handleDuplicateAddToHotlist}
+                  disabled={duplicateActionLoading}
+                  className="w-full p-3 rounded-lg flex items-center gap-3 transition-all"
+                  style={{
+                    background: 'var(--rpg-bg-dark)',
+                    border: '2px solid var(--rpg-border)',
+                    opacity: duplicateActionLoading ? 0.5 : 1,
+                    cursor: duplicateActionLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <Heart className="w-5 h-5" style={{ color: '#ff6b6b' }} />
+                  <span className="flex-1 text-left" style={{ color: 'var(--rpg-text)' }}>Add to hotlist</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div
+            className="p-4"
+            style={{ borderTop: '2px solid var(--rpg-border)', background: 'var(--rpg-bg-dark)' }}
+          >
+            <button
+              onClick={closeDuplicateModal}
+              className="w-full py-2 text-sm rounded-lg transition-all"
+              style={{
+                color: 'var(--rpg-muted)',
+                border: '2px solid var(--rpg-border)',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <DuplicateModal />
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link
