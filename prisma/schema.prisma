@@ -237,6 +237,11 @@ model travel_locations {
   @@index([neighborhood_id])
   @@index([type])
   @@index([latitude, longitude])
+  // Compound indexes for common query patterns
+  @@index([user_id, city_id])
+  @@index([user_id, type])
+  @@index([user_id, visited])
+  @@index([user_id, hotlist])
 }
 
 model travel_visits {
@@ -307,6 +312,9 @@ model travel_user_location_data {
   @@unique([user_id, location_id])
   @@index([user_id])
   @@index([location_id])
+  // Compound indexes for filtering user's locations
+  @@index([user_id, visited])
+  @@index([user_id, hotlist])
 }
 
 enum travel_review_status {
