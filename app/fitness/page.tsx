@@ -418,7 +418,7 @@ export default function FitnessPage() {
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
 
         .fitness-app {
           /* Gamify.it.com Design System - Iron Quest Theme */
@@ -526,22 +526,22 @@ export default function FitnessPage() {
 
         .suggestions {
           margin-bottom: 8px;
-          max-height: 116px; /* ~2 items visible */
+          max-height: 240px;
           overflow-y: auto;
           overflow-x: hidden;
           scrollbar-width: thin;
-          scrollbar-color: rgba(255,255,255,0.3) transparent;
+          scrollbar-color: var(--border-light) transparent;
           overscroll-behavior: contain;
           position: relative;
         }
         .suggestions::-webkit-scrollbar { width: 4px; }
         .suggestions::-webkit-scrollbar-track { background: transparent; }
         .suggestions::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.3);
+          background: var(--border-light);
           border-radius: 2px;
         }
         .suggestions::-webkit-scrollbar-thumb:hover {
-          background: rgba(255,255,255,0.5);
+          background: var(--text-tertiary);
         }
 
         .suggestion {
@@ -554,13 +554,13 @@ export default function FitnessPage() {
           transition: all 0.15s ease;
           border: 1px solid transparent;
         }
-        .suggestion:hover, .suggestion.selected {
-          background: rgba(40, 40, 50, 0.6);
-          border-color: rgba(255, 255, 255, 0.05);
+        .suggestion:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--border);
         }
         .suggestion.selected {
           background: var(--accent-glow);
-          border-color: rgba(255, 107, 107, 0.2);
+          border-color: rgba(255, 107, 107, 0.3);
         }
 
         .suggestion-icon {
@@ -640,7 +640,7 @@ export default function FitnessPage() {
           transition: all 0.2s ease;
         }
         .exercise-pill:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           border-color: var(--border-light);
         }
         .exercise-pill.active {
@@ -655,7 +655,7 @@ export default function FitnessPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-active);
+          background: var(--bg-tertiary);
           border-radius: 8px;
           font-size: 12px;
           font-weight: 600;
@@ -681,7 +681,7 @@ export default function FitnessPage() {
         }
         .set-badge {
           padding: 4px 10px;
-          background: var(--bg-active);
+          background: var(--bg-tertiary);
           border-radius: 8px;
           font-size: 12px;
           font-weight: 500;
@@ -749,7 +749,7 @@ export default function FitnessPage() {
           transition: all 0.15s;
         }
         .close-btn:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           color: var(--text-primary);
         }
 
@@ -808,7 +808,7 @@ export default function FitnessPage() {
           transition: all 0.15s;
         }
         .action-btn:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
         }
         .action-btn.primary {
           flex: 2;
@@ -893,7 +893,7 @@ export default function FitnessPage() {
           color: var(--text-secondary);
         }
         .modal-btn.secondary:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           color: var(--text-primary);
         }
         .modal-btn.primary {
@@ -928,7 +928,7 @@ export default function FitnessPage() {
           transition: all 0.15s;
         }
         .back-btn:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
         }
         .view-title {
           font-size: 22px;
@@ -1279,7 +1279,7 @@ export default function FitnessPage() {
         }
 
         .exercise-picker-back:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
         }
 
         .exercise-picker-title {
@@ -1311,7 +1311,7 @@ export default function FitnessPage() {
         }
 
         .category-card:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           border-color: var(--border-light);
           transform: translateY(-2px);
         }
@@ -1356,7 +1356,7 @@ export default function FitnessPage() {
         }
 
         .exercise-item:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           border-color: var(--border-light);
         }
 
@@ -1371,7 +1371,7 @@ export default function FitnessPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-active);
+          background: var(--bg-tertiary);
           border-radius: 10px;
           font-size: 18px;
         }
@@ -1439,7 +1439,7 @@ export default function FitnessPage() {
           transition: all 0.2s;
         }
         .create-btn:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           border-color: var(--accent);
           color: var(--accent);
         }
@@ -1454,7 +1454,7 @@ export default function FitnessPage() {
           transition: all 0.2s;
         }
         .campaign-card:hover {
-          background: var(--bg-hover);
+          background: var(--bg-card-hover);
           border-color: var(--border-light);
         }
 
@@ -1472,7 +1472,7 @@ export default function FitnessPage() {
         .campaign-badge {
           font-size: 11px;
           padding: 4px 8px;
-          background: var(--bg-active);
+          background: var(--bg-tertiary);
           border-radius: 6px;
           color: var(--text-secondary);
         }
@@ -1489,7 +1489,7 @@ export default function FitnessPage() {
         .progress-bar {
           flex: 1;
           height: 6px;
-          background: var(--bg-active);
+          background: var(--bg-tertiary);
           border-radius: 3px;
           overflow: hidden;
         }
@@ -1948,6 +1948,7 @@ export default function FitnessPage() {
                 {suggestions.map((suggestion, idx) => (
                   <div
                     key={suggestion.id + idx}
+                    ref={idx === selectedSuggestion ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                     className={`suggestion ${idx === selectedSuggestion ? 'selected' : ''}`}
                     onMouseDown={(e) => { e.preventDefault(); executeCommand(suggestion); }}
                   >
@@ -2223,7 +2224,7 @@ function WorkoutDetailView({
                 key={setIdx}
                 style={{
                   padding: '5px 10px',
-                  background: set.weight >= (records[exercise.id] || 0) ? 'rgba(255,215,0,0.15)' : 'var(--bg-active)',
+                  background: set.weight >= (records[exercise.id] || 0) ? 'rgba(255,215,0,0.15)' : 'var(--bg-tertiary)',
                   color: set.weight >= (records[exercise.id] || 0) ? 'var(--gold)' : 'var(--text-secondary)',
                   borderRadius: '8px',
                   fontSize: '12px',
