@@ -80,7 +80,7 @@ interface FitnessStore extends FitnessState {
   clearToast: () => void;
 
   // Data management
-  importWorkouts: (workouts: Workout[]) => void;
+  importWorkouts: (workouts: Workout[]) => Promise<void>;
   eraseAllData: () => void;
   deleteWorkout: (workoutId: string) => void;
 }
@@ -554,7 +554,7 @@ export const useFitnessStore = create<FitnessStore>()(
         set({ toastMessage: null });
       },
 
-      importWorkouts: (workouts: Workout[]) => {
+      importWorkouts: async (workouts: Workout[]) => {
         const state = get();
 
         // Merge with existing workouts, avoiding duplicates by ID
@@ -608,6 +608,31 @@ export const useFitnessStore = create<FitnessStore>()(
             level: getLevelFromXP(state.profile.xp + xpToAward)
           }
         }));
+
+        // Sync to unified XP API if achievement was awarded
+        if (xpToAward > 0) {
+          try {
+            await fetch('/api/xp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                appId: 'fitness',
+                action: 'import_achievement',
+                xpAmount: xpToAward,
+                metadata: {
+                  achievement: 'importer',
+                  workoutsImported: newWorkouts.length,
+                  totalSets,
+                  totalVolume
+                }
+              })
+            });
+            // Update navbar XP display
+            dispatchXPUpdate();
+          } catch (error) {
+            console.error('Failed to sync import XP:', error);
+          }
+        }
 
         // Show appropriate toast message
         if (!hasImporterAchievement && importerAchievement) {
