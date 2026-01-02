@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Check, Sparkles, Loader2, Link2, X, ChevronDown, ChevronUp, Star, Heart, CheckCircle2 } from "lucide-react";
+import StarRating from "@/components/ui/StarRating";
 import Link from "next/link";
 
 interface City {
@@ -83,7 +84,6 @@ export default function NewLocationPage() {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateAction, setDuplicateAction] = useState<"visit" | null>(null);
   const [duplicateRating, setDuplicateRating] = useState(0);
-  const [duplicateHoverRating, setDuplicateHoverRating] = useState(0);
   const [duplicateReview, setDuplicateReview] = useState("");
   const [duplicateActionLoading, setDuplicateActionLoading] = useState(false);
 
@@ -91,7 +91,6 @@ export default function NewLocationPage() {
   const [markVisited, setMarkVisited] = useState(true);
   const [addToHotlist, setAddToHotlist] = useState(false);
   const [initialRating, setInitialRating] = useState<number>(0);
-  const [hoverRating, setHoverRating] = useState<number>(0);
 
   // Fetch existing cities
   useEffect(() => {
@@ -210,7 +209,6 @@ export default function NewLocationPage() {
     setDuplicateLocation(null);
     setDuplicateAction(null);
     setDuplicateRating(0);
-    setDuplicateHoverRating(0);
     setDuplicateReview("");
     setGoogleMapsUrl("");
   };
@@ -538,26 +536,11 @@ export default function NewLocationPage() {
                         <label className="block text-sm mb-2" style={{ color: 'var(--rpg-text)' }}>
                           Rating (optional)
                         </label>
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setDuplicateRating(duplicateRating === star ? 0 : star)}
-                              onMouseEnter={() => setDuplicateHoverRating(star)}
-                              onMouseLeave={() => setDuplicateHoverRating(0)}
-                              className="p-1 transition-transform hover:scale-110"
-                            >
-                              <Star
-                                className="w-7 h-7"
-                                style={{
-                                  color: (duplicateHoverRating || duplicateRating) >= star ? 'var(--rpg-gold)' : 'var(--rpg-border)',
-                                  fill: (duplicateHoverRating || duplicateRating) >= star ? 'var(--rpg-gold)' : 'none',
-                                }}
-                              />
-                            </button>
-                          ))}
-                        </div>
+                        <StarRating
+                          value={duplicateRating}
+                          onChange={setDuplicateRating}
+                          size="sm"
+                        />
                       </div>
 
                       {/* Review */}
@@ -922,7 +905,6 @@ export default function NewLocationPage() {
               setMarkVisited(newValue);
               if (!newValue) {
                 setInitialRating(0);
-                setHoverRating(0);
               }
             }}
             className="w-full flex items-center gap-3 p-3 rounded-lg transition-all"
@@ -994,7 +976,7 @@ export default function NewLocationPage() {
               opacity: markVisited ? 1 : 0.5,
             }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-3">
               <Star className="w-5 h-5" style={{ color: markVisited && initialRating > 0 ? 'var(--rpg-gold)' : 'var(--rpg-muted)' }} />
               <div className="flex-1">
                 <p className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Initial Rating</p>
@@ -1003,38 +985,11 @@ export default function NewLocationPage() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-1 mt-3">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  disabled={!markVisited}
-                  onClick={() => setInitialRating(initialRating === star ? 0 : star)}
-                  onMouseEnter={() => markVisited && setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 transition-transform"
-                  style={{ cursor: markVisited ? 'pointer' : 'not-allowed' }}
-                >
-                  <Star
-                    className="w-8 h-8"
-                    style={{
-                      color: markVisited && (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'var(--rpg-border)',
-                      fill: markVisited && (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'none',
-                    }}
-                  />
-                </button>
-              ))}
-              {initialRating > 0 && markVisited && (
-                <button
-                  type="button"
-                  onClick={() => setInitialRating(0)}
-                  className="ml-2 px-2 text-xs rounded"
-                  style={{ color: 'var(--rpg-muted)' }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+            <StarRating
+              value={initialRating}
+              onChange={setInitialRating}
+              disabled={!markVisited}
+            />
           </div>
         </div>
 

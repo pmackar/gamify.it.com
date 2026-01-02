@@ -8,6 +8,7 @@ import {
   unmarkAsVisited,
   rateLocation,
 } from "@/app/actions/location-actions";
+import StarRating from "@/components/ui/StarRating";
 
 interface Props {
   locationId: string;
@@ -78,7 +79,7 @@ export default function LocationActions({
         boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
       }}
     >
-      <h3 className="text-[0.65rem] mb-4" style={{ color: "var(--rpg-text)" }}>
+      <h3 className="text-base font-medium mb-4" style={{ color: "var(--rpg-text)" }}>
         Actions
       </h3>
 
@@ -100,7 +101,7 @@ export default function LocationActions({
             className="w-4 h-4"
             fill={isHotlist ? "currentColor" : "none"}
           />
-          <span className="text-[0.55rem]">
+          <span className="text-sm">
             {isHotlist ? "On Hotlist" : "Add to Hotlist"}
           </span>
         </button>
@@ -121,7 +122,7 @@ export default function LocationActions({
           }}
         >
           <Check className="w-4 h-4" />
-          <span className="text-[0.55rem]">
+          <span className="text-sm">
             {isVisited ? "Visited" : "Mark as Visited"}
           </span>
         </button>
@@ -141,8 +142,8 @@ export default function LocationActions({
           }}
         >
           <Star className="w-4 h-4" fill={rating ? "currentColor" : "none"} />
-          <span className="text-[0.55rem]">
-            {rating ? `Rated ${rating}/10` : "Rate"}
+          <span className="text-sm">
+            {rating ? `${rating.toFixed(1)} ★` : "Rate"}
           </span>
         </button>
       </div>
@@ -150,31 +151,14 @@ export default function LocationActions({
       {/* Rating Selector */}
       {showRating && (
         <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--rpg-border)" }}>
-          <p className="text-[0.5rem] mb-3" style={{ color: "var(--rpg-muted)" }}>
-            Select your rating (1-10):
+          <p className="text-sm mb-3" style={{ color: "var(--rpg-muted)" }}>
+            Select your rating:
           </p>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-              <button
-                key={num}
-                onClick={() => handleRate(num)}
-                disabled={loading === "rating"}
-                className="w-8 h-8 rounded transition-all disabled:opacity-50"
-                style={{
-                  background:
-                    rating === num
-                      ? "var(--rpg-gold)"
-                      : "rgba(0, 0, 0, 0.3)",
-                  border: `2px solid ${
-                    rating === num ? "var(--rpg-gold)" : "var(--rpg-border)"
-                  }`,
-                  color: rating === num ? "#000" : "var(--rpg-text)",
-                }}
-              >
-                <span className="text-[0.55rem]">{num}</span>
-              </button>
-            ))}
-          </div>
+          <StarRating
+            value={rating || 0}
+            onChange={handleRate}
+            disabled={loading === "rating"}
+          />
         </div>
       )}
     </div>

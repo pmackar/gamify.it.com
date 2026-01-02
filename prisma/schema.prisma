@@ -254,7 +254,7 @@ model travel_locations {
 model travel_visits {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   date            DateTime         @db.Timestamptz(6)
-  overall_rating  Int?
+  overall_rating  Float?
   food_quality    Int?
   service_rating  Int?
   ambiance_rating Int?
@@ -302,7 +302,7 @@ model travel_user_location_data {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   hotlist         Boolean          @default(false)
   visited         Boolean          @default(false)
-  personal_rating Int?
+  personal_rating Float?
   notes           String?
   visit_count     Int              @default(0)
   first_visited_at DateTime?       @db.Timestamptz(6)
@@ -334,7 +334,7 @@ model travel_reviews {
   id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title           String?
   content         String
-  rating          Int
+  rating          Float
   status          travel_review_status @default(PENDING)
   moderated_at    DateTime?           @db.Timestamptz(6)
   moderated_by    String?
