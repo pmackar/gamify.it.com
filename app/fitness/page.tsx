@@ -1341,24 +1341,24 @@ export default function FitnessPage() {
           padding: 24px 16px 32px;
         }
         .hero-card {
-          background: rgba(30, 30, 40, 0.8);
+          background: var(--theme-bg-card);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--theme-border-light);
           border-radius: 20px;
           padding: 2rem;
           text-align: center;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         .home-icon {
           font-size: 56px;
           margin-bottom: 1rem;
-          filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.3));
+          filter: drop-shadow(0 4px 12px var(--app-fitness-glow));
         }
         .home-title {
           font-size: 1.75rem;
           font-weight: 700;
-          color: #fff;
+          color: var(--theme-text-primary);
           margin-bottom: 0.5rem;
         }
         .home-subtitle {
@@ -1373,8 +1373,8 @@ export default function FitnessPage() {
           margin-top: 1.5rem;
         }
         .home-stat {
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: var(--theme-bg-tertiary);
+          border: 1px solid var(--theme-border);
           border-radius: 12px;
           padding: 1rem 0.75rem;
         }
@@ -1768,6 +1768,12 @@ export default function FitnessPage() {
         :global(html.light) .category-card:hover {
           background: var(--theme-bg-card-hover);
           box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        :global(html.light) .hero-card {
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        :global(html.light) .home-stat {
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
 
         /* Responsive */
