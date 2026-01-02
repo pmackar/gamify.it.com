@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
           avatar_url: true,
         },
       },
+      kudos: {
+        select: {
+          id: true,
+          user_id: true,
+          emoji: true,
+        },
+      },
     },
     orderBy: { created_at: "desc" },
     take: limit + 1,
@@ -61,6 +68,8 @@ export async function GET(request: NextRequest) {
             avatarUrl: item.actor.avatar_url,
           }
         : null,
+      kudosCount: item.kudos.length,
+      hasGivenKudos: item.kudos.some((k) => k.user_id === user.id),
     })),
     nextCursor: hasMore ? items[items.length - 1].id : null,
     unreadCount,

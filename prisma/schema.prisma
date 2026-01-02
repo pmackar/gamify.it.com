@@ -131,6 +131,7 @@ model profiles {
   party_memberships    quest_party_members[]
   activity_feed_owned  activity_feed[] @relation("ActivityFeedOwner")
   activity_feed_actor  activity_feed[] @relation("ActivityFeedActor")
+  activity_kudos_given activity_kudos[] @relation("ActivityKudosGiver")
 
   // Coaching relations
   coach_profile        coach_profiles?

@@ -451,12 +451,17 @@ export const useTodayStore = create<TodayStore>()(
           tier: data.tier || 'tier3',
           difficulty: data.difficulty || 'medium',
           due_date: data.due_date || null,
+          start_date: data.start_date || null,
           is_completed: false,
           completed_at: null,
           xp_earned: 0,
           was_on_time: null,
           project_id: data.project_id || null,
           category_id: data.category_id || null,
+          parent_task_id: data.parent_task_id || null,
+          recurrence_rule: data.recurrence_rule || null,
+          recurrence_parent_id: data.recurrence_parent_id || null,
+          is_someday: data.is_someday || false,
           tags: data.tags || [],
           order_index: state.tasks.length,
           created_at: new Date().toISOString(),
@@ -584,6 +589,64 @@ export const useTodayStore = create<TodayStore>()(
           // Check local achievements
           const newAchievements = checkAchievements(get());
 
+          // Handle recurring tasks - create next occurrence
+          if (task.recurrence_rule && task.due_date) {
+            const nextDueDate = calculateNextOccurrence(task.due_date, task.recurrence_rule);
+            if (nextDueDate) {
+              // Create the next occurrence
+              const nextTask: Task = {
+                id: Date.now().toString() + '-recur',
+                title: task.title,
+                description: task.description || '',
+                status: 'Not started',
+                priority: task.priority,
+                tier: task.tier,
+                difficulty: task.difficulty,
+                due_date: nextDueDate,
+                start_date: null,
+                is_completed: false,
+                completed_at: null,
+                xp_earned: 0,
+                was_on_time: null,
+                project_id: task.project_id,
+                category_id: task.category_id,
+                parent_task_id: null,
+                recurrence_rule: task.recurrence_rule,
+                recurrence_parent_id: task.recurrence_parent_id || task.id,
+                is_someday: false,
+                tags: [...task.tags],
+                order_index: get().tasks.length,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+
+              set((state) => ({
+                tasks: [...state.tasks, nextTask],
+                pendingSync: true,
+              }));
+
+              get().showToast(`Next occurrence scheduled for ${nextDueDate}`, 'info');
+            }
+          }
+
+          // Check if parent task should be auto-completed (all subtasks done)
+          if (task.parent_task_id) {
+            const parent = get().tasks.find((t) => t.id === task.parent_task_id);
+            if (parent && !parent.is_completed) {
+              const allSubtasksComplete = get()
+                .tasks.filter((t) => t.parent_task_id === task.parent_task_id)
+                .every((t) => t.is_completed || t.id === taskId);
+
+              if (allSubtasksComplete) {
+                // Auto-complete parent
+                setTimeout(() => {
+                  get().toggleTaskComplete(task.parent_task_id!);
+                  get().showToast('Parent task completed!', 'success');
+                }, 300);
+              }
+            }
+          }
+
           // Call unified XP API (async, don't block)
           // Send BASE XP - API applies its own streak multiplier
           const baseXP = calculateBaseTaskXP(task);
@@ -690,6 +753,91 @@ export const useTodayStore = create<TodayStore>()(
             }
             return task;
           }),
+          pendingSync: true,
+        }));
+        queueSync(get);
+      },
+
+      // Subtask helpers
+      getSubtasks: (parentId: string) => {
+        return get().tasks
+          .filter((t) => t.parent_task_id === parentId)
+          .sort((a, b) => a.order_index - b.order_index);
+      },
+
+      getSubtaskProgress: (parentId: string) => {
+        const subtasks = get().tasks.filter((t) => t.parent_task_id === parentId);
+        const completed = subtasks.filter((t) => t.is_completed).length;
+        return { completed, total: subtasks.length };
+      },
+
+      createSubtask: (parentId: string, data: Partial<Task>) => {
+        const state = get();
+        const parent = state.tasks.find((t) => t.id === parentId);
+        const existingSubtasks = state.tasks.filter((t) => t.parent_task_id === parentId);
+
+        const task: Task = {
+          id: Date.now().toString(),
+          title: data.title || '',
+          description: data.description || '',
+          status: 'Not started',
+          priority: data.priority || parent?.priority || null,
+          tier: data.tier || parent?.tier || 'tier3',
+          difficulty: data.difficulty || 'easy', // Subtasks default to easy
+          due_date: data.due_date || parent?.due_date || null,
+          start_date: data.start_date || null,
+          is_completed: false,
+          completed_at: null,
+          xp_earned: 0,
+          was_on_time: null,
+          project_id: parent?.project_id || null,
+          category_id: parent?.category_id || null,
+          parent_task_id: parentId,
+          tags: data.tags || [],
+          order_index: existingSubtasks.length,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          tasks: [...state.tasks, task],
+          pendingSync: true,
+        }));
+        queueSync(get);
+
+        return task;
+      },
+
+      // Start date / Someday helpers
+      deferTask: (taskId: string, until?: string) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  is_someday: !until,
+                  start_date: until || null,
+                  updated_at: new Date().toISOString(),
+                }
+              : t
+          ),
+          pendingSync: true,
+        }));
+        queueSync(get);
+      },
+
+      undeferTask: (taskId: string) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  is_someday: false,
+                  start_date: null,
+                  updated_at: new Date().toISOString(),
+                }
+              : t
+          ),
           pendingSync: true,
         }));
         queueSync(get);
@@ -818,30 +966,50 @@ export const useTodayStore = create<TodayStore>()(
         let filtered = [...state.tasks];
         const view = state.currentView;
 
-        if (view === 'today') {
+        // Base filters for most views (except completed and someday):
+        // - Hide subtasks (shown under parent)
+        // - Hide tasks with future start_date
+        // - Hide someday tasks
+        const applyBaseFilters = (tasks: Task[]) =>
+          tasks.filter(
+            (t) =>
+              !t.parent_task_id && // Not a subtask
+              isTaskVisible(t) && // Start date has passed or not set
+              !t.is_someday // Not deferred to someday
+          );
+
+        if (view === 'someday') {
+          // Someday view: only show deferred tasks
+          filtered = filtered.filter((t) => t.is_someday && !t.is_completed && !t.parent_task_id);
+        } else if (view === 'today') {
           const today = new Date();
           today.setHours(23, 59, 59, 999);
-          filtered = filtered.filter(
+          filtered = applyBaseFilters(filtered).filter(
             (t) => !t.is_completed && t.due_date && new Date(t.due_date) <= today
           );
         } else if (view === 'upcoming') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           tomorrow.setHours(0, 0, 0, 0);
-          filtered = filtered.filter(
+          filtered = applyBaseFilters(filtered).filter(
             (t) => !t.is_completed && t.due_date && new Date(t.due_date) >= tomorrow
           );
         } else if (view === 'completed') {
-          filtered = filtered.filter((t) => t.is_completed);
+          // Completed view shows all completed tasks including subtasks
+          filtered = filtered.filter((t) => t.is_completed && !t.parent_task_id);
         } else if (view.startsWith('project-')) {
           const projectId = view.replace('project-', '');
-          filtered = filtered.filter((t) => t.project_id === projectId && !t.is_completed);
+          filtered = applyBaseFilters(filtered).filter(
+            (t) => t.project_id === projectId && !t.is_completed
+          );
         } else if (view.startsWith('category-')) {
           const categoryId = view.replace('category-', '');
-          filtered = filtered.filter((t) => t.category_id === categoryId && !t.is_completed);
+          filtered = applyBaseFilters(filtered).filter(
+            (t) => t.category_id === categoryId && !t.is_completed
+          );
         } else {
-          // Inbox: all incomplete tasks
-          filtered = filtered.filter((t) => !t.is_completed);
+          // Inbox: all incomplete, visible, non-subtask, non-someday tasks
+          filtered = applyBaseFilters(filtered).filter((t) => !t.is_completed);
         }
 
         // Sort by order_index, then by created_at

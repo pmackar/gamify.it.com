@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTodayStore } from '@/lib/today/store';
-import { Task, Project, Category, ViewType } from '@/lib/today/types';
+import { Task, Project, Category, ViewType, RecurrenceRule, RecurrenceFrequency } from '@/lib/today/types';
 import {
   calculateXPPreview,
   formatDueDate,
@@ -674,6 +674,19 @@ export default function TodayApp() {
       title = title.replace(/\^\S+/, '').trim();
     }
 
+    // Parse recurrence first (before due date, as recurrence often implies a due date)
+    const recurrenceResult = parseRecurrence(title);
+    if (recurrenceResult.rule) {
+      result.recurrence_rule = recurrenceResult.rule;
+      title = recurrenceResult.remaining;
+      // Set initial due date to today if not already specified
+      if (!result.due_date) {
+        const today = new Date();
+        today.setHours(23, 59, 0, 0);
+        result.due_date = today.toISOString();
+      }
+    }
+
     // Parse due dates
     const dueResult = parseDueDate(title);
     if (dueResult.date) {
@@ -850,6 +863,89 @@ export default function TodayApp() {
 
     remaining = remaining.replace(/\s+/g, ' ').trim();
     return { date: date ? date.toISOString() : null, remaining };
+  };
+
+  // Parse recurrence patterns from text
+  const parseRecurrence = (text: string): { rule: RecurrenceRule | null; remaining: string } => {
+    let remaining = text;
+    let rule: RecurrenceRule | null = null;
+
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+    // Pattern: "every day" or "daily"
+    if (/\b(every\s*day|daily)\b/i.test(text)) {
+      rule = { frequency: 'daily', interval: 1 };
+      remaining = text.replace(/\b(every\s*day|daily)\b/i, '').trim();
+    }
+    // Pattern: "every N days"
+    else if (/\bevery\s+(\d+)\s*days?\b/i.test(text)) {
+      const match = text.match(/\bevery\s+(\d+)\s*days?\b/i)!;
+      rule = { frequency: 'daily', interval: parseInt(match[1]) };
+      remaining = text.replace(match[0], '').trim();
+    }
+    // Pattern: "weekly" or "every week"
+    else if (/\b(weekly|every\s*week)\b/i.test(text)) {
+      rule = { frequency: 'weekly', interval: 1 };
+      remaining = text.replace(/\b(weekly|every\s*week)\b/i, '').trim();
+    }
+    // Pattern: "every N weeks"
+    else if (/\bevery\s+(\d+)\s*weeks?\b/i.test(text)) {
+      const match = text.match(/\bevery\s+(\d+)\s*weeks?\b/i)!;
+      rule = { frequency: 'weekly', interval: parseInt(match[1]) };
+      remaining = text.replace(match[0], '').trim();
+    }
+    // Pattern: "every monday", "every tuesday", "every mon,wed,fri"
+    else if (/\bevery\s+((?:(?:sun|mon|tue|wed|thu|fri|sat)(?:day)?(?:\s*,\s*)?)+)\b/i.test(text)) {
+      const match = text.match(/\bevery\s+((?:(?:sun|mon|tue|wed|thu|fri|sat)(?:day)?(?:\s*,\s*)?)+)\b/i)!;
+      const daysStr = match[1].toLowerCase();
+      const daysOfWeek: number[] = [];
+
+      dayNames.forEach((day, index) => {
+        if (daysStr.includes(day.slice(0, 3))) {
+          daysOfWeek.push(index);
+        }
+      });
+
+      if (daysOfWeek.length > 0) {
+        rule = { frequency: 'weekly', interval: 1, daysOfWeek };
+        remaining = text.replace(match[0], '').trim();
+      }
+    }
+    // Pattern: "every weekday"
+    else if (/\bevery\s*weekday\b/i.test(text)) {
+      rule = { frequency: 'weekly', interval: 1, daysOfWeek: [1, 2, 3, 4, 5] };
+      remaining = text.replace(/\bevery\s*weekday\b/i, '').trim();
+    }
+    // Pattern: "every weekend"
+    else if (/\bevery\s*weekend\b/i.test(text)) {
+      rule = { frequency: 'weekly', interval: 1, daysOfWeek: [0, 6] };
+      remaining = text.replace(/\bevery\s*weekend\b/i, '').trim();
+    }
+    // Pattern: "monthly" or "every month"
+    else if (/\b(monthly|every\s*month)\b/i.test(text)) {
+      rule = { frequency: 'monthly', interval: 1, dayOfMonth: new Date().getDate() };
+      remaining = text.replace(/\b(monthly|every\s*month)\b/i, '').trim();
+    }
+    // Pattern: "every N months"
+    else if (/\bevery\s+(\d+)\s*months?\b/i.test(text)) {
+      const match = text.match(/\bevery\s+(\d+)\s*months?\b/i)!;
+      rule = { frequency: 'monthly', interval: parseInt(match[1]), dayOfMonth: new Date().getDate() };
+      remaining = text.replace(match[0], '').trim();
+    }
+    // Pattern: "every 1st", "every 15th"
+    else if (/\bevery\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:of\s*(?:the\s*)?month)?\b/i.test(text)) {
+      const match = text.match(/\bevery\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:of\s*(?:the\s*)?month)?\b/i)!;
+      rule = { frequency: 'monthly', interval: 1, dayOfMonth: parseInt(match[1]) };
+      remaining = text.replace(match[0], '').trim();
+    }
+    // Pattern: "yearly" or "every year" or "annually"
+    else if (/\b(yearly|annually|every\s*year)\b/i.test(text)) {
+      rule = { frequency: 'yearly', interval: 1 };
+      remaining = text.replace(/\b(yearly|annually|every\s*year)\b/i, '').trim();
+    }
+
+    remaining = remaining.replace(/\s+/g, ' ').trim();
+    return { rule, remaining };
   };
 
   const handleToggleComplete = (taskId: string) => {

@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import LocationActions from "./LocationActions";
+import FriendsWhoVisited from "./FriendsWhoVisited";
 
 interface Props {
   params: Promise<{ locationId: string }>;
@@ -340,6 +341,9 @@ export default async function LocationDetailPage({ params }: Props) {
           personalRating={userData?.personal_rating ?? null}
         />
       )}
+
+      {/* Friends Who Visited */}
+      {user && <FriendsWhoVisited locationId={locationId} />}
 
       {/* User Notes */}
       {userData?.notes && (

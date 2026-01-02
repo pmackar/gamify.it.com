@@ -708,22 +708,36 @@ export default function FitnessApp() {
 
           if (!csvExerciseName || reps === 0) continue;
 
-          // Try to match exercise
-          const exerciseId = matchExerciseFromCSV(csvExerciseName);
+          // Try to match exercise, or create custom exercise
+          let exerciseId = matchExerciseFromCSV(csvExerciseName);
+          let exerciseName = csvExerciseName;
+          let isCustom = false;
 
           if (!exerciseId) {
-            unmappedExercises.add(csvExerciseName);
-            continue;
-          }
+            // Create custom exercise ID from name
+            exerciseId = csvExerciseName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+            exerciseName = csvExerciseName.trim();
+            isCustom = true;
 
-          const exercise = getExerciseById(exerciseId);
-          const exerciseName = exercise?.name || csvExerciseName;
+            // Track that this was an unmapped exercise (for logging)
+            unmappedExercises.add(csvExerciseName);
+
+            // Add to custom exercises if not already there
+            const existingCustom = store.customExercises.find(e => e.id === exerciseId);
+            if (!existingCustom) {
+              store.addCustomExercise(csvExerciseName.trim());
+            }
+          } else {
+            const exercise = getExerciseById(exerciseId);
+            exerciseName = exercise?.name || csvExerciseName;
+          }
 
           if (!exerciseMap.has(exerciseId)) {
             exerciseMap.set(exerciseId, {
               id: exerciseId,
               name: exerciseName,
-              sets: []
+              sets: [],
+              isCustom
             });
           }
 
@@ -775,7 +789,10 @@ export default function FitnessApp() {
       setImportProgress(prev => ({ ...prev, unmapped: Array.from(unmappedExercises) }));
 
       if (unmappedExercises.size > 0) {
-        console.log('Unmapped exercises:', Array.from(unmappedExercises));
+        console.log('Created custom exercises:', Array.from(unmappedExercises));
+        store.showToast(`Imported ${workouts.length} workouts. Created ${unmappedExercises.size} custom exercises.`);
+      } else if (workouts.length > 0) {
+        store.showToast(`Imported ${workouts.length} workouts`);
       }
 
     } catch (error) {

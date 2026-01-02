@@ -19,6 +19,8 @@ export interface Notification {
     displayName: string | null;
     avatarUrl: string | null;
   } | null;
+  kudosCount?: number;
+  hasGivenKudos?: boolean;
 }
 
 interface NotificationItemProps {
@@ -104,6 +106,9 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
   const link = config.getLink(notification);
   const [actionLoading, setActionLoading] = useState<'accept' | 'decline' | null>(null);
   const [actionTaken, setActionTaken] = useState<'accepted' | 'declined' | null>(null);
+  const [kudosCount, setKudosCount] = useState(notification.kudosCount || 0);
+  const [hasGivenKudos, setHasGivenKudos] = useState(notification.hasGivenKudos || false);
+  const [kudosLoading, setKudosLoading] = useState(false);
 
   const handleClick = () => {
     if (!notification.read) {
@@ -141,8 +146,46 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
     }
   };
 
+  const handleKudos = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    setKudosLoading(true);
+    try {
+      if (hasGivenKudos) {
+        // Remove kudos
+        const res = await fetch(`/api/activity/${notification.id}/kudos`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setKudosCount(data.count);
+          setHasGivenKudos(false);
+        }
+      } else {
+        // Give kudos
+        const res = await fetch(`/api/activity/${notification.id}/kudos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emoji: '🔥' }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setKudosCount(data.count);
+          setHasGivenKudos(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to toggle kudos:', err);
+    } finally {
+      setKudosLoading(false);
+    }
+  };
+
   const isPartyInvite = notification.type === 'PARTY_INVITE_RECEIVED';
   const showActions = isPartyInvite && !notification.read && !actionTaken;
+  // Show kudos button for completed activities (achievements, quest completions, etc.)
+  const showKudos = ['QUEST_ITEM_COMPLETED', 'QUEST_COMPLETED', 'PARTY_MEMBER_JOINED'].includes(notification.type);
 
   const content = (
     <div
@@ -177,9 +220,30 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
         <p className={`text-sm ${notification.read || actionTaken ? 'text-gray-400' : 'text-white'}`}>
           {config.getMessage(notification)}
         </p>
-        <p className="text-xs text-gray-500 mt-1">
-          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-        </p>
+        <div className="flex items-center gap-3 mt-1">
+          <p className="text-xs text-gray-500">
+            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+          </p>
+
+          {/* Kudos button */}
+          {showKudos && (
+            <button
+              onClick={handleKudos}
+              disabled={kudosLoading}
+              className={`flex items-center gap-1 text-xs transition-all ${
+                hasGivenKudos
+                  ? 'text-orange-400 hover:text-orange-300'
+                  : 'text-gray-500 hover:text-orange-400'
+              } disabled:opacity-50`}
+              title={hasGivenKudos ? 'Remove kudos' : 'Give kudos'}
+            >
+              <span className={`transition-transform ${hasGivenKudos ? 'scale-110' : ''}`}>
+                🔥
+              </span>
+              {kudosCount > 0 && <span>{kudosCount}</span>}
+            </button>
+          )}
+        </div>
 
         {/* Party invite action buttons */}
         {showActions && (
