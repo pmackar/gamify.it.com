@@ -1238,7 +1238,7 @@ export default function TodayPage() {
         .task-list {
           flex: 1;
           overflow-y: auto;
-          padding: 16px 24px;
+          padding: 16px 24px 100px;
         }
 
         .empty-state {
