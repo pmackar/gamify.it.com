@@ -1,7 +1,5 @@
 'use client';
 
-import TravelBreadcrumb from '@/components/TravelBreadcrumb';
-
 export default function TravelLayout({
   children,
 }: {
@@ -34,7 +32,6 @@ export default function TravelLayout({
         }
       `}</style>
       <div className="travel-layout">
-        <TravelBreadcrumb />
         <main>{children}</main>
       </div>
     </>

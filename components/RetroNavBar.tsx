@@ -113,6 +113,83 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
   const isToday = pathname.startsWith('/today');
   const isTravel = pathname.startsWith('/travel');
 
+  // Travel breadcrumb state
+  const [travelBreadcrumbs, setTravelBreadcrumbs] = useState<Array<{ label: string; href: string }>>([]);
+
+  // Route name mapping for travel
+  const TRAVEL_ROUTE_NAMES: Record<string, string> = {
+    travel: 'Explorer',
+    cities: 'Cities',
+    locations: 'Locations',
+    neighborhoods: 'Neighborhoods',
+    achievements: 'Achievements',
+    profile: 'Profile',
+    map: 'Map',
+    new: 'New',
+  };
+
+  // Fetch travel breadcrumb data
+  useEffect(() => {
+    if (!isTravel) {
+      setTravelBreadcrumbs([]);
+      return;
+    }
+
+    async function buildBreadcrumbs() {
+      const segments = pathname.split('/').filter(Boolean);
+      const crumbs: Array<{ label: string; href: string }> = [];
+      let currentPath = '';
+
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        const prevSegment = segments[i - 1];
+        currentPath += `/${segment}`;
+
+        let label = TRAVEL_ROUTE_NAMES[segment];
+
+        // Fetch dynamic names for IDs
+        if (!label && segment.length > 10) {
+          try {
+            if (prevSegment === 'cities') {
+              const res = await fetch(`/api/cities/${segment}`);
+              if (res.ok) {
+                const city = await res.json();
+                label = city.name;
+              }
+            } else if (prevSegment === 'locations') {
+              const res = await fetch(`/api/locations/${segment}`);
+              if (res.ok) {
+                const location = await res.json();
+                label = location.name;
+              }
+            } else if (prevSegment === 'neighborhoods') {
+              const res = await fetch(`/api/neighborhoods/${segment}`);
+              if (res.ok) {
+                const neighborhood = await res.json();
+                label = neighborhood.name;
+              }
+            }
+          } catch (e) {
+            // Use segment as fallback
+          }
+        }
+
+        if (!label) label = segment;
+
+        // Truncate long names
+        if (label.length > 15) {
+          label = label.substring(0, 13) + '..';
+        }
+
+        crumbs.push({ label, href: currentPath });
+      }
+
+      setTravelBreadcrumbs(crumbs);
+    }
+
+    buildBreadcrumbs();
+  }, [pathname, isTravel]);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession()
@@ -1347,15 +1424,25 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
               )}
               </div>
               {/* Active app indicator */}
-              {(isFitness || isToday || isTravel || pathname === '/account') && (
+              {(isFitness || isToday || pathname === '/account') && (
                 <>
                   <span className="nav-separator">/</span>
                   {isFitness && <Link href="/fitness" className="nav-active-app fitness">IRON QUEST</Link>}
                   {isToday && <Link href="/today" className="nav-active-app today">DAY QUEST</Link>}
-                  {isTravel && <Link href="/travel" className="nav-active-app travel">EXPLORER</Link>}
                   {pathname === '/account' && <Link href="/account" className="nav-active-app home">HOME</Link>}
                 </>
               )}
+              {/* Travel full breadcrumb */}
+              {isTravel && travelBreadcrumbs.map((crumb, index) => (
+                <span key={crumb.href} style={{ display: 'flex', alignItems: 'center' }}>
+                  <span className="nav-separator">/</span>
+                  {index === travelBreadcrumbs.length - 1 ? (
+                    <span className="nav-active-app travel" style={{ opacity: 1 }}>{crumb.label}</span>
+                  ) : (
+                    <Link href={crumb.href} className="nav-active-app travel" style={{ opacity: 0.6 }}>{crumb.label}</Link>
+                  )}
+                </span>
+              ))}
             </div>
           </div>
 
