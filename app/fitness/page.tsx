@@ -2499,11 +2499,11 @@ function WorkoutDetailView({
           <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '4px' }}>XP Earned</div>
         </div>
         <div>
-          <div style={{ fontSize: '22px', fontWeight: 700 }}>{workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}</div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>{workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}</div>
           <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '4px' }}>Sets</div>
         </div>
         <div>
-          <div style={{ fontSize: '22px', fontWeight: 700 }}>{formatDuration(workout.duration)}</div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatDuration(workout.duration)}</div>
           <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '4px' }}>Duration</div>
         </div>
       </div>
@@ -2519,7 +2519,7 @@ function WorkoutDetailView({
             marginBottom: '8px'
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: '10px', fontSize: '15px' }}>{exercise.name}</div>
+          <div style={{ fontWeight: 600, marginBottom: '10px', fontSize: '15px', color: 'var(--text-primary)' }}>{exercise.name}</div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {exercise.sets.map((set, setIdx) => (
               <span

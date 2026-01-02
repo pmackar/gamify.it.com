@@ -1,51 +1,48 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getUser } from '@/lib/auth';
 import prisma from '@/lib/db';
-import { addXP, updateStreak, updateUserStats, calculateLocationXP } from '@/lib/gamification';
-import { checkAchievements } from '@/lib/achievements';
 
 async function requireAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const user = await getUser();
+  if (!user) {
     throw new Error('Unauthorized');
   }
-  return session.user;
+  return user;
 }
 
 // Toggle hotlist status for a location
 export async function toggleHotlist(locationId: string) {
   const user = await requireAuth();
 
-  const existing = await prisma.userLocationData.findUnique({
+  const existing = await prisma.travel_user_location_data.findUnique({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: locationId,
       },
     },
   });
 
   if (existing) {
-    await prisma.userLocationData.update({
+    await prisma.travel_user_location_data.update({
       where: { id: existing.id },
       data: { hotlist: !existing.hotlist },
     });
   } else {
-    await prisma.userLocationData.create({
+    await prisma.travel_user_location_data.create({
       data: {
-        userId: user.id,
-        locationId,
+        user_id: user.id,
+        location_id: locationId,
         hotlist: true,
       },
     });
   }
 
-  revalidatePath(`/locations/${locationId}`);
-  revalidatePath('/locations');
-  revalidatePath('/map');
+  revalidatePath(`/travel/locations/${locationId}`);
+  revalidatePath('/travel/locations');
+  revalidatePath('/travel/map');
   return { success: true };
 }
 
@@ -53,7 +50,7 @@ export async function toggleHotlist(locationId: string) {
 export async function markAsVisited(locationId: string) {
   const user = await requireAuth();
 
-  const location = await prisma.location.findUnique({
+  const location = await prisma.travel_locations.findUnique({
     where: { id: locationId },
     select: { id: true, type: true },
   });
@@ -62,11 +59,11 @@ export async function markAsVisited(locationId: string) {
     throw new Error('Location not found');
   }
 
-  const existing = await prisma.userLocationData.findUnique({
+  const existing = await prisma.travel_user_location_data.findUnique({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: locationId,
       },
     },
   });
@@ -76,88 +73,101 @@ export async function markAsVisited(locationId: string) {
   const isFirstVisit = !wasVisited;
 
   if (existing) {
-    await prisma.userLocationData.update({
+    await prisma.travel_user_location_data.update({
       where: { id: existing.id },
       data: {
         visited: true,
-        lastVisitedAt: now,
-        firstVisitedAt: existing.firstVisitedAt || now,
-        visitCount: { increment: 1 },
+        last_visited_at: now,
+        first_visited_at: existing.first_visited_at || now,
+        visit_count: { increment: 1 },
       },
     });
   } else {
-    await prisma.userLocationData.create({
+    await prisma.travel_user_location_data.create({
       data: {
-        userId: user.id,
-        locationId,
+        user_id: user.id,
+        location_id: locationId,
         visited: true,
-        firstVisitedAt: now,
-        lastVisitedAt: now,
-        visitCount: 1,
+        first_visited_at: now,
+        last_visited_at: now,
+        visit_count: 1,
       },
     });
   }
 
   // Update location aggregate
-  await prisma.location.update({
+  await prisma.travel_locations.update({
     where: { id: locationId },
-    data: { totalVisits: { increment: 1 } },
+    data: { total_visits: { increment: 1 } },
   });
 
-  // Award XP for first visit
+  // Award XP for first visit via unified API
   let xpGained = 0;
-  let leveledUp = false;
-  let newLevel = 0;
-  let newAchievements: unknown[] = [];
-
   if (isFirstVisit) {
-    const streak = await updateStreak(user.id);
-    xpGained = calculateLocationXP('first_visit', location.type, streak);
-    const xpResult = await addXP(user.id, xpGained);
-    leveledUp = xpResult.leveledUp;
-    newLevel = xpResult.newLevel;
-    await updateUserStats(user.id);
-    newAchievements = await checkAchievements(user.id);
+    try {
+      // Call the unified XP API internally
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/xp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: 'travel',
+          action: 'location_visit',
+          xpAmount: 50, // Base XP for first visit
+          metadata: {
+            locationType: location.type,
+            locationId,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        xpGained = data.xpAwarded || 50;
+      }
+    } catch {
+      // Silently fail - visit is still recorded
+      xpGained = 50;
+    }
   }
 
-  revalidatePath(`/locations/${locationId}`);
-  revalidatePath('/locations');
-  revalidatePath('/profile');
-  revalidatePath('/map');
+  revalidatePath(`/travel/locations/${locationId}`);
+  revalidatePath('/travel/locations');
+  revalidatePath('/travel/profile');
+  revalidatePath('/travel/map');
 
-  return { success: true, xpGained, leveledUp, newLevel, newAchievements };
+  return { success: true, xpGained, isFirstVisit };
 }
 
 // Unmark a location as visited (undo)
 export async function unmarkAsVisited(locationId: string) {
   const user = await requireAuth();
 
-  const existing = await prisma.userLocationData.findUnique({
+  const existing = await prisma.travel_user_location_data.findUnique({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: locationId,
       },
     },
   });
 
   if (existing && existing.visited) {
     await prisma.$transaction([
-      prisma.userLocationData.update({
+      prisma.travel_user_location_data.update({
         where: { id: existing.id },
         data: { visited: false },
       }),
-      prisma.location.update({
+      prisma.travel_locations.update({
         where: { id: locationId },
-        data: { totalVisits: { decrement: 1 } },
+        data: { total_visits: { decrement: 1 } },
       }),
     ]);
   }
 
-  revalidatePath(`/locations/${locationId}`);
-  revalidatePath('/locations');
-  revalidatePath('/profile');
-  revalidatePath('/map');
+  revalidatePath(`/travel/locations/${locationId}`);
+  revalidatePath('/travel/locations');
+  revalidatePath('/travel/profile');
+  revalidatePath('/travel/map');
 
   return { success: true };
 }
@@ -170,55 +180,55 @@ export async function rateLocation(locationId: string, rating: number) {
     throw new Error('Rating must be between 1 and 10');
   }
 
-  const existing = await prisma.userLocationData.findUnique({
+  const existing = await prisma.travel_user_location_data.findUnique({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: locationId,
       },
     },
   });
 
   if (existing) {
-    await prisma.userLocationData.update({
+    await prisma.travel_user_location_data.update({
       where: { id: existing.id },
-      data: { personalRating: rating },
+      data: { personal_rating: rating },
     });
   } else {
-    await prisma.userLocationData.create({
+    await prisma.travel_user_location_data.create({
       data: {
-        userId: user.id,
-        locationId,
-        personalRating: rating,
+        user_id: user.id,
+        location_id: locationId,
+        personal_rating: rating,
       },
     });
   }
 
   // Recalculate average rating for the location
-  const allRatings = await prisma.userLocationData.findMany({
+  const allRatings = await prisma.travel_user_location_data.findMany({
     where: {
-      locationId,
-      personalRating: { not: null },
+      location_id: locationId,
+      personal_rating: { not: null },
     },
-    select: { personalRating: true },
+    select: { personal_rating: true },
   });
 
   const ratingCount = allRatings.length;
   const avgRating =
     ratingCount > 0
-      ? allRatings.reduce((sum, r) => sum + (r.personalRating || 0), 0) / ratingCount
+      ? allRatings.reduce((sum, r) => sum + (r.personal_rating || 0), 0) / ratingCount
       : null;
 
-  await prisma.location.update({
+  await prisma.travel_locations.update({
     where: { id: locationId },
     data: {
-      avgRating,
-      ratingCount,
+      avg_rating: avgRating,
+      rating_count: ratingCount,
     },
   });
 
-  revalidatePath(`/locations/${locationId}`);
-  revalidatePath('/locations');
+  revalidatePath(`/travel/locations/${locationId}`);
+  revalidatePath('/travel/locations');
 
   return { success: true, avgRating };
 }
@@ -227,46 +237,46 @@ export async function rateLocation(locationId: string, rating: number) {
 export async function removeRating(locationId: string) {
   const user = await requireAuth();
 
-  const existing = await prisma.userLocationData.findUnique({
+  const existing = await prisma.travel_user_location_data.findUnique({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: locationId,
       },
     },
   });
 
-  if (existing && existing.personalRating !== null) {
-    await prisma.userLocationData.update({
+  if (existing && existing.personal_rating !== null) {
+    await prisma.travel_user_location_data.update({
       where: { id: existing.id },
-      data: { personalRating: null },
+      data: { personal_rating: null },
     });
 
     // Recalculate average rating
-    const allRatings = await prisma.userLocationData.findMany({
+    const allRatings = await prisma.travel_user_location_data.findMany({
       where: {
-        locationId,
-        personalRating: { not: null },
+        location_id: locationId,
+        personal_rating: { not: null },
       },
-      select: { personalRating: true },
+      select: { personal_rating: true },
     });
 
     const ratingCount = allRatings.length;
     const avgRating =
       ratingCount > 0
-        ? allRatings.reduce((sum, r) => sum + (r.personalRating || 0), 0) / ratingCount
+        ? allRatings.reduce((sum, r) => sum + (r.personal_rating || 0), 0) / ratingCount
         : null;
 
-    await prisma.location.update({
+    await prisma.travel_locations.update({
       where: { id: locationId },
       data: {
-        avgRating,
-        ratingCount,
+        avg_rating: avgRating,
+        rating_count: ratingCount,
       },
     });
   }
 
-  revalidatePath(`/locations/${locationId}`);
+  revalidatePath(`/travel/locations/${locationId}`);
   return { success: true };
 }
 
@@ -274,21 +284,21 @@ export async function removeRating(locationId: string) {
 export async function updateNotes(locationId: string, notes: string) {
   const user = await requireAuth();
 
-  await prisma.userLocationData.upsert({
+  await prisma.travel_user_location_data.upsert({
     where: {
-      userId_locationId: {
-        userId: user.id,
-        locationId,
+      user_id_location_id: {
+        user_id: user.id,
+        location_id: locationId,
       },
     },
     update: { notes },
     create: {
-      userId: user.id,
-      locationId,
+      user_id: user.id,
+      location_id: locationId,
       notes,
     },
   });
 
-  revalidatePath(`/locations/${locationId}`);
+  revalidatePath(`/travel/locations/${locationId}`);
   return { success: true };
 }

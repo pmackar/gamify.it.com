@@ -1355,10 +1355,10 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                     <div className="nav-dropdown">
                       <div className="nav-dropdown-email">{user.email}</div>
                       {userProfile && (
-                        <div style={{ padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
+                        <div style={{ padding: '12px', borderBottom: '1px solid var(--theme-border)', marginBottom: '4px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                             <div className="nav-level-badge">LVL {userProfile.level}</div>
-                            <div style={{ fontSize: '9px', color: '#FFD700', fontFamily: "'Press Start 2P', monospace" }}>
+                            <div style={{ fontSize: '9px', color: 'var(--theme-gold)', fontFamily: "'Press Start 2P', monospace" }}>
                               {userProfile.xp.toLocaleString()} XP
                             </div>
                           </div>
@@ -1368,7 +1368,7 @@ export function RetroNavBar({ appMenuItems, children, theme: themeProp }: RetroN
                               style={{ width: `${Math.min(100, (userProfile.xpInCurrentLevel / userProfile.xpToNextLevel) * 100)}%` }}
                             />
                           </div>
-                          <div style={{ fontSize: '7px', color: '#666', fontFamily: "'Press Start 2P', monospace", marginTop: '6px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '7px', color: 'var(--theme-text-muted)', fontFamily: "'Press Start 2P', monospace", marginTop: '6px', textAlign: 'center' }}>
                             {userProfile.xpInCurrentLevel} / {userProfile.xpToNextLevel} to next
                           </div>
                         </div>
