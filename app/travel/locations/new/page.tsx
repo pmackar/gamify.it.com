@@ -534,7 +534,14 @@ export default function NewLocationPage() {
           {/* Visited Toggle */}
           <button
             type="button"
-            onClick={() => setMarkVisited(!markVisited)}
+            onClick={() => {
+              const newValue = !markVisited;
+              setMarkVisited(newValue);
+              if (!newValue) {
+                setInitialRating(0);
+                setHoverRating(0);
+              }
+            }}
             className="w-full flex items-center gap-3 p-3 rounded-lg transition-all"
             style={{
               background: markVisited ? 'rgba(95, 191, 138, 0.2)' : 'var(--rpg-bg-dark)',
@@ -595,19 +602,22 @@ export default function NewLocationPage() {
             </div>
           </button>
 
-          {/* Rating */}
+          {/* Rating - only enabled if visited */}
           <div
-            className="p-3 rounded-lg"
+            className="p-3 rounded-lg transition-opacity"
             style={{
               background: 'var(--rpg-bg-dark)',
               border: '2px solid var(--rpg-border)',
+              opacity: markVisited ? 1 : 0.5,
             }}
           >
             <div className="flex items-center gap-3">
-              <Star className="w-5 h-5" style={{ color: initialRating > 0 ? 'var(--rpg-gold)' : 'var(--rpg-muted)' }} />
+              <Star className="w-5 h-5" style={{ color: markVisited && initialRating > 0 ? 'var(--rpg-gold)' : 'var(--rpg-muted)' }} />
               <div className="flex-1">
                 <p className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>Initial Rating</p>
-                <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Rate this place (optional)</p>
+                <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>
+                  {markVisited ? 'Rate this place (optional)' : 'Mark as visited to rate'}
+                </p>
               </div>
             </div>
             <div className="flex gap-1 mt-3">
@@ -615,21 +625,23 @@ export default function NewLocationPage() {
                 <button
                   key={star}
                   type="button"
+                  disabled={!markVisited}
                   onClick={() => setInitialRating(initialRating === star ? 0 : star)}
-                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseEnter={() => markVisited && setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
+                  className="p-1 transition-transform"
+                  style={{ cursor: markVisited ? 'pointer' : 'not-allowed' }}
                 >
                   <Star
                     className="w-8 h-8"
                     style={{
-                      color: (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'var(--rpg-border)',
-                      fill: (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'none',
+                      color: markVisited && (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'var(--rpg-border)',
+                      fill: markVisited && (hoverRating || initialRating) >= star ? 'var(--rpg-gold)' : 'none',
                     }}
                   />
                 </button>
               ))}
-              {initialRating > 0 && (
+              {initialRating > 0 && markVisited && (
                 <button
                   type="button"
                   onClick={() => setInitialRating(0)}
