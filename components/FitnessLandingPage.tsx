@@ -4,6 +4,23 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
+// Stats interface
+interface FitnessStats {
+  setsLogged: string;
+  prsHit: string;
+  exercises: number;
+  levels: string;
+}
+
+// Story content interface
+interface StoryContent {
+  title: string;
+  paragraphs: string[];
+  authorName: string;
+  authorTitle: string;
+  authorInitials: string;
+}
+
 // Achievement data for showcase
 const SHOWCASE_ACHIEVEMENTS = [
   { name: 'One Plate Club', icon: '🏋️', tier: 'Common', weight: '135 lbs', lift: 'Bench' },
@@ -75,67 +92,88 @@ const PixelParticles = () => {
   );
 };
 
-// Interactive Demo Component
+// Interactive Demo Component - Command Bar Style (matches in-app UI)
 const InteractiveDemo = () => {
-  const [weight, setWeight] = useState('135');
-  const [reps, setReps] = useState('8');
+  const [command, setCommand] = useState('');
   const [logged, setLogged] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
   const [showPR, setShowPR] = useState(false);
+  const [loggedSet, setLoggedSet] = useState({ weight: 0, reps: 0 });
+  const [sets, setSets] = useState<{ weight: number; reps: number; xp: number }[]>([]);
 
-  const handleLog = () => {
-    const w = parseInt(weight) || 135;
-    const r = parseInt(reps) || 8;
-    const xp = Math.round((w * r) / 10 * 3); // Tier 1 multiplier
+  const parseCommand = (cmd: string) => {
+    // Parse commands like "135 x 8", "135x8", "135 8"
+    const match = cmd.match(/(\d+)\s*[x×*\s]\s*(\d+)/i);
+    if (match) {
+      return { weight: parseInt(match[1]), reps: parseInt(match[2]) };
+    }
+    return null;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseCommand(command);
+    if (!parsed || logged) return;
+
+    const xp = Math.round((parsed.weight * parsed.reps) / 10 * 3);
     setXpEarned(xp);
+    setLoggedSet(parsed);
     setLogged(true);
-    setShowPR(w >= 135);
+    setShowPR(parsed.weight >= 185);
+    setSets(prev => [...prev, { ...parsed, xp }]);
 
     // Reset after animation
     setTimeout(() => {
       setLogged(false);
       setShowPR(false);
-    }, 3000);
+      setCommand('');
+    }, 2500);
   };
 
   return (
     <div className="demo-widget">
-      <div className="demo-header">
-        <span className="demo-label">TRY IT NOW</span>
-        <span className="demo-exercise">Bench Press</span>
+      {/* Exercise Header - like in-app */}
+      <div className="demo-exercise-header">
+        <span className="demo-exercise-icon">🏋️</span>
+        <span className="demo-exercise-name">BENCH PRESS</span>
+        <span className="demo-pr-badge">PR: 185</span>
       </div>
 
-      <div className="demo-inputs">
-        <div className="demo-input-group">
-          <input
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="demo-input"
-            disabled={logged}
-          />
-          <span className="demo-unit">lbs</span>
-        </div>
-        <span className="demo-x">×</span>
-        <div className="demo-input-group">
-          <input
-            type="number"
-            value={reps}
-            onChange={(e) => setReps(e.target.value)}
-            className="demo-input"
-            disabled={logged}
-          />
-          <span className="demo-unit">reps</span>
-        </div>
-        <button
-          onClick={handleLog}
-          className={`demo-log-btn ${logged ? 'logged' : ''}`}
+      {/* Previous sets display */}
+      <div className="demo-sets-list">
+        {sets.length === 0 ? (
+          <div className="demo-set-placeholder">Your sets will appear here</div>
+        ) : (
+          sets.slice(-3).map((set, i) => (
+            <div key={i} className="demo-set-row">
+              <span className="demo-set-num">Set {sets.length - (sets.slice(-3).length - 1 - i)}</span>
+              <span className="demo-set-data">{set.weight} × {set.reps}</span>
+              <span className="demo-set-xp">+{set.xp} XP</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Command Input - matches in-app command bar */}
+      <form onSubmit={handleSubmit} className="demo-command-bar">
+        <input
+          type="text"
+          value={command}
+          onChange={(e) => setCommand(e.target.value)}
+          placeholder="Type: 135 x 8"
+          className="demo-command-input"
           disabled={logged}
+        />
+        <button
+          type="submit"
+          className={`demo-log-btn ${logged ? 'logged' : ''}`}
+          disabled={logged || !parseCommand(command)}
         >
           {logged ? '✓' : 'LOG'}
         </button>
-      </div>
+      </form>
 
+      {/* Results popup */}
       <div className={`demo-results ${logged ? 'show' : ''}`}>
         <div className="demo-xp-popup">
           <span className="xp-amount">+{xpEarned} XP</span>
@@ -170,6 +208,51 @@ const PhoneMockup = ({ title, children }: { title: string; children: React.React
 );
 
 export default function FitnessLandingPage() {
+  const [stats, setStats] = useState<FitnessStats>({
+    setsLogged: '0',
+    prsHit: '0',
+    exercises: 60,
+    levels: '∞',
+  });
+  const [story, setStory] = useState<StoryContent>({
+    title: 'Why I Built This',
+    paragraphs: [
+      "I've been lifting for years, but I kept falling off the wagon. Every fitness app felt like a chore—just another place to log data that nobody cared about.",
+      "Then I realized: I never quit playing video games. The XP, the levels, the achievements—they kept me coming back. What if the gym felt the same way?",
+      "Iron Quest is the app I wished existed. Every PR feels like defeating a boss. Every workout streak is a combo multiplier. The gym isn't a chore anymore. It's the best game I've ever played."
+    ],
+    authorName: 'Pete',
+    authorTitle: 'Creator of Iron Quest',
+    authorInitials: 'PM',
+  });
+
+  // Fetch real stats from API
+  useEffect(() => {
+    fetch('/api/fitness/stats')
+      .then(res => res.json())
+      .then(data => {
+        setStats({
+          setsLogged: data.setsLogged || '0',
+          prsHit: data.prsHit || '0',
+          exercises: data.exercises || 60,
+          levels: data.levels || '∞',
+        });
+      })
+      .catch(err => console.error('Failed to fetch stats:', err));
+  }, []);
+
+  // Load story content from markdown
+  useEffect(() => {
+    fetch('/api/content/fitness-story')
+      .then(res => res.json())
+      .then(data => {
+        if (data.content) {
+          setStory(data.content);
+        }
+      })
+      .catch(err => console.error('Failed to fetch story:', err));
+  }, []);
+
   const handleLogin = async () => {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -217,25 +300,25 @@ export default function FitnessLandingPage() {
           </div>
         </section>
 
-        {/* Stats Bar */}
+        {/* Stats Bar - Real Data */}
         <section className="stats-bar">
           <div className="stat-item">
-            <span className="stat-value">10K+</span>
+            <span className="stat-value">{stats.setsLogged}</span>
             <span className="stat-label">Sets Logged</span>
           </div>
           <div className="stat-divider"></div>
           <div className="stat-item">
-            <span className="stat-value">500+</span>
+            <span className="stat-value">{stats.prsHit}</span>
             <span className="stat-label">PRs Hit</span>
           </div>
           <div className="stat-divider"></div>
           <div className="stat-item">
-            <span className="stat-value">60+</span>
+            <span className="stat-value">{stats.exercises}+</span>
             <span className="stat-label">Exercises</span>
           </div>
           <div className="stat-divider"></div>
           <div className="stat-item">
-            <span className="stat-value">∞</span>
+            <span className="stat-value">{stats.levels}</span>
             <span className="stat-label">Levels</span>
           </div>
         </section>
@@ -382,29 +465,18 @@ export default function FitnessLandingPage() {
         {/* Founder Story */}
         <section className="story-section">
           <div className="story-card">
-            <div className="story-quote">"</div>
-            <h2 className="story-title">Why I Built This</h2>
+            <div className="story-quote">&ldquo;</div>
+            <h2 className="story-title">{story.title}</h2>
             <div className="story-content">
-              <p>
-                I&apos;ve been lifting for years, but I kept falling off the wagon.
-                Every fitness app felt like a chore—just another place to log data
-                that nobody cared about.
-              </p>
-              <p>
-                Then I realized: I never quit playing video games. The XP, the levels,
-                the achievements—they kept me coming back. What if the gym felt the same way?
-              </p>
-              <p>
-                Iron Quest is the app I wished existed. Every PR feels like defeating a boss.
-                Every workout streak is a combo multiplier. The gym isn&apos;t a chore anymore.
-                It&apos;s the best game I&apos;ve ever played.
-              </p>
+              {story.paragraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
             </div>
             <div className="story-author">
-              <div className="author-avatar">PM</div>
+              <div className="author-avatar">{story.authorInitials}</div>
               <div className="author-info">
-                <span className="author-name">Pete</span>
-                <span className="author-title">Creator of Iron Quest</span>
+                <span className="author-name">{story.authorName}</span>
+                <span className="author-title">{story.authorTitle}</span>
               </div>
             </div>
           </div>
@@ -711,6 +783,110 @@ export default function FitnessLandingPage() {
           border-radius: 16px;
           padding: 1.5rem;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Command Bar Style Demo */
+        .demo-exercise-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 1px solid var(--theme-border);
+        }
+
+        .demo-exercise-icon {
+          font-size: 1.5rem;
+        }
+
+        .demo-exercise-name {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.6rem;
+          color: var(--app-fitness);
+          flex: 1;
+        }
+
+        .demo-pr-badge {
+          background: var(--color-legendary-glow);
+          border: 1px solid var(--color-legendary);
+          border-radius: 6px;
+          padding: 0.35rem 0.6rem;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: var(--color-legendary);
+        }
+
+        .demo-sets-list {
+          min-height: 90px;
+          margin-bottom: 1rem;
+        }
+
+        .demo-set-placeholder {
+          color: var(--theme-text-muted);
+          font-size: 0.75rem;
+          text-align: center;
+          padding: 2rem 1rem;
+          border: 1px dashed var(--theme-border);
+          border-radius: 8px;
+        }
+
+        .demo-set-row {
+          display: flex;
+          align-items: center;
+          padding: 0.6rem 0.75rem;
+          background: var(--theme-bg-base);
+          border: 1px solid var(--theme-border);
+          border-radius: 8px;
+          margin-bottom: 0.5rem;
+        }
+
+        .demo-set-num {
+          font-size: 0.65rem;
+          color: var(--theme-text-muted);
+          width: 50px;
+        }
+
+        .demo-set-data {
+          flex: 1;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.55rem;
+          color: var(--theme-text-primary);
+        }
+
+        .demo-set-xp {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.45rem;
+          color: var(--color-legendary);
+        }
+
+        .demo-command-bar {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .demo-command-input {
+          flex: 1;
+          background: var(--theme-bg-deep);
+          border: 2px solid var(--app-fitness);
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          color: var(--theme-text-primary);
+          font-family: inherit;
+          font-size: 0.9rem;
+          outline: none;
+          transition: all 0.2s;
+        }
+
+        .demo-command-input::placeholder {
+          color: var(--theme-text-muted);
+        }
+
+        .demo-command-input:focus {
+          box-shadow: 0 0 0 3px var(--app-fitness-glow);
+        }
+
+        .demo-command-input:disabled {
+          opacity: 0.6;
         }
 
         .demo-header {
