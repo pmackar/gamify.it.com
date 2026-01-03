@@ -191,11 +191,12 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
     <div
       className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
         showActions ? '' : 'cursor-pointer'
-      } ${
-        notification.read || actionTaken
-          ? 'bg-gray-800/30 opacity-70 hover:opacity-100'
-          : 'bg-gray-800/60 hover:bg-gray-800/80'
-      }`}
+      } ${notification.read || actionTaken ? 'opacity-70 hover:opacity-100' : ''}`}
+      style={{
+        background: notification.read || actionTaken
+          ? 'rgba(0, 0, 0, 0.2)'
+          : 'rgba(0, 0, 0, 0.4)',
+      }}
       onClick={showActions ? undefined : handleClick}
     >
       {/* Actor Avatar or Icon */}
@@ -209,7 +210,10 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
             className="rounded-full"
           />
         ) : (
-          <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center text-lg">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg"
+            style={{ background: 'var(--rpg-border)' }}
+          >
             {config.icon}
           </div>
         )}
@@ -217,11 +221,14 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm ${notification.read || actionTaken ? 'text-gray-400' : 'text-white'}`}>
+        <p
+          className="text-sm"
+          style={{ color: notification.read || actionTaken ? 'var(--rpg-muted)' : 'var(--rpg-text)' }}
+        >
           {config.getMessage(notification)}
         </p>
         <div className="flex items-center gap-3 mt-1">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>
             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
           </p>
 
@@ -230,11 +237,8 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
             <button
               onClick={handleKudos}
               disabled={kudosLoading}
-              className={`flex items-center gap-1 text-xs transition-all ${
-                hasGivenKudos
-                  ? 'text-orange-400 hover:text-orange-300'
-                  : 'text-gray-500 hover:text-orange-400'
-              } disabled:opacity-50`}
+              className="flex items-center gap-1 text-xs transition-all disabled:opacity-50"
+              style={{ color: hasGivenKudos ? '#ff6432' : 'var(--rpg-muted)' }}
               title={hasGivenKudos ? 'Remove kudos' : 'Give kudos'}
             >
               <span className={`transition-transform ${hasGivenKudos ? 'scale-110' : ''}`}>
@@ -251,14 +255,16 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
             <button
               onClick={(e) => handlePartyInviteAction('accept', e)}
               disabled={actionLoading !== null}
-              className="px-3 py-1 text-xs font-medium bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors disabled:opacity-50"
+              className="px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+              style={{ background: 'var(--rpg-teal)', color: 'var(--rpg-bg-dark)' }}
             >
               {actionLoading === 'accept' ? '...' : 'Accept'}
             </button>
             <button
               onClick={(e) => handlePartyInviteAction('decline', e)}
               disabled={actionLoading !== null}
-              className="px-3 py-1 text-xs font-medium bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors disabled:opacity-50"
+              className="px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+              style={{ background: 'var(--rpg-border)', color: 'var(--rpg-text)' }}
             >
               {actionLoading === 'decline' ? '...' : 'Decline'}
             </button>
@@ -267,7 +273,10 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
 
         {/* Action result */}
         {actionTaken && (
-          <p className={`text-xs mt-2 ${actionTaken === 'accepted' ? 'text-green-400' : 'text-gray-400'}`}>
+          <p
+            className="text-xs mt-2"
+            style={{ color: actionTaken === 'accepted' ? 'var(--rpg-teal)' : 'var(--rpg-muted)' }}
+          >
             {actionTaken === 'accepted' ? 'Joined party!' : 'Invite declined'}
           </p>
         )}
@@ -275,7 +284,10 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
 
       {/* Unread indicator */}
       {!notification.read && !actionTaken && (
-        <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0 mt-2" />
+        <div
+          className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
+          style={{ background: 'var(--rpg-purple)' }}
+        />
       )}
     </div>
   );

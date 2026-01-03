@@ -3,7 +3,6 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
 import { RetroNavBar } from '@/components/RetroNavBar';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -168,8 +167,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
     return (
       <>
         <RetroNavBar />
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black pt-20 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        <div
+          className="min-h-screen pt-20 flex items-center justify-center"
+          style={{ background: 'var(--rpg-bg-dark)' }}
+        >
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'var(--rpg-purple)', borderTopColor: 'transparent' }}
+          />
         </div>
       </>
     );
@@ -179,13 +184,20 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
     return (
       <>
         <RetroNavBar />
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black pt-20">
+        <div className="min-h-screen pt-20" style={{ background: 'var(--rpg-bg-dark)' }}>
           <div className="max-w-2xl mx-auto px-4 py-12 text-center">
             <div className="text-6xl mb-4">😕</div>
-            <h1 className="text-xl text-white mb-2">{error || 'Something went wrong'}</h1>
+            <h1 className="text-xl mb-2" style={{ color: 'var(--rpg-text)' }}>
+              {error || 'Something went wrong'}
+            </h1>
             <button
               onClick={() => router.back()}
-              className="mt-4 px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors"
+              className="mt-4 px-4 py-2 rounded-lg transition-colors"
+              style={{
+                background: 'rgba(168, 85, 247, 0.2)',
+                color: 'var(--rpg-purple)',
+                border: '1px solid var(--rpg-purple)',
+              }}
             >
               Go Back
             </button>
@@ -200,12 +212,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <RetroNavBar />
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black pt-20 pb-8">
+      <div className="min-h-screen pt-20 pb-8" style={{ background: 'var(--rpg-bg-dark)' }}>
         <div className="max-w-2xl mx-auto px-4">
           {/* Back Button */}
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-6 transition-colors"
+            className="flex items-center gap-2 text-sm mb-6 transition-colors hover:opacity-80"
+            style={{ color: 'var(--rpg-muted)' }}
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -213,10 +226,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
           {/* Profile Header Card */}
           <div
-            className="rounded-xl p-6 mb-6"
+            className="rounded-lg p-6 mb-6"
             style={{
-              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
-              border: '2px solid rgba(168, 85, 247, 0.3)',
+              background: 'var(--rpg-card)',
+              border: '2px solid var(--rpg-border)',
+              boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
             }}
           >
             <div className="flex items-start gap-4">
@@ -234,7 +248,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   <div
                     className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
                     style={{
-                      background: 'linear-gradient(135deg, #a855f7 0%, #3b82f6 100%)',
+                      background: 'linear-gradient(135deg, var(--rpg-purple) 0%, var(--rpg-cyan) 100%)',
                       color: '#fff',
                     }}
                   >
@@ -244,9 +258,9 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 <div
                   className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
                   style={{
-                    background: 'linear-gradient(135deg, #ffd700 0%, #ffa500 100%)',
-                    color: '#000',
-                    border: '2px solid #1a1a2e',
+                    background: 'linear-gradient(135deg, var(--rpg-gold) 0%, #ffa500 100%)',
+                    color: 'var(--rpg-bg-dark)',
+                    border: '2px solid var(--rpg-bg-dark)',
                   }}
                 >
                   {profile.level}
@@ -255,17 +269,17 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
               {/* Info */}
               <div className="flex-1">
-                <h1 className="text-xl font-bold text-white">
+                <h1 className="text-xl font-bold" style={{ color: 'var(--rpg-text)' }}>
                   {profile.displayName || profile.username || 'Unknown User'}
                 </h1>
                 {profile.username && profile.displayName && (
-                  <p className="text-gray-400 text-sm">@{profile.username}</p>
+                  <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>@{profile.username}</p>
                 )}
                 {profile.bio && (
-                  <p className="text-gray-300 text-sm mt-2">{profile.bio}</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--rpg-text)' }}>{profile.bio}</p>
                 )}
                 {profile.memberSince && (
-                  <p className="text-gray-500 text-xs mt-2 flex items-center gap-1">
+                  <p className="text-xs mt-2 flex items-center gap-1" style={{ color: 'var(--rpg-muted)' }}>
                     <Calendar className="w-3 h-3" />
                     Member since {new Date(profile.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
@@ -275,26 +289,35 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-3 mt-6">
-              <div className="text-center p-3 rounded-lg bg-black/30">
-                <div className="flex items-center justify-center gap-1 text-yellow-400 mb-1">
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+              >
+                <div className="flex items-center justify-center gap-1 mb-1" style={{ color: 'var(--rpg-gold)' }}>
                   <Star className="w-4 h-4" />
                   <span className="font-bold">{profile.xp.toLocaleString()}</span>
                 </div>
-                <p className="text-gray-500 text-xs">Total XP</p>
+                <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Total XP</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-black/30">
-                <div className="flex items-center justify-center gap-1 text-orange-400 mb-1">
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+              >
+                <div className="flex items-center justify-center gap-1 mb-1" style={{ color: '#ff6432' }}>
                   <Flame className="w-4 h-4" />
                   <span className="font-bold">{profile.currentStreak}</span>
                 </div>
-                <p className="text-gray-500 text-xs">Day Streak</p>
+                <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Day Streak</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-black/30">
-                <div className="flex items-center justify-center gap-1 text-purple-400 mb-1">
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+              >
+                <div className="flex items-center justify-center gap-1 mb-1" style={{ color: 'var(--rpg-purple)' }}>
                   <Trophy className="w-4 h-4" />
                   <span className="font-bold">{profile.longestStreak}</span>
                 </div>
-                <p className="text-gray-500 text-xs">Best Streak</p>
+                <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Best Streak</p>
               </div>
             </div>
 
@@ -305,7 +328,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={() => handleFriendAction('add')}
                     disabled={actionLoading}
-                    className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{
+                      background: 'var(--rpg-purple)',
+                      color: '#fff',
+                    }}
                   >
                     <UserPlus className="w-4 h-4" />
                     Add Friend
@@ -315,7 +342,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={() => handleFriendAction('cancel')}
                     disabled={actionLoading}
-                    className="w-full py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700/50 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{
+                      background: 'var(--rpg-border)',
+                      color: 'var(--rpg-text)',
+                    }}
                   >
                     <Clock className="w-4 h-4" />
                     Request Pending (Cancel)
@@ -326,21 +357,36 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                     <button
                       onClick={() => handleFriendAction('accept')}
                       disabled={actionLoading}
-                      className="flex-1 py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white rounded-lg font-medium transition-colors"
+                      className="flex-1 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                      style={{
+                        background: 'var(--rpg-teal)',
+                        color: 'var(--rpg-bg-dark)',
+                      }}
                     >
                       Accept
                     </button>
                     <button
                       onClick={() => handleFriendAction('decline')}
                       disabled={actionLoading}
-                      className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700/50 text-white rounded-lg font-medium transition-colors"
+                      className="flex-1 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                      style={{
+                        background: 'var(--rpg-border)',
+                        color: 'var(--rpg-text)',
+                      }}
                     >
                       Decline
                     </button>
                   </div>
                 )}
                 {friendshipStatus === 'friends' && (
-                  <div className="flex items-center justify-center gap-2 py-3 bg-green-500/20 text-green-400 rounded-lg border border-green-500/30">
+                  <div
+                    className="flex items-center justify-center gap-2 py-3 rounded-lg"
+                    style={{
+                      background: 'rgba(95, 191, 138, 0.2)',
+                      color: 'var(--rpg-teal)',
+                      border: '1px solid var(--rpg-teal)',
+                    }}
+                  >
                     <UserCheck className="w-4 h-4" />
                     Friends
                   </div>
@@ -351,15 +397,26 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
           {/* App Stats */}
           {appStats.length > 0 && (
-            <div className="rounded-xl p-5 mb-6 bg-gray-800/50 border border-gray-700">
-              <h2 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">
+            <div
+              className="rounded-lg p-5 mb-6"
+              style={{
+                background: 'var(--rpg-card)',
+                border: '2px solid var(--rpg-border)',
+                boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              <h2
+                className="text-sm font-semibold mb-4 uppercase tracking-wide"
+                style={{ color: 'var(--rpg-muted)' }}
+              >
                 App Progress
               </h2>
               <div className="space-y-3">
                 {appStats.map((stat) => (
                   <div
                     key={stat.app}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-black/30"
+                    className="flex items-center gap-3 p-3 rounded-lg"
+                    style={{ background: 'rgba(0, 0, 0, 0.3)' }}
                   >
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -370,12 +427,12 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-medium capitalize">{stat.app}</p>
-                      <p className="text-gray-500 text-xs">Level {stat.level}</p>
+                      <p className="font-medium capitalize" style={{ color: 'var(--rpg-text)' }}>{stat.app}</p>
+                      <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Level {stat.level}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-yellow-400 font-bold">{stat.xp.toLocaleString()}</p>
-                      <p className="text-gray-500 text-xs">XP</p>
+                      <p className="font-bold" style={{ color: 'var(--rpg-gold)' }}>{stat.xp.toLocaleString()}</p>
+                      <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>XP</p>
                     </div>
                   </div>
                 ))}
@@ -385,23 +442,39 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
           {/* Travel Stats (only for friends) */}
           {travelStats && (
-            <div className="rounded-xl p-5 mb-6 bg-gray-800/50 border border-gray-700">
-              <h2 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">
+            <div
+              className="rounded-lg p-5 mb-6"
+              style={{
+                background: 'var(--rpg-card)',
+                border: '2px solid var(--rpg-border)',
+                boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              <h2
+                className="text-sm font-semibold mb-4 uppercase tracking-wide"
+                style={{ color: 'var(--rpg-muted)' }}
+              >
                 Travel Stats
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-black/30">
-                  <MapPin className="w-5 h-5 text-blue-400" />
+                <div
+                  className="flex items-center gap-3 p-3 rounded-lg"
+                  style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+                >
+                  <MapPin className="w-5 h-5" style={{ color: 'var(--rpg-cyan)' }} />
                   <div>
-                    <p className="text-white font-bold">{travelStats.locationsVisited}</p>
-                    <p className="text-gray-500 text-xs">Places Visited</p>
+                    <p className="font-bold" style={{ color: 'var(--rpg-text)' }}>{travelStats.locationsVisited}</p>
+                    <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Places Visited</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-black/30">
-                  <Globe className="w-5 h-5 text-green-400" />
+                <div
+                  className="flex items-center gap-3 p-3 rounded-lg"
+                  style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+                >
+                  <Globe className="w-5 h-5" style={{ color: 'var(--rpg-teal)' }} />
                   <div>
-                    <p className="text-white font-bold">{travelStats.countriesVisited}</p>
-                    <p className="text-gray-500 text-xs">Countries</p>
+                    <p className="font-bold" style={{ color: 'var(--rpg-text)' }}>{travelStats.countriesVisited}</p>
+                    <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>Countries</p>
                   </div>
                 </div>
               </div>
@@ -410,26 +483,40 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
           {/* Recent Activity */}
           {recentActivity.length > 0 && (
-            <div className="rounded-xl p-5 bg-gray-800/50 border border-gray-700">
-              <h2 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">
+            <div
+              className="rounded-lg p-5"
+              style={{
+                background: 'var(--rpg-card)',
+                border: '2px solid var(--rpg-border)',
+                boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              <h2
+                className="text-sm font-semibold mb-4 uppercase tracking-wide"
+                style={{ color: 'var(--rpg-muted)' }}
+              >
                 Recent Activity
               </h2>
               <div className="space-y-3">
                 {recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-black/30"
+                    className="flex items-center gap-3 p-3 rounded-lg"
+                    style={{ background: 'rgba(0, 0, 0, 0.3)' }}
                   >
-                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                      style={{ background: 'rgba(168, 85, 247, 0.2)' }}
+                    >
                       {activity.type === 'QUEST_COMPLETED' ? '🏆' :
                        activity.type === 'QUEST_ITEM_COMPLETED' ? '✅' :
                        activity.type === 'PARTY_MEMBER_JOINED' ? '🎉' : '⭐'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm truncate">
+                      <p className="text-sm truncate" style={{ color: 'var(--rpg-text)' }}>
                         {getActivityMessage(activity)}
                       </p>
-                      <p className="text-gray-500 text-xs">
+                      <p className="text-xs" style={{ color: 'var(--rpg-muted)' }}>
                         {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
                       </p>
                     </div>
@@ -440,8 +527,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
           )}
 
           {recentActivity.length === 0 && (
-            <div className="rounded-xl p-8 bg-gray-800/50 border border-gray-700 text-center">
-              <p className="text-gray-500">No recent activity</p>
+            <div
+              className="rounded-lg p-8 text-center"
+              style={{
+                background: 'var(--rpg-card)',
+                border: '2px solid var(--rpg-border)',
+                boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              <p style={{ color: 'var(--rpg-muted)' }}>No recent activity</p>
             </div>
           )}
         </div>

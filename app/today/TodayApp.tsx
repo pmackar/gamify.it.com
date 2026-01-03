@@ -13,6 +13,7 @@ import {
   getRankForLevel
 } from '@/lib/today/data';
 import { useNavBar } from '@/components/NavBarContext';
+import AccountabilityPartners from '@/components/social/AccountabilityPartners';
 
 // Pixel Particles Effect
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
@@ -3412,6 +3413,9 @@ export default function TodayApp() {
               </div>
             )}
           </div>
+
+          {/* Accountability Partners */}
+          <AccountabilityPartners />
 
           <nav className="sidebar-nav">
             <div className="nav-section">

@@ -5,6 +5,7 @@ import { RetroNavBar } from '@/components/RetroNavBar';
 import FriendCard from '@/components/social/FriendCard';
 import FriendRequestCard from '@/components/social/FriendRequestCard';
 import UserSearchInput from '@/components/social/UserSearchInput';
+import FriendLeaderboard from '@/components/social/FriendLeaderboard';
 
 type TabType = 'friends' | 'requests' | 'find';
 
@@ -267,7 +268,7 @@ export default function FriendsPage() {
             <>
               {/* Friends Tab */}
               {activeTab === 'friends' && (
-                <div className="space-y-3">
+                <div className="space-y-6">
                   {friends.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-4xl mb-4">👥</div>
@@ -283,14 +284,27 @@ export default function FriendsPage() {
                       </button>
                     </div>
                   ) : (
-                    friends.map((friend) => (
-                      <FriendCard
-                        key={friend.friendshipId}
-                        friend={friend}
-                        onRemove={handleRemoveFriend}
-                        isRemoving={actionLoading === friend.friendshipId}
-                      />
-                    ))
+                    <>
+                      {/* Leaderboard */}
+                      <FriendLeaderboard />
+
+                      {/* Friends List */}
+                      <div>
+                        <h2 className="text-sm font-medium text-gray-400 mb-3">
+                          Your Friends ({friends.length})
+                        </h2>
+                        <div className="space-y-3">
+                          {friends.map((friend) => (
+                            <FriendCard
+                              key={friend.friendshipId}
+                              friend={friend}
+                              onRemove={handleRemoveFriend}
+                              isRemoving={actionLoading === friend.friendshipId}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               )}

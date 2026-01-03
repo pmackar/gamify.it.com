@@ -435,7 +435,7 @@ export default function FitnessLandingPage() {
         .landing-wrapper {
           min-height: 100vh;
           min-height: 100dvh;
-          background: linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%);
+          background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
           position: relative;
           overflow-x: hidden;
         }
@@ -463,8 +463,8 @@ export default function FitnessLandingPage() {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          background: rgba(255, 107, 107, 0.1);
-          border: 1px solid rgba(255, 107, 107, 0.3);
+          background: var(--app-fitness-glow);
+          border: 1px solid var(--app-fitness);
           border-radius: 20px;
           padding: 0.5rem 1rem;
           margin-bottom: 2rem;
@@ -474,26 +474,26 @@ export default function FitnessLandingPage() {
         .badge-text {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
           letter-spacing: 0.1em;
         }
 
         .hero-title {
           font-family: 'Press Start 2P', monospace;
           font-size: clamp(1.5rem, 6vw, 3rem);
-          color: #fff;
+          color: var(--theme-text-primary);
           line-height: 1.4;
           margin-bottom: 1.5rem;
         }
 
         .title-accent {
-          color: #FF6B6B;
-          text-shadow: 0 0 40px rgba(255, 107, 107, 0.5);
+          color: var(--app-fitness);
+          text-shadow: 0 0 40px var(--app-fitness-glow);
         }
 
         .hero-tagline {
           font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-          color: #888;
+          color: var(--theme-text-secondary);
           line-height: 1.8;
           margin-bottom: 3rem;
           max-width: 500px;
@@ -510,24 +510,24 @@ export default function FitnessLandingPage() {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.6rem;
           padding: 1.25rem 2.5rem;
-          background: linear-gradient(180deg, #FF6B6B 0%, #CC5555 100%);
+          background: linear-gradient(180deg, var(--app-fitness) 0%, var(--app-fitness-dark) 100%);
           border: none;
           border-radius: 8px;
-          color: #fff;
+          color: var(--theme-text-primary);
           cursor: pointer;
           text-decoration: none;
           transition: all 0.2s;
-          box-shadow: 0 4px 0 #993333, 0 0 30px rgba(255, 107, 107, 0.3);
+          box-shadow: 0 4px 0 var(--app-fitness-dark), 0 0 30px var(--app-fitness-glow);
         }
 
         .cta-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 0 #993333, 0 0 40px rgba(255, 107, 107, 0.5);
+          box-shadow: 0 6px 0 var(--app-fitness-dark), 0 0 40px var(--app-fitness-glow);
         }
 
         .cta-primary:active {
           transform: translateY(2px);
-          box-shadow: 0 2px 0 #993333;
+          box-shadow: 0 2px 0 var(--app-fitness-dark);
         }
 
         .cta-secondary {
@@ -535,16 +535,16 @@ export default function FitnessLandingPage() {
           font-size: 0.5rem;
           padding: 1rem 2rem;
           background: transparent;
-          border: 2px solid #333;
+          border: 2px solid var(--theme-border);
           border-radius: 8px;
-          color: #888;
+          color: var(--theme-text-secondary);
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .cta-secondary:hover {
-          border-color: #FF6B6B;
-          color: #FF6B6B;
+          border-color: var(--app-fitness);
+          color: var(--app-fitness);
         }
 
         .cta-primary.large { font-size: 0.65rem; padding: 1.5rem 3rem; }
@@ -557,7 +557,7 @@ export default function FitnessLandingPage() {
           flex-direction: column;
           align-items: center;
           gap: 0.5rem;
-          color: #444;
+          color: var(--theme-text-muted);
           font-size: 0.75rem;
           animation: bounce 2s ease-in-out infinite;
         }
@@ -576,9 +576,9 @@ export default function FitnessLandingPage() {
           align-items: center;
           gap: 2rem;
           padding: 2rem;
-          background: rgba(255, 107, 107, 0.05);
-          border-top: 1px solid rgba(255, 107, 107, 0.1);
-          border-bottom: 1px solid rgba(255, 107, 107, 0.1);
+          background: var(--app-fitness-glow);
+          border-top: 1px solid var(--app-fitness-border);
+          border-bottom: 1px solid var(--app-fitness-border);
           flex-wrap: wrap;
         }
 
@@ -587,19 +587,19 @@ export default function FitnessLandingPage() {
           display: block;
           font-family: 'Press Start 2P', monospace;
           font-size: 1.25rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
           margin-bottom: 0.25rem;
         }
         .stat-label {
           font-size: 0.7rem;
-          color: #666;
+          color: var(--theme-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
         .stat-divider {
           width: 1px;
           height: 40px;
-          background: #333;
+          background: var(--theme-border);
         }
 
         /* Section Styling */
@@ -611,7 +611,7 @@ export default function FitnessLandingPage() {
         .section-label {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
           letter-spacing: 0.2em;
           margin-bottom: 1rem;
           display: block;
@@ -620,14 +620,14 @@ export default function FitnessLandingPage() {
         .section-title {
           font-family: 'Press Start 2P', monospace;
           font-size: clamp(1rem, 3vw, 1.5rem);
-          color: #fff;
+          color: var(--theme-text-primary);
           margin-bottom: 0.75rem;
           line-height: 1.4;
         }
 
         .section-subtitle {
           font-size: 0.9rem;
-          color: #666;
+          color: var(--theme-text-muted);
         }
 
         /* How It Works */
@@ -646,8 +646,8 @@ export default function FitnessLandingPage() {
         }
 
         .step-card {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid #222;
+          background: var(--theme-bg-card);
+          border: 1px solid var(--theme-border);
           border-radius: 12px;
           padding: 2rem 1.5rem;
           text-align: center;
@@ -657,9 +657,9 @@ export default function FitnessLandingPage() {
         }
 
         .step-card:hover {
-          border-color: #FF6B6B;
+          border-color: var(--app-fitness);
           transform: translateY(-4px);
-          box-shadow: 0 10px 30px rgba(255, 107, 107, 0.1);
+          box-shadow: 0 10px 30px var(--app-fitness-glow);
         }
 
         .step-number {
@@ -667,8 +667,8 @@ export default function FitnessLandingPage() {
           top: -12px;
           left: 50%;
           transform: translateX(-50%);
-          background: #FF6B6B;
-          color: #0a0a0f;
+          background: var(--app-fitness);
+          color: var(--theme-bg-base);
           font-family: 'Press Start 2P', monospace;
           font-size: 0.6rem;
           width: 24px;
@@ -683,31 +683,31 @@ export default function FitnessLandingPage() {
         .step-title {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.6rem;
-          color: #fff;
+          color: var(--theme-text-primary);
           margin-bottom: 0.75rem;
         }
         .step-desc {
           font-size: 0.8rem;
-          color: #666;
+          color: var(--theme-text-muted);
           line-height: 1.6;
         }
 
         .step-arrow {
           font-size: 1.5rem;
-          color: #333;
+          color: var(--theme-border);
         }
 
         /* Demo Section */
         .demo-section {
           padding: 5rem 1.5rem;
-          background: rgba(255, 107, 107, 0.02);
+          background: var(--app-fitness-glow);
         }
 
         .demo-widget {
           max-width: 400px;
           margin: 0 auto;
-          background: #1a1a24;
-          border: 2px solid #333;
+          background: var(--theme-bg-elevated);
+          border: 2px solid var(--theme-border);
           border-radius: 16px;
           padding: 1.5rem;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -723,14 +723,14 @@ export default function FitnessLandingPage() {
         .demo-label {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.4rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
           letter-spacing: 0.1em;
         }
 
         .demo-exercise {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #fff;
+          color: var(--theme-text-primary);
         }
 
         .demo-inputs {
@@ -744,8 +744,8 @@ export default function FitnessLandingPage() {
           display: flex;
           align-items: center;
           gap: 0.25rem;
-          background: #0a0a0f;
-          border: 1px solid #333;
+          background: var(--theme-bg-base);
+          border: 1px solid var(--theme-border);
           border-radius: 8px;
           padding: 0.5rem 0.75rem;
         }
@@ -754,7 +754,7 @@ export default function FitnessLandingPage() {
           width: 50px;
           background: transparent;
           border: none;
-          color: #fff;
+          color: var(--theme-text-primary);
           font-family: 'Press Start 2P', monospace;
           font-size: 0.7rem;
           text-align: center;
@@ -765,11 +765,11 @@ export default function FitnessLandingPage() {
 
         .demo-unit {
           font-size: 0.65rem;
-          color: #666;
+          color: var(--theme-text-muted);
         }
 
         .demo-x {
-          color: #444;
+          color: var(--theme-text-muted);
           font-size: 1rem;
         }
 
@@ -777,18 +777,18 @@ export default function FitnessLandingPage() {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
           padding: 0.75rem 1rem;
-          background: linear-gradient(180deg, #FF6B6B 0%, #CC5555 100%);
+          background: linear-gradient(180deg, var(--app-fitness) 0%, var(--app-fitness-dark) 100%);
           border: none;
           border-radius: 8px;
-          color: #fff;
+          color: var(--theme-text-primary);
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 3px 0 #993333;
+          box-shadow: 0 3px 0 var(--app-fitness-darker);
         }
 
         .demo-log-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 5px 0 #993333;
+          box-shadow: 0 5px 0 var(--app-fitness-darker);
         }
 
         .demo-log-btn:disabled {
@@ -797,8 +797,8 @@ export default function FitnessLandingPage() {
         }
 
         .demo-log-btn.logged {
-          background: linear-gradient(180deg, #5fbf8a 0%, #4a9d70 100%);
-          box-shadow: 0 3px 0 #3d8260;
+          background: linear-gradient(180deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+          box-shadow: 0 3px 0 var(--color-success-darker);
         }
 
         .demo-results {
@@ -818,8 +818,8 @@ export default function FitnessLandingPage() {
         }
 
         .demo-xp-popup {
-          background: rgba(255, 215, 0, 0.1);
-          border: 1px solid #FFD700;
+          background: var(--color-legendary-glow);
+          border: 1px solid var(--color-legendary);
           border-radius: 8px;
           padding: 0.5rem 1rem;
           display: flex;
@@ -831,17 +831,17 @@ export default function FitnessLandingPage() {
         .xp-amount {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.7rem;
-          color: #FFD700;
+          color: var(--color-legendary);
         }
 
         .xp-label {
           font-size: 0.7rem;
-          color: #888;
+          color: var(--theme-text-secondary);
         }
 
         .demo-pr-popup {
-          background: rgba(255, 107, 107, 0.1);
-          border: 1px solid #FF6B6B;
+          background: var(--app-fitness-glow);
+          border: 1px solid var(--app-fitness);
           border-radius: 8px;
           padding: 0.5rem 1rem;
           display: flex;
@@ -854,7 +854,7 @@ export default function FitnessLandingPage() {
         .pr-text {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
         }
 
         @keyframes popIn {
@@ -882,8 +882,8 @@ export default function FitnessLandingPage() {
         }
 
         .phone-screen {
-          background: #0a0a0f;
-          border: 3px solid #333;
+          background: var(--theme-bg-base);
+          border: 3px solid var(--theme-border);
           border-radius: 24px;
           padding: 0.5rem;
           position: relative;
@@ -893,7 +893,7 @@ export default function FitnessLandingPage() {
         .phone-notch {
           width: 80px;
           height: 20px;
-          background: #333;
+          background: var(--theme-border);
           border-radius: 0 0 12px 12px;
           margin: 0 auto 0.5rem;
         }
@@ -903,7 +903,7 @@ export default function FitnessLandingPage() {
           justify-content: space-between;
           padding: 0 0.5rem 0.5rem;
           font-size: 0.5rem;
-          color: #666;
+          color: var(--theme-text-muted);
         }
 
         .phone-content {
@@ -915,7 +915,7 @@ export default function FitnessLandingPage() {
           margin-top: 1rem;
           font-family: 'Press Start 2P', monospace;
           font-size: 0.45rem;
-          color: #666;
+          color: var(--theme-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
@@ -931,15 +931,15 @@ export default function FitnessLandingPage() {
         .mock-exercise-name {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.45rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
         }
         .mock-pr-badge {
-          background: rgba(255, 215, 0, 0.1);
-          border: 1px solid #FFD700;
+          background: var(--color-legendary-glow);
+          border: 1px solid var(--color-legendary);
           border-radius: 4px;
           padding: 0.2rem 0.4rem;
           font-size: 0.4rem;
-          color: #FFD700;
+          color: var(--color-legendary);
         }
         .mock-sets {
           display: flex;
@@ -948,32 +948,32 @@ export default function FitnessLandingPage() {
           margin-bottom: 0.75rem;
         }
         .mock-set {
-          background: #1a1a24;
-          border: 1px solid #222;
+          background: var(--theme-bg-elevated);
+          border: 1px solid var(--theme-border);
           border-radius: 6px;
           padding: 0.5rem;
-          color: #888;
+          color: var(--theme-text-secondary);
           display: flex;
           justify-content: space-between;
         }
         .mock-set.active {
-          border-color: #FF6B6B;
-          color: #fff;
+          border-color: var(--app-fitness);
+          color: var(--theme-text-primary);
         }
         .mock-xp {
-          color: #FFD700;
+          color: var(--color-legendary);
           font-family: 'Press Start 2P', monospace;
           font-size: 0.35rem;
         }
         .mock-input {
-          background: #12121a;
-          border: 2px solid #FF6B6B;
+          background: var(--theme-bg-deep);
+          border: 2px solid var(--app-fitness);
           border-radius: 8px;
           padding: 0.6rem;
-          color: #fff;
+          color: var(--theme-text-primary);
         }
         .mock-cursor {
-          color: #FF6B6B;
+          color: var(--app-fitness);
           animation: blink 1s infinite;
         }
 
@@ -996,7 +996,7 @@ export default function FitnessLandingPage() {
           position: absolute;
           width: 100px;
           height: 100px;
-          background: radial-gradient(circle, rgba(255, 107, 107, 0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, var(--app-fitness-glow) 0%, transparent 70%);
           animation: pulse 2s ease-in-out infinite;
         }
         @keyframes pulse {
@@ -1011,25 +1011,25 @@ export default function FitnessLandingPage() {
         .mock-achievement-title {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.45rem;
-          color: #fff;
+          color: var(--theme-text-primary);
           margin-bottom: 0.25rem;
           text-align: center;
         }
         .mock-achievement-desc {
           font-size: 0.5rem;
-          color: #666;
+          color: var(--theme-text-muted);
           margin-bottom: 0.5rem;
         }
         .mock-achievement-xp {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #FFD700;
+          color: var(--color-legendary);
           margin-bottom: 0.5rem;
         }
         .mock-achievement-tier {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.35rem;
-          color: #5CC9F5;
+          color: var(--tier-rare);
           letter-spacing: 0.2em;
         }
 
@@ -1041,42 +1041,42 @@ export default function FitnessLandingPage() {
           padding: 0.5rem;
         }
         .mock-level-badge {
-          background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
-          border: 2px solid #CC8800;
+          background: linear-gradient(180deg, var(--color-legendary) 0%, var(--color-legendary-dark) 100%);
+          border: 2px solid var(--color-legendary-border);
           border-radius: 12px;
           padding: 0.75rem 1rem;
           display: flex;
           flex-direction: column;
           align-items: center;
           margin-bottom: 0.75rem;
-          box-shadow: 0 3px 0 #996600;
+          box-shadow: 0 3px 0 var(--color-legendary-shadow);
         }
         .mock-lvl {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.35rem;
-          color: #1a1a1a;
+          color: var(--theme-bg-base);
         }
         .mock-level-num {
           font-family: 'Press Start 2P', monospace;
           font-size: 1.25rem;
-          color: #1a1a1a;
+          color: var(--theme-bg-base);
         }
         .mock-xp-bar {
           width: 100%;
           height: 8px;
-          background: #222;
+          background: var(--theme-border);
           border-radius: 4px;
           overflow: hidden;
           margin-bottom: 0.25rem;
         }
         .mock-xp-fill {
           height: 100%;
-          background: linear-gradient(90deg, #FF6B6B, #FFD700);
+          background: linear-gradient(90deg, var(--app-fitness), var(--color-legendary));
           border-radius: 4px;
         }
         .mock-xp-text {
           font-size: 0.5rem;
-          color: #666;
+          color: var(--theme-text-muted);
           margin-bottom: 1rem;
         }
         .mock-stats {
@@ -1088,11 +1088,11 @@ export default function FitnessLandingPage() {
           display: block;
           font-family: 'Press Start 2P', monospace;
           font-size: 0.6rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
         }
         .mock-stat-label {
           font-size: 0.4rem;
-          color: #666;
+          color: var(--theme-text-muted);
         }
 
         /* Achievements Section */

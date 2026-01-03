@@ -123,9 +123,10 @@ export default function NotificationBell() {
             fetchNotifications();
           }
         }}
-        className={`relative p-2 text-gray-400 hover:text-white transition-colors ${
+        className={`relative p-2 transition-colors ${
           hasNewNotification ? 'animate-bounce' : ''
         }`}
+        style={{ color: 'var(--rpg-muted)' }}
         aria-label="Notifications"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,9 +138,12 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className={`absolute -top-0.5 -right-0.5 w-5 h-5 bg-purple-500 rounded-full text-[10px] text-white flex items-center justify-center font-medium ${
-            hasNewNotification ? 'animate-pulse' : ''
-          }`}>
+          <span
+            className={`absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-medium ${
+              hasNewNotification ? 'animate-pulse' : ''
+            }`}
+            style={{ background: 'var(--rpg-purple)', color: '#fff' }}
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -147,14 +151,27 @@ export default function NotificationBell() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-[70vh] bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
+        <div
+          className="absolute right-0 top-full mt-2 w-80 max-h-[70vh] rounded-lg overflow-hidden z-50"
+          style={{
+            background: 'var(--rpg-card)',
+            border: '2px solid var(--rpg-border)',
+            boxShadow: '0 4px 0 rgba(0, 0, 0, 0.3)',
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-            <h3 className="text-sm font-medium text-white">Notifications</h3>
+          <div
+            className="flex items-center justify-between px-4 py-3"
+            style={{ borderBottom: '1px solid var(--rpg-border)' }}
+          >
+            <h3 className="text-sm font-medium" style={{ color: 'var(--rpg-text)' }}>
+              Notifications
+            </h3>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                className="text-xs transition-colors hover:opacity-80"
+                style={{ color: 'var(--rpg-purple)' }}
               >
                 Mark all read
               </button>
@@ -165,12 +182,17 @@ export default function NotificationBell() {
           <div className="overflow-y-auto max-h-96">
             {isLoading && notifications.length === 0 ? (
               <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                <div
+                  className="w-6 h-6 border-2 rounded-full animate-spin"
+                  style={{ borderColor: 'var(--rpg-purple)', borderTopColor: 'transparent' }}
+                />
               </div>
             ) : notifications.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-2xl mb-2">🔔</div>
-                <p className="text-gray-500 text-sm">No notifications yet</p>
+                <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
+                  No notifications yet
+                </p>
               </div>
             ) : (
               <div className="p-2 space-y-1">
@@ -189,12 +211,16 @@ export default function NotificationBell() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="border-t border-gray-800 px-4 py-2">
+            <div
+              className="px-4 py-2"
+              style={{ borderTop: '1px solid var(--rpg-border)' }}
+            >
               <button
                 onClick={() => {
                   setIsOpen(false);
                 }}
-                className="text-xs text-gray-500 hover:text-gray-400 transition-colors w-full text-center"
+                className="text-xs transition-colors w-full text-center hover:opacity-80"
+                style={{ color: 'var(--rpg-muted)' }}
               >
                 View all notifications
               </button>
