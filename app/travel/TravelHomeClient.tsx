@@ -456,7 +456,7 @@ export default function TravelHomeClient({
           /* ===== MOBILE STYLES ===== */
           .hero-section {
             position: relative;
-            min-height: 55vh;
+            min-height: 38vh;
             display: flex;
             flex-direction: column;
             background:
@@ -504,16 +504,16 @@ export default function TravelHomeClient({
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 64px 24px 24px;
+            padding: 48px 24px 16px;
           }
 
           .xp-ring {
             position: relative;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
           .xp-ring-svg {
-            width: 128px;
-            height: 128px;
+            width: 100px;
+            height: 100px;
             transform: rotate(-90deg);
           }
           .xp-ring-svg-sm {
@@ -549,16 +549,16 @@ export default function TravelHomeClient({
             letter-spacing: 0.1em;
           }
           .level-number {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
             color: var(--rpg-gold);
             text-shadow: 0 0 20px var(--rpg-gold-glow);
           }
 
           .xp-text {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--rpg-muted);
-            margin-bottom: 24px;
+            margin-bottom: 16px;
           }
           .xp-current {
             color: var(--rpg-text);
@@ -598,7 +598,7 @@ export default function TravelHomeClient({
 
           .actions-container {
             padding: 0 16px;
-            margin-top: -24px;
+            margin-top: -16px;
             position: relative;
             z-index: 10;
           }
@@ -656,7 +656,7 @@ export default function TravelHomeClient({
           }
 
           .section {
-            margin-top: 32px;
+            margin-top: 24px;
             padding: 0 16px;
           }
           .section-last {
@@ -677,10 +677,12 @@ export default function TravelHomeClient({
             gap: 8px;
           }
           .section-title-solo {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 10px;
+            font-family: var(--font-pixel);
             color: var(--rpg-text);
             margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
           }
           .section-link {
             font-size: 14px;
@@ -815,36 +817,38 @@ export default function TravelHomeClient({
           .quick-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
           }
           .quick-item {
-            display: flex;
+            display: inline-flex;
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            padding: 10px 16px;
+            padding: 12px 18px;
             border-radius: 50px;
             background: var(--rpg-card);
             border: 2px solid var(--rpg-border);
             transition: all 0.2s;
-            font-size: 7px;
+            font-size: 8px;
             font-family: var(--font-pixel);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            gap: 8px;
-            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+            gap: 10px;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
           }
           .quick-item:active {
-            transform: translateY(2px);
-            box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+            transform: translateY(3px);
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0.4);
           }
           .quick-item:hover {
             border-color: var(--rpg-teal);
-            box-shadow: 0 2px 8px var(--rpg-teal-glow);
+            box-shadow: 0 3px 8px var(--rpg-teal-glow);
           }
-          .quick-item span { color: var(--rpg-text); }
+          .quick-item span {
+            color: var(--rpg-text);
+          }
           .quick-icon {
-            font-size: 16px;
+            font-size: 18px;
             flex-shrink: 0;
           }
           .quick-cyan {
