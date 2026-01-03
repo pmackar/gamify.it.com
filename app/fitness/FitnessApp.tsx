@@ -83,6 +83,8 @@ export default function FitnessApp() {
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
+  const [strengthProgressExercise, setStrengthProgressExercise] = useState<string | null>(null);
+  const [strengthProgressRange, setStrengthProgressRange] = useState<'30d' | '90d' | '1y' | 'all'>('all');
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -4798,6 +4800,202 @@ export default function FitnessApp() {
           color: white;
         }
 
+        /* ===== STRENGTH PROGRESS ===== */
+        .strength-card.clickable {
+          cursor: pointer;
+          position: relative;
+        }
+
+        .strength-card.clickable:hover {
+          background: var(--border);
+        }
+
+        .strength-arrow {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 16px;
+          color: var(--text-tertiary);
+        }
+
+        .strength-progress-modal {
+          width: 100%;
+          max-width: 400px;
+          max-height: 80vh;
+          overflow-y: auto;
+        }
+
+        .time-range-toggle {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 16px;
+          padding: 4px;
+          background: var(--surface-hover);
+          border-radius: 8px;
+        }
+
+        .range-btn {
+          flex: 1;
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .range-btn.active {
+          background: var(--accent);
+          color: white;
+        }
+
+        .progress-stats {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .progress-stat {
+          flex: 1;
+          text-align: center;
+          padding: 12px 8px;
+          background: var(--surface-hover);
+          border-radius: 8px;
+        }
+
+        .progress-stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .progress-stat-value.positive {
+          color: #22c55e;
+        }
+
+        .progress-stat-label {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          margin-top: 2px;
+        }
+
+        .progress-chart-container {
+          margin-bottom: 16px;
+        }
+
+        .progress-chart {
+          display: flex;
+          align-items: flex-end;
+          height: 140px;
+          gap: 4px;
+          padding: 8px 0;
+        }
+
+        .progress-bar-wrapper {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          height: 100%;
+        }
+
+        .progress-bar-fill {
+          width: 100%;
+          background: linear-gradient(180deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.6) 100%);
+          border-radius: 4px 4px 0 0;
+          min-height: 4px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          position: relative;
+        }
+
+        .progress-bar-label {
+          font-size: 9px;
+          font-weight: 600;
+          color: white;
+          padding: 2px;
+          opacity: 0.9;
+        }
+
+        .progress-bar-date {
+          font-size: 8px;
+          color: var(--text-tertiary);
+          margin-top: 4px;
+          white-space: nowrap;
+        }
+
+        .chart-hint {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          text-align: center;
+          margin-top: 8px;
+        }
+
+        .no-sessions {
+          text-align: center;
+          padding: 32px;
+          color: var(--text-tertiary);
+          font-size: 14px;
+        }
+
+        .no-sessions p {
+          margin: 4px 0;
+        }
+
+        .sessions-list {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid var(--border);
+        }
+
+        .sessions-list h4 {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          margin-bottom: 12px;
+        }
+
+        .session-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .session-row:last-child {
+          border-bottom: none;
+        }
+
+        .session-date {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .session-stats {
+          display: flex;
+          gap: 12px;
+        }
+
+        .session-weight {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--accent);
+        }
+
+        .session-sets,
+        .session-volume {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
         /* ===== LIGHT MODE POLISH ===== */
         :global(html.light) .fitness-app {
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
@@ -6068,21 +6266,27 @@ gamify.it.com/fitness`;
                 {topExercises.length > 0 && (
                   <div className="analytics-section">
                     <h3 className="section-title">Strength Progress</h3>
+                    <p className="section-subtitle">Tap to view history</p>
                     <div className="strength-cards">
                       {topExercises.map(exId => {
-                        const exercise = EXERCISES.find(e => e.id === exId);
+                        const exercise = EXERCISES.find(e => e.id === exId) || store.customExercises.find(e => e.id === exId);
                         const progress = store.getStrengthProgress(exId);
                         const currentPR = store.records[exId] || 0;
                         const firstWeight = progress[0]?.weight || currentPR;
                         const improvement = currentPR - firstWeight;
 
                         return (
-                          <div key={exId} className="strength-card">
+                          <div
+                            key={exId}
+                            className="strength-card clickable"
+                            onClick={() => setStrengthProgressExercise(exId)}
+                          >
                             <div className="strength-name">{exercise?.name || exId}</div>
                             <div className="strength-pr">{currentPR} lbs</div>
                             {improvement > 0 && (
                               <div className="strength-gain">+{improvement} lbs</div>
                             )}
+                            <div className="strength-arrow">›</div>
                           </div>
                         );
                       })}
@@ -8008,6 +8212,130 @@ gamify.it.com/fitness`;
             </div>
           </div>
         )}
+
+        {/* Strength Progress Modal */}
+        {strengthProgressExercise && (() => {
+          const exercise = EXERCISES.find(e => e.id === strengthProgressExercise) ||
+            store.customExercises.find(e => e.id === strengthProgressExercise);
+
+          // Filter workouts by time range
+          const now = new Date();
+          const cutoffDate = strengthProgressRange === '30d' ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            : strengthProgressRange === '90d' ? new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+            : strengthProgressRange === '1y' ? new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+            : new Date(0);
+
+          // Get all sessions with this exercise
+          const sessions = store.workouts
+            .filter(w => new Date(w.startTime) >= cutoffDate)
+            .filter(w => w.exercises.some(ex => ex.id === strengthProgressExercise))
+            .map(w => {
+              const ex = w.exercises.find(ex => ex.id === strengthProgressExercise)!;
+              const maxWeight = Math.max(...ex.sets.filter(s => !s.isWarmup).map(s => s.weight), 0);
+              const totalVolume = ex.sets.filter(s => !s.isWarmup).reduce((sum, s) => sum + s.weight * s.reps, 0);
+              return {
+                date: new Date(w.startTime),
+                maxWeight,
+                totalVolume,
+                sets: ex.sets.filter(s => !s.isWarmup).length
+              };
+            })
+            .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+          const currentPR = store.records[strengthProgressExercise] || 0;
+          const startWeight = sessions[0]?.maxWeight || currentPR;
+          const improvement = currentPR - startWeight;
+          const maxChartWeight = Math.max(...sessions.map(s => s.maxWeight), currentPR);
+
+          return (
+            <div className="modal-overlay" onClick={() => setStrengthProgressExercise(null)}>
+              <div className="modal strength-progress-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                  {exercise?.name || strengthProgressExercise}
+                </div>
+
+                {/* Time Range Toggle */}
+                <div className="time-range-toggle">
+                  {(['30d', '90d', '1y', 'all'] as const).map(range => (
+                    <button
+                      key={range}
+                      className={`range-btn ${strengthProgressRange === range ? 'active' : ''}`}
+                      onClick={() => setStrengthProgressRange(range)}
+                    >
+                      {range === '30d' ? '30D' : range === '90d' ? '90D' : range === '1y' ? '1Y' : 'All'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stats Summary */}
+                <div className="progress-stats">
+                  <div className="progress-stat">
+                    <div className="progress-stat-value">{currentPR}</div>
+                    <div className="progress-stat-label">Current PR (lbs)</div>
+                  </div>
+                  <div className="progress-stat">
+                    <div className="progress-stat-value">{sessions.length}</div>
+                    <div className="progress-stat-label">Sessions</div>
+                  </div>
+                  <div className="progress-stat">
+                    <div className={`progress-stat-value ${improvement > 0 ? 'positive' : ''}`}>
+                      {improvement > 0 ? '+' : ''}{improvement}
+                    </div>
+                    <div className="progress-stat-label">Improvement</div>
+                  </div>
+                </div>
+
+                {/* Progress Chart */}
+                {sessions.length > 0 ? (
+                  <div className="progress-chart-container">
+                    <div className="progress-chart">
+                      {sessions.slice(-12).map((session, idx) => (
+                        <div key={idx} className="progress-bar-wrapper">
+                          <div
+                            className="progress-bar-fill"
+                            style={{ height: `${(session.maxWeight / maxChartWeight) * 100}%` }}
+                          >
+                            <span className="progress-bar-label">{session.maxWeight}</span>
+                          </div>
+                          <div className="progress-bar-date">
+                            {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="chart-hint">Max weight per session (last {Math.min(sessions.length, 12)} shown)</div>
+                  </div>
+                ) : (
+                  <div className="no-sessions">
+                    <p>No sessions in this time period</p>
+                    <p>Try selecting a longer time range</p>
+                  </div>
+                )}
+
+                {/* Recent Sessions List */}
+                {sessions.length > 0 && (
+                  <div className="sessions-list">
+                    <h4>Recent Sessions</h4>
+                    {sessions.slice(-5).reverse().map((session, idx) => (
+                      <div key={idx} className="session-row">
+                        <div className="session-date">
+                          {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                        <div className="session-stats">
+                          <span className="session-weight">{session.maxWeight} lbs</span>
+                          <span className="session-sets">{session.sets} sets</span>
+                          <span className="session-volume">{(session.totalVolume / 1000).toFixed(1)}k vol</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button className="modal-btn" onClick={() => setStrengthProgressExercise(null)}>Close</button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </>
   );
