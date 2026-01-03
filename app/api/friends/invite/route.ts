@@ -215,8 +215,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error redeeming invite code:", error);
+    // Return more detailed error in development
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to redeem invite code" },
+      { error: "Failed to redeem invite code", details: errorMessage },
       { status: 500 }
     );
   }
