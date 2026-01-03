@@ -800,7 +800,7 @@ export default function LandingPage() {
         /* Dashboard Wrapper */
         .dashboard-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; min-height: 100vh; min-height: 100dvh; }
         .dashboard-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
-        .dashboard-content { position: relative; z-index: 2; padding: var(--content-top) 2rem 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
+        .dashboard-content { position: relative; z-index: 2; padding-top: var(--content-top); padding-left: 2rem; padding-right: 2rem; padding-bottom: 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
 
         /* Welcome Section */
         .welcome-section { margin-bottom: 3rem; }
