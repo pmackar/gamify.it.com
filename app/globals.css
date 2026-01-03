@@ -92,7 +92,7 @@
   /* ===== MOBILE VIEWPORT & LAYOUT ===== */
   --vh: 1vh;
   --keyboard-height: 0px;
-  --navbar-height: 66px;
+  --navbar-height: 76px;
   --content-top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   --command-bar-height: 80px;
 
@@ -117,7 +117,7 @@
 
 @media (max-width: 768px) {
   :root {
-    --navbar-height: 56px;
+    --navbar-height: 64px;
     --command-bar-height: 100px;
   }
 }

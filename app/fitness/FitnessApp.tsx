@@ -73,6 +73,7 @@ export default function FitnessApp() {
   const [addingGoal, setAddingGoal] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [mobileFabOpen, setMobileFabOpen] = useState(false);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
   const [searchingExercises, setSearchingExercises] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -280,6 +281,13 @@ export default function FitnessApp() {
   useEffect(() => {
     return () => setCenterContent(null);
   }, [setCenterContent]);
+
+  // Focus mobile input when FAB opens
+  useEffect(() => {
+    if (mobileFabOpen && mobileInputRef.current) {
+      setTimeout(() => mobileInputRef.current?.focus(), 100);
+    }
+  }, [mobileFabOpen]);
 
   const getTotalSets = () => {
     if (!store.currentWorkout) return 0;
@@ -3110,8 +3118,9 @@ export default function FitnessApp() {
           .content-area { padding-top: 60px; }
         }
 
-        /* Mobile FAB - only visible on mobile */
-        .mobile-fab-fitness {
+        /* Mobile FAB and Command Bar - only visible on mobile */
+        .mobile-fab-fitness,
+        .mobile-command-bar {
           display: none;
         }
 
@@ -3196,6 +3205,115 @@ export default function FitnessApp() {
 
           .fab-item-fitness .fab-icon {
             font-size: 18px;
+          }
+
+          /* Mobile Command Bar */
+          .mobile-command-bar {
+            display: block;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            z-index: 101;
+            animation: mobile-bar-in 0.2s ease;
+          }
+
+          @keyframes mobile-bar-in {
+            from {
+              opacity: 0;
+              transform: translateY(100%);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          .mobile-command-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .mobile-suggestions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+          }
+
+          .mobile-suggestion {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+          }
+
+          .mobile-suggestion.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+          }
+
+          .mobile-suggestion-icon {
+            font-size: 16px;
+          }
+
+          .mobile-suggestion-title {
+            font-size: 14px;
+            color: var(--text-primary);
+          }
+
+          .mobile-input-row {
+            display: flex;
+            gap: 8px;
+          }
+
+          .mobile-command-input {
+            flex: 1;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+          }
+
+          .mobile-command-input:focus {
+            border-color: var(--accent);
+          }
+
+          .mobile-command-input::placeholder {
+            color: var(--text-tertiary);
+          }
+
+          .mobile-close-btn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+          }
+
+          .mobile-close-btn:active {
+            background: var(--bg-primary);
           }
         }
       `}</style>
@@ -4014,66 +4132,65 @@ gamify.it.com/fitness`;
           </div>
         </div>
 
+        {/* Mobile Command Bar */}
+        {mobileFabOpen && (
+          <div className="mobile-command-bar">
+            <div className="mobile-command-inner">
+              {suggestions.length > 0 && (
+                <div className="mobile-suggestions">
+                  {suggestions.slice(0, 5).map((suggestion, i) => (
+                    <div
+                      key={suggestion.id || i}
+                      className={`mobile-suggestion ${i === selectedSuggestion ? 'selected' : ''}`}
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                    >
+                      <span className="mobile-suggestion-icon">{suggestion.icon}</span>
+                      <span className="mobile-suggestion-title">{suggestion.title}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mobile-input-row">
+                <input
+                  ref={mobileInputRef}
+                  type="text"
+                  className="mobile-command-input"
+                  placeholder={(() => {
+                    if (store.currentWorkout && store.currentView === 'workout') {
+                      const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+                      if (currentEx) {
+                        const lastSet = currentEx.sets[currentEx.sets.length - 1];
+                        const weight = lastSet?.weight || store.records[currentEx.id] || 135;
+                        const reps = lastSet?.reps || 8;
+                        return `Log: ${weight}x${reps}`;
+                      }
+                    }
+                    return 'Search or command...';
+                  })()}
+                  value={query}
+                  onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
+                  onKeyDown={handleKeyDown}
+                />
+                <button
+                  className="mobile-close-btn"
+                  onClick={() => { setMobileFabOpen(false); setQuery(''); }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile FAB */}
         <div className="mobile-fab-fitness">
-          {mobileFabOpen && (
-            <div className="fab-menu-fitness">
-              {store.currentWorkout ? (
-                <>
-                  <button
-                    className="fab-item-fitness"
-                    onClick={() => {
-                      setSearchingExercises(true);
-                      setMobileFabOpen(false);
-                    }}
-                  >
-                    <span className="fab-icon">🏋️</span>
-                    <span>Add Exercise</span>
-                  </button>
-                  <button
-                    className="fab-item-fitness"
-                    onClick={() => {
-                      store.finishWorkout();
-                      setMobileFabOpen(false);
-                    }}
-                  >
-                    <span className="fab-icon">✅</span>
-                    <span>Finish Workout</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="fab-item-fitness"
-                    onClick={() => {
-                      store.startWorkout();
-                      store.setView('workout');
-                      setMobileFabOpen(false);
-                    }}
-                  >
-                    <span className="fab-icon">💪</span>
-                    <span>Start Workout</span>
-                  </button>
-                  <button
-                    className="fab-item-fitness"
-                    onClick={() => {
-                      store.setView('history');
-                      setMobileFabOpen(false);
-                    }}
-                  >
-                    <span className="fab-icon">📜</span>
-                    <span>History</span>
-                  </button>
-                </>
-              )}
-            </div>
-          )}
           <button
             className={`fab-btn-fitness ${mobileFabOpen ? 'fab-open' : ''}`}
             onClick={() => setMobileFabOpen(!mobileFabOpen)}
             aria-label={mobileFabOpen ? 'Close menu' : 'Add new'}
+            style={{ display: mobileFabOpen ? 'none' : 'flex' }}
           >
-            {mobileFabOpen ? '✕' : '+'}
+            +
           </button>
         </div>
 

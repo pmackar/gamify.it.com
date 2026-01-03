@@ -992,9 +992,9 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           transition: all 0.2s ease;
           text-decoration: none;
         }
@@ -1009,6 +1009,8 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
 
         .nav-app-link svg {
+          width: 26px;
+          height: 26px;
           transition: all 0.2s ease;
         }
 
@@ -1165,8 +1167,8 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
 
         .nav-avatar {
-          width: 32px;
-          height: 32px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           border: 2px solid rgba(255, 215, 0, 0.5);
           cursor: pointer;
@@ -1180,8 +1182,8 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
 
         .nav-avatar-placeholder {
-          width: 32px;
-          height: 32px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           background: linear-gradient(135deg, #FFD700 0%, #F0A500 100%);
           display: flex;
@@ -1672,14 +1674,14 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           }
 
           .nav-app-link {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
           }
 
           .nav-app-link svg {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
           }
 
           .nav-login-btn {
@@ -1689,12 +1691,12 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
           .nav-avatar,
           .nav-avatar-placeholder {
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
           }
 
           .nav-avatar-placeholder {
-            font-size: 9px;
+            font-size: 10px;
           }
 
           .nav-dropdown,
