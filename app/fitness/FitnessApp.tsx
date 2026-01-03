@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
-import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise } from '@/lib/fitness/types';
+import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
 import FitnessLeaderboard from './components/FitnessLeaderboard';
@@ -437,6 +437,7 @@ export default function FitnessApp() {
         else if (suggestion.id === 'coach') store.setView('coach');
         else if (suggestion.id === 'campaigns') store.setView('campaigns');
         else if (suggestion.id === 'achievements') store.setView('achievements');
+        else if (suggestion.id === 'programs') store.setView('programs');
         else if (suggestion.id === 'import') fileInputRef.current?.click();
         else if (suggestion.id === 'reset') {
           if (confirm('Are you sure you want to erase ALL fitness data? This cannot be undone.')) {
@@ -3385,6 +3386,653 @@ export default function FitnessApp() {
           color: var(--text-tertiary);
         }
 
+        /* ===== PROGRAMS ===== */
+        .program-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 16px;
+        }
+
+        .program-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .program-card.active {
+          border-color: var(--accent);
+          background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, var(--surface) 100%);
+        }
+
+        .program-info {
+          flex: 1;
+        }
+
+        .program-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+
+        .program-name {
+          font-weight: 600;
+          font-size: 16px;
+          color: var(--text-primary);
+        }
+
+        .active-badge {
+          background: var(--accent);
+          color: #000;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 10px;
+          text-transform: uppercase;
+        }
+
+        .program-meta {
+          font-size: 13px;
+          color: var(--text-secondary);
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+
+        .program-meta span {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .program-description {
+          font-size: 13px;
+          color: var(--text-tertiary);
+          margin-bottom: 8px;
+        }
+
+        .program-progress {
+          margin-top: 4px;
+        }
+
+        .progress-bar-container {
+          height: 6px;
+          background: var(--surface-hover);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+
+        .progress-bar-fill {
+          height: 100%;
+          background: var(--accent);
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+
+        .progress-text {
+          font-size: 12px;
+          color: var(--text-secondary);
+        }
+
+        .program-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .program-action-btn {
+          background: var(--surface-hover);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 8px 16px;
+          font-size: 13px;
+          color: var(--text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.15s ease;
+        }
+
+        .program-action-btn:hover {
+          background: var(--surface-active);
+          border-color: var(--text-tertiary);
+        }
+
+        .program-action-btn.primary {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+          font-weight: 600;
+        }
+
+        .program-action-btn.primary:hover {
+          filter: brightness(1.1);
+        }
+
+        .program-action-btn.danger {
+          color: #ef4444;
+        }
+
+        .program-action-btn.danger:hover {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: #ef4444;
+        }
+
+        /* ===== PROGRAM WIZARD ===== */
+        .program-wizard {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          min-height: calc(100vh - 200px);
+        }
+
+        .wizard-header {
+          text-align: center;
+        }
+
+        .wizard-header h2 {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .wizard-steps {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 16px;
+        }
+
+        .wizard-step-indicator {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 600;
+          background: var(--surface-hover);
+          color: var(--text-tertiary);
+          border: 2px solid var(--border);
+          transition: all 0.2s ease;
+        }
+
+        .wizard-step-indicator.active {
+          background: var(--accent);
+          color: #000;
+          border-color: var(--accent);
+        }
+
+        .wizard-step-indicator.completed {
+          background: var(--accent);
+          color: #000;
+          border-color: var(--accent);
+        }
+
+        .wizard-content {
+          flex: 1;
+        }
+
+        .wizard-step {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .wizard-step h3 {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 4px;
+        }
+
+        .wizard-hint {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .form-group label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .form-input {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px;
+          font-size: 15px;
+          color: var(--text-primary);
+          width: 100%;
+        }
+
+        .form-input:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+
+        .form-textarea {
+          min-height: 80px;
+          resize: vertical;
+        }
+
+        .option-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+
+        .option-btn {
+          background: var(--surface);
+          border: 2px solid var(--border);
+          border-radius: 10px;
+          padding: 12px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .option-btn:hover {
+          border-color: var(--text-tertiary);
+        }
+
+        .option-btn.selected {
+          border-color: var(--accent);
+          background: rgba(var(--accent-rgb), 0.1);
+        }
+
+        .option-btn .option-label {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          display: block;
+        }
+
+        .option-btn .option-desc {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-top: 2px;
+        }
+
+        .option-row {
+          display: flex;
+          gap: 8px;
+        }
+
+        .option-row .form-input {
+          flex: 1;
+        }
+
+        /* Week Structure */
+        .week-structure {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .day-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .day-row:last-child {
+          border-bottom: none;
+        }
+
+        .day-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          width: 100px;
+        }
+
+        .day-select {
+          flex: 1;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 10px 12px;
+          font-size: 14px;
+          color: var(--text-primary);
+          cursor: pointer;
+        }
+
+        .day-select:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+
+        /* Progression Options */
+        .progression-options {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .progression-option {
+          background: var(--surface);
+          border: 2px solid var(--border);
+          border-radius: 10px;
+          padding: 14px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .progression-option:hover {
+          border-color: var(--text-tertiary);
+        }
+
+        .progression-option.selected {
+          border-color: var(--accent);
+          background: rgba(var(--accent-rgb), 0.05);
+        }
+
+        .progression-option .option-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+
+        .progression-option .option-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .progression-option .option-check {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+        }
+
+        .progression-option.selected .option-check {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+
+        .progression-option .option-description {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .progression-config {
+          margin-top: 16px;
+          padding: 16px;
+          background: var(--surface-hover);
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .progression-config h4 {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 4px;
+        }
+
+        .config-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .config-row label {
+          font-size: 13px;
+          color: var(--text-secondary);
+          flex: 1;
+        }
+
+        .config-row input {
+          width: 80px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          padding: 8px;
+          font-size: 14px;
+          color: var(--text-primary);
+          text-align: center;
+        }
+
+        .config-row input:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+
+        /* Review Section */
+        .review-section {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 16px;
+        }
+
+        .review-section h4 {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--accent);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 12px;
+        }
+
+        .review-name {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .review-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          font-size: 14px;
+          color: var(--text-secondary);
+        }
+
+        .review-meta span {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .review-schedule {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .review-day {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .review-day:last-child {
+          border-bottom: none;
+        }
+
+        .review-day .day-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          width: 100px;
+        }
+
+        .review-day .day-value {
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+
+        .review-day .day-value.rest {
+          color: var(--text-tertiary);
+          font-style: italic;
+        }
+
+        .review-progression {
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+
+        /* Wizard Actions */
+        .wizard-actions {
+          display: flex;
+          gap: 12px;
+          padding-top: 16px;
+          border-top: 1px solid var(--border);
+        }
+
+        .wizard-btn {
+          flex: 1;
+          padding: 14px;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          border: none;
+        }
+
+        .wizard-btn.secondary {
+          background: var(--surface-hover);
+          color: var(--text-primary);
+          border: 1px solid var(--border);
+        }
+
+        .wizard-btn.secondary:hover {
+          background: var(--surface-active);
+        }
+
+        .wizard-btn.primary {
+          background: var(--accent);
+          color: #000;
+        }
+
+        .wizard-btn.primary:hover {
+          filter: brightness(1.1);
+        }
+
+        .wizard-btn.primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Active Program Dashboard */
+        .active-program-widget {
+          background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15) 0%, var(--surface) 100%);
+          border: 1px solid var(--accent);
+          border-radius: 12px;
+          padding: 16px;
+          margin: 16px;
+        }
+
+        .widget-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+
+        .widget-title {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--accent);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+
+        .widget-program-name {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .widget-week {
+          font-size: 13px;
+          color: var(--text-secondary);
+          background: var(--surface-hover);
+          padding: 4px 10px;
+          border-radius: 12px;
+        }
+
+        .widget-today {
+          margin-bottom: 12px;
+        }
+
+        .widget-today-label {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-bottom: 4px;
+        }
+
+        .widget-today-workout {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .widget-today-rest {
+          font-size: 16px;
+          color: var(--text-tertiary);
+          font-style: italic;
+        }
+
+        .widget-start-btn {
+          width: 100%;
+          padding: 12px;
+          background: var(--accent);
+          border: none;
+          border-radius: 8px;
+          font-size: 15px;
+          font-weight: 600;
+          color: #000;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .widget-start-btn:hover {
+          filter: brightness(1.1);
+        }
+
         /* ===== LIGHT MODE POLISH ===== */
         :global(html.light) .fitness-app {
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
@@ -4372,6 +5020,457 @@ gamify.it.com/fitness`;
             </div>
           )}
 
+          {/* Programs View */}
+          {store.currentView === 'programs' && (
+            <div className="view-content">
+              <div className="view-header">
+                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <span className="view-title">Programs</span>
+              </div>
+
+              <button
+                className="create-btn"
+                onClick={() => store.startProgramWizard()}
+              >
+                + New Program
+              </button>
+
+              {store.programs.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📋</div>
+                  <div className="empty-title">No programs yet</div>
+                  <div className="empty-subtitle">Create a multi-week training program with progression</div>
+                </div>
+              ) : (
+                <div className="program-list">
+                  {store.programs.map(program => {
+                    const isActive = store.activeProgram?.programId === program.id;
+                    const progress = isActive && store.activeProgram
+                      ? ((store.activeProgram.currentWeek - 1) * 7 + store.activeProgram.currentDay) / (program.durationWeeks * 7) * 100
+                      : 0;
+
+                    return (
+                      <div key={program.id} className={`program-card ${isActive ? 'active' : ''}`}>
+                        <div className="program-info">
+                          <div className="program-name">
+                            {isActive && <span className="active-badge">Active</span>}
+                            {program.name}
+                          </div>
+                          <div className="program-meta">
+                            {program.durationWeeks} weeks • {program.difficulty} • {program.goal}
+                          </div>
+                          {isActive && store.activeProgram && (
+                            <div className="program-progress">
+                              <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: `${progress}%` }} />
+                              </div>
+                              <span className="progress-text">
+                                Week {store.activeProgram.currentWeek}, Day {store.activeProgram.currentDay}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="program-actions">
+                          {isActive ? (
+                            <>
+                              <button
+                                className="program-action-btn primary"
+                                onClick={() => store.startProgramWorkout()}
+                              >
+                                Today's Workout
+                              </button>
+                              <button
+                                className="program-action-btn"
+                                onClick={() => store.stopProgram()}
+                              >
+                                Stop
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="program-action-btn start"
+                                onClick={() => store.startProgram(program.id)}
+                              >
+                                Start
+                              </button>
+                              <button
+                                className="program-action-btn"
+                                onClick={() => store.duplicateProgram(program.id)}
+                              >
+                                ⧉
+                              </button>
+                              <button
+                                className="program-action-btn delete"
+                                onClick={() => {
+                                  if (confirm('Delete this program?')) {
+                                    store.deleteProgram(program.id);
+                                  }
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Program Wizard */}
+          {store.currentView === 'program-wizard' && store.programWizardData && (
+            <div className="view-content program-wizard">
+              <div className="view-header">
+                <button className="back-btn" onClick={() => store.cancelProgramWizard()}>←</button>
+                <span className="view-title">
+                  {store.programWizardStep === 1 && 'New Program'}
+                  {store.programWizardStep === 2 && 'Week Structure'}
+                  {store.programWizardStep === 3 && 'Progression'}
+                  {store.programWizardStep === 4 && 'Review'}
+                </span>
+                <span className="wizard-step">{store.programWizardStep}/4</span>
+              </div>
+
+              {/* Step 1: Basic Info */}
+              {store.programWizardStep === 1 && (
+                <div className="wizard-content">
+                  <div className="form-group">
+                    <label>Program Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={store.programWizardData.name || ''}
+                      onChange={(e) => store.updateProgramWizardData({ name: e.target.value })}
+                      placeholder="e.g., PPL Hypertrophy"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Goal</label>
+                    <div className="option-grid">
+                      {(['strength', 'hypertrophy', 'endurance', 'general'] as const).map(goal => (
+                        <button
+                          key={goal}
+                          className={`option-btn ${store.programWizardData.goal === goal ? 'selected' : ''}`}
+                          onClick={() => store.updateProgramWizardData({ goal })}
+                        >
+                          {goal === 'strength' && '💪'}
+                          {goal === 'hypertrophy' && '🏋️'}
+                          {goal === 'endurance' && '🏃'}
+                          {goal === 'general' && '⚡'}
+                          <span>{goal.charAt(0).toUpperCase() + goal.slice(1)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Duration (weeks)</label>
+                    <div className="option-row">
+                      {[4, 6, 8, 12].map(weeks => (
+                        <button
+                          key={weeks}
+                          className={`option-btn small ${store.programWizardData.durationWeeks === weeks ? 'selected' : ''}`}
+                          onClick={() => store.updateProgramWizardData({ durationWeeks: weeks })}
+                        >
+                          {weeks}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Difficulty</label>
+                    <div className="option-row">
+                      {(['beginner', 'intermediate', 'advanced'] as const).map(diff => (
+                        <button
+                          key={diff}
+                          className={`option-btn ${store.programWizardData.difficulty === diff ? 'selected' : ''}`}
+                          onClick={() => store.updateProgramWizardData({ difficulty: diff })}
+                        >
+                          {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="wizard-actions">
+                    <button
+                      className="wizard-btn primary"
+                      onClick={() => store.setProgramWizardStep(2)}
+                      disabled={!store.programWizardData.name}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Week Structure */}
+              {store.programWizardStep === 2 && (
+                <div className="wizard-content">
+                  <p className="wizard-hint">Assign a template to each day of the week</p>
+
+                  <div className="week-structure">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName, idx) => {
+                      const dayNumber = idx + 1;
+                      const weeks = store.programWizardData.weeks || [];
+                      const week1 = weeks[0] || { weekNumber: 1, days: [] };
+                      const day = week1.days.find(d => d.dayNumber === dayNumber);
+
+                      return (
+                        <div key={dayName} className="day-row">
+                          <span className="day-name">{dayName}</span>
+                          <select
+                            className="day-select"
+                            value={day?.isRest ? 'rest' : day?.templateId || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const isRest = value === 'rest';
+                              const templateId = isRest ? undefined : value || undefined;
+
+                              const newDay: ProgramDay = {
+                                dayNumber,
+                                name: isRest ? 'Rest' : (store.templates.find(t => t.id === templateId)?.name || 'Workout'),
+                                isRest,
+                                templateId,
+                              };
+
+                              const updatedDays = week1.days.filter(d => d.dayNumber !== dayNumber);
+                              if (value) {
+                                updatedDays.push(newDay);
+                              }
+                              updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
+
+                              const newWeek: ProgramWeek = { ...week1, days: updatedDays };
+
+                              // Create all weeks with the same structure
+                              const allWeeks: ProgramWeek[] = [];
+                              for (let i = 1; i <= (store.programWizardData.durationWeeks || 4); i++) {
+                                allWeeks.push({
+                                  weekNumber: i,
+                                  days: updatedDays.map(d => ({ ...d })),
+                                  isDeload: i === (store.programWizardData.durationWeeks || 4),
+                                });
+                              }
+
+                              store.updateProgramWizardData({ weeks: allWeeks });
+                            }}
+                          >
+                            <option value="">-- Select --</option>
+                            <option value="rest">🛌 Rest Day</option>
+                            {store.templates.map(t => (
+                              <option key={t.id} value={t.id}>
+                                {store.migrateTemplate(t).name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="deload-option">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={store.programWizardData.weeks?.[store.programWizardData.weeks.length - 1]?.isDeload || false}
+                        onChange={(e) => {
+                          const weeks = [...(store.programWizardData.weeks || [])];
+                          if (weeks.length > 0) {
+                            weeks[weeks.length - 1] = {
+                              ...weeks[weeks.length - 1],
+                              isDeload: e.target.checked,
+                              name: e.target.checked ? 'Deload Week' : undefined,
+                            };
+                            store.updateProgramWizardData({ weeks });
+                          }
+                        }}
+                      />
+                      Mark final week as deload
+                    </label>
+                  </div>
+
+                  <div className="wizard-actions">
+                    <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(1)}>
+                      ← Back
+                    </button>
+                    <button
+                      className="wizard-btn primary"
+                      onClick={() => store.setProgramWizardStep(3)}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Progression */}
+              {store.programWizardStep === 3 && (
+                <div className="wizard-content">
+                  <p className="wizard-hint">Choose how weights should progress</p>
+
+                  <div className="form-group">
+                    <label>Default Progression Type</label>
+                    <div className="progression-options">
+                      {[
+                        { type: 'double_progression', name: 'Double Progression', desc: 'Increase reps until max, then add weight' },
+                        { type: 'linear', name: 'Linear', desc: 'Add weight each successful session' },
+                        { type: 'rpe_based', name: 'RPE Based', desc: 'Adjust weight based on perceived effort' },
+                        { type: 'none', name: 'None', desc: 'No automatic progression' },
+                      ].map(opt => {
+                        const currentRule = store.programWizardData.progressionRules?.[0];
+                        const isSelected = currentRule?.config.type === opt.type;
+
+                        return (
+                          <button
+                            key={opt.type}
+                            className={`progression-option ${isSelected ? 'selected' : ''}`}
+                            onClick={() => {
+                              let config: ProgressionRule['config'];
+                              switch (opt.type) {
+                                case 'double_progression':
+                                  config = { type: 'double_progression', repRange: [8, 12], weightIncrement: 5 };
+                                  break;
+                                case 'linear':
+                                  config = { type: 'linear', weightIncrement: 5, deloadThreshold: 3, deloadPercent: 0.1 };
+                                  break;
+                                case 'rpe_based':
+                                  config = { type: 'rpe_based', targetRpe: 8, rpeRange: [7, 9], adjustmentPerPoint: 5 };
+                                  break;
+                                default:
+                                  config = { type: 'none' };
+                              }
+
+                              const rule: ProgressionRule = {
+                                id: 'default',
+                                name: opt.name,
+                                config,
+                              };
+                              store.updateProgramWizardData({ progressionRules: [rule] });
+                            }}
+                          >
+                            <div className="progression-name">{opt.name}</div>
+                            <div className="progression-desc">{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {store.programWizardData.progressionRules?.[0]?.config.type === 'double_progression' && (
+                    <div className="progression-config">
+                      <div className="form-row">
+                        <label>Rep Range</label>
+                        <div className="input-row">
+                          <input
+                            type="number"
+                            className="form-input small"
+                            value={(store.programWizardData.progressionRules[0].config as any).repRange[0]}
+                            onChange={(e) => {
+                              const rules = [...(store.programWizardData.progressionRules || [])];
+                              (rules[0].config as any).repRange[0] = parseInt(e.target.value) || 8;
+                              store.updateProgramWizardData({ progressionRules: rules });
+                            }}
+                          />
+                          <span>to</span>
+                          <input
+                            type="number"
+                            className="form-input small"
+                            value={(store.programWizardData.progressionRules[0].config as any).repRange[1]}
+                            onChange={(e) => {
+                              const rules = [...(store.programWizardData.progressionRules || [])];
+                              (rules[0].config as any).repRange[1] = parseInt(e.target.value) || 12;
+                              store.updateProgramWizardData({ progressionRules: rules });
+                            }}
+                          />
+                          <span>reps</span>
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <label>Weight Increment</label>
+                        <div className="input-row">
+                          <input
+                            type="number"
+                            className="form-input small"
+                            value={(store.programWizardData.progressionRules[0].config as any).weightIncrement}
+                            onChange={(e) => {
+                              const rules = [...(store.programWizardData.progressionRules || [])];
+                              (rules[0].config as any).weightIncrement = parseInt(e.target.value) || 5;
+                              store.updateProgramWizardData({ progressionRules: rules });
+                            }}
+                          />
+                          <span>lbs</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="wizard-actions">
+                    <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(2)}>
+                      ← Back
+                    </button>
+                    <button
+                      className="wizard-btn primary"
+                      onClick={() => store.setProgramWizardStep(4)}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Review */}
+              {store.programWizardStep === 4 && (
+                <div className="wizard-content">
+                  <div className="review-section">
+                    <h3>{store.programWizardData.name}</h3>
+                    <div className="review-meta">
+                      {store.programWizardData.durationWeeks} weeks • {store.programWizardData.difficulty} • {store.programWizardData.goal}
+                    </div>
+                  </div>
+
+                  <div className="review-section">
+                    <h4>Schedule</h4>
+                    <div className="review-schedule">
+                      {store.programWizardData.weeks?.[0]?.days.map(day => (
+                        <div key={day.dayNumber} className="review-day">
+                          <span className="day-label">
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.dayNumber - 1]}
+                          </span>
+                          <span className={`day-value ${day.isRest ? 'rest' : ''}`}>
+                            {day.isRest ? 'Rest' : day.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="review-section">
+                    <h4>Progression</h4>
+                    <p>{store.programWizardData.progressionRules?.[0]?.name || 'None'}</p>
+                  </div>
+
+                  <div className="wizard-actions">
+                    <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(3)}>
+                      ← Back
+                    </button>
+                    <button
+                      className="wizard-btn primary"
+                      onClick={() => store.finishProgramWizard()}
+                    >
+                      Create Program
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Campaign Detail Modal */}
           {selectedCampaignId && !creatingCampaign && (
             <div className="modal-overlay" onClick={() => { setSelectedCampaignId(null); setEditingCampaignId(null); setConfirmDeleteCampaign(false); }}>
@@ -4633,6 +5732,53 @@ gamify.it.com/fitness`;
                   </div>
                 </div>
               </div>
+
+              {/* Active Program Widget */}
+              {store.activeProgram && (() => {
+                const todaysWorkout = store.getTodaysWorkout();
+                if (!todaysWorkout) return null;
+                const { program, week, day, template } = todaysWorkout;
+                const totalDays = program.durationWeeks * 7;
+                const completedDays = ((store.activeProgram.currentWeek - 1) * 7) + store.activeProgram.currentDay - 1;
+                const progress = Math.round((completedDays / totalDays) * 100);
+
+                return (
+                  <div className="active-program-widget">
+                    <div className="widget-header">
+                      <div>
+                        <div className="widget-title">Active Program</div>
+                        <div className="widget-program-name">{program.name}</div>
+                      </div>
+                      <div className="widget-week">Week {store.activeProgram.currentWeek}</div>
+                    </div>
+
+                    <div className="program-progress" style={{ marginBottom: '12px' }}>
+                      <div className="progress-bar-container">
+                        <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                      </div>
+                      <div className="progress-text">{progress}% complete</div>
+                    </div>
+
+                    <div className="widget-today">
+                      <div className="widget-today-label">Today&apos;s Workout</div>
+                      {day.isRest ? (
+                        <div className="widget-today-rest">Rest Day 😴</div>
+                      ) : (
+                        <div className="widget-today-workout">{template?.name || day.name}</div>
+                      )}
+                    </div>
+
+                    {!day.isRest && template && (
+                      <button
+                        className="widget-start-btn"
+                        onClick={() => store.startProgramWorkout()}
+                      >
+                        ▶ Start Workout
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {store.workouts.length > 0 && (
                 <div className="recent-section">

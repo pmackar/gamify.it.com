@@ -101,6 +101,121 @@ export function isLegacyTemplate(template: WorkoutTemplate | LegacyWorkoutTempla
   return template.exercises.length > 0 && typeof template.exercises[0] === 'string';
 }
 
+// ============================================
+// PROGRAM BUILDER TYPES
+// ============================================
+
+// Progression rule types
+export type ProgressionType = 'linear' | 'double_progression' | 'rpe_based' | 'percentage' | 'wave' | 'none';
+
+export interface LinearProgression {
+  type: 'linear';
+  weightIncrement: number;      // lbs to add per successful session
+  deloadThreshold: number;      // consecutive failures before deload
+  deloadPercent: number;        // e.g., 0.1 = 10% reduction
+}
+
+export interface DoubleProgression {
+  type: 'double_progression';
+  repRange: [number, number];   // e.g., [8, 12]
+  weightIncrement: number;      // lbs to add when top of range hit
+}
+
+export interface RpeProgression {
+  type: 'rpe_based';
+  targetRpe: number;            // target RPE (e.g., 8)
+  rpeRange: [number, number];   // acceptable range (e.g., [7, 9])
+  adjustmentPerPoint: number;   // lbs per RPE point difference
+}
+
+export interface PercentageProgression {
+  type: 'percentage';
+  weeklyIncrease: number;       // e.g., 0.025 = 2.5% per week
+  basedOn: '1rm' | 'working_weight';
+}
+
+export interface WaveProgression {
+  type: 'wave';
+  waves: { week: number; intensityPercent: number; sets: number; reps: number }[];
+}
+
+export interface NoProgression {
+  type: 'none';
+}
+
+export type ProgressionConfig =
+  | LinearProgression
+  | DoubleProgression
+  | RpeProgression
+  | PercentageProgression
+  | WaveProgression
+  | NoProgression;
+
+export interface ProgressionRule {
+  id: string;
+  name: string;
+  exerciseId?: string;          // null = applies to all exercises
+  config: ProgressionConfig;
+}
+
+// Program structure
+export interface ProgramDay {
+  dayNumber: number;            // 1-7 (Monday-Sunday)
+  name: string;                 // "Push Day", "Rest", etc.
+  isRest: boolean;
+  templateId?: string;          // Links to WorkoutTemplate
+  overrides?: ExerciseOverride[];  // Week-specific modifications
+}
+
+export interface ExerciseOverride {
+  exerciseId: string;
+  targetSets?: number;
+  targetReps?: string;
+  targetRpe?: number;
+  intensityModifier?: number;   // e.g., 0.9 for 90% of normal weight
+}
+
+export interface ProgramWeek {
+  weekNumber: number;
+  name?: string;                // "Accumulation", "Deload", etc.
+  days: ProgramDay[];
+  isDeload?: boolean;
+}
+
+export interface Program {
+  id: string;
+  name: string;
+  description?: string;
+  weeks: ProgramWeek[];
+  progressionRules: ProgressionRule[];
+  durationWeeks: number;
+  goal: 'strength' | 'hypertrophy' | 'endurance' | 'general';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Active program tracking
+export interface ActiveProgram {
+  programId: string;
+  startedAt: string;
+  currentWeek: number;          // 1-indexed
+  currentDay: number;           // 1-7
+  completedWorkouts: string[];  // workout IDs from this program
+  exerciseProgress: Record<string, ExerciseProgressEntry>;
+}
+
+export interface ExerciseProgressEntry {
+  lastWeight: number;
+  lastReps: number;
+  lastRpe?: number;
+  consecutiveSuccesses: number;
+  consecutiveFailures: number;
+  suggestedWeight?: number;
+}
+
+// ============================================
+
 export interface FitnessState {
   profile: Profile;
   workouts: Workout[];
@@ -108,6 +223,8 @@ export interface FitnessState {
   achievements: string[];
   customExercises: { id: string; name: string; muscle: string }[];
   templates: WorkoutTemplate[];
+  programs: Program[];
+  activeProgram: ActiveProgram | null;
   campaigns: Campaign[];
   exerciseNotes: Record<string, string>;  // exerciseId -> note text
   restTimerPreset: number;  // User's preferred rest time in seconds (default 90)
@@ -127,7 +244,7 @@ export interface ActiveWorkout {
   seconds: number;
 }
 
-export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor';
+export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor' | 'programs' | 'program-wizard' | 'program-detail';
 
 export interface CommandSuggestion {
   type: string;

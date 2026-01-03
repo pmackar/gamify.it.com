@@ -12,6 +12,13 @@ import type {
   WorkoutTemplate,
   TemplateExercise,
   LegacyWorkoutTemplate,
+  Program,
+  ProgramWeek,
+  ProgramDay,
+  ActiveProgram,
+  ProgressionRule,
+  ProgressionConfig,
+  ExerciseProgressEntry,
   ViewType,
   SyncState
 } from './types';
@@ -72,6 +79,9 @@ interface FitnessStore extends FitnessState, SyncState {
   currentView: ViewType;
   selectedWorkoutId: string | null;
   editingTemplateId: string | null;
+  editingProgramId: string | null;
+  programWizardStep: number;
+  programWizardData: Partial<Program> | null;
   toastMessage: string | null;
 
   // Actions
@@ -145,6 +155,27 @@ interface FitnessStore extends FitnessState, SyncState {
   getTemplateById: (id: string) => WorkoutTemplate | null;
   migrateTemplate: (template: WorkoutTemplate | LegacyWorkoutTemplate) => WorkoutTemplate;
 
+  // Programs
+  createProgram: (program: Omit<Program, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateProgram: (id: string, updates: Partial<Program>) => void;
+  deleteProgram: (id: string) => void;
+  duplicateProgram: (id: string) => void;
+  getProgramById: (id: string) => Program | null;
+  startProgram: (programId: string) => void;
+  stopProgram: () => void;
+  advanceProgramDay: () => void;
+  getTodaysWorkout: () => { program: Program; week: ProgramWeek; day: ProgramDay; template: WorkoutTemplate | null } | null;
+  startProgramWorkout: () => void;
+  calculateSuggestedWeight: (exerciseId: string) => number | null;
+  updateExerciseProgress: (exerciseId: string, weight: number, reps: number, rpe?: number) => void;
+
+  // Program Wizard
+  startProgramWizard: () => void;
+  setProgramWizardStep: (step: number) => void;
+  updateProgramWizardData: (data: Partial<Program>) => void;
+  finishProgramWizard: () => string | null;
+  cancelProgramWizard: () => void;
+
   // Campaigns
   addCampaign: (campaign: Campaign) => void;
   updateCampaign: (campaignId: string, updates: Partial<Campaign>) => void;
@@ -188,6 +219,8 @@ const defaultState: FitnessState = {
   achievements: [],
   customExercises: [],
   templates: [...DEFAULT_TEMPLATES],
+  programs: [],
+  activeProgram: null,
   campaigns: [],
   exerciseNotes: {},
   restTimerPreset: 90,
@@ -218,6 +251,9 @@ export const useFitnessStore = create<FitnessStore>()(
       currentView: 'home',
       selectedWorkoutId: null,
       editingTemplateId: null,
+      editingProgramId: null,
+      programWizardStep: 0,
+      programWizardData: null,
       toastMessage: null,
 
       // Sync state
@@ -1230,6 +1266,361 @@ export const useFitnessStore = create<FitnessStore>()(
         return template as WorkoutTemplate;
       },
 
+      // ============================================
+      // PROGRAM METHODS
+      // ============================================
+
+      createProgram: (programData) => {
+        const now = new Date().toISOString();
+        const id = Date.now().toString();
+        const program: Program = {
+          ...programData,
+          id,
+          createdAt: now,
+          updatedAt: now,
+        } as Program;
+
+        set((state) => ({
+          programs: [...state.programs, program],
+          pendingSync: true
+        }));
+        queueSync(get);
+
+        get().showToast(`Program "${program.name}" created`);
+        return id;
+      },
+
+      updateProgram: (id: string, updates: Partial<Program>) => {
+        set((state) => ({
+          programs: state.programs.map(p =>
+            p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
+          ),
+          pendingSync: true
+        }));
+        queueSync(get);
+      },
+
+      deleteProgram: (id: string) => {
+        const state = get();
+        // Stop if this is the active program
+        if (state.activeProgram?.programId === id) {
+          get().stopProgram();
+        }
+
+        set((state) => ({
+          programs: state.programs.filter(p => p.id !== id),
+          editingProgramId: state.editingProgramId === id ? null : state.editingProgramId,
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Program deleted');
+      },
+
+      duplicateProgram: (id: string) => {
+        const state = get();
+        const program = state.programs.find(p => p.id === id);
+        if (!program) return;
+
+        const now = new Date().toISOString();
+        const newProgram: Program = {
+          ...program,
+          id: Date.now().toString(),
+          name: `${program.name} (Copy)`,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          programs: [...state.programs, newProgram],
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Program duplicated');
+      },
+
+      getProgramById: (id: string) => {
+        return get().programs.find(p => p.id === id) || null;
+      },
+
+      startProgram: (programId: string) => {
+        const program = get().programs.find(p => p.id === programId);
+        if (!program) return;
+
+        const activeProgram: ActiveProgram = {
+          programId,
+          startedAt: new Date().toISOString(),
+          currentWeek: 1,
+          currentDay: 1,
+          completedWorkouts: [],
+          exerciseProgress: {},
+        };
+
+        set({
+          activeProgram,
+          pendingSync: true,
+          currentView: 'home'
+        });
+        queueSync(get);
+        get().showToast(`Started "${program.name}"`);
+      },
+
+      stopProgram: () => {
+        set({
+          activeProgram: null,
+          pendingSync: true
+        });
+        queueSync(get);
+        get().showToast('Program stopped');
+      },
+
+      advanceProgramDay: () => {
+        const state = get();
+        if (!state.activeProgram) return;
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) return;
+
+        let { currentWeek, currentDay } = state.activeProgram;
+        const daysInWeek = program.weeks[currentWeek - 1]?.days.length || 7;
+
+        currentDay++;
+        if (currentDay > daysInWeek) {
+          currentDay = 1;
+          currentWeek++;
+          if (currentWeek > program.durationWeeks) {
+            // Program completed!
+            get().showToast(`🎉 "${program.name}" completed!`);
+            set({
+              activeProgram: null,
+              pendingSync: true
+            });
+            queueSync(get);
+            return;
+          }
+        }
+
+        set((state) => ({
+          activeProgram: state.activeProgram ? {
+            ...state.activeProgram,
+            currentWeek,
+            currentDay,
+          } : null,
+          pendingSync: true
+        }));
+        queueSync(get);
+      },
+
+      getTodaysWorkout: () => {
+        const state = get();
+        if (!state.activeProgram) return null;
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) return null;
+
+        const week = program.weeks[state.activeProgram.currentWeek - 1];
+        if (!week) return null;
+
+        const day = week.days.find(d => d.dayNumber === state.activeProgram!.currentDay);
+        if (!day || day.isRest) return null;
+
+        const template = day.templateId ? get().getTemplateById(day.templateId) : null;
+
+        return { program, week, day, template };
+      },
+
+      startProgramWorkout: () => {
+        const todaysWorkout = get().getTodaysWorkout();
+        if (!todaysWorkout || !todaysWorkout.template) {
+          get().showToast('No workout scheduled for today');
+          return;
+        }
+
+        // Start workout from the template
+        get().startWorkoutFromTemplate(todaysWorkout.template.id);
+      },
+
+      calculateSuggestedWeight: (exerciseId: string) => {
+        const state = get();
+        if (!state.activeProgram) return null;
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) return null;
+
+        const progress = state.activeProgram.exerciseProgress[exerciseId];
+        if (!progress) {
+          // First time - use PR or 0
+          return state.records[exerciseId] || null;
+        }
+
+        // Find applicable progression rule
+        const rule = program.progressionRules.find(r =>
+          r.exerciseId === exerciseId || !r.exerciseId
+        );
+
+        if (!rule) return progress.lastWeight;
+
+        const config = rule.config;
+
+        switch (config.type) {
+          case 'linear': {
+            if (progress.consecutiveSuccesses > 0) {
+              return progress.lastWeight + config.weightIncrement;
+            }
+            if (progress.consecutiveFailures >= config.deloadThreshold) {
+              return Math.round(progress.lastWeight * (1 - config.deloadPercent));
+            }
+            return progress.lastWeight;
+          }
+
+          case 'double_progression': {
+            const [, maxReps] = config.repRange;
+            // If hit top of range last time, increase weight
+            if (progress.lastReps >= maxReps) {
+              return progress.lastWeight + config.weightIncrement;
+            }
+            return progress.lastWeight;
+          }
+
+          case 'rpe_based': {
+            if (progress.lastRpe === undefined) return progress.lastWeight;
+            const rpeDiff = config.targetRpe - progress.lastRpe;
+            // If RPE was too low, increase weight; if too high, decrease
+            return progress.lastWeight + (rpeDiff * config.adjustmentPerPoint);
+          }
+
+          case 'percentage': {
+            const base = config.basedOn === '1rm'
+              ? (state.records[exerciseId] || progress.lastWeight)
+              : progress.lastWeight;
+            return Math.round(base * (1 + config.weeklyIncrease));
+          }
+
+          case 'wave': {
+            const currentWeek = state.activeProgram!.currentWeek;
+            const waveConfig = config.waves.find(w => w.week === currentWeek);
+            if (waveConfig) {
+              const oneRM = state.records[exerciseId] || progress.lastWeight * 1.3;
+              return Math.round(oneRM * (waveConfig.intensityPercent / 100));
+            }
+            return progress.lastWeight;
+          }
+
+          default:
+            return progress.lastWeight;
+        }
+      },
+
+      updateExerciseProgress: (exerciseId: string, weight: number, reps: number, rpe?: number) => {
+        const state = get();
+        if (!state.activeProgram) return;
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) return;
+
+        // Find applicable progression rule to determine success
+        const rule = program.progressionRules.find(r =>
+          r.exerciseId === exerciseId || !r.exerciseId
+        );
+
+        const currentProgress = state.activeProgram.exerciseProgress[exerciseId] || {
+          lastWeight: 0,
+          lastReps: 0,
+          consecutiveSuccesses: 0,
+          consecutiveFailures: 0,
+        };
+
+        let isSuccess = true; // Default to success
+
+        if (rule) {
+          const config = rule.config;
+          switch (config.type) {
+            case 'double_progression': {
+              const [minReps] = config.repRange;
+              isSuccess = reps >= minReps;
+              break;
+            }
+            case 'rpe_based': {
+              const [minRpe, maxRpe] = config.rpeRange;
+              isSuccess = rpe !== undefined && rpe >= minRpe && rpe <= maxRpe;
+              break;
+            }
+          }
+        }
+
+        const newProgress: ExerciseProgressEntry = {
+          lastWeight: weight,
+          lastReps: reps,
+          lastRpe: rpe,
+          consecutiveSuccesses: isSuccess ? currentProgress.consecutiveSuccesses + 1 : 0,
+          consecutiveFailures: isSuccess ? 0 : currentProgress.consecutiveFailures + 1,
+        };
+
+        set((state) => ({
+          activeProgram: state.activeProgram ? {
+            ...state.activeProgram,
+            exerciseProgress: {
+              ...state.activeProgram.exerciseProgress,
+              [exerciseId]: newProgress,
+            },
+          } : null,
+          pendingSync: true
+        }));
+        queueSync(get);
+      },
+
+      // Program Wizard
+      startProgramWizard: () => {
+        set({
+          programWizardStep: 1,
+          programWizardData: {
+            name: '',
+            description: '',
+            goal: 'hypertrophy',
+            difficulty: 'intermediate',
+            durationWeeks: 4,
+            weeks: [],
+            progressionRules: [],
+          },
+          currentView: 'program-wizard'
+        });
+      },
+
+      setProgramWizardStep: (step: number) => {
+        set({ programWizardStep: step });
+      },
+
+      updateProgramWizardData: (data: Partial<Program>) => {
+        set((state) => ({
+          programWizardData: state.programWizardData ? {
+            ...state.programWizardData,
+            ...data,
+          } : data
+        }));
+      },
+
+      finishProgramWizard: () => {
+        const state = get();
+        if (!state.programWizardData) return null;
+
+        const id = get().createProgram(state.programWizardData as Omit<Program, 'id' | 'createdAt' | 'updatedAt'>);
+
+        set({
+          programWizardStep: 0,
+          programWizardData: null,
+          currentView: 'programs'
+        });
+
+        return id;
+      },
+
+      cancelProgramWizard: () => {
+        set({
+          programWizardStep: 0,
+          programWizardData: null,
+          currentView: 'programs'
+        });
+      },
+
       addCampaign: (campaign: Campaign) => {
         set((state) => ({
           campaigns: [...state.campaigns, campaign],
@@ -1476,6 +1867,8 @@ export const useFitnessStore = create<FitnessStore>()(
                 achievements: state.achievements,
                 customExercises: state.customExercises,
                 templates: state.templates,
+                programs: state.programs,
+                activeProgram: state.activeProgram,
                 campaigns: state.campaigns,
                 exerciseNotes: state.exerciseNotes,
                 restTimerPreset: state.restTimerPreset,
@@ -1546,6 +1939,8 @@ export const useFitnessStore = create<FitnessStore>()(
         achievements: state.achievements,
         customExercises: state.customExercises,
         templates: state.templates,
+        programs: state.programs,
+        activeProgram: state.activeProgram,
         campaigns: state.campaigns,
         exerciseNotes: state.exerciseNotes,
         restTimerPreset: state.restTimerPreset,

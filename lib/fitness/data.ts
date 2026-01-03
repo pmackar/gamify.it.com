@@ -243,6 +243,7 @@ export interface Command {
 export const DEFAULT_COMMANDS: Command[] = [
   { id: 'workout', title: 'Start Workout', subtitle: 'Begin a new workout session', icon: '💪' },
   { id: 'templates', title: 'Templates', subtitle: 'Plan and manage workout templates', icon: '📝' },
+  { id: 'programs', title: 'Programs', subtitle: 'Multi-week training programs with progression', icon: '📅' },
   { id: 'history', title: 'History', subtitle: 'View past workouts', icon: '📋' },
   { id: 'profile', title: 'Profile', subtitle: 'View your stats and PRs', icon: '👤' },
   { id: 'coach', title: 'AI Coach', subtitle: 'Insights, plateaus, form tips', icon: '🤖' },
