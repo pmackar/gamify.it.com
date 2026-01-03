@@ -129,8 +129,8 @@ export async function POST(request: NextRequest) {
           members: {
             createMany: {
               data: [
-                // Quest owner as LEADER with ACCEPTED status
-                { user_id: user.id, role: "LEADER", status: "ACCEPTED" },
+                // Quest owner as OWNER with ACCEPTED status
+                { user_id: user.id, role: "OWNER", status: "ACCEPTED" },
                 // Invited users as MEMBER with PENDING status
                 ...invitedUsers.map((u) => ({
                   user_id: u.id,
@@ -144,17 +144,20 @@ export async function POST(request: NextRequest) {
       });
       partyCreated = true;
 
-      // Create activity feed entries for invites (if activity_feed table exists)
+      // Create activity feed entries for invites
       try {
         await prisma.activity_feed.createMany({
           data: invitedUsers.map((u) => ({
             user_id: u.id,
-            type: "PARTY_INVITE",
-            data: {
+            actor_id: user.id,
+            type: "PARTY_INVITE_RECEIVED",
+            entity_type: "travel_quests",
+            entity_id: quest.id,
+            metadata: {
               questId: quest.id,
               questName: quest.name,
               invitedBy: user.id,
-              invitedByName: user.username || user.email,
+              invitedByName: user.email,
             },
           })),
         });
