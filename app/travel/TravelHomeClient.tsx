@@ -18,6 +18,8 @@ import {
   Clock,
   Target,
 } from "lucide-react";
+import FriendsActivityFeed from "./components/FriendsActivityFeed";
+import TravelLeaderboard from "./components/TravelLeaderboard";
 
 interface TravelHomeClientProps {
   user: {
@@ -274,6 +276,16 @@ export default function TravelHomeClient({
             </div>
           )}
 
+          {/* Friends Activity */}
+          <div className="section">
+            <FriendsActivityFeed />
+          </div>
+
+          {/* Travel Leaderboard */}
+          <div className="section section-last">
+            <TravelLeaderboard />
+          </div>
+
           {/* Empty state for new users */}
           {stats.locations === 0 && (
             <div className="section section-last">
@@ -423,6 +435,14 @@ export default function TravelHomeClient({
                   <div className="stat-card-value">{stats.achievements}/{stats.totalAchievements}</div>
                   <div className="stat-card-label">Achievements</div>
                 </div>
+              </div>
+            </div>
+
+            {/* Friends Section */}
+            <div className="main-section">
+              <div className="friends-grid">
+                <FriendsActivityFeed />
+                <TravelLeaderboard />
               </div>
             </div>
           </main>
@@ -1154,6 +1174,19 @@ export default function TravelHomeClient({
             color: var(--rpg-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+          }
+
+          /* Friends Grid */
+          .friends-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+          }
+
+          @media (max-width: 1200px) {
+            .friends-grid {
+              grid-template-columns: 1fr;
+            }
           }
         `}</style>
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import LocationActions from "./LocationActions";
 import FriendsWhoVisited from "./FriendsWhoVisited";
+import FriendsHotlist from "./FriendsHotlist";
 
 interface Props {
   params: Promise<{ locationId: string }>;
@@ -344,6 +345,9 @@ export default async function LocationDetailPage({ params }: Props) {
 
       {/* Friends Who Visited */}
       {user && <FriendsWhoVisited locationId={locationId} />}
+
+      {/* Friends Who Want to Visit (Hotlist) */}
+      {user && <FriendsHotlist locationId={locationId} />}
 
       {/* User Notes */}
       {userData?.notes && (
