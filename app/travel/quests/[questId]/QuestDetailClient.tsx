@@ -300,59 +300,16 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
 
   return (
     <TravelApp isLoggedIn={true}>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-start gap-4 mb-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Action Bar - Back + Edit/Delete aligned */}
+        <div className="flex items-center justify-between mb-4">
           <Link
             href="/travel/quests"
-            className="p-2 rounded-lg transition-colors mt-1"
+            className="p-2 rounded-lg transition-colors"
             style={{ color: "var(--rpg-muted)" }}
           >
             <ArrowLeft size={20} />
           </Link>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h1
-                className="text-xl md:text-2xl"
-                style={{ color: "var(--rpg-text)", textShadow: "0 0 10px rgba(255, 255, 255, 0.3)" }}
-              >
-                {questData.name}
-              </h1>
-              <span
-                className="text-xs px-2 py-1 rounded"
-                style={{ background: statusStyle.bg, color: statusStyle.text }}
-              >
-                {statusStyle.label}
-              </span>
-            </div>
-
-            {/* Description */}
-            {questData.description && (
-              <p className="text-sm mb-2" style={{ color: "var(--rpg-muted)" }}>
-                {questData.description}
-              </p>
-            )}
-
-            {/* Cities */}
-            <div className="flex items-center gap-1 text-sm mb-2" style={{ color: "var(--rpg-muted)" }}>
-              <MapPin size={14} />
-              <span>{quest.cities.map((c) => c.name).join(", ")}</span>
-            </div>
-
-            {/* Dates */}
-            {(questData.startDate || questData.endDate) && (
-              <div className="flex items-center gap-1 text-sm" style={{ color: "var(--rpg-muted)" }}>
-                <Calendar size={14} />
-                <span>
-                  {questData.startDate && questData.endDate
-                    ? `${formatDate(questData.startDate)} - ${formatDate(questData.endDate)}`
-                    : questData.startDate
-                    ? `From ${formatDate(questData.startDate)}`
-                    : `Until ${formatDate(questData.endDate)}`}
-                </span>
-              </div>
-            )}
-          </div>
 
           {/* Edit/Delete buttons (owner only) */}
           {quest.isOwner && (
@@ -382,6 +339,57 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
               >
                 <Trash2 size={18} />
               </button>
+            </div>
+          )}
+        </div>
+
+        {/* Quest Title Card */}
+        <div
+          className="rounded-lg p-5 mb-6"
+          style={{
+            background: "var(--rpg-card)",
+            border: "2px solid var(--rpg-border)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <h1
+              className="text-xl md:text-2xl flex-1"
+              style={{ color: "var(--rpg-text)", textShadow: "0 0 10px rgba(255, 255, 255, 0.3)" }}
+            >
+              {questData.name}
+            </h1>
+            <span
+              className="text-xs px-2 py-1 rounded shrink-0"
+              style={{ background: statusStyle.bg, color: statusStyle.text }}
+            >
+              {statusStyle.label}
+            </span>
+          </div>
+
+          {/* Description */}
+          {questData.description && (
+            <p className="text-sm mb-3" style={{ color: "var(--rpg-muted)" }}>
+              {questData.description}
+            </p>
+          )}
+
+          {/* Cities */}
+          <div className="flex items-center gap-1 text-sm mb-2" style={{ color: "var(--rpg-muted)" }}>
+            <MapPin size={14} />
+            <span>{quest.cities.map((c) => c.name).join(", ")}</span>
+          </div>
+
+          {/* Dates */}
+          {(questData.startDate || questData.endDate) && (
+            <div className="flex items-center gap-1 text-sm" style={{ color: "var(--rpg-muted)" }}>
+              <Calendar size={14} />
+              <span>
+                {questData.startDate && questData.endDate
+                  ? `${formatDate(questData.startDate)} - ${formatDate(questData.endDate)}`
+                  : questData.startDate
+                  ? `From ${formatDate(questData.startDate)}`
+                  : `Until ${formatDate(questData.endDate)}`}
+              </span>
             </div>
           )}
         </div>
