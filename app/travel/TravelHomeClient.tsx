@@ -694,6 +694,9 @@ export default function TravelHomeClient({
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
           }
 
           .quest-card {
@@ -706,7 +709,9 @@ export default function TravelHomeClient({
             display: flex;
             flex-direction: column;
             min-width: 0;
+            max-width: 100%;
             overflow: hidden;
+            word-wrap: break-word;
           }
           .quest-card:active {
             transform: translateY(4px);
@@ -742,17 +747,20 @@ export default function TravelHomeClient({
             font-size: 28px;
           }
           .quest-name {
-            font-size: 8px;
+            font-size: 7px;
             font-family: var(--font-pixel);
             font-weight: 500;
             color: var(--rpg-text);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            letter-spacing: 0.3px;
             margin: 8px 0 4px;
             max-width: 100%;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+            word-break: break-word;
           }
           .quest-cities {
             font-size: 10px;
