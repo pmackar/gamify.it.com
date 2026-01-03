@@ -174,30 +174,41 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create new friend request from redeemer to inviter
+    // Create friendship as ACCEPTED (inviter consented by generating the code)
     const friendship = await prisma.friendships.create({
       data: {
-        requester_id: user.id,
-        addressee_id: inviterId,
-        status: "PENDING",
+        requester_id: inviterId,  // Inviter is the requester (they initiated via code)
+        addressee_id: user.id,    // Redeemer is the addressee
+        status: "ACCEPTED",
+        accepted_at: new Date(),
       },
     });
 
-    // Create activity for inviter
-    await prisma.activity_feed.create({
-      data: {
-        user_id: inviterId,
-        actor_id: user.id,
-        type: "FRIEND_REQUEST_RECEIVED",
-        entity_type: "friendship",
-        entity_id: friendship.id,
-      },
+    // Create activity for both users
+    await prisma.activity_feed.createMany({
+      data: [
+        {
+          user_id: inviterId,
+          actor_id: user.id,
+          type: "FRIEND_REQUEST_ACCEPTED",
+          entity_type: "friendship",
+          entity_id: friendship.id,
+        },
+        {
+          user_id: user.id,
+          actor_id: inviterId,
+          type: "FRIEND_REQUEST_ACCEPTED",
+          entity_type: "friendship",
+          entity_id: friendship.id,
+        },
+      ],
     });
 
     return NextResponse.json({
-      message: "Friend request sent",
+      message: "You are now friends!",
       friendship,
       inviter,
+      autoAccepted: true,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
