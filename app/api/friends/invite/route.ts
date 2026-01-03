@@ -185,24 +185,26 @@ export async function POST(req: NextRequest) {
     });
 
     // Create activity for both users
-    await prisma.activity_feed.createMany({
-      data: [
-        {
+    await Promise.all([
+      prisma.activity_feed.create({
+        data: {
           user_id: inviterId,
           actor_id: user.id,
           type: "FRIEND_REQUEST_ACCEPTED",
           entity_type: "friendship",
           entity_id: friendship.id,
         },
-        {
+      }),
+      prisma.activity_feed.create({
+        data: {
           user_id: user.id,
           actor_id: inviterId,
           type: "FRIEND_REQUEST_ACCEPTED",
           entity_type: "friendship",
           entity_id: friendship.id,
         },
-      ],
-    });
+      }),
+    ]);
 
     return NextResponse.json({
       message: "You are now friends!",
