@@ -1990,9 +1990,9 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                         </div>
                       )}
                       <ThemeSwitcher />
-                      <Link href="/account" className="nav-dropdown-item">PROFILE</Link>
-                      <Link href="/friends" className="nav-dropdown-item">FRIENDS</Link>
-                      <Link href="/settings" className="nav-dropdown-item">SETTINGS</Link>
+                      <Link href="/account" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>PROFILE</Link>
+                      <Link href="/friends" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>FRIENDS</Link>
+                      <Link href="/settings" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>SETTINGS</Link>
                       <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>
                     </div>
                   )}
