@@ -908,7 +908,7 @@ export default function FitnessApp() {
 
         /* Main Content - full width matching navbar padding */
         .content-area {
-          padding-top: var(--content-top);
+          padding-top: var(--content-top, 100px);
           padding-bottom: 200px;
           min-height: 100vh;
           min-height: 100dvh;
@@ -3115,7 +3115,7 @@ export default function FitnessApp() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .content-area { padding-top: 60px; }
+          .content-area { padding-top: var(--content-top, 90px); }
         }
 
         /* Mobile FAB and Command Bar - only visible on mobile */
