@@ -170,23 +170,22 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
                   <button
                     className="fab-menu-item fab-menu-item-primary"
                     onClick={() => {
-                      router.push(`/travel/quests/${currentQuestId}/suggestions`);
+                      router.push(`/travel/locations/new?addToQuest=${currentQuestId}`);
                       setFabOpen(false);
                     }}
                   >
                     <ListPlus size={20} />
-                    <span>Add Location</span>
+                    <span>Add Location to Quest</span>
                   </button>
                   <button
                     className="fab-menu-item"
                     onClick={() => {
-                      router.push("/travel/locations/new");
+                      router.push(`/travel/quests/${currentQuestId}/suggestions`);
                       setFabOpen(false);
                     }}
                   >
                     <MapPin size={20} />
-                    <span>Log New Visit</span>
-                    <span className="fab-xp">+15 XP</span>
+                    <span>Browse Suggestions</span>
                   </button>
                 </>
               ) : (
@@ -200,8 +199,7 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
                     }}
                   >
                     <MapPin size={20} />
-                    <span>Log Visit</span>
-                    <span className="fab-xp">+15 XP</span>
+                    <span>New Location</span>
                   </button>
                   <button
                     className="fab-menu-item"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MapPin, Check, Sparkles, Loader2, Link2, X, ChevronDown, ChevronUp, Star, Heart, CheckCircle2 } from "lucide-react";
 import StarRating from "@/components/ui/StarRating";
 import Link from "next/link";
@@ -46,10 +46,13 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 
 export default function NewLocationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const addToQuestId = searchParams.get("addToQuest");
+
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
-  const [success, setSuccess] = useState<{ xpGained: number; leveledUp: boolean; locationId: string } | null>(null);
+  const [success, setSuccess] = useState<{ xpGained: number; leveledUp: boolean; locationId: string; addedToQuest?: boolean } | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -348,15 +351,40 @@ export default function NewLocationPage() {
       }
 
       const data = await res.json();
+      const locationId = data.location.id;
+      let addedToQuest = false;
+
+      // If we came from a quest, add this location to the quest
+      if (addToQuestId) {
+        try {
+          const questRes = await fetch(`/api/quests/${addToQuestId}/items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ locationId }),
+          });
+          if (questRes.ok) {
+            addedToQuest = true;
+          }
+        } catch (questError) {
+          console.error("Error adding location to quest:", questError);
+          // Don't fail the whole operation, location was still created
+        }
+      }
+
       setSuccess({
         xpGained: data.xpGained,
         leveledUp: data.leveledUp,
-        locationId: data.location.id,
+        locationId,
+        addedToQuest,
       });
 
-      // Redirect after showing success
+      // Redirect after showing success - go to quest if we added to one
       setTimeout(() => {
-        router.push(`/travel/locations/${data.location.id}`);
+        if (addToQuestId && addedToQuest) {
+          router.push(`/travel/quests/${addToQuestId}`);
+        } else {
+          router.push(`/travel/locations/${locationId}`);
+        }
       }, 2000);
     } catch (error) {
       console.error("Error creating location:", error);
@@ -384,7 +412,9 @@ export default function NewLocationPage() {
           >
             <Check className="w-10 h-10" style={{ color: 'var(--rpg-teal)' }} />
           </div>
-          <h1 className="text-2xl mb-2" style={{ color: 'var(--rpg-text)' }}>Location Added!</h1>
+          <h1 className="text-2xl mb-2" style={{ color: 'var(--rpg-text)' }}>
+            {success.addedToQuest ? "Added to Quest!" : "Location Added!"}
+          </h1>
           <div className="flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--rpg-gold)' }}>
             <Sparkles className="w-5 h-5" />
             <span className="text-lg font-semibold">+{success.xpGained} XP</span>
@@ -392,6 +422,11 @@ export default function NewLocationPage() {
           {success.leveledUp && (
             <p className="font-semibold mb-4" style={{ color: 'var(--rpg-gold)', textShadow: '0 0 10px var(--rpg-gold-glow)' }}>
               Level Up!
+            </p>
+          )}
+          {success.addedToQuest && (
+            <p className="text-sm mb-2" style={{ color: 'var(--rpg-teal)' }}>
+              Location added to your quest
             </p>
           )}
           <p style={{ color: 'var(--rpg-muted)' }}>Redirecting...</p>
@@ -632,15 +667,19 @@ export default function NewLocationPage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link
-          href="/travel/locations"
+          href={addToQuestId ? `/travel/quests/${addToQuestId}` : "/travel/locations"}
           className="p-2 rounded-lg transition-colors"
           style={{ color: 'var(--rpg-muted)' }}
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl md:text-2xl" style={{ color: 'var(--rpg-text)' }}>Add New Location</h1>
-          <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>Log a place you've visited</p>
+          <h1 className="text-xl md:text-2xl" style={{ color: 'var(--rpg-text)' }}>
+            {addToQuestId ? "Add Location to Quest" : "Add New Location"}
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--rpg-muted)' }}>
+            {addToQuestId ? "This location will be added to your quest" : "Log a place you've visited"}
+          </p>
         </div>
       </div>
 
