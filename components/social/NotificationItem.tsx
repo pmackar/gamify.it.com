@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
+import CommentSection from './CommentSection';
 
 export interface Notification {
   id: string;
@@ -21,6 +22,7 @@ export interface Notification {
   } | null;
   kudosCount?: number;
   hasGivenKudos?: boolean;
+  commentsCount?: number;
 }
 
 interface NotificationItemProps {
@@ -92,6 +94,21 @@ const typeConfig: Record<string, TypeConfigItem> = {
       const questId = n.metadata?.questId as string;
       return questId ? `/travel/quests/${questId}` : null;
     },
+  },
+  COMMENT: {
+    icon: '💬',
+    getMessage: (n) => {
+      const preview = (n.metadata?.preview as string) || '';
+      return `${n.actor?.displayName || n.actor?.username || 'Someone'} commented: "${preview.slice(0, 50)}${preview.length > 50 ? '...' : ''}"`;
+    },
+    getLink: () => '/activity',
+  },
+  KUDOS: {
+    icon: '🔥',
+    getMessage: (n) => {
+      return `${n.actor?.displayName || n.actor?.username || 'Someone'} reacted to your activity`;
+    },
+    getLink: () => '/activity',
   },
 };
 
@@ -185,7 +202,9 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
   const isPartyInvite = notification.type === 'PARTY_INVITE_RECEIVED';
   const showActions = isPartyInvite && !notification.read && !actionTaken;
   // Show kudos button for completed activities (achievements, quest completions, etc.)
-  const showKudos = ['QUEST_ITEM_COMPLETED', 'QUEST_COMPLETED', 'PARTY_MEMBER_JOINED'].includes(notification.type);
+  const interactiveTypes = ['QUEST_ITEM_COMPLETED', 'QUEST_COMPLETED', 'PARTY_MEMBER_JOINED'];
+  const showKudos = interactiveTypes.includes(notification.type);
+  const showComments = interactiveTypes.includes(notification.type);
 
   const content = (
     <div
@@ -279,6 +298,14 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
           >
             {actionTaken === 'accepted' ? 'Joined party!' : 'Invite declined'}
           </p>
+        )}
+
+        {/* Comments Section */}
+        {showComments && (
+          <CommentSection
+            activityId={notification.id}
+            initialCount={notification.commentsCount || 0}
+          />
         )}
       </div>
 
