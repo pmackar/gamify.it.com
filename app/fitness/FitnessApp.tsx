@@ -4142,7 +4142,7 @@ gamify.it.com/fitness`;
                     <div
                       key={suggestion.id || i}
                       className={`mobile-suggestion ${i === selectedSuggestion ? 'selected' : ''}`}
-                      onClick={() => handleSelectSuggestion(suggestion)}
+                      onClick={() => { executeCommand(suggestion); setMobileFabOpen(false); setQuery(''); }}
                     >
                       <span className="mobile-suggestion-icon">{suggestion.icon}</span>
                       <span className="mobile-suggestion-title">{suggestion.title}</span>
