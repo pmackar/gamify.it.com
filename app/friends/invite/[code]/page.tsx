@@ -95,7 +95,8 @@ export default function InvitePage() {
 
       if (!res.ok) {
         setStatus('error');
-        setMessage(data.message || 'Failed to process invite');
+        const errorData = data as unknown as { error?: string; details?: string };
+        setMessage(errorData.details || errorData.error || 'Failed to process invite');
         return;
       }
 
