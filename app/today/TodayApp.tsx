@@ -1488,11 +1488,16 @@ export default function TodayApp() {
 
         .today-sidebar {
           width: 260px;
+          height: 100vh;
+          position: fixed;
+          top: 0;
+          left: max(16px, calc((100vw - 1000px) / 2));
           background: var(--bg-secondary);
           border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
-          overflow-y: auto;
+          z-index: 40;
+          padding-top: var(--content-top, 60px);
         }
 
         @media (max-width: 768px) {
@@ -1503,6 +1508,7 @@ export default function TodayApp() {
 
         .sidebar-header {
           padding: 16px;
+          flex-shrink: 0;
         }
 
         .character-card {
@@ -1783,6 +1789,7 @@ export default function TodayApp() {
         .sidebar-nav {
           flex: 1;
           padding: 16px;
+          overflow-y: auto;
         }
 
         .nav-section {
@@ -1868,6 +1875,8 @@ export default function TodayApp() {
         .sidebar-footer {
           padding: 16px;
           border-top: 1px solid var(--border);
+          flex-shrink: 0;
+          margin-top: auto;
         }
 
         .sidebar-footer-item {
@@ -1950,6 +1959,13 @@ export default function TodayApp() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
+        }
+
+        /* Desktop: offset main content for fixed sidebar */
+        @media (min-width: 769px) {
+          .today-main {
+            margin-left: 260px;
+          }
         }
 
         .btn {
