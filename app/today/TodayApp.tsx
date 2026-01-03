@@ -1491,7 +1491,7 @@ export default function TodayApp() {
           height: 100vh;
           position: fixed;
           top: 0;
-          left: max(16px, calc((100vw - 1000px) / 2));
+          left: 0;
           background: var(--bg-secondary);
           border-right: 1px solid var(--border);
           display: flex;
