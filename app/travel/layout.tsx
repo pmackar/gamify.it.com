@@ -98,7 +98,7 @@ export default async function TravelLayout({
         /* Desktop layout - match navbar padding (16px from edges) */
         @media (min-width: 1024px) {
           .travel-main-content {
-            padding-top: calc(var(--content-top, 60px) + 16px);
+            padding-top: var(--content-top);
             min-height: 100vh;
             /* Left: clear sidebar (280px) + 16px gap */
             padding-left: 296px;

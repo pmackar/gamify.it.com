@@ -93,7 +93,7 @@
   --vh: 1vh;
   --keyboard-height: 0px;
   --navbar-height: 76px;
-  --content-top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
+  --content-top: calc(var(--navbar-height) + 16px + env(safe-area-inset-top, 0px));
   --command-bar-height: 80px;
 
   /* Safe Areas (fallback to 0 if not supported) */
