@@ -1,13 +1,12 @@
 # Why I Built This
 
-I've been lifting for years, but I kept falling off the wagon. Every fitness app felt like a chore—just another place to log data that nobody cared about.
 
-Then I realized: I never quit playing video games. The XP, the levels, the achievements—they kept me coming back. What if the gym felt the same way?
-
-Iron Quest is the app I wished existed. Every PR feels like defeating a boss. Every workout streak is a combo multiplier. The gym isn't a chore anymore. It's the best game I've ever played.
+I like games. I like lifting. For years, I've treated lifting like a game - chasing the next level, grinding for achievements, setting goals, and attacking them with friends.
+So I built an app to make it official. Iron Quest is designed to be powerful, fun to use, and to create that hook for newcomers and anyone who finds themselves lifting in seasons.
+Campaigns, quests, seasonal challenges - we built these features to make your experience as engaging as possible.
 
 ---
 
-**Author:** Pete
+**Author:** Peter
 **Title:** Creator of Iron Quest
 **Initials:** PM
