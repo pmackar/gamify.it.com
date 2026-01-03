@@ -1047,23 +1047,26 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         .nav-quick-actions {
           display: flex;
           align-items: center;
-          gap: 6px;
+          justify-content: center;
+          gap: 10px;
         }
 
         .nav-quick-action {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 16px;
           background: rgba(0, 0, 0, 0.3);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
+          border-radius: 10px;
           font-family: 'Press Start 2P', monospace;
-          font-size: 7px;
-          color: #aaa;
+          font-size: 9px;
+          color: #ccc;
           text-decoration: none;
           transition: all 0.15s ease;
           white-space: nowrap;
+          min-height: 44px;
         }
 
         .nav-quick-action:hover {
@@ -1074,7 +1077,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
 
         .nav-quick-action-icon {
-          font-size: 10px;
+          font-size: 14px;
           line-height: 1;
         }
 
@@ -1763,19 +1766,20 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             display: none;
           }
 
-          /* Quick actions on mobile - show fewer, smaller */
+          /* Quick actions on mobile - larger touch targets */
           .nav-quick-actions {
-            gap: 4px;
+            gap: 8px;
           }
 
           .nav-quick-action {
-            padding: 4px 8px;
-            font-size: 6px;
-            gap: 4px;
+            padding: 8px 12px;
+            font-size: 7px;
+            gap: 6px;
+            min-height: 40px;
           }
 
           .nav-quick-action-icon {
-            font-size: 9px;
+            font-size: 12px;
           }
 
           /* Hide labels on very small screens, show only icons */
@@ -1784,7 +1788,12 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
               display: none;
             }
             .nav-quick-action {
-              padding: 6px;
+              padding: 10px;
+              min-width: 40px;
+              min-height: 40px;
+            }
+            .nav-quick-action-icon {
+              font-size: 14px;
             }
           }
 
