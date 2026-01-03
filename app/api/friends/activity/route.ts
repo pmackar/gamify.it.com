@@ -46,7 +46,7 @@ export async function GET() {
       total_xp: true,
       main_level: true,
       current_streak: true,
-      last_active_at: true,
+      last_activity_date: true,
     },
   });
 
@@ -84,7 +84,7 @@ export async function GET() {
     // Check if they were active in the last hour
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const isOnline = profile.last_active_at && new Date(profile.last_active_at) > oneHourAgo;
+    const isOnline = profile.last_activity_date && new Date(profile.last_activity_date) > oneHourAgo;
 
     // Get a summary of their activity
     const activitySummary = activities.length > 0
