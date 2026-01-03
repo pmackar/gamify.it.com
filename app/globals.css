@@ -129,6 +129,7 @@ html.light {
   --theme-bg-card: #ffffff;
   --theme-bg-card-hover: #f0f0f2;
   --theme-bg-tertiary: #e8e8ea;
+  --theme-bg-deep: #e0e0e2;
   --theme-text-primary: #1a1a1a;
   --theme-text-secondary: #666666;
   --theme-text-muted: #888888;
@@ -136,6 +137,13 @@ html.light {
   --theme-border-light: #d0d0d0;
   --theme-gold: #d4a000;
   --theme-gold-glow: rgba(212, 160, 0, 0.2);
+
+  /* App accent colors - same hue, adjusted for light bg */
+  --app-fitness-glow: rgba(255, 107, 107, 0.1);
+  --app-fitness-border: rgba(255, 107, 107, 0.15);
+
+  /* Extended colors for light theme */
+  --color-legendary-glow: rgba(212, 160, 0, 0.12);
 
   /* Update RPG vars for light theme */
   --rpg-bg: #e8e8ea;
@@ -156,6 +164,7 @@ html.terminal {
   --theme-bg-card: #0f0f0f;
   --theme-bg-card-hover: #1a1a1a;
   --theme-bg-tertiary: #151515;
+  --theme-bg-deep: #000000;
   --theme-text-primary: #00ff00;
   --theme-text-secondary: #00cc00;
   --theme-text-muted: #008800;
@@ -165,6 +174,27 @@ html.terminal {
   --theme-gold-glow: rgba(0, 255, 0, 0.3);
   --theme-success: #00ff00;
   --theme-danger: #ff0000;
+
+  /* App accent colors - monochrome green for terminal */
+  --app-fitness: #00ff00;
+  --app-fitness-dark: #00cc00;
+  --app-fitness-darker: #009900;
+  --app-fitness-glow: rgba(0, 255, 0, 0.2);
+  --app-fitness-border: rgba(0, 255, 0, 0.3);
+
+  /* Extended colors for terminal theme */
+  --color-success: #00ff00;
+  --color-success-dark: #00cc00;
+  --color-success-darker: #009900;
+  --color-legendary: #00ff00;
+  --color-legendary-dark: #00cc00;
+  --color-legendary-glow: rgba(0, 255, 0, 0.2);
+  --color-legendary-border: #00aa00;
+  --color-legendary-shadow: #007700;
+  --tier-common: #00ff00;
+  --tier-rare: #00ff00;
+  --tier-epic: #00ff00;
+  --tier-legendary: #00ff00;
 
   /* Update RPG vars for terminal theme */
   --rpg-bg: #0a0a0a;
@@ -187,6 +217,7 @@ html.mario {
   --theme-bg-card: #D07030;           /* Question block orange */
   --theme-bg-card-hover: #E08040;
   --theme-bg-tertiary: #C84C0C;       /* Brick brown */
+  --theme-bg-deep: #1a1a1a;           /* Dark for contrast elements */
   --theme-text-primary: #FFFFFF;
   --theme-text-secondary: #FFFFFF;    /* White for readability */
   --theme-text-muted: rgba(255, 255, 255, 0.85);
@@ -196,6 +227,27 @@ html.mario {
   --theme-gold-glow: rgba(251, 208, 0, 0.5);
   --theme-success: #43B047;           /* Pipe/Grass green */
   --theme-danger: #E52521;            /* Mario red */
+
+  /* App accent colors - use Mario red */
+  --app-fitness: #E52521;
+  --app-fitness-dark: #CC1E1A;
+  --app-fitness-darker: #991714;
+  --app-fitness-glow: rgba(229, 37, 33, 0.3);
+  --app-fitness-border: rgba(229, 37, 33, 0.4);
+
+  /* Extended colors for Mario theme */
+  --color-success: #43B047;
+  --color-success-dark: #2E8A32;
+  --color-success-darker: #226826;
+  --color-legendary: #FBD000;
+  --color-legendary-dark: #E6A000;
+  --color-legendary-glow: rgba(251, 208, 0, 0.3);
+  --color-legendary-border: #CC8800;
+  --color-legendary-shadow: #996600;
+  --tier-common: #43B047;
+  --tier-rare: #049CD8;
+  --tier-epic: #E52521;
+  --tier-legendary: #FBD000;
 
   /* Mario-specific accent colors */
   --mario-red: #E52521;
