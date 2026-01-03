@@ -1647,23 +1647,24 @@ export default function TodayApp() {
           letter-spacing: 0.5px;
         }
 
-        /* Daily Quests Widget */
+        /* Daily Quests Widget - RPG frame style matching status window */
         .daily-quests-widget {
           margin: 0 16px 16px;
-          background: linear-gradient(180deg, rgba(92, 201, 245, 0.1) 0%, rgba(92, 201, 245, 0.05) 100%);
-          border: 1px solid rgba(92, 201, 245, 0.2);
-          border-radius: 12px;
-          padding: 12px;
-          box-shadow: 0 0 20px rgba(92, 201, 245, 0.1);
+          background: var(--rpg-card);
+          border: 3px solid var(--rpg-border);
+          border-radius: 8px;
+          padding: 4px;
+          box-shadow:
+            inset 0 0 0 2px var(--rpg-border-light),
+            0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         .daily-quests-header {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 10px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid var(--border);
+          padding: 8px 10px;
+          border-bottom: none;
         }
 
         .daily-quests-icon {
@@ -1675,14 +1676,18 @@ export default function TodayApp() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          color: var(--accent);
-          text-shadow: 0 0 8px var(--accent-glow);
+          color: var(--rpg-text);
         }
 
         .daily-quests-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
+          background: var(--rpg-bg-dark);
+          border: 2px solid var(--rpg-border);
+          border-radius: 4px;
+          padding: 8px;
+          margin: 0 4px 4px;
         }
 
         .daily-quest-item {
@@ -1690,20 +1695,20 @@ export default function TodayApp() {
           align-items: center;
           gap: 10px;
           padding: 8px 10px;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border);
-          border-radius: 8px;
+          background: var(--rpg-card);
+          border: 2px solid var(--rpg-border);
+          border-radius: 6px;
           transition: all 0.2s ease;
         }
 
         .daily-quest-item:hover {
-          border-color: var(--border-light);
-          background: var(--bg-secondary);
+          border-color: var(--rpg-border-light);
+          background: var(--rpg-card-hover);
         }
 
         .daily-quest-item.completed {
-          background: rgba(80, 200, 120, 0.1);
-          border-color: rgba(80, 200, 120, 0.3);
+          background: rgba(80, 200, 120, 0.15);
+          border-color: rgba(80, 200, 120, 0.4);
         }
 
         .daily-quest-check {
@@ -1712,12 +1717,12 @@ export default function TodayApp() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-secondary);
-          border: 2px solid var(--border-light);
-          border-radius: 6px;
+          background: var(--rpg-bg-dark);
+          border: 2px solid var(--rpg-border);
+          border-radius: 4px;
           font-size: 10px;
           font-weight: 700;
-          color: var(--text-tertiary);
+          color: var(--rpg-muted);
         }
 
         .daily-quest-item.completed .daily-quest-check {
@@ -1736,7 +1741,7 @@ export default function TodayApp() {
         .daily-quest-title {
           font-size: 11px;
           font-weight: 600;
-          color: var(--text-primary);
+          color: var(--rpg-text);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1748,7 +1753,7 @@ export default function TodayApp() {
 
         .daily-quest-desc {
           font-size: 9px;
-          color: var(--text-tertiary);
+          color: var(--rpg-muted);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1757,27 +1762,24 @@ export default function TodayApp() {
         .daily-quest-xp {
           font-size: 10px;
           font-weight: 700;
-          color: var(--gold);
-          text-shadow: 0 0 6px var(--gold-glow);
+          color: var(--rpg-gold);
           white-space: nowrap;
         }
 
         .daily-quest-item.completed .daily-quest-xp {
           color: var(--success);
-          text-shadow: 0 0 6px rgba(80, 200, 120, 0.4);
         }
 
         .daily-quests-bonus {
-          margin-top: 10px;
+          margin: 4px 4px 8px;
           padding: 10px;
-          background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 180, 0, 0.1) 100%);
-          border: 1px solid rgba(255, 215, 0, 0.3);
-          border-radius: 8px;
+          background: var(--rpg-card);
+          border: 2px solid var(--rpg-gold);
+          border-radius: 6px;
           font-size: 11px;
           font-weight: 600;
-          color: var(--gold);
+          color: var(--rpg-gold);
           text-align: center;
-          text-shadow: 0 0 8px var(--gold-glow);
           animation: quest-bonus-glow 2s ease-in-out infinite;
         }
 
@@ -3674,8 +3676,8 @@ export default function TodayApp() {
             )}
           </div>
 
-          {/* Accountability Partners */}
-          <AccountabilityPartners />
+          {/* Accountability Partners - hidden for now */}
+          {/* <AccountabilityPartners /> */}
 
           <nav className="sidebar-nav">
             <div className="nav-section">
