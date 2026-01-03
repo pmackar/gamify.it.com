@@ -1406,6 +1406,7 @@ export default function TodayApp() {
         .today-app {
           display: flex;
           min-height: 100vh;
+          min-height: 100dvh;
           padding-top: 66px;
           background: var(--bg-primary);
           color: var(--text-primary);
@@ -3061,6 +3062,7 @@ export default function TodayApp() {
           align-items: center;
           justify-content: center;
           min-height: 100vh;
+          min-height: 100dvh;
           background: var(--bg-primary);
         }
 
@@ -3168,6 +3170,7 @@ export default function TodayApp() {
           .today-app {
             padding-top: 0;
             min-height: 100vh;
+            min-height: 100dvh;
             padding-bottom: env(safe-area-inset-bottom, 0);
           }
 

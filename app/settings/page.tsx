@@ -91,6 +91,7 @@ export default function SettingsPage() {
       <style jsx>{`
         .settings-page {
           min-height: 100vh;
+          min-height: 100dvh;
           background: var(--theme-bg, #0a0a0f);
           padding: calc(80px + env(safe-area-inset-top, 0px)) 16px 40px;
         }

@@ -6,6 +6,7 @@ import { NavBarProvider } from "@/components/NavBarContext";
 import { XPProvider } from "@/components/XPContext";
 import { ThemeProvider } from "@/components/ThemeContext";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { MobileViewportProvider } from "@/components/MobileViewportProvider";
 import AppSwitcher from "@/components/AppSwitcher";
 
 // Inline script to prevent FOUC (flash of unstyled content)
@@ -84,17 +85,19 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ServiceWorkerRegistration />
-        <ThemeProvider>
-          <NavBarProvider>
-            <XPProvider>
-              <AchievementProvider>
-                <RetroNavBar />
-                <AppSwitcher />
-                {children}
-              </AchievementProvider>
-            </XPProvider>
-          </NavBarProvider>
-        </ThemeProvider>
+        <MobileViewportProvider>
+          <ThemeProvider>
+            <NavBarProvider>
+              <XPProvider>
+                <AchievementProvider>
+                  <RetroNavBar />
+                  <AppSwitcher />
+                  {children}
+                </AchievementProvider>
+              </XPProvider>
+            </NavBarProvider>
+          </ThemeProvider>
+        </MobileViewportProvider>
       </body>
     </html>
   );

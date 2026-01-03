@@ -860,6 +860,7 @@ export default function FitnessApp() {
           -webkit-font-smoothing: antialiased;
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
           min-height: 100vh;
+          min-height: 100dvh;
           position: relative;
         }
 
@@ -899,6 +900,7 @@ export default function FitnessApp() {
           padding-top: 70px;
           padding-bottom: 200px;
           min-height: 100vh;
+          min-height: 100dvh;
           position: relative;
           z-index: 2;
           max-width: 800px;

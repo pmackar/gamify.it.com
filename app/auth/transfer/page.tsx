@@ -93,6 +93,7 @@ export default function TransferPage() {
       <style jsx>{`
         .transfer-page {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%);
           display: flex;
           align-items: center;

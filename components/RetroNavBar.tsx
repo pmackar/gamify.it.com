@@ -336,7 +336,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           top: 0;
           left: 0;
           right: 0;
-          z-index: 9999;
+          z-index: var(--z-navbar, 100);
           padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
           pointer-events: none;
         }
@@ -935,7 +935,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           padding: 8px;
           min-width: 180px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-          z-index: 10000;
+          z-index: var(--z-dropdown, 200);
         }
 
         .nav-apps-dropdown-item {
@@ -1298,7 +1298,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           padding: 8px;
           min-width: 160px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-          z-index: 10000;
+          z-index: var(--z-dropdown, 200);
         }
 
         .nav-dropdown-email {
@@ -1467,7 +1467,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           padding: 16px;
           min-width: 220px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-          z-index: 10000;
+          z-index: var(--z-dropdown, 200);
         }
 
         .nav-login-title {

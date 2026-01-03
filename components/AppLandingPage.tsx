@@ -216,6 +216,7 @@ export default function AppLandingPage({
       <style jsx>{`
         .landing-wrapper {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
           position: relative;
           overflow-x: hidden;
@@ -290,6 +291,7 @@ export default function AppLandingPage({
         /* Hero Section */
         .hero-section {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           flex-direction: column;
           align-items: center;

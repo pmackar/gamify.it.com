@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useViewportContext } from "@/components/MobileViewportProvider";
 
 export interface Command {
   id: string;
@@ -33,6 +34,9 @@ export default function TravelCommandBar({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Mobile keyboard awareness
+  const { keyboardHeight, isKeyboardOpen } = useViewportContext();
 
   const query = externalQuery !== undefined ? externalQuery : internalQuery;
   const setQuery = onQueryChange || setInternalQuery;
@@ -119,9 +123,14 @@ export default function TravelCommandBar({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 px-4"
+      className="fixed left-0 right-0 px-4"
       style={{
-        paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+        // Position above keyboard when open, at bottom otherwise
+        bottom: isKeyboardOpen
+          ? `${keyboardHeight}px`
+          : "max(16px, env(safe-area-inset-bottom))",
+        transition: "bottom var(--keyboard-transition, 0.25s ease-out)",
+        zIndex: "var(--z-command-bar, 50)",
       }}
     >
       {/* Floating container */}
@@ -130,7 +139,10 @@ export default function TravelCommandBar({
         style={{
           background: "var(--rpg-card)",
           border: "2px solid var(--rpg-border)",
-          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.4), 0 0 40px rgba(95, 191, 138, 0.1)",
+          // Reduce shadow intensity when keyboard is open
+          boxShadow: isKeyboardOpen
+            ? "0 -2px 10px rgba(0, 0, 0, 0.3)"
+            : "0 -4px 20px rgba(0, 0, 0, 0.4), 0 0 40px rgba(95, 191, 138, 0.1)",
         }}
       >
         {/* Suggestions */}
@@ -218,7 +230,7 @@ export default function TravelCommandBar({
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
-            className="w-full px-4 py-3 rounded-xl text-base"
+            className="w-full px-4 py-3 rounded-xl text-base min-h-[44px]"
             style={{
               background: "var(--rpg-darker)",
               border: "2px solid var(--rpg-border)",

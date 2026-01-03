@@ -506,6 +506,7 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
       <style jsx>{`
         .pwa-login {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(180deg, #0a0a0a 0%, #121218 50%, #0a0a0a 100%);
           display: flex;
           align-items: center;
@@ -771,7 +772,7 @@ export default function LandingPage() {
         <style jsx global>{`
           body { background: var(--theme-bg-base); }
         `}</style>
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--theme-bg-base)' }}>
+        <div className="min-h-screen-safe" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--theme-bg-base)' }}>
           <div style={{ width: '40px', height: '40px', border: '3px solid var(--theme-border)', borderTopColor: 'var(--theme-gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -792,12 +793,12 @@ export default function LandingPage() {
         @keyframes float-up { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
 
         /* CRT Effects */
-        .crt-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; overflow: hidden; min-height: 100vh; }
+        .crt-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; overflow: hidden; min-height: 100vh; min-height: 100dvh; }
         .crt-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
         .crt-wrapper::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0,0,0,0.5) 100%); pointer-events: none; z-index: 999; }
 
         /* Dashboard Wrapper */
-        .dashboard-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; min-height: 100vh; }
+        .dashboard-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; min-height: 100vh; min-height: 100dvh; }
         .dashboard-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
         .dashboard-content { position: relative; z-index: 2; padding: 80px 2rem 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
 
@@ -830,7 +831,7 @@ export default function LandingPage() {
         @keyframes subtle-flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.985; } }
         @keyframes cursor-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
         .page-content { color: #fff; font-family: 'Press Start 2P', monospace; animation: subtle-flicker 4s infinite; position: relative; z-index: 2; }
-        .crt-intro { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
+        .crt-intro { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
         .video-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; background: #0a0a0a; }
         .video-background video { position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; transition: opacity 1s ease; }
         .video-primary, .video-secondary { opacity: 0; }

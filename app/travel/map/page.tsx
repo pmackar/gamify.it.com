@@ -101,7 +101,7 @@ export default function MapPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-56px)] flex items-center justify-center">
+      <div className="h-[calc(100dvh-var(--navbar-height,56px))] flex items-center justify-center">
         <div
           className="w-12 h-12 rounded"
           style={{
@@ -120,7 +120,7 @@ export default function MapPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] relative">
+    <div className="h-[calc(100dvh-var(--navbar-height,56px))] relative">
       <MapView
         locations={filteredLocations}
         className="h-full"

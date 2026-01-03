@@ -10,8 +10,10 @@ export default function TravelLayout({
       <style jsx global>{`
         .travel-layout {
           min-height: 100vh;
+          min-height: 100dvh;
           background: var(--theme-bg-base);
-          padding-top: 66px;
+          padding-top: var(--navbar-height, 66px);
+          padding-bottom: calc(var(--command-bar-height, 80px) + 20px);
           color: var(--theme-text-primary);
           font-family: var(--font-body);
         }
@@ -28,7 +30,8 @@ export default function TravelLayout({
 
         @media (max-width: 768px) {
           .travel-layout {
-            padding-top: 56px;
+            padding-top: var(--navbar-height, 56px);
+            padding-bottom: calc(var(--command-bar-height, 100px) + 20px);
           }
 
           .travel-layout .text-lg {

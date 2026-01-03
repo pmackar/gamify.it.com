@@ -43,8 +43,7 @@ export default function AuthCallback() {
   }, [router]);
 
   return (
-    <div style={{
-      minHeight: '100vh',
+    <div className="min-h-screen-safe" style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
