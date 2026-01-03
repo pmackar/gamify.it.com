@@ -150,6 +150,17 @@ model profiles {
   user_role            user_roles?
   subscriptions        user_subscriptions[]
 
+  // Challenge relations
+  challenges_created   challenges[]              @relation("ChallengeCreator")
+  challenge_participations challenge_participants[] @relation("ChallengeParticipant")
+
+  // Accountability relations
+  accountability_sent     accountability_partnerships[] @relation("AccountabilityRequester")
+  accountability_received accountability_partnerships[] @relation("AccountabilityPartner")
+  partnership_checkins    partnership_checkins[]        @relation("PartnershipCheckinAuthor")
+  nudges_sent             partnership_nudges[]          @relation("PartnershipNudgeSender")
+  nudges_received         partnership_nudges[]          @relation("PartnershipNudgeRecipient")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
@@ -329,6 +340,10 @@ model travel_locations {
   review_count   Int                 @default(0)
   total_visits   Int                 @default(0)
 
+  // External source tracking (for seeded/imported locations)
+  external_id     String?
+  external_source String?            // 'foursquare', 'google', 'osm', 'manual'
+
   // Owner/creator
   user_id        String?             @db.Uuid
   user           profiles?           @relation(fields: [user_id], references: [id], onDelete: SetNull)
@@ -357,6 +372,7 @@ model travel_locations {
   @@index([user_id, type])
   @@index([user_id, visited])
   @@index([user_id, hotlist])
+  @@unique([external_id, external_source])
 }
 
 model travel_visits {
@@ -684,6 +700,185 @@ model activity_comments {
   @@index([activity_id])
   @@index([user_id])
   @@index([created_at])
+}
+
+// ============================================
+// CHALLENGES SYSTEM
+// ============================================
+
+enum challenge_status {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum challenge_type {
+  FITNESS_WORKOUTS      // Most workouts completed
+  FITNESS_VOLUME        // Total volume lifted
+  FITNESS_XP            // Most XP earned
+  TRAVEL_LOCATIONS      // Most locations visited
+  TRAVEL_CITIES         // Most cities explored
+  TODAY_HABITS          // Habit completion rate
+  TODAY_STREAK          // Longest streak
+  CUSTOM                // Custom metric
+}
+
+/// Time-limited challenges between friends
+model challenges {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creator_id   String           @db.Uuid
+  creator      profiles         @relation("ChallengeCreator", fields: [creator_id], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  type         challenge_type
+  app_id       String           // 'fitness', 'travel', 'today'
+  metric       String           // Specific metric to track
+  target       Int?             // Optional target value
+  start_date   DateTime         @db.Timestamptz(6)
+  end_date     DateTime         @db.Timestamptz(6)
+  status       challenge_status @default(DRAFT)
+  xp_reward    Int              @default(100)
+  icon         String?          // Emoji for the challenge
+  created_at   DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime         @default(now()) @db.Timestamptz(6)
+
+  participants challenge_participants[]
+
+  @@index([creator_id])
+  @@index([status])
+  @@index([start_date])
+  @@index([end_date])
+  @@index([app_id])
+}
+
+enum challenge_participant_status {
+  INVITED
+  JOINED
+  DECLINED
+  LEFT
+}
+
+/// Challenge participation and scores
+model challenge_participants {
+  id           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  challenge_id String                       @db.Uuid
+  challenge    challenges                   @relation(fields: [challenge_id], references: [id], onDelete: Cascade)
+  user_id      String                       @db.Uuid
+  user         profiles                     @relation("ChallengeParticipant", fields: [user_id], references: [id], onDelete: Cascade)
+  status       challenge_participant_status @default(INVITED)
+  score        Float                        @default(0)
+  rank         Int?
+  last_updated DateTime                     @default(now()) @db.Timestamptz(6)
+  joined_at    DateTime?                    @db.Timestamptz(6)
+  created_at   DateTime                     @default(now()) @db.Timestamptz(6)
+
+  @@unique([challenge_id, user_id])
+  @@index([challenge_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([score])
+}
+
+// ============================================
+// ACCOUNTABILITY PARTNERS SYSTEM
+// ============================================
+
+enum accountability_status {
+  PENDING
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+/// Accountability partnerships between two users
+model accountability_partnerships {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id String               @db.Uuid
+  requester    profiles             @relation("AccountabilityRequester", fields: [requester_id], references: [id], onDelete: Cascade)
+  partner_id   String               @db.Uuid
+  partner      profiles             @relation("AccountabilityPartner", fields: [partner_id], references: [id], onDelete: Cascade)
+  status       accountability_status @default(PENDING)
+  message      String?              // Initial message when requesting
+  started_at   DateTime?            @db.Timestamptz(6)
+  ended_at     DateTime?            @db.Timestamptz(6)
+  created_at   DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime             @default(now()) @db.Timestamptz(6)
+
+  goals    partnership_goals[]
+  checkins partnership_checkins[]
+  nudges   partnership_nudges[]
+
+  @@unique([requester_id, partner_id])
+  @@index([requester_id])
+  @@index([partner_id])
+  @@index([status])
+}
+
+enum goal_type {
+  WORKOUT_FREQUENCY    // X workouts per week
+  HABIT_STREAK         // Maintain X day streak
+  LOCATION_VISITS      // Visit X places
+  DAILY_COMPLETION     // Complete daily tasks
+  CUSTOM               // Custom goal
+}
+
+/// Shared goals within a partnership
+model partnership_goals {
+  id             String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partnership_id String                       @db.Uuid
+  partnership    accountability_partnerships  @relation(fields: [partnership_id], references: [id], onDelete: Cascade)
+  type           goal_type
+  title          String
+  description    String?
+  target         Int                          // Target value
+  current_user1  Int                          @default(0) // Requester's progress
+  current_user2  Int                          @default(0) // Partner's progress
+  period         String                       @default("week") // 'day', 'week', 'month'
+  deadline       DateTime?                    @db.Timestamptz(6)
+  active         Boolean                      @default(true)
+  created_at     DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime                     @default(now()) @db.Timestamptz(6)
+
+  @@index([partnership_id])
+  @@index([active])
+}
+
+/// Daily/weekly check-ins for partnerships
+model partnership_checkins {
+  id             String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partnership_id String                      @db.Uuid
+  partnership    accountability_partnerships @relation(fields: [partnership_id], references: [id], onDelete: Cascade)
+  user_id        String                      @db.Uuid
+  user           profiles                    @relation("PartnershipCheckinAuthor", fields: [user_id], references: [id], onDelete: Cascade)
+  date           DateTime                    @db.Date
+  completed      Boolean                     @default(true)
+  notes          String?
+  mood           Int?                        // 1-5 mood rating
+  created_at     DateTime                    @default(now()) @db.Timestamptz(6)
+
+  @@unique([partnership_id, user_id, date])
+  @@index([partnership_id])
+  @@index([user_id])
+  @@index([date])
+}
+
+/// Nudges/reminders between partners
+model partnership_nudges {
+  id             String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partnership_id String                      @db.Uuid
+  partnership    accountability_partnerships @relation(fields: [partnership_id], references: [id], onDelete: Cascade)
+  sender_id      String                      @db.Uuid
+  sender         profiles                    @relation("PartnershipNudgeSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  recipient_id   String                      @db.Uuid
+  recipient      profiles                    @relation("PartnershipNudgeRecipient", fields: [recipient_id], references: [id], onDelete: Cascade)
+  message        String?
+  read           Boolean                     @default(false)
+  created_at     DateTime                    @default(now()) @db.Timestamptz(6)
+
+  @@index([partnership_id])
+  @@index([recipient_id])
+  @@index([read])
 }
 
 // ============================================

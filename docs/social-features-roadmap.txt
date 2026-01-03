@@ -1,0 +1,236 @@
+================================================================================
+GAMIFY.IT.COM - SOCIAL FEATURES ROADMAP
+================================================================================
+Last Updated: January 2026
+
+================================================================================
+COMPLETED SPRINTS
+================================================================================
+
+SPRINT 4: Travel Social Features
+--------------------------------
+Status: COMPLETED (commit 3ad7d5d)
+
+Features Built:
+- Shared hotlists between friends
+- Friends' activity feed for travel (location visits, reviews, hotlist adds)
+- Travel leaderboard (places/cities/countries tabs)
+- "Friends who visited" on location pages
+
+Files Created/Modified:
+- app/api/travel/friends-activity/route.ts
+- app/api/travel/leaderboard/route.ts
+- app/api/locations/[id]/friends/route.ts
+- app/travel/components/FriendsActivityFeed.tsx
+- app/travel/components/TravelLeaderboard.tsx
+- app/travel/locations/[locationId]/FriendsWhoVisited.tsx
+- app/travel/TravelHomeClient.tsx
+
+--------------------------------------------------------------------------------
+
+SPRINT 5: Fitness Social Features
+---------------------------------
+Status: COMPLETED (commit 10d8e1a)
+
+Features Built:
+- Friends' workout activity feed
+- Fitness leaderboard with multiple metrics (workouts/XP/volume/PRs)
+- Period filtering (week/month/all-time)
+- Workout summaries with exercise details
+
+Files Created/Modified:
+- app/api/fitness/friends-activity/route.ts
+- app/api/fitness/leaderboard/route.ts
+- app/fitness/components/FriendsWorkoutFeed.tsx
+- app/fitness/components/FitnessLeaderboard.tsx
+- app/fitness/FitnessApp.tsx
+
+--------------------------------------------------------------------------------
+
+SPRINT 6: Comments & Reactions System
+-------------------------------------
+Status: COMPLETED (commit adb91af)
+
+Features Built:
+- Activity comments with full CRUD API
+- Friend access checks for privacy
+- Multi-emoji reaction picker (fire, muscle, clap, heart, party, star)
+- Grouped reaction display with user tooltips
+- Comment notifications
+- Expandable comment sections on activity items
+
+Files Created/Modified:
+- prisma/schema.prisma (added activity_comments model, COMMENT/KUDOS types)
+- app/api/activity/[id]/comments/route.ts
+- components/social/CommentSection.tsx
+- components/social/ReactionPicker.tsx
+- components/social/NotificationItem.tsx
+
+--------------------------------------------------------------------------------
+
+SPRINT 7: Challenges, Sharing & Accountability
+----------------------------------------------
+Status: COMPLETED
+
+Features Built:
+
+7A: Challenges System
+- Time-limited competitions between friends
+- Challenge types: fitness (workouts/volume/XP), travel (locations/cities), today (habits/streak)
+- Create/join/leave challenges with friend invites
+- Real-time leaderboard with automatic score calculation
+- XP rewards for winners
+- Challenge status management (draft/active/completed)
+
+7B: Activity Sharing
+- Shareable cards for achievements, workouts, challenges
+- Social sharing (Twitter, WhatsApp)
+- Copy link and download image functionality
+- RPG-themed share card design
+
+7C: Accountability Partners
+- Request accountability partnerships with friends
+- Set shared goals with progress tracking
+- Daily check-ins with mood tracking
+- Nudge notifications (limit 1 per day)
+- Partnership streak calculation
+
+Database Schema:
+- challenges (id, creator_id, title, type, app_id, metric, target, start_date, end_date, status, xp_reward, icon)
+- challenge_participants (challenge_id, user_id, status, score, rank, joined_at)
+- accountability_partnerships (id, requester_id, partner_id, status, message, started_at)
+- partnership_goals (partnership_id, type, title, target, current_user1, current_user2, period)
+- partnership_checkins (partnership_id, user_id, date, completed, notes, mood)
+- partnership_nudges (partnership_id, sender_id, recipient_id, message, read)
+
+API Endpoints:
+Challenges:
+- GET/POST /api/challenges
+- GET/PUT/DELETE /api/challenges/[id]
+- POST /api/challenges/[id]/join
+- POST /api/challenges/[id]/leave
+- GET /api/challenges/[id]/leaderboard
+
+Accountability:
+- GET/POST /api/accountability
+- POST /api/accountability/[id]/respond
+- GET/POST/PUT/DELETE /api/accountability/[id]/goals
+- GET/POST /api/accountability/[id]/checkin
+- GET/POST /api/accountability/[id]/nudge
+
+Sharing:
+- GET /api/share/achievement/[id]
+- GET /api/share/workout/[id]
+- GET /api/share/challenge/[id]
+
+Components:
+- components/challenges/ChallengeCard.tsx
+- components/challenges/ChallengeCreator.tsx
+- components/challenges/ActiveChallenges.tsx
+- components/accountability/AccountabilityPartnerCard.tsx
+- components/accountability/AccountabilityPartners.tsx
+- components/share/ShareButton.tsx
+- components/share/ShareModal.tsx
+
+================================================================================
+FUTURE SPRINTS (BACKLOG)
+================================================================================
+
+SPRINT 8: Today App Social Features
+-----------------------------------
+Status: BACKLOG
+
+Description:
+Add social features to the Today (daily habits/tasks) app.
+
+Planned Features:
+- Friends' daily progress feed
+- Habit streak leaderboard
+- Daily completion rates comparison
+- Habit sharing (copy a friend's habit)
+- Group habits with friends
+
+Files to Create:
+- app/api/today/friends-activity/route.ts
+- app/api/today/leaderboard/route.ts
+- app/today/components/FriendsProgressFeed.tsx
+- app/today/components/HabitLeaderboard.tsx
+
+--------------------------------------------------------------------------------
+
+SPRINT 9: Cross-App Unified Activity Feed
+-----------------------------------------
+Status: BACKLOG
+
+Description:
+Single unified feed showing all friend activity across all apps.
+
+Planned Features:
+- /activity page with unified feed
+- Filter by app (Travel, Fitness, Today, All)
+- Filter by activity type
+- Infinite scroll pagination
+- Real-time updates
+- Activity search
+
+Files to Create:
+- app/activity/page.tsx
+- app/activity/ActivityFeed.tsx
+- app/api/activity/unified/route.ts
+- components/activity/ActivityFilters.tsx
+
+--------------------------------------------------------------------------------
+
+SPRINT 10: Friend Suggestions
+-----------------------------
+Status: BACKLOG
+
+Description:
+Smart friend recommendations based on various signals.
+
+Planned Features:
+- Mutual friends suggestions
+- Similar activity patterns matching
+- Shared locations visited
+- Same cities/neighborhoods
+- "People you may know" section
+- One-click friend request
+
+Files to Create:
+- app/api/friends/suggestions/route.ts
+- components/social/FriendSuggestions.tsx
+- components/social/SuggestionCard.tsx
+
+================================================================================
+TECHNICAL NOTES
+================================================================================
+
+Database Schema Additions (across all sprints):
+- activity_comments (Sprint 6)
+- challenges (Sprint 7)
+- challenge_participants (Sprint 7)
+- accountability_partnerships (Sprint 7)
+- partnership_goals (Sprint 7)
+- partnership_checkins (Sprint 7)
+- partnership_nudges (Sprint 7)
+
+Shared Components:
+- components/social/CommentSection.tsx
+- components/social/ReactionPicker.tsx
+- components/social/NotificationItem.tsx
+- components/social/FriendCard.tsx
+- components/social/UserSearchInput.tsx
+- components/challenges/ChallengeCard.tsx
+- components/challenges/ChallengeCreator.tsx
+- components/challenges/ActiveChallenges.tsx
+- components/accountability/AccountabilityPartnerCard.tsx
+- components/accountability/AccountabilityPartners.tsx
+- components/share/ShareButton.tsx
+- components/share/ShareModal.tsx
+
+CSS Theme Variables Used:
+- --rpg-card, --rpg-border, --rpg-text, --rpg-muted
+- --rpg-purple, --rpg-teal, --rpg-gold
+- --rpg-bg-dark, --rpg-bg-darker
+
+================================================================================
