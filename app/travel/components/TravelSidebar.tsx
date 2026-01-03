@@ -318,40 +318,48 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
           flex-direction: row;
           align-items: center;
           gap: 10px;
-          padding: 12px 14px;
-          border-radius: 10px;
+          padding: 10px 18px;
+          border-radius: 50px;
           font-size: 8px;
           font-weight: 500;
           transition: all 0.2s;
-          border: 1px solid;
+          border: 2px solid;
           font-family: var(--font-pixel);
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar-action:active {
+          transform: translateY(2px);
+          box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
         }
 
         .action-icon {
-          font-size: 18px;
-          width: 24px;
-          text-align: center;
+          font-size: 16px;
           flex-shrink: 0;
         }
 
         .sidebar-action.action-teal {
-          background: rgba(95, 191, 138, 0.1);
-          border-color: rgba(95, 191, 138, 0.3);
-          color: var(--rpg-teal);
+          background: rgba(95, 191, 138, 0.15);
+          border-color: rgba(95, 191, 138, 0.5);
+          color: var(--rpg-text);
         }
         .sidebar-action.action-teal:hover {
-          background: rgba(95, 191, 138, 0.2);
+          background: rgba(95, 191, 138, 0.25);
+          border-color: var(--rpg-teal);
+          box-shadow: 0 2px 8px var(--rpg-teal-glow);
         }
 
         .sidebar-action.action-purple {
-          background: rgba(168, 85, 247, 0.1);
-          border-color: rgba(168, 85, 247, 0.3);
-          color: var(--rpg-purple);
+          background: rgba(168, 85, 247, 0.15);
+          border-color: rgba(168, 85, 247, 0.5);
+          color: var(--rpg-text);
         }
         .sidebar-action.action-purple:hover {
-          background: rgba(168, 85, 247, 0.2);
+          background: rgba(168, 85, 247, 0.25);
+          border-color: var(--rpg-purple);
+          box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
         }
 
         .sidebar-action span:first-of-type {
@@ -359,47 +367,53 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
         }
 
         .action-xp {
-          font-size: 12px;
+          font-size: 8px;
           color: var(--rpg-gold);
+          font-family: var(--font-pixel);
         }
 
         .sidebar-nav-shortcuts {
           display: flex;
-          flex-direction: column;
-          gap: 6px;
-          margin-top: 4px;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 8px;
         }
 
         .nav-shortcut {
           display: flex;
           flex-direction: row;
           align-items: center;
-          justify-content: flex-start;
-          gap: 10px;
-          padding: 10px 14px;
-          border-radius: 8px;
-          font-size: 8px;
+          justify-content: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 50px;
+          font-size: 7px;
           font-weight: 500;
-          color: var(--rpg-muted);
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid var(--rpg-border);
+          color: var(--rpg-text);
+          background: var(--rpg-card);
+          border: 2px solid var(--rpg-border);
           transition: all 0.15s ease;
           font-family: var(--font-pixel);
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-shortcut:active {
+          transform: translateY(2px);
+          box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
         }
 
         .nav-shortcut-icon {
-          font-size: 16px;
-          width: 24px;
-          text-align: center;
+          font-size: 14px;
           flex-shrink: 0;
         }
 
         .nav-shortcut:hover {
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(95, 191, 138, 0.1);
           color: var(--rpg-text);
           border-color: var(--rpg-teal);
+          box-shadow: 0 2px 8px var(--rpg-teal-glow);
         }
 
         /* Navigation */
