@@ -3705,26 +3705,51 @@ export default function TodayApp() {
             border-radius: 8px;
           }
 
-          /* Modals on mobile */
+          /* Modals on mobile - full screen above nav */
+          .modal-overlay {
+            z-index: 1000;
+          }
+
           .modal {
             width: 100%;
             max-width: 100%;
-            height: 100%;
-            max-height: 100%;
-            border-radius: 0;
+            height: auto;
+            max-height: calc(100vh - 80px);
+            border-radius: 16px 16px 0 0;
             margin: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
           }
 
           .modal-header {
             padding: 16px;
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            z-index: 1;
           }
 
           .modal-body {
             padding: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 220px);
           }
 
           .modal-footer {
             padding: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+          }
+
+          /* Hide mobile nav when modal is open */
+          .modal-overlay ~ .mobile-nav,
+          body:has(.modal-overlay) .mobile-nav {
+            display: none !important;
           }
 
           .form-input,
