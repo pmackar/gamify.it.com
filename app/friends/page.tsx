@@ -224,7 +224,7 @@ export default function FriendsPage() {
   return (
     <>
       <RetroNavBar />
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black pt-20 pb-8">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black pb-8" style={{ paddingTop: 'var(--content-top)' }}>
         <div className="max-w-2xl mx-auto px-4">
           {/* Header */}
           <div className="mb-6">

@@ -158,7 +158,7 @@ export default function AthleteDetailPage({
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#1a1a2e] pt-20 px-4">
+      <div className="min-h-screen bg-[#1a1a2e] navbar-offset px-4">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-gray-400">Athlete not found</p>
           <Link href="/fitness/coach" className="text-[#FF6B6B] mt-4 block">
@@ -180,7 +180,7 @@ export default function AthleteDetailPage({
     .slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-[#1a1a2e] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#1a1a2e] navbar-offset pb-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

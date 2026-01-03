@@ -168,8 +168,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
       <>
         <RetroNavBar />
         <div
-          className="min-h-screen pt-20 flex items-center justify-center"
-          style={{ background: 'var(--rpg-bg-dark)' }}
+          className="min-h-screen flex items-center justify-center"
+          style={{ background: 'var(--rpg-bg-dark)', paddingTop: 'var(--content-top)' }}
         >
           <div
             className="w-8 h-8 border-2 rounded-full animate-spin"
@@ -184,7 +184,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
     return (
       <>
         <RetroNavBar />
-        <div className="min-h-screen pt-20" style={{ background: 'var(--rpg-bg-dark)' }}>
+        <div className="min-h-screen" style={{ background: 'var(--rpg-bg-dark)', paddingTop: 'var(--content-top)' }}>
           <div className="max-w-2xl mx-auto px-4 py-12 text-center">
             <div className="text-6xl mb-4">😕</div>
             <h1 className="text-xl mb-2" style={{ color: 'var(--rpg-text)' }}>
@@ -212,7 +212,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <RetroNavBar />
-      <div className="min-h-screen pt-20 pb-8" style={{ background: 'var(--rpg-bg-dark)' }}>
+      <div className="min-h-screen pb-8" style={{ background: 'var(--rpg-bg-dark)', paddingTop: 'var(--content-top)' }}>
         <div className="max-w-2xl mx-auto px-4">
           {/* Back Button */}
           <button

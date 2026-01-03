@@ -122,7 +122,7 @@ export default function ProgramsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a2e] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#1a1a2e] navbar-offset pb-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

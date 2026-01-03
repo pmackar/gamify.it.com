@@ -723,6 +723,20 @@ body.keyboard-open .keyboard-aware-content {
   padding-top: var(--content-top);
 }
 
+/* Global main content offset - ensures all pages clear the navbar */
+main,
+[role="main"],
+.page-content,
+.app-content,
+.main-content {
+  padding-top: var(--content-top);
+}
+
+/* Override for pages that handle their own navbar offset */
+.no-navbar-offset {
+  padding-top: 0 !important;
+}
+
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,

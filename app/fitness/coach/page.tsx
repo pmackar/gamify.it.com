@@ -236,7 +236,7 @@ export default function CoachDashboard() {
   // Not a coach - show registration
   if (!isCoach) {
     return (
-      <div className="min-h-screen bg-[#1a1a2e] pt-20 px-4">
+      <div className="min-h-screen bg-[#1a1a2e] navbar-offset px-4">
         <div className="max-w-md mx-auto text-center">
           <div
             className="p-8 rounded-lg"
@@ -288,7 +288,7 @@ export default function CoachDashboard() {
 
   // Coach dashboard
   return (
-    <div className="min-h-screen bg-[#1a1a2e] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#1a1a2e] navbar-offset pb-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

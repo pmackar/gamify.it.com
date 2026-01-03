@@ -213,7 +213,7 @@ export default function ActivityPage() {
   return (
     <>
       <RetroNavBar />
-      <div className="min-h-screen pt-20 pb-8" style={{ background: 'var(--rpg-bg-dark)' }}>
+      <div className="min-h-screen pb-8" style={{ background: 'var(--rpg-bg-dark)', paddingTop: 'var(--content-top)' }}>
         <div className="max-w-2xl mx-auto px-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

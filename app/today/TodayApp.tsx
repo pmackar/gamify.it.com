@@ -3436,7 +3436,7 @@ export default function TodayApp() {
         @media (max-width: 768px) {
           /* App container */
           .today-app {
-            padding-top: 0;
+            padding-top: var(--content-top);
             min-height: 100vh;
             min-height: 100dvh;
             padding-bottom: env(safe-area-inset-bottom, 0);
