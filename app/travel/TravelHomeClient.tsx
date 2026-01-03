@@ -794,40 +794,56 @@ export default function TravelHomeClient({
           }
 
           .quick-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
           }
           .quick-item {
             display: flex;
             flex-direction: row;
             align-items: center;
-            justify-content: flex-start;
-            padding: 14px 16px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 50px;
+            background: var(--rpg-card);
+            border: 2px solid var(--rpg-border);
             transition: all 0.2s;
-            font-size: 8px;
+            font-size: 7px;
             font-family: var(--font-pixel);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            gap: 12px;
+            gap: 8px;
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
           }
-          .quick-item:active { transform: scale(0.95); }
+          .quick-item:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+          }
           .quick-item:hover {
             border-color: var(--rpg-teal);
-            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 2px 8px var(--rpg-teal-glow);
           }
-          .quick-item span { color: var(--rpg-muted); }
+          .quick-item span { color: var(--rpg-text); }
           .quick-icon {
-            font-size: 20px;
+            font-size: 16px;
             flex-shrink: 0;
           }
-          .quick-cyan .quick-icon { filter: hue-rotate(180deg); }
-          .quick-red .quick-icon { filter: none; }
-          .quick-purple .quick-icon { filter: hue-rotate(270deg); }
-          .quick-gold .quick-icon { filter: none; }
+          .quick-cyan {
+            border-color: rgba(6, 182, 212, 0.4);
+            background: rgba(6, 182, 212, 0.1);
+          }
+          .quick-red {
+            border-color: rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.1);
+          }
+          .quick-purple {
+            border-color: rgba(168, 85, 247, 0.4);
+            background: rgba(168, 85, 247, 0.1);
+          }
+          .quick-gold {
+            border-color: rgba(255, 215, 0, 0.4);
+            background: rgba(255, 215, 0, 0.1);
+          }
 
           .visits-list {
             display: flex;
