@@ -4,26 +4,31 @@ import { redirect } from "next/navigation";
 import NewQuestClient from "./NewQuestClient";
 
 async function getCities(userId: string) {
-  const cities = await prisma.travel_cities.findMany({
-    where: { user_id: userId },
-    include: {
-      neighborhoods: {
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
+  try {
+    const cities = await prisma.travel_cities.findMany({
+      where: { user_id: userId },
+      include: {
+        neighborhoods: {
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    });
 
-  return cities.map((city) => ({
-    id: city.id,
-    name: city.name,
-    country: city.country,
-    neighborhoods: city.neighborhoods.map((n) => ({
-      id: n.id,
-      name: n.name,
-    })),
-  }));
+    return cities.map((city) => ({
+      id: city.id,
+      name: city.name,
+      country: city.country,
+      neighborhoods: city.neighborhoods.map((n) => ({
+        id: n.id,
+        name: n.name,
+      })),
+    }));
+  } catch (error) {
+    console.error("Error fetching cities:", error);
+    return [];
+  }
 }
 
 export default async function NewQuestPage() {

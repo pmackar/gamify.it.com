@@ -4,12 +4,13 @@ import prisma from "@/lib/db";
 
 // POST /api/quests - Create a new quest
 export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const body = await request.json();
+    const body = await request.json();
   const {
     name,
     description,
@@ -284,14 +285,22 @@ export async function POST(request: NextRequest) {
     partyCreated,
     invitedCount: partyCreated ? inviteUserIds.length : 0,
   });
+  } catch (error) {
+    console.error("Error creating quest:", error);
+    return NextResponse.json(
+      { error: "Failed to create quest" },
+      { status: 500 }
+    );
+  }
 }
 
 // GET /api/quests - List user's quests
 export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
@@ -391,4 +400,10 @@ export async function GET(request: NextRequest) {
       hasMore: offset + quests.length < total,
     },
   });
+  } catch (error) {
+    console.error("Error fetching quests:", error);
+    return NextResponse.json(
+      { quests: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false } }
+    );
+  }
 }
