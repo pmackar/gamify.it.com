@@ -54,6 +54,25 @@ export function calculateXPForLevel(level: number): number {
   return xpNeeded;
 }
 
+// Calculate level from cumulative total XP
+export function calculateLevelFromTotalXP(totalXP: number): { level: number; xpInLevel: number; xpToNext: number } {
+  let level = 1;
+  let xpNeeded = 100;
+  let cumulativeXP = 0;
+
+  while (cumulativeXP + xpNeeded <= totalXP) {
+    cumulativeXP += xpNeeded;
+    level++;
+    xpNeeded = Math.floor(xpNeeded * 1.5);
+  }
+
+  return {
+    level,
+    xpInLevel: totalXP - cumulativeXP,
+    xpToNext: xpNeeded,
+  };
+}
+
 export function calculateLocationXP(
   action: string,
   locationType: string,
@@ -136,11 +155,20 @@ export async function addXP(userId: string, amount: number): Promise<{
     data: { xp: newXP, level: newLevel, xp_to_next: xpToNext },
   });
 
-  // Also update global profile XP
+  // Also update global profile XP and recalculate main_level
+  const profile = await prisma.profiles.findUnique({
+    where: { id: userId },
+    select: { total_xp: true },
+  });
+
+  const newTotalXP = (profile?.total_xp || 0) + amount;
+  const globalLevelInfo = calculateLevelFromTotalXP(newTotalXP);
+
   await prisma.profiles.update({
     where: { id: userId },
     data: {
-      total_xp: { increment: amount },
+      total_xp: newTotalXP,
+      main_level: globalLevelInfo.level,
     },
   });
 
