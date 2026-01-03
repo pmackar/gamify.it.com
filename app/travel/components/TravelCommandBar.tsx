@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useViewportContext } from "@/components/MobileViewportProvider";
 
 export interface Command {
   id: string;
@@ -34,9 +33,6 @@ export default function TravelCommandBar({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-
-  // Mobile keyboard awareness
-  const { keyboardHeight, isKeyboardOpen } = useViewportContext();
 
   const query = externalQuery !== undefined ? externalQuery : internalQuery;
   const setQuery = onQueryChange || setInternalQuery;
@@ -121,30 +117,25 @@ export default function TravelCommandBar({
     inputRef.current?.blur();
   };
 
+  // Desktop only - hidden on mobile via CSS
   return (
-    <div
-      className="fixed left-0 right-0 px-4"
-      style={{
-        // Position above keyboard when open, at bottom otherwise
-        bottom: isKeyboardOpen
-          ? `${keyboardHeight}px`
-          : "max(16px, env(safe-area-inset-bottom))",
-        transition: "bottom var(--keyboard-transition, 0.25s ease-out)",
-        zIndex: "var(--z-command-bar, 50)",
-      }}
-    >
-      {/* Floating container */}
+    <div className="travel-command-bar-desktop">
       <div
-        className="max-w-lg mx-auto rounded-2xl overflow-hidden"
+        className="fixed left-0 right-0 px-4"
         style={{
-          background: "var(--rpg-card)",
-          border: "2px solid var(--rpg-border)",
-          // Reduce shadow intensity when keyboard is open
-          boxShadow: isKeyboardOpen
-            ? "0 -2px 10px rgba(0, 0, 0, 0.3)"
-            : "0 -4px 20px rgba(0, 0, 0, 0.4), 0 0 40px rgba(95, 191, 138, 0.1)",
+          bottom: "max(16px, env(safe-area-inset-bottom))",
+          zIndex: 50,
         }}
       >
+        {/* Floating container */}
+        <div
+          className="max-w-lg mx-auto rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--rpg-card)",
+            border: "2px solid var(--rpg-border)",
+            boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.4), 0 0 40px rgba(95, 191, 138, 0.1)",
+          }}
+        >
         {/* Suggestions */}
         {isFocused && filteredCommands.length > 0 && (
           <div
@@ -251,15 +242,27 @@ export default function TravelCommandBar({
         </div>
       </div>
 
-      {/* Keyboard hint - outside floating bar */}
-      {!isFocused && (
-        <div
-          className="text-center mt-2 text-xs"
-          style={{ color: "var(--rpg-muted)" }}
-        >
-          Press <kbd className="px-1.5 py-0.5 rounded" style={{ background: "var(--rpg-border)" }}>N</kbd> to open
-        </div>
-      )}
+        {/* Keyboard hint - outside floating bar */}
+        {!isFocused && (
+          <div
+            className="text-center mt-2 text-xs"
+            style={{ color: "var(--rpg-muted)" }}
+          >
+            Press <kbd className="px-1.5 py-0.5 rounded" style={{ background: "var(--rpg-border)" }}>N</kbd> to open
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        .travel-command-bar-desktop {
+          display: block;
+        }
+        @media (max-width: 1023px) {
+          .travel-command-bar-desktop {
+            display: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }

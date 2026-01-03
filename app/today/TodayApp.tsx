@@ -71,6 +71,10 @@ export default function TodayApp() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
+  // Tutorial
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
   // Edit states
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -140,6 +144,13 @@ export default function TodayApp() {
     store.loadState();
     // Fetch from server after local state is loaded
     store.fetchFromServer();
+
+    // Check if user has seen the tutorial
+    const hasSeenTutorial = localStorage.getItem('dayquest_tutorial_complete');
+    if (!hasSeenTutorial) {
+      // Small delay so the app renders first
+      setTimeout(() => setShowTutorial(true), 500);
+    }
   }, []);
 
   // Sync on page unload
@@ -1052,6 +1063,67 @@ export default function TodayApp() {
     store.undeferTask(taskId);
     setQuickActionTaskId(null);
     store.showToast('Moved back to Inbox', 'success');
+  };
+
+  // Tutorial handlers
+  const tutorialSteps = [
+    {
+      title: 'Welcome to Day Quest! ⚔️',
+      content: 'Transform your tasks into quests and level up your productivity. Every completed task earns you XP!',
+      icon: '🎮'
+    },
+    {
+      title: 'Earn XP & Level Up 📈',
+      content: 'Complete tasks to earn XP. Harder tasks and maintaining streaks give bonus XP. Watch your character grow as you level up!',
+      icon: '⭐'
+    },
+    {
+      title: 'Quick Add Tasks ✨',
+      content: 'Add tasks quickly with shortcuts:\n• @project - Assign to project\n• #category - Add category\n• !high/medium/low - Set priority\n• ~easy/hard/epic - Set difficulty\n• "tomorrow", "next week" - Set due date\n• "daily", "every monday" - Make recurring',
+      icon: '⌨️'
+    },
+    {
+      title: 'Task Difficulty & Tiers 🎯',
+      content: 'Set difficulty (Easy → Epic) and tier (Minor → Major) to earn more XP for challenging tasks. Epic tasks are "Boss Battles"!',
+      icon: '🏆'
+    },
+    {
+      title: 'Daily Quests & Streaks 🔥',
+      content: 'Complete daily quests for bonus XP. Maintain your streak by completing tasks every day. Longer streaks = bigger XP multiplier!',
+      icon: '📅'
+    },
+    {
+      title: 'Ready to Begin! 🚀',
+      content: 'Start by adding your first task. Press Cmd+K for the command palette, or just start typing in the quick add bar. Good luck, adventurer!',
+      icon: '✅'
+    }
+  ];
+
+  const handleTutorialNext = () => {
+    if (tutorialStep < tutorialSteps.length - 1) {
+      setTutorialStep(tutorialStep + 1);
+    } else {
+      completeTutorial();
+    }
+  };
+
+  const handleTutorialPrev = () => {
+    if (tutorialStep > 0) {
+      setTutorialStep(tutorialStep - 1);
+    }
+  };
+
+  const completeTutorial = () => {
+    localStorage.setItem('dayquest_tutorial_complete', 'true');
+    setShowTutorial(false);
+    setTutorialStep(0);
+    store.showToast('Welcome to Day Quest! Add your first task to begin.', 'success');
+  };
+
+  const skipTutorial = () => {
+    localStorage.setItem('dayquest_tutorial_complete', 'true');
+    setShowTutorial(false);
+    setTutorialStep(0);
   };
 
   const toggleQuickActionMenu = (taskId: string, e: React.MouseEvent) => {
@@ -2969,6 +3041,190 @@ export default function TodayApp() {
           min-width: 22px;
         }
 
+        /* Tutorial Modal */
+        .tutorial-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 20px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .tutorial-modal {
+          background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+          border: 2px solid var(--accent);
+          border-radius: 20px;
+          padding: 40px;
+          max-width: 500px;
+          width: 100%;
+          text-align: center;
+          position: relative;
+          box-shadow: 0 0 60px var(--accent-glow), 0 20px 40px rgba(0, 0, 0, 0.5);
+          animation: tutorialSlideUp 0.4s ease;
+        }
+
+        @keyframes tutorialSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .tutorial-skip {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: transparent;
+          border: 1px solid var(--border);
+          color: var(--text-tertiary);
+          font-size: 12px;
+          padding: 6px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .tutorial-skip:hover {
+          color: var(--text-primary);
+          border-color: var(--text-tertiary);
+        }
+
+        .tutorial-icon {
+          font-size: 64px;
+          margin-bottom: 16px;
+          animation: tutorialBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes tutorialBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+
+        .tutorial-title {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 18px;
+          color: var(--accent);
+          margin: 0 0 20px;
+          text-shadow: 0 0 20px var(--accent-glow);
+          line-height: 1.4;
+        }
+
+        .tutorial-content {
+          color: var(--text-secondary);
+          font-size: 15px;
+          line-height: 1.8;
+          margin-bottom: 28px;
+        }
+
+        .tutorial-content p {
+          margin: 8px 0;
+        }
+
+        .tutorial-progress {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 28px;
+        }
+
+        .tutorial-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: var(--border);
+          transition: all 0.3s ease;
+        }
+
+        .tutorial-dot.active {
+          background: var(--accent);
+          box-shadow: 0 0 10px var(--accent-glow);
+          transform: scale(1.2);
+        }
+
+        .tutorial-dot.completed {
+          background: var(--success);
+        }
+
+        .tutorial-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+        }
+
+        .tutorial-btn {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 12px;
+          padding: 14px 28px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: 2px solid transparent;
+        }
+
+        .tutorial-btn.primary {
+          background: linear-gradient(135deg, var(--accent), var(--accent-dark, #3b9ecf));
+          color: white;
+          box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3), 0 0 20px var(--accent-glow);
+        }
+
+        .tutorial-btn.primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3), 0 0 30px var(--accent-glow);
+        }
+
+        .tutorial-btn.primary:active {
+          transform: translateY(2px);
+          box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .tutorial-btn.secondary {
+          background: transparent;
+          color: var(--text-secondary);
+          border: 2px solid var(--border);
+        }
+
+        .tutorial-btn.secondary:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        @media (max-width: 600px) {
+          .tutorial-modal {
+            padding: 30px 24px;
+          }
+
+          .tutorial-icon {
+            font-size: 48px;
+          }
+
+          .tutorial-title {
+            font-size: 14px;
+          }
+
+          .tutorial-content {
+            font-size: 14px;
+          }
+
+          .tutorial-btn {
+            font-size: 10px;
+            padding: 12px 20px;
+          }
+        }
+
         /* Toast */
         .toast-container {
           position: fixed;
@@ -3249,43 +3505,30 @@ export default function TodayApp() {
             font-size: 18px;
           }
 
-          /* Mobile Quick Add - Floating bar */
+          /* Mobile Quick Add - HIDDEN on mobile */
           .quick-add-container {
-            display: flex !important;
-            position: fixed;
-            bottom: calc(60px + env(safe-area-inset-bottom, 0));
-            left: 12px;
-            right: 12px;
-            padding: 0;
-            z-index: 9998;
-          }
-
-          .quick-add-wrapper {
-            max-width: 100%;
-            padding: 10px 14px;
-            border-radius: 10px;
-          }
-
-          .quick-add-icon {
-            font-size: 14px;
-          }
-
-          .quick-add-input {
-            font-size: 14px;
-          }
-
-          .quick-add-hints {
-            display: none;
-          }
-
-          .quick-add-autocomplete {
-            bottom: calc(100% + 6px);
-            border-radius: 10px;
-          }
-
-          /* Hide FAB on mobile - using quick add bar instead */
-          .mobile-fab {
             display: none !important;
+          }
+
+          /* Mobile Add Button in Nav */
+          .mobile-nav-add {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--accent-glow);
+            margin-top: -24px;
+            font-size: 20px;
+          }
+
+          .mobile-nav-add:active {
+            transform: scale(0.95);
           }
 
           /* Mobile panels - slide up from bottom */
@@ -3975,12 +4218,13 @@ export default function TodayApp() {
             <span className="mobile-nav-icon">📅</span>
             Today
           </button>
+          {/* Center Add Button */}
           <button
-            className={`mobile-nav-btn ${store.currentView === 'upcoming' ? 'active' : ''}`}
-            onClick={() => store.setView('upcoming')}
+            className="mobile-nav-add"
+            onClick={() => openTaskModal()}
+            aria-label="Add task"
           >
-            <span className="mobile-nav-icon">📆</span>
-            Upcoming
+            +
           </button>
           <button
             className={`mobile-nav-btn ${store.currentView === 'completed' ? 'active' : ''}`}
@@ -3997,11 +4241,6 @@ export default function TodayApp() {
             Stats
           </button>
         </nav>
-
-        {/* Mobile FAB - Floating Add Button */}
-        <button className="mobile-fab" onClick={() => openTaskModal()}>
-          +
-        </button>
 
       </div>
 
@@ -4392,6 +4631,43 @@ export default function TodayApp() {
                 <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">Esc</span></span><span>Close / Cancel</span></div>
                 <div className="shortcut-row"><span className="shortcut-keys"><span className="kbd">?</span></span><span>Show this help</span></div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial Modal */}
+      {showTutorial && (
+        <div className="tutorial-overlay">
+          <div className="tutorial-modal">
+            <button className="tutorial-skip" onClick={skipTutorial}>Skip</button>
+
+            <div className="tutorial-icon">{tutorialSteps[tutorialStep].icon}</div>
+            <h2 className="tutorial-title">{tutorialSteps[tutorialStep].title}</h2>
+            <div className="tutorial-content">
+              {tutorialSteps[tutorialStep].content.split('\n').map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+
+            <div className="tutorial-progress">
+              {tutorialSteps.map((_, i) => (
+                <div
+                  key={i}
+                  className={`tutorial-dot ${i === tutorialStep ? 'active' : ''} ${i < tutorialStep ? 'completed' : ''}`}
+                />
+              ))}
+            </div>
+
+            <div className="tutorial-actions">
+              {tutorialStep > 0 && (
+                <button className="tutorial-btn secondary" onClick={handleTutorialPrev}>
+                  ← Back
+                </button>
+              )}
+              <button className="tutorial-btn primary" onClick={handleTutorialNext}>
+                {tutorialStep === tutorialSteps.length - 1 ? "Let's Go!" : 'Next →'}
+              </button>
             </div>
           </div>
         </div>
