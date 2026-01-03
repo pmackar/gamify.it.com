@@ -8,6 +8,12 @@ import UserSearchInput from '@/components/social/UserSearchInput';
 
 type TabType = 'friends' | 'requests' | 'find';
 
+interface InviteCode {
+  code: string;
+  link: string;
+  expiresAt: string;
+}
+
 interface Friend {
   friendshipId: string;
   id: string;
@@ -35,6 +41,9 @@ export default function FriendsPage() {
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<InviteCode | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
   const fetchFriends = useCallback(async () => {
     try {
@@ -157,6 +166,50 @@ export default function FriendsPage() {
       }
     } catch (error) {
       console.error('Error sending request:', error);
+    }
+  };
+
+  const generateInviteCode = async () => {
+    setInviteLoading(true);
+    try {
+      const res = await fetch('/api/friends/invite');
+      if (res.ok) {
+        const data = await res.json();
+        setInviteCode(data);
+      }
+    } catch (error) {
+      console.error('Error generating invite code:', error);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string, type: 'code' | 'link') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(type);
+      setTimeout(() => setCopied(null), 2000);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!inviteCode) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join me on gamify.it.com!',
+          text: 'I want to add you as a friend on gamify.it.com',
+          url: inviteCode.link,
+        });
+      } catch (error) {
+        // User cancelled or share failed, copy link instead
+        copyToClipboard(inviteCode.link, 'link');
+      }
+    } else {
+      copyToClipboard(inviteCode.link, 'link');
     }
   };
 
@@ -294,14 +347,85 @@ export default function FriendsPage() {
 
               {/* Find Friends Tab */}
               {activeTab === 'find' && (
-                <div>
-                  <UserSearchInput
-                    onSendRequest={handleSendRequest}
-                    onAcceptRequest={handleAcceptRequest}
-                  />
-                  <p className="text-gray-500 text-sm mt-4 text-center">
-                    Search by username, display name, or email
-                  </p>
+                <div className="space-y-6">
+                  {/* Invite Friends Card */}
+                  <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">🔗</span>
+                      <div>
+                        <h3 className="text-white font-semibold">Invite Friends</h3>
+                        <p className="text-gray-400 text-sm">Share a link to connect instantly</p>
+                      </div>
+                    </div>
+
+                    {!inviteCode ? (
+                      <button
+                        onClick={generateInviteCode}
+                        disabled={inviteLoading}
+                        className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        {inviteLoading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <span>✨</span>
+                            Generate Invite Link
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Link */}
+                        <div className="bg-black/30 rounded-lg p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 truncate text-sm text-gray-300 font-mono">
+                              {inviteCode.link}
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(inviteCode.link, 'link')}
+                              className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-md text-sm font-medium transition-colors flex-shrink-0"
+                            >
+                              {copied === 'link' ? '✓ Copied!' : 'Copy'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Share Button */}
+                        <button
+                          onClick={handleShare}
+                          className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <span>📤</span>
+                          Share Link
+                        </button>
+
+                        <p className="text-gray-500 text-xs text-center">
+                          Link expires in 7 days
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 h-px bg-gray-800" />
+                    <span className="text-gray-500 text-sm">or search</span>
+                    <div className="flex-1 h-px bg-gray-800" />
+                  </div>
+
+                  {/* Search */}
+                  <div>
+                    <UserSearchInput
+                      onSendRequest={handleSendRequest}
+                      onAcceptRequest={handleAcceptRequest}
+                    />
+                    <p className="text-gray-500 text-sm mt-4 text-center">
+                      Search by username, display name, or email
+                    </p>
+                  </div>
                 </div>
               )}
             </>
