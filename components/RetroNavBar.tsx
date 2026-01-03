@@ -85,31 +85,23 @@ const HomeIcon = () => (
   </svg>
 );
 
-// Main app logo icon - pixel art "G" with game controller vibe
-const AppLogoIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
-    {/* Outer glow effect */}
-    <rect x="16" y="8" width="32" height="48" rx="4" fill="url(#logoGradient)" />
-    {/* Inner dark background */}
-    <rect x="20" y="12" width="24" height="40" fill="#1a1a24" />
-    {/* Pixel art "G" */}
-    <rect x="26" y="18" width="12" height="4" fill="#FFD700" />
-    <rect x="24" y="22" width="4" height="4" fill="#FFD700" />
-    <rect x="24" y="26" width="4" height="8" fill="#FFD700" />
-    <rect x="24" y="34" width="4" height="4" fill="#FFD700" />
-    <rect x="26" y="38" width="12" height="4" fill="#FFD700" />
-    <rect x="34" y="30" width="4" height="8" fill="#FFD700" />
-    <rect x="30" y="30" width="4" height="4" fill="#FFD700" />
-    {/* Decorative pixels */}
-    <rect x="24" y="46" width="4" height="4" fill="#5fbf8a" opacity="0.8" />
-    <rect x="30" y="46" width="4" height="4" fill="#FF6B6B" opacity="0.8" />
-    <rect x="36" y="46" width="4" height="4" fill="#5CC9F5" opacity="0.8" />
-    <defs>
-      <linearGradient id="logoGradient" x1="32" y1="8" x2="32" y2="56" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#3a3a4a" />
-        <stop offset="1" stopColor="#2a2a3a" />
-      </linearGradient>
-    </defs>
+// Main app logo icon - pixel art "G" with gradient (theme-aware via CSS)
+const AppLogoIcon = ({ className }: { className?: string }) => (
+  <svg width="28" height="28" viewBox="0 0 32 32" fill="none" className={className}>
+    {/* Pixel art "G" - colors applied via CSS currentColor and classes */}
+    {/* Top horizontal bar */}
+    <rect x="10" y="4" width="14" height="4" className="logo-g-top" />
+    {/* Left vertical */}
+    <rect x="6" y="8" width="4" height="4" className="logo-g-top" />
+    <rect x="6" y="12" width="4" height="4" className="logo-g-mid" />
+    <rect x="6" y="16" width="4" height="4" className="logo-g-mid" />
+    <rect x="6" y="20" width="4" height="4" className="logo-g-bottom" />
+    {/* Bottom horizontal bar */}
+    <rect x="10" y="24" width="14" height="4" className="logo-g-bottom" />
+    {/* Right vertical (bottom half) */}
+    <rect x="20" y="20" width="4" height="4" className="logo-g-bottom" />
+    {/* Middle horizontal notch */}
+    <rect x="14" y="16" width="10" height="4" className="logo-g-mid" />
   </svg>
 );
 
@@ -840,29 +832,73 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           box-shadow: 3px 3px 0 #000;
         }
 
-        .nav-logo {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 9px;
-          letter-spacing: -0.5px;
-          background: linear-gradient(180deg, #FFD700 0%, #F0A500 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          text-decoration: none;
+        /* Pixel art G logo - theme aware gradient */
+        .nav-logo-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transition: all 0.2s ease;
-          text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+          filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
         }
 
-        .nav-logo:hover {
-          filter: brightness(1.2);
-          text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        .nav-logo-icon:hover {
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.5));
+        }
+
+        /* Default dark theme - gold/orange gradient */
+        .logo-g-top { fill: #FFD700; }
+        .logo-g-mid { fill: #FFA500; }
+        .logo-g-bottom { fill: #5fbf8a; }
+
+        /* Light theme - indigo gradient */
+        .global-nav.theme-light .logo-g-top { fill: #6366f1; }
+        .global-nav.theme-light .logo-g-mid { fill: #8b5cf6; }
+        .global-nav.theme-light .logo-g-bottom { fill: #a855f7; }
+        .global-nav.theme-light .nav-logo-icon {
+          filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
+        }
+        .global-nav.theme-light .nav-logo-icon:hover {
+          filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.5));
+        }
+
+        /* Terminal theme - green monochrome */
+        .global-nav.theme-terminal .logo-g-top { fill: #00ff00; }
+        .global-nav.theme-terminal .logo-g-mid { fill: #00cc00; }
+        .global-nav.theme-terminal .logo-g-bottom { fill: #009900; }
+        .global-nav.theme-terminal .nav-logo-icon {
+          filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.4));
+        }
+        .global-nav.theme-terminal .nav-logo-icon:hover {
+          filter: drop-shadow(0 0 12px rgba(0, 255, 0, 0.6));
+        }
+
+        /* Mario theme - NES colors */
+        .global-nav.theme-mario .logo-g-top { fill: #FBD000; }
+        .global-nav.theme-mario .logo-g-mid { fill: #E52521; }
+        .global-nav.theme-mario .logo-g-bottom { fill: #43B047; }
+        .global-nav.theme-mario .nav-logo-icon {
+          filter: drop-shadow(2px 2px 0 #000);
+        }
+        .global-nav.theme-mario .nav-logo-icon:hover {
+          filter: drop-shadow(3px 3px 0 #000);
         }
 
         .nav-logo-btn {
           background: none;
           border: none;
-          padding: 0;
+          padding: 4px;
           cursor: pointer;
+          border-radius: 8px;
+          transition: background 0.2s ease;
+        }
+
+        .nav-logo-btn:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .global-nav.theme-light .nav-logo-btn:hover {
+          background: rgba(0, 0, 0, 0.05);
         }
 
         .nav-brand-group {
@@ -1853,8 +1889,9 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowAppsMenu(!showAppsMenu); }}
                   className="nav-logo-btn"
+                  aria-label="Open apps menu"
                 >
-                  <span className="nav-logo">G.IT</span>
+                  <AppLogoIcon className="nav-logo-icon" />
                 </button>
               {showAppsMenu && (
                 <div className="nav-apps-dropdown">
