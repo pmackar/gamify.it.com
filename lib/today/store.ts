@@ -43,7 +43,7 @@ interface TodayStore extends TodayState, SyncState {
 
   // Sync actions
   syncToServer: () => Promise<void>;
-  fetchFromServer: () => Promise<void>;
+  fetchFromServer: (forceRefresh?: boolean) => Promise<void>;
 
   // Profile actions
   addXP: (amount: number) => boolean; // returns true if leveled up
@@ -374,7 +374,7 @@ export const useTodayStore = create<TodayStore>()(
         }
       },
 
-      fetchFromServer: async () => {
+      fetchFromServer: async (forceRefresh = false) => {
         try {
           const res = await fetch('/api/today/sync');
           if (!res.ok) return;
@@ -384,25 +384,46 @@ export const useTodayStore = create<TodayStore>()(
 
           const localLastSynced = get().lastSyncedAt;
           const hasPendingChanges = get().pendingSync;
+          const serverUpdatedAt = serverData.updated_at;
 
-          if (!localLastSynced) {
-            // First sync on this device - server wins
+          // Determine if server data is newer
+          const serverIsNewer = !localLastSynced || serverUpdatedAt > localLastSynced;
+
+          if (!localLastSynced || forceRefresh) {
+            // First sync on this device or forced refresh - server wins
             set({
               ...serverData.data,
-              lastSyncedAt: serverData.updated_at,
+              lastSyncedAt: serverUpdatedAt,
               pendingSync: false,
               syncStatus: 'idle',
             });
-          } else if (serverData.updated_at > localLastSynced && !hasPendingChanges) {
+          } else if (serverIsNewer && !hasPendingChanges) {
             // Server is newer and no pending local changes - use server
             set({
               ...serverData.data,
-              lastSyncedAt: serverData.updated_at,
+              lastSyncedAt: serverUpdatedAt,
               pendingSync: false,
               syncStatus: 'idle',
             });
+          } else if (serverIsNewer && hasPendingChanges) {
+            // Server is newer BUT we have pending changes - sync local first, then pull
+            // This ensures we don't lose local changes
+            await get().syncToServer();
+            // After pushing local changes, fetch again to get merged state
+            const refreshRes = await fetch('/api/today/sync');
+            if (refreshRes.ok) {
+              const refreshedData = await refreshRes.json();
+              if (refreshedData?.data) {
+                set({
+                  ...refreshedData.data,
+                  lastSyncedAt: refreshedData.updated_at,
+                  pendingSync: false,
+                  syncStatus: 'idle',
+                });
+              }
+            }
           }
-          // Otherwise: local wins (we have pending changes or are newer)
+          // Otherwise: local is newer and no pending changes - keep local
         } catch (error) {
           console.error('Failed to fetch from server:', error);
         }

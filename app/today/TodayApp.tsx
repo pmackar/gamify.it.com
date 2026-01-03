@@ -192,6 +192,69 @@ export default function TodayApp() {
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
 
+  // Cross-device sync: visibility change handler + periodic polling
+  useEffect(() => {
+    if (!mounted) return;
+
+    let syncInterval: ReturnType<typeof setInterval> | null = null;
+    const SYNC_INTERVAL_MS = 30000; // 30 seconds
+
+    // Sync when tab becomes visible (user switches back to this tab/app)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Fetch from server when tab becomes visible
+        store.fetchFromServer();
+      } else if (document.visibilityState === 'hidden') {
+        // Push any pending changes when leaving
+        const state = useTodayStore.getState();
+        if (state.pendingSync) {
+          store.syncToServer();
+        }
+      }
+    };
+
+    // Start periodic sync when visible
+    const startPeriodicSync = () => {
+      if (syncInterval) clearInterval(syncInterval);
+      syncInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          store.fetchFromServer();
+        }
+      }, SYNC_INTERVAL_MS);
+    };
+
+    // Stop periodic sync when hidden
+    const stopPeriodicSync = () => {
+      if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+      }
+    };
+
+    // Handle visibility for periodic sync control
+    const handleVisibilityForPolling = () => {
+      if (document.visibilityState === 'visible') {
+        startPeriodicSync();
+      } else {
+        stopPeriodicSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityForPolling);
+
+    // Start polling if currently visible
+    if (document.visibilityState === 'visible') {
+      startPeriodicSync();
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityForPolling);
+      stopPeriodicSync();
+    };
+  }, [mounted, store]);
+
   // Reset selection when view changes
   useEffect(() => {
     setSelectedTaskIndex(-1);
