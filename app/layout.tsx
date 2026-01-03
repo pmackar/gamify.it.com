@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeContext";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { MobileViewportProvider } from "@/components/MobileViewportProvider";
 import AppSwitcher from "@/components/AppSwitcher";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 
 // Inline script to prevent FOUC (flash of unstyled content)
 const themeScript = `
@@ -93,6 +94,7 @@ export default function RootLayout({
                   <RetroNavBar />
                   <AppSwitcher />
                   {children}
+                  <UpdatePrompt />
                 </AchievementProvider>
               </XPProvider>
             </NavBarProvider>
