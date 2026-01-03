@@ -450,15 +450,24 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
               border: "2px solid var(--rpg-border)",
             }}
           >
-            <h2 className="text-base font-medium mb-3" style={{ color: "var(--rpg-text)" }}>
-              <span className="inline-flex items-center gap-2">
-                <Users size={18} style={{ color: "var(--rpg-purple)" }} />
-                <span>Invite to Party <span className="text-sm font-normal" style={{ color: "var(--rpg-muted)" }}>(optional)</span></span>
-              </span>
+            <h2
+              className="text-sm mb-2"
+              style={{
+                color: "var(--rpg-text)",
+                fontFamily: "var(--font-pixel)",
+              }}
+            >
+              Invite to Party
             </h2>
-            <p className="text-sm mb-4" style={{ color: "var(--rpg-muted)" }}>
-              Invite friends to collaborate on this quest
+            <p className="text-xs mb-4" style={{ color: "var(--rpg-muted)" }}>
+              (optional) Invite friends to collaborate on this quest
             </p>
+
+            {/* Party size indicator */}
+            <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: "var(--rpg-muted)" }}>
+              <Users size={16} style={{ color: "var(--rpg-purple)" }} />
+              <span>Party: {selectedFriends.length + 1}/8</span>
+            </div>
 
             {/* Selected friends */}
             {selectedFriends.length > 0 && (
@@ -486,7 +495,7 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
               </div>
             )}
 
-            {/* Friend search */}
+            {/* Friend search - Add to Party */}
             <div className="relative">
               <div className="relative">
                 <Search
@@ -498,7 +507,7 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
                   type="text"
                   value={friendSearch}
                   onChange={(e) => setFriendSearch(e.target.value)}
-                  placeholder="Search by username or name..."
+                  placeholder="Add to party... (search by username)"
                   className="w-full pl-10 pr-4 py-3 rounded-lg text-base"
                   style={{
                     background: "var(--rpg-darker)",
