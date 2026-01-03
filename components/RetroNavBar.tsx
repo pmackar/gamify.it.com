@@ -258,8 +258,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
 
         .global-nav-inner {
-          max-width: 1000px;
-          margin: 0 auto;
+          /* Full width with consistent padding */
           background: rgba(18, 18, 24, 0.85);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);

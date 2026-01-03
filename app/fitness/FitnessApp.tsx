@@ -898,7 +898,7 @@ export default function FitnessApp() {
           100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
         }
 
-        /* Main Content */
+        /* Main Content - full width matching navbar padding */
         .content-area {
           padding-top: var(--content-top);
           padding-bottom: 200px;
@@ -906,8 +906,8 @@ export default function FitnessApp() {
           min-height: 100dvh;
           position: relative;
           z-index: 2;
-          max-width: 800px;
-          margin: 0 auto;
+          padding-left: 16px;
+          padding-right: 16px;
         }
 
         /* Premium Command Bar - Desktop Only */

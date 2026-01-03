@@ -1961,10 +1961,11 @@ export default function TodayApp() {
           overflow: hidden;
         }
 
-        /* Desktop: offset main content for fixed sidebar */
+        /* Desktop: offset main content for fixed sidebar, match navbar padding */
         @media (min-width: 769px) {
           .today-main {
             margin-left: 260px;
+            padding-right: 16px;
           }
         }
 

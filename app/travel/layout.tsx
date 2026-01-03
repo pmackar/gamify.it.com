@@ -95,15 +95,15 @@ export default async function TravelLayout({
           font-family: var(--font-body);
         }
 
-        /* Desktop layout - align content right edge with navbar (1000px centered) */
+        /* Desktop layout - match navbar padding (16px from edges) */
         @media (min-width: 1024px) {
           .travel-main-content {
             padding-top: calc(var(--content-top, 60px) + 16px);
             min-height: 100vh;
-            /* Left: clear sidebar (280px) + 24px gap */
-            padding-left: 304px;
-            /* Right: match navbar right margin ((100vw - 1000px) / 2) with min 24px */
-            padding-right: max(24px, calc((100vw - 1000px) / 2));
+            /* Left: clear sidebar (280px) + 16px gap */
+            padding-left: 296px;
+            /* Right: match navbar outer padding */
+            padding-right: 16px;
           }
         }
 
