@@ -95,35 +95,27 @@ export default async function TravelLayout({
           font-family: var(--font-body);
         }
 
-        /* Desktop: match navbar's exact centering */
+        /* Desktop layout */
         @media (min-width: 1024px) {
           .travel-layout {
-            /* Match navbar: outer 16px padding, then centered 1000px inner */
-            padding: 0 16px;
-          }
-          .travel-inner {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
+            padding-left: 280px; /* Space for fixed sidebar */
           }
           .travel-main-content {
-            padding-top: var(--content-top, 60px);
+            padding-top: calc(var(--content-top, 60px) + 16px);
             min-height: 100vh;
-            flex: 1;
-            /* Sidebar takes 280px, so offset content */
-            margin-left: 280px;
-            padding: 0 16px;
+            padding-left: 24px;
+            padding-right: 24px;
           }
         }
 
-        /* Mobile: standard layout */
+        /* Mobile layout */
         @media (max-width: 1023px) {
           .travel-layout {
             padding-top: var(--content-top);
             padding-bottom: calc(var(--command-bar-height, 100px) + 20px);
           }
-          .travel-inner {
-            width: 100%;
+          .travel-main-content {
+            padding: 16px;
           }
         }
 
@@ -134,29 +126,27 @@ export default async function TravelLayout({
       `}</style>
 
       <div className="travel-layout">
-        <div className="travel-inner">
-          {/* Desktop Sidebar - only for logged in users */}
-          {isLoggedIn && stats && (
-            <TravelSidebar
-              user={{
-                level: user.travel.level,
-                xp: user.travel.xp,
-                xpToNext: user.travel.xpToNext,
-                streak: user.currentStreak,
-              }}
-              stats={stats}
-            />
-          )}
+        {/* Desktop Sidebar - only for logged in users */}
+        {isLoggedIn && stats && (
+          <TravelSidebar
+            user={{
+              level: user.travel.level,
+              xp: user.travel.xp,
+              xpToNext: user.travel.xpToNext,
+              streak: user.currentStreak,
+            }}
+            stats={stats}
+          />
+        )}
 
-          {/* Main content area */}
-          <div className="travel-main-content">
-            {/* Back button and breadcrumbs - consistent across all pages */}
-            <TravelHeader />
+        {/* Main content area */}
+        <div className="travel-main-content">
+          {/* Back button and breadcrumbs - consistent across all pages */}
+          <TravelHeader />
 
-            <TravelApp isLoggedIn={isLoggedIn}>
-              {children}
-            </TravelApp>
-          </div>
+          <TravelApp isLoggedIn={isLoggedIn}>
+            {children}
+          </TravelApp>
         </div>
       </div>
     </>
