@@ -147,7 +147,8 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
           height: 100vh;
           position: fixed;
           top: 0;
-          left: 0;
+          /* Position sidebar to align with navbar's left edge (centered 1000px container) */
+          left: max(0px, calc((100vw - 1000px) / 2));
           background: var(--rpg-card);
           border-right: 1px solid var(--rpg-border);
           display: flex;

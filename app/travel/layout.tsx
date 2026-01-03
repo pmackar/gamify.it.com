@@ -94,14 +94,21 @@ export default async function TravelLayout({
           font-family: var(--font-body);
         }
 
-        /* Desktop: sidebar + main content */
+        /* Desktop: sidebar + main content aligned with navbar */
         @media (min-width: 1024px) {
           .travel-layout {
-            padding-left: 280px;
+            /* Match navbar centering: 1000px max-width centered */
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            position: relative;
           }
           .travel-main-content {
             padding-top: var(--content-top, 60px);
             min-height: 100vh;
+            flex: 1;
+            /* Account for sidebar width within the 1000px container */
+            margin-left: 280px;
           }
         }
 

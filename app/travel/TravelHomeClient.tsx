@@ -858,9 +858,7 @@ export default function TravelHomeClient({
           /* ===== DESKTOP STYLES ===== */
           /* Main Content Area */
           .travel-main {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 32px 40px;
+            padding: 32px 24px;
           }
 
           .main-header {
