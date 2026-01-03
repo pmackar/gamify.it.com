@@ -3600,7 +3600,7 @@ export default function TodayApp() {
         }
       `}</style>
 
-      <div className="today-app">
+      <div className="today-app" style={{ paddingTop: 'var(--content-top, 100px)' }}>
         <PixelParticles />
 
         {/* Sidebar */}

@@ -3321,7 +3321,7 @@ export default function FitnessApp() {
       <div className="fitness-app text-white">
         <PixelParticles />
         {/* Main Content */}
-        <main className="content-area">
+        <main className="content-area" style={{ paddingTop: 'var(--content-top, 100px)' }}>
 
           {/* Workout View */}
           {store.currentView === 'workout' && store.currentWorkout && (

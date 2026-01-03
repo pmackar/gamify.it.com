@@ -103,7 +103,7 @@ function Dashboard({ user }: { user: User }) {
       <RetroNavBar />
       <div className="dashboard-wrapper">
         <PixelParticles />
-        <div className="dashboard-content">
+        <div className="dashboard-content" style={{ paddingTop: 'var(--content-top, 100px)' }}>
           {/* Welcome Header */}
           <section className="welcome-section">
             <div className="welcome-card">
