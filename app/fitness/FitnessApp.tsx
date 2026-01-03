@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
+import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
@@ -79,6 +79,8 @@ export default function FitnessApp() {
   const [searchingExercises, setSearchingExercises] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [programsTab, setProgramsTab] = useState<'my' | 'library'>('my');
+  const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -438,6 +440,8 @@ export default function FitnessApp() {
         else if (suggestion.id === 'campaigns') store.setView('campaigns');
         else if (suggestion.id === 'achievements') store.setView('achievements');
         else if (suggestion.id === 'programs') store.setView('programs');
+        else if (suggestion.id === 'analytics') store.setView('analytics');
+        else if (suggestion.id === 'exercises') setShowExercisePicker(true);
         else if (suggestion.id === 'import') fileInputRef.current?.click();
         else if (suggestion.id === 'reset') {
           if (confirm('Are you sure you want to erase ALL fitness data? This cannot be undone.')) {
@@ -2877,6 +2881,28 @@ export default function FitnessApp() {
           font-size: 18px;
         }
 
+        .exercise-info-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          font-size: 14px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+
+        .exercise-info-btn:hover {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+        }
+
         /* Toast */
         .toast {
           position: fixed;
@@ -4033,6 +4059,555 @@ export default function FitnessApp() {
           filter: brightness(1.1);
         }
 
+        /* ===== PROGRAMS TABS & LIBRARY ===== */
+        .programs-tabs {
+          display: flex;
+          gap: 4px;
+          margin: 16px;
+          background: var(--surface);
+          border-radius: 10px;
+          padding: 4px;
+        }
+
+        .programs-tab {
+          flex: 1;
+          padding: 10px 16px;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .programs-tab.active {
+          background: var(--accent);
+          color: #000;
+        }
+
+        .programs-tab:hover:not(.active) {
+          background: var(--surface-hover);
+        }
+
+        .empty-action-btn {
+          margin-top: 16px;
+          padding: 12px 24px;
+          background: var(--accent);
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #000;
+          cursor: pointer;
+        }
+
+        .empty-action-btn:hover {
+          filter: brightness(1.1);
+        }
+
+        .program-library {
+          padding: 16px;
+        }
+
+        .library-intro {
+          font-size: 14px;
+          color: var(--text-secondary);
+          margin-bottom: 16px;
+          text-align: center;
+        }
+
+        .library-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .library-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          gap: 12px;
+        }
+
+        .library-icon {
+          font-size: 32px;
+          flex-shrink: 0;
+        }
+
+        .library-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .library-name {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .library-author {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          margin-bottom: 6px;
+        }
+
+        .library-description {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+          line-height: 1.4;
+        }
+
+        .library-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .library-tag {
+          font-size: 11px;
+          padding: 3px 8px;
+          border-radius: 12px;
+          background: var(--surface-hover);
+          color: var(--text-secondary);
+          text-transform: capitalize;
+        }
+
+        .library-tag.difficulty-beginner {
+          background: rgba(34, 197, 94, 0.2);
+          color: #22c55e;
+        }
+
+        .library-tag.difficulty-intermediate {
+          background: rgba(251, 191, 36, 0.2);
+          color: #fbbf24;
+        }
+
+        .library-tag.difficulty-advanced {
+          background: rgba(239, 68, 68, 0.2);
+          color: #ef4444;
+        }
+
+        .library-import-btn {
+          flex-shrink: 0;
+          align-self: center;
+          padding: 10px 20px;
+          background: var(--accent);
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #000;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .library-import-btn:hover:not(:disabled) {
+          filter: brightness(1.1);
+        }
+
+        .library-import-btn.imported {
+          background: var(--surface-hover);
+          color: var(--text-tertiary);
+          cursor: default;
+        }
+
+        .library-import-btn:disabled {
+          opacity: 0.7;
+        }
+
+        /* ===== ANALYTICS ===== */
+        .analytics-view {
+          padding: 16px;
+        }
+
+        .analytics-summary {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .summary-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 12px;
+        }
+
+        .summary-label {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--accent);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+
+        .summary-stats {
+          display: flex;
+          justify-content: space-between;
+        }
+
+        .summary-stat {
+          text-align: center;
+        }
+
+        .summary-stat .stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-primary);
+          display: block;
+        }
+
+        .summary-stat .stat-label {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+        }
+
+        .analytics-section {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+
+        .analytics-section .section-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 4px;
+        }
+
+        .analytics-section .section-subtitle {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          margin-bottom: 12px;
+        }
+
+        /* Volume Chart */
+        .volume-chart {
+          display: flex;
+          align-items: flex-end;
+          height: 120px;
+          gap: 6px;
+          padding: 8px 0;
+        }
+
+        .chart-bar-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          height: 100%;
+        }
+
+        .chart-bar {
+          width: 100%;
+          background: linear-gradient(180deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.6) 100%);
+          border-radius: 4px 4px 0 0;
+          min-height: 4px;
+          transition: height 0.3s ease;
+        }
+
+        .chart-label {
+          font-size: 9px;
+          color: var(--text-tertiary);
+          margin-top: 4px;
+        }
+
+        .chart-legend {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          text-align: center;
+          margin-top: 8px;
+        }
+
+        /* Muscle Distribution */
+        .muscle-bars {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .muscle-bar-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .muscle-name {
+          font-size: 12px;
+          color: var(--text-secondary);
+          width: 80px;
+          text-transform: capitalize;
+        }
+
+        .muscle-bar-container {
+          flex: 1;
+          height: 12px;
+          background: var(--surface-hover);
+          border-radius: 6px;
+          overflow: hidden;
+        }
+
+        .muscle-bar {
+          height: 100%;
+          background: var(--accent);
+          border-radius: 6px;
+          transition: width 0.3s ease;
+        }
+
+        .muscle-percent {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-primary);
+          width: 35px;
+          text-align: right;
+        }
+
+        /* Strength Cards */
+        .strength-cards {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .strength-card {
+          background: var(--surface-hover);
+          border-radius: 8px;
+          padding: 12px;
+          text-align: center;
+        }
+
+        .strength-name {
+          font-size: 11px;
+          color: var(--text-secondary);
+          margin-bottom: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .strength-pr {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .strength-gain {
+          font-size: 12px;
+          color: #22c55e;
+          font-weight: 600;
+        }
+
+        /* ===== EXERCISE DETAIL VIEW ===== */
+        .exercise-detail-view {
+          padding: 16px;
+        }
+
+        .exercise-info-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+
+        .exercise-muscle-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+
+        .muscle-icon {
+          font-size: 24px;
+        }
+
+        .exercise-info-card .muscle-name {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--text-primary);
+          width: auto;
+        }
+
+        .equipment-badge {
+          background: var(--surface-hover);
+          color: var(--text-secondary);
+          font-size: 11px;
+          font-weight: 500;
+          padding: 4px 8px;
+          border-radius: 4px;
+          text-transform: capitalize;
+          margin-left: auto;
+        }
+
+        .secondary-muscles {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+          padding-top: 8px;
+          border-top: 1px solid var(--border);
+        }
+
+        .secondary-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        .secondary-muscle {
+          background: rgba(var(--accent-rgb), 0.15);
+          color: var(--accent);
+          font-size: 11px;
+          font-weight: 500;
+          padding: 3px 8px;
+          border-radius: 4px;
+          text-transform: capitalize;
+        }
+
+        .exercise-stats-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+
+        .exercise-stats-card .card-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 12px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+
+        .stat-item {
+          text-align: center;
+          padding: 8px;
+          background: var(--surface-hover);
+          border-radius: 8px;
+        }
+
+        .stat-item .stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--accent);
+          display: block;
+        }
+
+        .stat-item .stat-label {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+        }
+
+        .last-workout {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          text-align: center;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+
+        .exercise-tips-card,
+        .exercise-mistakes-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+
+        .exercise-tips-card .card-title,
+        .exercise-mistakes-card .card-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 12px;
+        }
+
+        .exercise-tips-card .title-icon {
+          color: #22c55e;
+          font-size: 16px;
+        }
+
+        .exercise-mistakes-card .title-icon {
+          color: #f59e0b;
+          font-size: 16px;
+        }
+
+        .tips-list,
+        .mistakes-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .tip-item,
+        .mistake-item {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          padding: 8px 12px;
+          background: var(--surface-hover);
+          border-radius: 8px;
+          position: relative;
+          padding-left: 28px;
+        }
+
+        .tip-item::before {
+          content: '✓';
+          position: absolute;
+          left: 10px;
+          color: #22c55e;
+          font-weight: 600;
+        }
+
+        .mistake-item::before {
+          content: '✗';
+          position: absolute;
+          left: 10px;
+          color: #f59e0b;
+          font-weight: 600;
+        }
+
+        .start-exercise-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--accent);
+          color: white;
+          font-size: 15px;
+          font-weight: 600;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          margin-top: 8px;
+        }
+
+        .start-exercise-btn:active {
+          transform: scale(0.98);
+        }
+
         /* ===== LIGHT MODE POLISH ===== */
         :global(html.light) .fitness-app {
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
@@ -5028,98 +5603,441 @@ gamify.it.com/fitness`;
                 <span className="view-title">Programs</span>
               </div>
 
-              <button
-                className="create-btn"
-                onClick={() => store.startProgramWizard()}
-              >
-                + New Program
-              </button>
+              {/* Tabs */}
+              <div className="programs-tabs">
+                <button
+                  className={`programs-tab ${programsTab === 'my' ? 'active' : ''}`}
+                  onClick={() => setProgramsTab('my')}
+                >
+                  My Programs
+                </button>
+                <button
+                  className={`programs-tab ${programsTab === 'library' ? 'active' : ''}`}
+                  onClick={() => setProgramsTab('library')}
+                >
+                  Library
+                </button>
+              </div>
 
-              {store.programs.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">📋</div>
-                  <div className="empty-title">No programs yet</div>
-                  <div className="empty-subtitle">Create a multi-week training program with progression</div>
-                </div>
-              ) : (
-                <div className="program-list">
-                  {store.programs.map(program => {
-                    const isActive = store.activeProgram?.programId === program.id;
-                    const progress = isActive && store.activeProgram
-                      ? ((store.activeProgram.currentWeek - 1) * 7 + store.activeProgram.currentDay) / (program.durationWeeks * 7) * 100
-                      : 0;
+              {programsTab === 'my' ? (
+                <>
+                  <button
+                    className="create-btn"
+                    onClick={() => store.startProgramWizard()}
+                  >
+                    + New Program
+                  </button>
 
-                    return (
-                      <div key={program.id} className={`program-card ${isActive ? 'active' : ''}`}>
-                        <div className="program-info">
-                          <div className="program-name">
-                            {isActive && <span className="active-badge">Active</span>}
-                            {program.name}
-                          </div>
-                          <div className="program-meta">
-                            {program.durationWeeks} weeks • {program.difficulty} • {program.goal}
-                          </div>
-                          {isActive && store.activeProgram && (
-                            <div className="program-progress">
-                              <div className="progress-bar">
-                                <div className="progress-fill" style={{ width: `${progress}%` }} />
+                  {store.programs.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">📋</div>
+                      <div className="empty-title">No programs yet</div>
+                      <div className="empty-subtitle">Create your own or import from the Library</div>
+                      <button
+                        className="empty-action-btn"
+                        onClick={() => setProgramsTab('library')}
+                      >
+                        Browse Library →
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="program-list">
+                      {store.programs.map(program => {
+                        const isActive = store.activeProgram?.programId === program.id;
+                        const progress = isActive && store.activeProgram
+                          ? ((store.activeProgram.currentWeek - 1) * 7 + store.activeProgram.currentDay) / (program.durationWeeks * 7) * 100
+                          : 0;
+
+                        return (
+                          <div key={program.id} className={`program-card ${isActive ? 'active' : ''}`}>
+                            <div className="program-info">
+                              <div className="program-name">
+                                {isActive && <span className="active-badge">Active</span>}
+                                {program.name}
                               </div>
-                              <span className="progress-text">
-                                Week {store.activeProgram.currentWeek}, Day {store.activeProgram.currentDay}
-                              </span>
+                              <div className="program-meta">
+                                {program.durationWeeks} weeks • {program.difficulty} • {program.goal}
+                              </div>
+                              {isActive && store.activeProgram && (
+                                <div className="program-progress">
+                                  <div className="progress-bar-container">
+                                    <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                                  </div>
+                                  <span className="progress-text">
+                                    Week {store.activeProgram.currentWeek}, Day {store.activeProgram.currentDay}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <div className="program-actions">
+                              {isActive ? (
+                                <>
+                                  <button
+                                    className="program-action-btn primary"
+                                    onClick={() => store.startProgramWorkout()}
+                                  >
+                                    Today&apos;s Workout
+                                  </button>
+                                  <button
+                                    className="program-action-btn"
+                                    onClick={() => store.stopProgram()}
+                                  >
+                                    Stop
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="program-action-btn primary"
+                                    onClick={() => store.startProgram(program.id)}
+                                  >
+                                    Start
+                                  </button>
+                                  <button
+                                    className="program-action-btn"
+                                    onClick={() => store.duplicateProgram(program.id)}
+                                  >
+                                    ⧉
+                                  </button>
+                                  <button
+                                    className="program-action-btn danger"
+                                    onClick={() => {
+                                      if (confirm('Delete this program?')) {
+                                        store.deleteProgram(program.id);
+                                      }
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Library Tab */
+                <div className="program-library">
+                  <p className="library-intro">Popular training programs ready to use. One click to import.</p>
+                  <div className="library-list">
+                    {PREBUILT_PROGRAMS.map(prebuilt => {
+                      const alreadyImported = store.programs.some(p => p.name === prebuilt.name);
+                      return (
+                        <div key={prebuilt.id} className="library-card">
+                          <div className="library-icon">{prebuilt.icon}</div>
+                          <div className="library-info">
+                            <div className="library-name">{prebuilt.name}</div>
+                            <div className="library-author">by {prebuilt.author}</div>
+                            <div className="library-description">{prebuilt.description}</div>
+                            <div className="library-meta">
+                              <span className={`library-tag difficulty-${prebuilt.difficulty}`}>
+                                {prebuilt.difficulty}
+                              </span>
+                              <span className="library-tag">{prebuilt.goal}</span>
+                              <span className="library-tag">{prebuilt.daysPerWeek} days/wk</span>
+                              <span className="library-tag">{prebuilt.durationWeeks} weeks</span>
+                            </div>
+                          </div>
+                          <button
+                            className={`library-import-btn ${alreadyImported ? 'imported' : ''}`}
+                            onClick={() => {
+                              if (!alreadyImported) {
+                                store.importPrebuiltProgram(prebuilt.id);
+                                setProgramsTab('my');
+                              }
+                            }}
+                            disabled={alreadyImported}
+                          >
+                            {alreadyImported ? '✓ Imported' : 'Import'}
+                          </button>
                         </div>
-                        <div className="program-actions">
-                          {isActive ? (
-                            <>
-                              <button
-                                className="program-action-btn primary"
-                                onClick={() => store.startProgramWorkout()}
-                              >
-                                Today's Workout
-                              </button>
-                              <button
-                                className="program-action-btn"
-                                onClick={() => store.stopProgram()}
-                              >
-                                Stop
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="program-action-btn start"
-                                onClick={() => store.startProgram(program.id)}
-                              >
-                                Start
-                              </button>
-                              <button
-                                className="program-action-btn"
-                                onClick={() => store.duplicateProgram(program.id)}
-                              >
-                                ⧉
-                              </button>
-                              <button
-                                className="program-action-btn delete"
-                                onClick={() => {
-                                  if (confirm('Delete this program?')) {
-                                    store.deleteProgram(program.id);
-                                  }
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
           )}
+
+          {/* Analytics View */}
+          {store.currentView === 'analytics' && (() => {
+            const volumeByWeek = store.getVolumeByWeek(8);
+            const volumeByMuscle = store.getVolumeByMuscle();
+            const weeklySummary = store.getWeeklySummary();
+            const monthlySummary = store.getMonthlySummary();
+            const maxVolume = Math.max(...volumeByWeek.map(w => w.volume), 1);
+
+            // Get top 4 exercises by volume for strength progress
+            const exerciseVolume: Record<string, number> = {};
+            store.workouts.forEach(w => {
+              w.exercises.forEach(ex => {
+                ex.sets.forEach(s => {
+                  if (!s.isWarmup) {
+                    exerciseVolume[ex.id] = (exerciseVolume[ex.id] || 0) + s.weight * s.reps;
+                  }
+                });
+              });
+            });
+            const topExercises = Object.entries(exerciseVolume)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 4)
+              .map(([id]) => id);
+
+            return (
+              <div className="view-content analytics-view">
+                <div className="view-header">
+                  <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                  <span className="view-title">Analytics</span>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="analytics-summary">
+                  <div className="summary-card">
+                    <div className="summary-label">This Week</div>
+                    <div className="summary-stats">
+                      <div className="summary-stat">
+                        <span className="stat-value">{weeklySummary.workouts}</span>
+                        <span className="stat-label">Workouts</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="stat-value">{weeklySummary.sets}</span>
+                        <span className="stat-label">Sets</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="stat-value">{(weeklySummary.volume / 1000).toFixed(1)}k</span>
+                        <span className="stat-label">Volume</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="summary-card">
+                    <div className="summary-label">This Month</div>
+                    <div className="summary-stats">
+                      <div className="summary-stat">
+                        <span className="stat-value">{monthlySummary.workouts}</span>
+                        <span className="stat-label">Workouts</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="stat-value">{monthlySummary.sets}</span>
+                        <span className="stat-label">Sets</span>
+                      </div>
+                      <div className="summary-stat">
+                        <span className="stat-value">{(monthlySummary.volume / 1000).toFixed(1)}k</span>
+                        <span className="stat-label">Volume</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Volume Chart */}
+                <div className="analytics-section">
+                  <h3 className="section-title">Volume Trend</h3>
+                  <div className="volume-chart">
+                    {volumeByWeek.map((week, idx) => (
+                      <div key={idx} className="chart-bar-container">
+                        <div
+                          className="chart-bar"
+                          style={{ height: `${(week.volume / maxVolume) * 100}%` }}
+                        />
+                        <div className="chart-label">{week.week.split(' ')[0]}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="chart-legend">Volume (lbs) over last 8 weeks</div>
+                </div>
+
+                {/* Muscle Distribution */}
+                <div className="analytics-section">
+                  <h3 className="section-title">Muscle Distribution</h3>
+                  <p className="section-subtitle">Last 30 days</p>
+                  <div className="muscle-bars">
+                    {volumeByMuscle.slice(0, 8).map(({ muscle, percentage }) => (
+                      <div key={muscle} className="muscle-bar-row">
+                        <div className="muscle-name">{muscle}</div>
+                        <div className="muscle-bar-container">
+                          <div
+                            className="muscle-bar"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <div className="muscle-percent">{percentage}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Strength Progress */}
+                {topExercises.length > 0 && (
+                  <div className="analytics-section">
+                    <h3 className="section-title">Strength Progress</h3>
+                    <div className="strength-cards">
+                      {topExercises.map(exId => {
+                        const exercise = EXERCISES.find(e => e.id === exId);
+                        const progress = store.getStrengthProgress(exId);
+                        const currentPR = store.records[exId] || 0;
+                        const firstWeight = progress[0]?.weight || currentPR;
+                        const improvement = currentPR - firstWeight;
+
+                        return (
+                          <div key={exId} className="strength-card">
+                            <div className="strength-name">{exercise?.name || exId}</div>
+                            <div className="strength-pr">{currentPR} lbs</div>
+                            {improvement > 0 && (
+                              <div className="strength-gain">+{improvement} lbs</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {volumeByWeek.every(w => w.volume === 0) && (
+                  <div className="empty-state">
+                    <div className="empty-icon">📊</div>
+                    <div className="empty-title">No data yet</div>
+                    <div className="empty-subtitle">Complete some workouts to see your analytics</div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Exercise Detail View */}
+          {store.currentView === 'exercise-detail' && exerciseDetailId && (() => {
+            const exercise = EXERCISES.find(e => e.id === exerciseDetailId);
+            if (!exercise) return null;
+
+            // Get user's history with this exercise
+            const exerciseWorkouts = store.workouts.filter(w =>
+              w.exercises.some(ex => ex.id === exerciseDetailId)
+            );
+            const totalSessions = exerciseWorkouts.length;
+            const currentPR = store.records[exerciseDetailId] || 0;
+
+            // Calculate total volume for this exercise
+            let totalVolume = 0;
+            let totalSets = 0;
+            exerciseWorkouts.forEach(w => {
+              w.exercises.filter(ex => ex.id === exerciseDetailId).forEach(ex => {
+                ex.sets.forEach(s => {
+                  if (!s.isWarmup) {
+                    totalVolume += s.weight * s.reps;
+                    totalSets++;
+                  }
+                });
+              });
+            });
+
+            // Get last workout with this exercise
+            const lastWorkout = exerciseWorkouts[exerciseWorkouts.length - 1];
+            const lastWorkoutDate = lastWorkout ? new Date(lastWorkout.startTime).toLocaleDateString() : null;
+
+            return (
+              <div className="view-content exercise-detail-view">
+                <div className="view-header">
+                  <button className="back-btn" onClick={() => {
+                    setExerciseDetailId(null);
+                    store.setView('home');
+                  }}>←</button>
+                  <span className="view-title">{exercise.name}</span>
+                </div>
+
+                {/* Exercise Info Card */}
+                <div className="exercise-info-card">
+                  <div className="exercise-muscle-group">
+                    <span className="muscle-icon">
+                      {MUSCLE_CATEGORIES.find(m => m.id === exercise.muscle)?.icon || '💪'}
+                    </span>
+                    <span className="muscle-name">{exercise.muscle.charAt(0).toUpperCase() + exercise.muscle.slice(1)}</span>
+                    <span className="equipment-badge">{exercise.equipment}</span>
+                  </div>
+
+                  {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
+                    <div className="secondary-muscles">
+                      <span className="secondary-label">Also works:</span>
+                      {exercise.secondaryMuscles.map(m => (
+                        <span key={m} className="secondary-muscle">{m}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Your Stats */}
+                <div className="exercise-stats-card">
+                  <h3 className="card-title">Your Stats</h3>
+                  <div className="stats-grid">
+                    <div className="stat-item">
+                      <div className="stat-value">{currentPR}</div>
+                      <div className="stat-label">PR (lbs)</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{totalSessions}</div>
+                      <div className="stat-label">Sessions</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{totalSets}</div>
+                      <div className="stat-label">Total Sets</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{(totalVolume / 1000).toFixed(1)}k</div>
+                      <div className="stat-label">Volume</div>
+                    </div>
+                  </div>
+                  {lastWorkoutDate && (
+                    <div className="last-workout">Last performed: {lastWorkoutDate}</div>
+                  )}
+                </div>
+
+                {/* Form Tips */}
+                {exercise.formTips && exercise.formTips.length > 0 && (
+                  <div className="exercise-tips-card">
+                    <h3 className="card-title">
+                      <span className="title-icon">✓</span>
+                      Form Tips
+                    </h3>
+                    <ul className="tips-list">
+                      {exercise.formTips.map((tip, idx) => (
+                        <li key={idx} className="tip-item">{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Common Mistakes */}
+                {exercise.commonMistakes && exercise.commonMistakes.length > 0 && (
+                  <div className="exercise-mistakes-card">
+                    <h3 className="card-title">
+                      <span className="title-icon">⚠</span>
+                      Common Mistakes
+                    </h3>
+                    <ul className="mistakes-list">
+                      {exercise.commonMistakes.map((mistake, idx) => (
+                        <li key={idx} className="mistake-item">{mistake}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Start Workout Button */}
+                {!store.activeWorkout && (
+                  <button
+                    className="start-exercise-btn"
+                    onClick={() => {
+                      store.startWorkout();
+                      store.addExercise(exercise.id, exercise.name);
+                      setExerciseDetailId(null);
+                    }}
+                  >
+                    Start Workout with {exercise.name}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Program Wizard */}
           {store.currentView === 'program-wizard' && store.programWizardData && (
@@ -6624,6 +7542,19 @@ gamify.it.com/fitness`;
                             <div className="exercise-item-equipment">{exercise.equipment}</div>
                           </div>
                           {inWorkout && <div className="exercise-item-check">Added</div>}
+                          <button
+                            className="exercise-info-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExerciseDetailId(exercise.id);
+                              store.setView('exercise-detail');
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                            }}
+                            title="View exercise details"
+                          >
+                            ℹ
+                          </button>
                         </div>
                       );
                     })}

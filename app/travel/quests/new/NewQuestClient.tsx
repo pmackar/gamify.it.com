@@ -306,7 +306,7 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
 
           {/* Quest Details */}
           <div
-            className="rounded-lg p-5 mb-6"
+            className="rounded-lg p-5 mb-6 overflow-hidden"
             style={{
               background: "var(--rpg-card)",
               border: "2px solid var(--rpg-border)",
@@ -444,15 +444,17 @@ export default function NewQuestClient({ cities }: NewQuestClientProps) {
 
           {/* Party Invites */}
           <div
-            className="rounded-lg p-5 mb-6"
+            className="rounded-lg p-5 mb-6 overflow-hidden"
             style={{
               background: "var(--rpg-card)",
               border: "2px solid var(--rpg-border)",
             }}
           >
-            <h2 className="text-base font-medium mb-3 flex items-center gap-2" style={{ color: "var(--rpg-text)" }}>
-              <Users size={18} style={{ color: "var(--rpg-purple)" }} />
-              Invite to Party <span className="text-sm font-normal" style={{ color: "var(--rpg-muted)" }}>(optional)</span>
+            <h2 className="text-base font-medium mb-3" style={{ color: "var(--rpg-text)" }}>
+              <span className="inline-flex items-center gap-2">
+                <Users size={18} style={{ color: "var(--rpg-purple)" }} />
+                <span>Invite to Party <span className="text-sm font-normal" style={{ color: "var(--rpg-muted)" }}>(optional)</span></span>
+              </span>
             </h2>
             <p className="text-sm mb-4" style={{ color: "var(--rpg-muted)" }}>
               Invite friends to collaborate on this quest

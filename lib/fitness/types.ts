@@ -244,7 +244,7 @@ export interface ActiveWorkout {
   seconds: number;
 }
 
-export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor' | 'programs' | 'program-wizard' | 'program-detail';
+export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor' | 'programs' | 'program-wizard' | 'program-detail' | 'analytics' | 'exercise-detail';
 
 export interface CommandSuggestion {
   type: string;

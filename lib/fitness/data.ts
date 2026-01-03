@@ -3,6 +3,8 @@
  * Exercise library, XP tables, and game data
  */
 
+import type { WorkoutTemplate as EnhancedWorkoutTemplate, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from './types';
+
 // Exercise Tier System - Higher tiers = more XP
 export const EXERCISE_TIERS = {
   // Tier 1 - Major Compounds (3x XP multiplier)
@@ -102,13 +104,53 @@ export interface Exercise {
   name: string;
   muscle: string;
   equipment: string;
+  secondaryMuscles?: string[];
+  formTips?: string[];
+  commonMistakes?: string[];
 }
 
 // All exercises organized by muscle group
 export const EXERCISES: Exercise[] = [
   // CHEST
-  { id: 'bench', name: 'Bench Press', muscle: 'chest', equipment: 'barbell' },
-  { id: 'incline_bench', name: 'Incline Bench Press', muscle: 'chest', equipment: 'barbell' },
+  {
+    id: 'bench',
+    name: 'Bench Press',
+    muscle: 'chest',
+    equipment: 'barbell',
+    secondaryMuscles: ['triceps', 'shoulders'],
+    formTips: [
+      'Retract shoulder blades and keep them pinched throughout',
+      'Feet flat on floor, maintain slight arch in lower back',
+      'Touch bar to lower chest, not neck',
+      'Drive feet into ground as you press',
+      'Lock elbows at top but don\'t hyperextend'
+    ],
+    commonMistakes: [
+      'Flaring elbows too wide (keep 45-75° angle)',
+      'Bouncing bar off chest',
+      'Lifting hips off bench',
+      'Uneven grip width',
+      'Not using leg drive'
+    ]
+  },
+  {
+    id: 'incline_bench',
+    name: 'Incline Bench Press',
+    muscle: 'chest',
+    equipment: 'barbell',
+    secondaryMuscles: ['shoulders', 'triceps'],
+    formTips: [
+      'Set bench to 30-45 degree angle',
+      'Touch bar to upper chest/clavicle area',
+      'Keep shoulder blades retracted',
+      'Control the descent, explosive press'
+    ],
+    commonMistakes: [
+      'Angle too steep (becomes shoulder press)',
+      'Lifting butt off bench',
+      'Bar path too far forward'
+    ]
+  },
   { id: 'decline_bench', name: 'Decline Bench Press', muscle: 'chest', equipment: 'barbell' },
   { id: 'db_bench', name: 'Dumbbell Bench Press', muscle: 'chest', equipment: 'dumbbell' },
   { id: 'incline_db', name: 'Incline Dumbbell Press', muscle: 'chest', equipment: 'dumbbell' },
@@ -124,8 +166,48 @@ export const EXERCISES: Exercise[] = [
   { id: 'dips_chest', name: 'Chest Dips', muscle: 'chest', equipment: 'bodyweight' },
 
   // BACK
-  { id: 'deadlift', name: 'Deadlift', muscle: 'back', equipment: 'barbell' },
-  { id: 'rows', name: 'Barbell Rows', muscle: 'back', equipment: 'barbell' },
+  {
+    id: 'deadlift',
+    name: 'Deadlift',
+    muscle: 'back',
+    equipment: 'barbell',
+    secondaryMuscles: ['hamstrings', 'glutes', 'core', 'traps'],
+    formTips: [
+      'Bar over mid-foot, shins almost touching bar',
+      'Hip hinge - push hips back, not squat down',
+      'Neutral spine - no rounding upper or lower back',
+      'Engage lats - "protect your armpits"',
+      'Drive through heels, squeeze glutes at top',
+      'Bar stays close to body throughout lift'
+    ],
+    commonMistakes: [
+      'Rounding lower back',
+      'Bar drifting away from body',
+      'Hips shooting up first',
+      'Hyperextending at lockout',
+      'Looking up (cranks neck)'
+    ]
+  },
+  {
+    id: 'rows',
+    name: 'Barbell Rows',
+    muscle: 'back',
+    equipment: 'barbell',
+    secondaryMuscles: ['biceps', 'rear delts', 'core'],
+    formTips: [
+      'Hinge at hips, torso 45-75° angle',
+      'Pull bar to lower chest/upper abs',
+      'Squeeze shoulder blades together at top',
+      'Control the negative, don\'t just drop weight',
+      'Keep core tight to protect lower back'
+    ],
+    commonMistakes: [
+      'Using too much body English/momentum',
+      'Standing too upright',
+      'Pulling to belly button instead of chest',
+      'Rounding lower back'
+    ]
+  },
   { id: 'pendlay_row', name: 'Pendlay Row', muscle: 'back', equipment: 'barbell' },
   { id: 'tbar_row', name: 'T-Bar Row', muscle: 'back', equipment: 'barbell' },
   { id: 'db_row', name: 'Dumbbell Row', muscle: 'back', equipment: 'dumbbell' },
@@ -142,7 +224,28 @@ export const EXERCISES: Exercise[] = [
   { id: 'rack_pull', name: 'Rack Pull', muscle: 'back', equipment: 'barbell' },
 
   // SHOULDERS
-  { id: 'ohp', name: 'Overhead Press', muscle: 'shoulders', equipment: 'barbell' },
+  {
+    id: 'ohp',
+    name: 'Overhead Press',
+    muscle: 'shoulders',
+    equipment: 'barbell',
+    secondaryMuscles: ['triceps', 'core', 'upper chest'],
+    formTips: [
+      'Start with bar at collarbone level',
+      'Grip slightly wider than shoulders',
+      'Brace core and squeeze glutes',
+      'Press straight up, moving head back then forward',
+      'Lock out fully overhead, bar over mid-foot',
+      'Shrug shoulders up at top for full range'
+    ],
+    commonMistakes: [
+      'Excessive back arch',
+      'Pressing bar forward instead of straight up',
+      'Not locking out elbows',
+      'Loose core/wobbly stance',
+      'Grip too wide or too narrow'
+    ]
+  },
   { id: 'push_press', name: 'Push Press', muscle: 'shoulders', equipment: 'barbell' },
   { id: 'db_shoulder_press', name: 'Dumbbell Shoulder Press', muscle: 'shoulders', equipment: 'dumbbell' },
   { id: 'arnold_press', name: 'Arnold Press', muscle: 'shoulders', equipment: 'dumbbell' },
@@ -183,8 +286,48 @@ export const EXERCISES: Exercise[] = [
   { id: 'tricep_machine', name: 'Tricep Machine', muscle: 'triceps', equipment: 'machine' },
 
   // QUADS
-  { id: 'squat', name: 'Barbell Squat', muscle: 'quads', equipment: 'barbell' },
-  { id: 'front_squat', name: 'Front Squat', muscle: 'quads', equipment: 'barbell' },
+  {
+    id: 'squat',
+    name: 'Barbell Squat',
+    muscle: 'quads',
+    equipment: 'barbell',
+    secondaryMuscles: ['glutes', 'hamstrings', 'core', 'lower back'],
+    formTips: [
+      'Bar placement: high bar (on traps) or low bar (on rear delts)',
+      'Feet shoulder-width or slightly wider, toes pointed out 15-30°',
+      'Brace core, take a big breath before descent',
+      'Break at hips and knees together',
+      'Knees track over toes, push knees out',
+      'Depth: hip crease below top of knee',
+      'Drive up through mid-foot, keep chest up'
+    ],
+    commonMistakes: [
+      'Knees caving inward',
+      'Excessive forward lean/chest dropping',
+      'Not hitting depth',
+      'Coming up on toes',
+      '"Butt wink" (pelvis tucks under at bottom)',
+      'Not bracing core properly'
+    ]
+  },
+  {
+    id: 'front_squat',
+    name: 'Front Squat',
+    muscle: 'quads',
+    equipment: 'barbell',
+    secondaryMuscles: ['core', 'glutes', 'upper back'],
+    formTips: [
+      'Clean grip or cross-arm grip',
+      'Elbows high, bar rests on front delts',
+      'More upright torso than back squat',
+      'Drive knees forward over toes'
+    ],
+    commonMistakes: [
+      'Elbows dropping (bar rolls forward)',
+      'Wrist pain from grip (work on mobility)',
+      'Not staying upright'
+    ]
+  },
   { id: 'goblet_squat', name: 'Goblet Squat', muscle: 'quads', equipment: 'dumbbell' },
   { id: 'legpress', name: 'Leg Press', muscle: 'quads', equipment: 'machine' },
   { id: 'hack_squat', name: 'Hack Squat', muscle: 'quads', equipment: 'machine' },
@@ -245,6 +388,8 @@ export const DEFAULT_COMMANDS: Command[] = [
   { id: 'templates', title: 'Templates', subtitle: 'Plan and manage workout templates', icon: '📝' },
   { id: 'programs', title: 'Programs', subtitle: 'Multi-week training programs with progression', icon: '📅' },
   { id: 'history', title: 'History', subtitle: 'View past workouts', icon: '📋' },
+  { id: 'analytics', title: 'Analytics', subtitle: 'Volume, strength progress, muscle distribution', icon: '📊' },
+  { id: 'exercises', title: 'Exercise Library', subtitle: 'Browse all exercises with form tips', icon: '📚' },
   { id: 'profile', title: 'Profile', subtitle: 'View your stats and PRs', icon: '👤' },
   { id: 'coach', title: 'AI Coach', subtitle: 'Insights, plateaus, form tips', icon: '🤖' },
   { id: 'social', title: 'Social', subtitle: 'Friends, challenges, leaderboard', icon: '👥' },
@@ -583,3 +728,594 @@ export function getXPForNextLevel(level: number): number {
 export function getExerciseById(id: string): Exercise | undefined {
   return EXERCISES.find(e => e.id === id);
 }
+
+// ============================================
+// PRE-BUILT PROGRAM LIBRARY
+// ============================================
+
+export interface PrebuiltProgram {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  goal: 'strength' | 'hypertrophy' | 'endurance' | 'general';
+  daysPerWeek: number;
+  durationWeeks: number;
+  icon: string;
+  tags: string[];
+  templates: EnhancedWorkoutTemplate[];
+  program: Omit<Program, 'id' | 'createdAt' | 'updatedAt'>;
+}
+
+// Helper to create template exercises
+const te = (exerciseId: string, order: number, sets: number, reps: string, rpe?: number, notes?: string): TemplateExercise => ({
+  exerciseId,
+  exerciseName: EXERCISES.find(e => e.id === exerciseId)?.name || exerciseId,
+  order,
+  targetSets: sets,
+  targetReps: reps,
+  targetRpe: rpe,
+  notes,
+});
+
+export const PREBUILT_PROGRAMS: PrebuiltProgram[] = [
+  // ===== STRONGLIFTS 5x5 =====
+  {
+    id: 'stronglifts-5x5',
+    name: 'StrongLifts 5x5',
+    description: 'The classic beginner strength program. 3 days per week, alternating A/B workouts. Focus on linear progression with compound lifts.',
+    author: 'Mehdi Hadim',
+    difficulty: 'beginner',
+    goal: 'strength',
+    daysPerWeek: 3,
+    durationWeeks: 12,
+    icon: '🏋️',
+    tags: ['strength', 'beginner', 'compound', 'barbell', '5x5'],
+    templates: [
+      {
+        id: 'sl-workout-a',
+        name: 'Workout A',
+        description: 'Squat, Bench, Rows',
+        exercises: [
+          te('squat', 1, 5, '5', 8, 'Focus on depth - hips below knees'),
+          te('bench', 2, 5, '5', 8, 'Touch chest, pause, press'),
+          te('rows', 3, 5, '5', 8, 'Strict form, no momentum'),
+        ],
+        estimatedDuration: 45,
+        targetMuscleGroups: ['quads', 'chest', 'back'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'sl-workout-b',
+        name: 'Workout B',
+        description: 'Squat, OHP, Deadlift',
+        exercises: [
+          te('squat', 1, 5, '5', 8, 'Every workout starts with squats'),
+          te('ohp', 2, 5, '5', 8, 'Full lockout overhead'),
+          te('deadlift', 3, 1, '5', 9, 'One heavy set - quality over quantity'),
+        ],
+        estimatedDuration: 45,
+        targetMuscleGroups: ['quads', 'shoulders', 'back'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+    ],
+    program: {
+      name: 'StrongLifts 5x5',
+      description: 'Classic beginner strength program. Add 5lbs every workout for upper body, 10lbs for lower body.',
+      weeks: Array.from({ length: 12 }, (_, weekIdx): ProgramWeek => ({
+        weekNumber: weekIdx + 1,
+        name: weekIdx === 3 ? 'Deload' : undefined,
+        isDeload: weekIdx === 3,
+        days: [
+          { dayNumber: 1, name: 'Workout A', isRest: false, templateId: 'sl-workout-a' },
+          { dayNumber: 2, name: 'Rest', isRest: true },
+          { dayNumber: 3, name: 'Workout B', isRest: false, templateId: 'sl-workout-b' },
+          { dayNumber: 4, name: 'Rest', isRest: true },
+          { dayNumber: 5, name: 'Workout A', isRest: false, templateId: 'sl-workout-a' },
+          { dayNumber: 6, name: 'Rest', isRest: true },
+          { dayNumber: 7, name: 'Rest', isRest: true },
+        ],
+      })),
+      progressionRules: [
+        {
+          id: 'sl-linear-upper',
+          name: 'Upper Body Linear',
+          config: {
+            type: 'linear',
+            weightIncrement: 5,
+            deloadThreshold: 3,
+            deloadPercent: 0.1,
+          },
+        },
+        {
+          id: 'sl-linear-lower',
+          name: 'Lower Body Linear',
+          exerciseId: 'squat',
+          config: {
+            type: 'linear',
+            weightIncrement: 10,
+            deloadThreshold: 3,
+            deloadPercent: 0.1,
+          },
+        },
+        {
+          id: 'sl-linear-deadlift',
+          name: 'Deadlift Linear',
+          exerciseId: 'deadlift',
+          config: {
+            type: 'linear',
+            weightIncrement: 10,
+            deloadThreshold: 3,
+            deloadPercent: 0.1,
+          },
+        },
+      ],
+      durationWeeks: 12,
+      goal: 'strength',
+      difficulty: 'beginner',
+    },
+  },
+
+  // ===== PUSH PULL LEGS (PPL) =====
+  {
+    id: 'ppl-hypertrophy',
+    name: 'Push Pull Legs',
+    description: '6-day split hitting each muscle group twice per week. Great for intermediate lifters focused on building muscle.',
+    author: 'Metallicadpa (Reddit)',
+    difficulty: 'intermediate',
+    goal: 'hypertrophy',
+    daysPerWeek: 6,
+    durationWeeks: 8,
+    icon: '💪',
+    tags: ['hypertrophy', 'intermediate', '6-day', 'split', 'PPL'],
+    templates: [
+      {
+        id: 'ppl-push',
+        name: 'Push Day',
+        description: 'Chest, Shoulders, Triceps',
+        exercises: [
+          te('bench', 1, 4, '5', 8, 'Main compound - strength focus'),
+          te('ohp', 2, 3, '8-12', 7),
+          te('incline_db', 3, 3, '8-12', 7),
+          te('laterals', 4, 4, '12-15', 7, 'Controlled tempo'),
+          te('tricep', 5, 3, '10-12', 7),
+          te('overhead_tricep', 6, 3, '10-12', 7),
+        ],
+        estimatedDuration: 60,
+        targetMuscleGroups: ['chest', 'shoulders', 'triceps'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'ppl-pull',
+        name: 'Pull Day',
+        description: 'Back, Biceps, Rear Delts',
+        exercises: [
+          te('deadlift', 1, 3, '5', 9, 'Heavy compound - strength focus'),
+          te('rows', 2, 4, '8-12', 7),
+          te('lat_pulldown', 3, 3, '8-12', 7),
+          te('facepull', 4, 4, '15-20', 6, 'Rear delt health'),
+          te('curls', 5, 3, '8-12', 7),
+          te('hammercurl', 6, 3, '10-12', 7),
+        ],
+        estimatedDuration: 60,
+        targetMuscleGroups: ['back', 'biceps', 'shoulders'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'ppl-legs',
+        name: 'Legs Day',
+        description: 'Quads, Hamstrings, Glutes, Calves',
+        exercises: [
+          te('squat', 1, 4, '5', 8, 'Main compound - strength focus'),
+          te('rdl', 2, 3, '8-12', 7),
+          te('legpress', 3, 3, '10-12', 8),
+          te('legcurl', 4, 3, '10-12', 7),
+          te('legext', 5, 3, '12-15', 7),
+          te('calfraise', 6, 4, '12-15', 7),
+        ],
+        estimatedDuration: 60,
+        targetMuscleGroups: ['quads', 'hamstrings', 'glutes', 'calves'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+    ],
+    program: {
+      name: 'Push Pull Legs',
+      description: 'Classic 6-day hypertrophy split. Each muscle group trained twice per week.',
+      weeks: Array.from({ length: 8 }, (_, weekIdx): ProgramWeek => ({
+        weekNumber: weekIdx + 1,
+        name: weekIdx === 3 || weekIdx === 7 ? 'Deload' : undefined,
+        isDeload: weekIdx === 3 || weekIdx === 7,
+        days: [
+          { dayNumber: 1, name: 'Push', isRest: false, templateId: 'ppl-push' },
+          { dayNumber: 2, name: 'Pull', isRest: false, templateId: 'ppl-pull' },
+          { dayNumber: 3, name: 'Legs', isRest: false, templateId: 'ppl-legs' },
+          { dayNumber: 4, name: 'Push', isRest: false, templateId: 'ppl-push' },
+          { dayNumber: 5, name: 'Pull', isRest: false, templateId: 'ppl-pull' },
+          { dayNumber: 6, name: 'Legs', isRest: false, templateId: 'ppl-legs' },
+          { dayNumber: 7, name: 'Rest', isRest: true },
+        ],
+      })),
+      progressionRules: [
+        {
+          id: 'ppl-double-progression',
+          name: 'Double Progression',
+          config: {
+            type: 'double_progression',
+            repRange: [8, 12],
+            weightIncrement: 5,
+          },
+        },
+      ],
+      durationWeeks: 8,
+      goal: 'hypertrophy',
+      difficulty: 'intermediate',
+    },
+  },
+
+  // ===== PHUL (Power Hypertrophy Upper Lower) =====
+  {
+    id: 'phul',
+    name: 'PHUL',
+    description: 'Power Hypertrophy Upper Lower - 4 days per week combining strength and hypertrophy training.',
+    author: 'Brandon Campbell',
+    difficulty: 'intermediate',
+    goal: 'general',
+    daysPerWeek: 4,
+    durationWeeks: 10,
+    icon: '⚡',
+    tags: ['strength', 'hypertrophy', 'intermediate', '4-day', 'upper-lower'],
+    templates: [
+      {
+        id: 'phul-upper-power',
+        name: 'Upper Power',
+        description: 'Heavy upper body - strength focus',
+        exercises: [
+          te('bench', 1, 4, '3-5', 9, 'Heavy - strength focus'),
+          te('rows', 2, 4, '3-5', 9),
+          te('ohp', 3, 3, '5-8', 8),
+          te('lat_pulldown', 4, 3, '6-10', 7),
+          te('curls', 5, 3, '6-10', 7),
+          te('skull_crushers', 6, 3, '6-10', 7),
+        ],
+        estimatedDuration: 60,
+        targetMuscleGroups: ['chest', 'back', 'shoulders', 'biceps', 'triceps'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'phul-lower-power',
+        name: 'Lower Power',
+        description: 'Heavy lower body - strength focus',
+        exercises: [
+          te('squat', 1, 4, '3-5', 9, 'Heavy - strength focus'),
+          te('deadlift', 2, 3, '3-5', 9),
+          te('legpress', 3, 4, '5-8', 8),
+          te('legcurl', 4, 3, '6-10', 7),
+          te('calfraise', 5, 4, '6-10', 7),
+        ],
+        estimatedDuration: 55,
+        targetMuscleGroups: ['quads', 'hamstrings', 'glutes', 'calves'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'phul-upper-hyper',
+        name: 'Upper Hypertrophy',
+        description: 'Volume upper body - hypertrophy focus',
+        exercises: [
+          te('incline_db', 1, 4, '8-12', 7),
+          te('cable_flies', 2, 3, '12-15', 7),
+          te('seated_cable_row', 3, 4, '8-12', 7),
+          te('db_row', 4, 3, '8-12', 7),
+          te('laterals', 5, 4, '12-15', 7),
+          te('db_curl', 6, 4, '10-12', 7),
+          te('tricep', 7, 4, '10-12', 7),
+        ],
+        estimatedDuration: 65,
+        targetMuscleGroups: ['chest', 'back', 'shoulders', 'biceps', 'triceps'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'phul-lower-hyper',
+        name: 'Lower Hypertrophy',
+        description: 'Volume lower body - hypertrophy focus',
+        exercises: [
+          te('front_squat', 1, 4, '8-12', 7),
+          te('rdl', 2, 4, '8-12', 7),
+          te('legpress', 3, 3, '12-15', 7),
+          te('legcurl', 4, 4, '10-12', 7),
+          te('legext', 5, 4, '12-15', 7),
+          te('calfraise', 6, 4, '10-15', 7),
+        ],
+        estimatedDuration: 60,
+        targetMuscleGroups: ['quads', 'hamstrings', 'glutes', 'calves'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+    ],
+    program: {
+      name: 'PHUL',
+      description: 'Power Hypertrophy Upper Lower - 4 days combining strength and muscle building.',
+      weeks: Array.from({ length: 10 }, (_, weekIdx): ProgramWeek => ({
+        weekNumber: weekIdx + 1,
+        name: weekIdx === 4 || weekIdx === 9 ? 'Deload' : undefined,
+        isDeload: weekIdx === 4 || weekIdx === 9,
+        days: [
+          { dayNumber: 1, name: 'Upper Power', isRest: false, templateId: 'phul-upper-power' },
+          { dayNumber: 2, name: 'Lower Power', isRest: false, templateId: 'phul-lower-power' },
+          { dayNumber: 3, name: 'Rest', isRest: true },
+          { dayNumber: 4, name: 'Upper Hypertrophy', isRest: false, templateId: 'phul-upper-hyper' },
+          { dayNumber: 5, name: 'Lower Hypertrophy', isRest: false, templateId: 'phul-lower-hyper' },
+          { dayNumber: 6, name: 'Rest', isRest: true },
+          { dayNumber: 7, name: 'Rest', isRest: true },
+        ],
+      })),
+      progressionRules: [
+        {
+          id: 'phul-linear-power',
+          name: 'Power Days Linear',
+          config: {
+            type: 'linear',
+            weightIncrement: 5,
+            deloadThreshold: 2,
+            deloadPercent: 0.1,
+          },
+        },
+        {
+          id: 'phul-double-hyper',
+          name: 'Hypertrophy Days Double',
+          config: {
+            type: 'double_progression',
+            repRange: [8, 12],
+            weightIncrement: 5,
+          },
+        },
+      ],
+      durationWeeks: 10,
+      goal: 'general',
+      difficulty: 'intermediate',
+    },
+  },
+
+  // ===== nSuns 5/3/1 LP =====
+  {
+    id: 'nsuns-4day',
+    name: 'nSuns 5/3/1 LP (4-Day)',
+    description: 'High volume linear progression based on 5/3/1. Great for intermediate lifters pushing for strength PRs.',
+    author: 'nSuns (Reddit)',
+    difficulty: 'advanced',
+    goal: 'strength',
+    daysPerWeek: 4,
+    durationWeeks: 12,
+    icon: '🔥',
+    tags: ['strength', 'advanced', '5/3/1', 'high-volume', 'powerlifting'],
+    templates: [
+      {
+        id: 'nsuns-bench-ohp',
+        name: 'Bench + OHP',
+        description: 'Primary: Bench (T1), Secondary: OHP (T2)',
+        exercises: [
+          te('bench', 1, 9, 'varies', 8, 'T1: 8 working sets + 1 AMRAP'),
+          te('ohp', 2, 8, 'varies', 7, 'T2: 8 sets following T2 scheme'),
+          te('rows', 3, 5, '8-12', 7, 'Accessory'),
+          te('facepull', 4, 4, '15-20', 6, 'Accessory'),
+          te('tricep', 5, 3, '10-15', 7, 'Accessory'),
+        ],
+        estimatedDuration: 75,
+        targetMuscleGroups: ['chest', 'shoulders', 'triceps', 'back'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'nsuns-squat-sumo',
+        name: 'Squat + Sumo',
+        description: 'Primary: Squat (T1), Secondary: Sumo Deadlift (T2)',
+        exercises: [
+          te('squat', 1, 9, 'varies', 8, 'T1: 8 working sets + 1 AMRAP'),
+          te('sumo_deadlift', 2, 8, 'varies', 7, 'T2: 8 sets following T2 scheme'),
+          te('legpress', 3, 4, '10-12', 7, 'Accessory'),
+          te('legcurl', 4, 4, '10-12', 7, 'Accessory'),
+          te('calfraise', 5, 4, '12-15', 7, 'Accessory'),
+        ],
+        estimatedDuration: 70,
+        targetMuscleGroups: ['quads', 'glutes', 'hamstrings', 'calves'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'nsuns-ohp-incline',
+        name: 'OHP + Incline',
+        description: 'Primary: OHP (T1), Secondary: Incline Bench (T2)',
+        exercises: [
+          te('ohp', 1, 9, 'varies', 8, 'T1: 8 working sets + 1 AMRAP'),
+          te('incline_bench', 2, 8, 'varies', 7, 'T2: 8 sets following T2 scheme'),
+          te('lat_pulldown', 3, 5, '8-12', 7, 'Accessory'),
+          te('laterals', 4, 4, '12-15', 7, 'Accessory'),
+          te('curls', 5, 3, '10-12', 7, 'Accessory'),
+        ],
+        estimatedDuration: 70,
+        targetMuscleGroups: ['shoulders', 'chest', 'back', 'biceps'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'nsuns-deadlift-front',
+        name: 'Deadlift + Front Squat',
+        description: 'Primary: Deadlift (T1), Secondary: Front Squat (T2)',
+        exercises: [
+          te('deadlift', 1, 9, 'varies', 9, 'T1: 8 working sets + 1 AMRAP'),
+          te('front_squat', 2, 8, 'varies', 7, 'T2: 8 sets following T2 scheme'),
+          te('rdl', 3, 4, '8-12', 7, 'Accessory'),
+          te('legext', 4, 4, '12-15', 7, 'Accessory'),
+          te('ab_rollout', 5, 3, '10-15', 7, 'Accessory'),
+        ],
+        estimatedDuration: 75,
+        targetMuscleGroups: ['back', 'quads', 'hamstrings', 'core'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+    ],
+    program: {
+      name: 'nSuns 5/3/1 LP (4-Day)',
+      description: 'High volume 5/3/1 variant with aggressive linear progression. Increase TM based on AMRAP performance.',
+      weeks: Array.from({ length: 12 }, (_, weekIdx): ProgramWeek => ({
+        weekNumber: weekIdx + 1,
+        name: weekIdx === 5 || weekIdx === 11 ? 'Deload' : undefined,
+        isDeload: weekIdx === 5 || weekIdx === 11,
+        days: [
+          { dayNumber: 1, name: 'Bench + OHP', isRest: false, templateId: 'nsuns-bench-ohp' },
+          { dayNumber: 2, name: 'Squat + Sumo', isRest: false, templateId: 'nsuns-squat-sumo' },
+          { dayNumber: 3, name: 'Rest', isRest: true },
+          { dayNumber: 4, name: 'OHP + Incline', isRest: false, templateId: 'nsuns-ohp-incline' },
+          { dayNumber: 5, name: 'Deadlift + Front Squat', isRest: false, templateId: 'nsuns-deadlift-front' },
+          { dayNumber: 6, name: 'Rest', isRest: true },
+          { dayNumber: 7, name: 'Rest', isRest: true },
+        ],
+      })),
+      progressionRules: [
+        {
+          id: 'nsuns-amrap-progression',
+          name: 'AMRAP-Based Progression',
+          config: {
+            type: 'rpe_based',
+            targetRpe: 8,
+            rpeRange: [7, 9],
+            adjustmentPerPoint: 5,
+          },
+        },
+      ],
+      durationWeeks: 12,
+      goal: 'strength',
+      difficulty: 'advanced',
+    },
+  },
+
+  // ===== GZCLP (GZCL Method for Beginners) =====
+  {
+    id: 'gzclp',
+    name: 'GZCLP',
+    description: 'Tiered approach to training: heavy T1 compounds, moderate T2 variants, and light T3 accessories. Great for intermediates.',
+    author: 'Cody LeFever (GZCL)',
+    difficulty: 'intermediate',
+    goal: 'strength',
+    daysPerWeek: 4,
+    durationWeeks: 12,
+    icon: '🎯',
+    tags: ['strength', 'intermediate', 'tiered', 'linear-progression'],
+    templates: [
+      {
+        id: 'gzclp-a1',
+        name: 'Day A1 - Squat Focus',
+        description: 'T1: Squat, T2: Bench, T3: Lat Pulldown',
+        exercises: [
+          te('squat', 1, 5, '3', 9, 'T1: 5x3 - heavy'),
+          te('bench', 2, 3, '10', 7, 'T2: 3x10'),
+          te('lat_pulldown', 3, 3, '15', 6, 'T3: 3x15+'),
+        ],
+        estimatedDuration: 50,
+        targetMuscleGroups: ['quads', 'chest', 'back'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'gzclp-b1',
+        name: 'Day B1 - OHP Focus',
+        description: 'T1: OHP, T2: Deadlift, T3: Rows',
+        exercises: [
+          te('ohp', 1, 5, '3', 9, 'T1: 5x3 - heavy'),
+          te('deadlift', 2, 3, '10', 7, 'T2: 3x10'),
+          te('db_row', 3, 3, '15', 6, 'T3: 3x15+'),
+        ],
+        estimatedDuration: 50,
+        targetMuscleGroups: ['shoulders', 'back', 'hamstrings'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'gzclp-a2',
+        name: 'Day A2 - Bench Focus',
+        description: 'T1: Bench, T2: Squat, T3: Lat Pulldown',
+        exercises: [
+          te('bench', 1, 5, '3', 9, 'T1: 5x3 - heavy'),
+          te('squat', 2, 3, '10', 7, 'T2: 3x10'),
+          te('lat_pulldown', 3, 3, '15', 6, 'T3: 3x15+'),
+        ],
+        estimatedDuration: 50,
+        targetMuscleGroups: ['chest', 'quads', 'back'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: 'gzclp-b2',
+        name: 'Day B2 - Deadlift Focus',
+        description: 'T1: Deadlift, T2: OHP, T3: Rows',
+        exercises: [
+          te('deadlift', 1, 5, '3', 9, 'T1: 5x3 - heavy'),
+          te('ohp', 2, 3, '10', 7, 'T2: 3x10'),
+          te('db_row', 3, 3, '15', 6, 'T3: 3x15+'),
+        ],
+        estimatedDuration: 50,
+        targetMuscleGroups: ['back', 'shoulders', 'hamstrings'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+    ],
+    program: {
+      name: 'GZCLP',
+      description: 'GZCL Linear Progression. Tiered approach: T1 for strength, T2 for volume, T3 for hypertrophy.',
+      weeks: Array.from({ length: 12 }, (_, weekIdx): ProgramWeek => ({
+        weekNumber: weekIdx + 1,
+        name: weekIdx === 5 || weekIdx === 11 ? 'Deload' : undefined,
+        isDeload: weekIdx === 5 || weekIdx === 11,
+        days: [
+          { dayNumber: 1, name: 'A1 - Squat Focus', isRest: false, templateId: 'gzclp-a1' },
+          { dayNumber: 2, name: 'Rest', isRest: true },
+          { dayNumber: 3, name: 'B1 - OHP Focus', isRest: false, templateId: 'gzclp-b1' },
+          { dayNumber: 4, name: 'Rest', isRest: true },
+          { dayNumber: 5, name: 'A2 - Bench Focus', isRest: false, templateId: 'gzclp-a2' },
+          { dayNumber: 6, name: 'Rest', isRest: true },
+          { dayNumber: 7, name: 'B2 - Deadlift Focus', isRest: false, templateId: 'gzclp-b2' },
+        ],
+      })),
+      progressionRules: [
+        {
+          id: 'gzclp-linear',
+          name: 'T1/T2 Linear Progression',
+          config: {
+            type: 'linear',
+            weightIncrement: 5,
+            deloadThreshold: 2,
+            deloadPercent: 0.15,
+          },
+        },
+      ],
+      durationWeeks: 12,
+      goal: 'strength',
+      difficulty: 'intermediate',
+    },
+  },
+];
