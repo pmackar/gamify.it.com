@@ -145,6 +145,52 @@ export default function TodayApp() {
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
 
+  // Mobile action menu - shows Complete/Edit options on tap
+  const [mobileActionTaskId, setMobileActionTaskId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle task tap on mobile - show action menu
+  const handleMobileTaskTap = (taskId: string, task: Task) => {
+    if (!isMobile) {
+      // Desktop - open edit modal
+      openTaskModal(task);
+      return;
+    }
+    // Mobile - toggle action menu
+    if (mobileActionTaskId === taskId) {
+      setMobileActionTaskId(null);
+    } else {
+      setMobileActionTaskId(taskId);
+    }
+  };
+
+  // Close mobile action menu when tapping outside
+  useEffect(() => {
+    if (!mobileActionTaskId) return;
+    const handleClickOutside = (e: TouchEvent | MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.mobile-action-menu') && !target.closest('.task-card')) {
+        setMobileActionTaskId(null);
+      }
+    };
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileActionTaskId]);
+
   useEffect(() => {
     setMounted(true);
     store.loadState();
@@ -3621,17 +3667,67 @@ export default function TodayApp() {
             gap: 6px;
           }
 
+          /* Hide checkbox on mobile - use tap-to-action instead */
           .task-checkbox {
-            width: 26px;
-            height: 26px;
-            /* Ensure checkbox is above other elements for touch */
-            z-index: 10;
+            display: none;
           }
 
-          /* Even larger touch target on mobile */
-          .task-checkbox::before {
-            width: 48px;
-            height: 48px;
+          /* Mobile action menu */
+          .mobile-action-menu {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            margin: 0 -12px -12px -12px;
+            border-radius: 0 0 12px 12px;
+          }
+
+          .mobile-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+          }
+
+          .mobile-action-btn.complete {
+            background: var(--success);
+            color: white;
+          }
+
+          .mobile-action-btn.complete:active {
+            transform: scale(0.96);
+            background: var(--success-dark, #2d8f4e);
+          }
+
+          .mobile-action-btn.edit {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+          }
+
+          .mobile-action-btn.edit:active {
+            transform: scale(0.96);
+            background: var(--bg-secondary);
+          }
+
+          .mobile-action-btn-icon {
+            font-size: 18px;
+          }
+
+          /* Task card with action menu open */
+          .task-card.action-menu-open {
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           }
 
           /* Empty state */
@@ -4188,17 +4284,16 @@ export default function TodayApp() {
                         <div
                           key={task.id}
                           ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
-                          className={`task-card overdue ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''}`}
+                          className={`task-card overdue ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''} ${mobileActionTaskId === task.id ? 'action-menu-open' : ''}`}
                         >
                           <div
                             className={`task-checkbox`}
                             onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); }}
-                            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleComplete(task.id); }}
                             role="checkbox"
                             aria-checked={false}
                             tabIndex={0}
                           />
-                          <div className="task-content" onClick={() => openTaskModal(task)}>
+                          <div className="task-content" onClick={() => handleMobileTaskTap(task.id, task)}>
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
@@ -4229,6 +4324,25 @@ export default function TodayApp() {
                               </div>
                             )}
                           </div>
+                          {/* Mobile action menu */}
+                          {mobileActionTaskId === task.id && (
+                            <div className="mobile-action-menu">
+                              <button
+                                className="mobile-action-btn complete"
+                                onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                              >
+                                <span className="mobile-action-btn-icon">✓</span>
+                                Complete
+                              </button>
+                              <button
+                                className="mobile-action-btn edit"
+                                onClick={(e) => { e.stopPropagation(); openTaskModal(task); setMobileActionTaskId(null); }}
+                              >
+                                <span className="mobile-action-btn-icon">✏️</span>
+                                Edit
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -4253,17 +4367,16 @@ export default function TodayApp() {
                         <div
                           key={task.id}
                           ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
-                          className={`task-card ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''}`}
+                          className={`task-card ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''} ${mobileActionTaskId === task.id ? 'action-menu-open' : ''}`}
                         >
                           <div
                             className={`task-checkbox`}
                             onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); }}
-                            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleComplete(task.id); }}
                             role="checkbox"
                             aria-checked={false}
                             tabIndex={0}
                           />
-                          <div className="task-content" onClick={() => openTaskModal(task)}>
+                          <div className="task-content" onClick={() => handleMobileTaskTap(task.id, task)}>
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
@@ -4294,6 +4407,25 @@ export default function TodayApp() {
                               </div>
                             )}
                           </div>
+                          {/* Mobile action menu */}
+                          {mobileActionTaskId === task.id && (
+                            <div className="mobile-action-menu">
+                              <button
+                                className="mobile-action-btn complete"
+                                onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                              >
+                                <span className="mobile-action-btn-icon">✓</span>
+                                Complete
+                              </button>
+                              <button
+                                className="mobile-action-btn edit"
+                                onClick={(e) => { e.stopPropagation(); openTaskModal(task); setMobileActionTaskId(null); }}
+                              >
+                                <span className="mobile-action-btn-icon">✏️</span>
+                                Edit
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -4314,8 +4446,8 @@ export default function TodayApp() {
                       ref={isKeyboardSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                       className={`task-card ${task.is_completed ? 'completed' : ''} ${
                         task.priority ? `priority-${task.priority.toLowerCase()}` : ''
-                      } ${isKeyboardSelected ? 'keyboard-selected' : ''} ${isBulkSelected ? 'bulk-selected' : ''} ${draggedTaskId === task.id ? 'dragging' : ''} ${dragOverTaskId === task.id ? 'drag-over' : ''}`}
-                      draggable={!task.is_completed}
+                      } ${isKeyboardSelected ? 'keyboard-selected' : ''} ${isBulkSelected ? 'bulk-selected' : ''} ${draggedTaskId === task.id ? 'dragging' : ''} ${dragOverTaskId === task.id ? 'drag-over' : ''} ${mobileActionTaskId === task.id ? 'action-menu-open' : ''}`}
+                      draggable={!task.is_completed && !isMobile}
                       onDragStart={(e) => handleDragStart(e, task.id)}
                       onDragEnd={handleDragEnd}
                       onDragOver={(e) => handleDragOver(e, task.id)}
@@ -4332,15 +4464,6 @@ export default function TodayApp() {
                             handleToggleComplete(task.id);
                           }
                         }}
-                        onTouchEnd={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (selectedTaskIds.size > 0) {
-                            handleTaskSelect(task.id, index, e as unknown as React.MouseEvent);
-                          } else {
-                            handleToggleComplete(task.id);
-                          }
-                        }}
                         role="checkbox"
                         aria-checked={task.is_completed}
                         tabIndex={0}
@@ -4351,7 +4474,7 @@ export default function TodayApp() {
                         if (e.metaKey || e.ctrlKey || e.shiftKey) {
                           handleTaskSelect(task.id, index, e);
                         } else {
-                          openTaskModal(task);
+                          handleMobileTaskTap(task.id, task);
                         }
                       }}>
                         <div className="task-title">{task.title}</div>
@@ -4409,6 +4532,25 @@ export default function TodayApp() {
                           </div>
                         )}
                       </div>
+                      {/* Mobile action menu */}
+                      {mobileActionTaskId === task.id && (
+                        <div className="mobile-action-menu">
+                          <button
+                            className="mobile-action-btn complete"
+                            onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                          >
+                            <span className="mobile-action-btn-icon">{task.is_completed ? '↩' : '✓'}</span>
+                            {task.is_completed ? 'Uncomplete' : 'Complete'}
+                          </button>
+                          <button
+                            className="mobile-action-btn edit"
+                            onClick={(e) => { e.stopPropagation(); openTaskModal(task); setMobileActionTaskId(null); }}
+                          >
+                            <span className="mobile-action-btn-icon">✏️</span>
+                            Edit
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
