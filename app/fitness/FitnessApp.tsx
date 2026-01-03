@@ -5,6 +5,8 @@ import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
+import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
+import FitnessLeaderboard from './components/FitnessLeaderboard';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
 
@@ -2686,6 +2688,9 @@ export default function FitnessApp() {
         .recent-section {
           padding: 0 16px;
         }
+        .friends-section {
+          padding: 24px 16px;
+        }
         .recent-header {
           font-size: 0.75rem;
           font-weight: 600;
@@ -3942,6 +3947,14 @@ gamify.it.com/fitness`;
                   ))}
                 </div>
               )}
+
+              {/* Friends Section */}
+              <div className="friends-section">
+                <FriendsWorkoutFeed />
+                <div style={{ marginTop: '16px' }}>
+                  <FitnessLeaderboard />
+                </div>
+              </div>
             </>
           )}
         </main>

@@ -3,17 +3,17 @@ import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 interface RouteParams {
-  params: Promise<{ locationId: string }>;
+  params: Promise<{ id: string }>;
 }
 
-// GET /api/locations/[locationId]/hotlist-friends - Get friends who have this location on their hotlist
+// GET /api/locations/[id]/hotlist-friends - Get friends who have this location on their hotlist
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { locationId } = await params;
+  const { id: locationId } = await params;
 
   // Get user's friends
   const friendships = await prisma.friendships.findMany({
