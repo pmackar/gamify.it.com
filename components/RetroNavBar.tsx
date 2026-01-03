@@ -152,82 +152,6 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
   const isToday = pathname.startsWith('/today');
   const isTravel = pathname.startsWith('/travel');
 
-  // Travel breadcrumb state
-  const [travelBreadcrumbs, setTravelBreadcrumbs] = useState<Array<{ label: string; href: string }>>([]);
-
-  // Route name mapping for travel
-  const TRAVEL_ROUTE_NAMES: Record<string, string> = {
-    travel: 'Explorer',
-    cities: 'Cities',
-    locations: 'Locations',
-    neighborhoods: 'Neighborhoods',
-    achievements: 'Achievements',
-    profile: 'Profile',
-    map: 'Map',
-    new: 'New',
-  };
-
-  // Fetch travel breadcrumb data
-  useEffect(() => {
-    if (!isTravel) {
-      setTravelBreadcrumbs([]);
-      return;
-    }
-
-    async function buildBreadcrumbs() {
-      const segments = pathname.split('/').filter(Boolean);
-      const crumbs: Array<{ label: string; href: string }> = [];
-      let currentPath = '';
-
-      for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
-        const prevSegment = segments[i - 1];
-        currentPath += `/${segment}`;
-
-        let label = TRAVEL_ROUTE_NAMES[segment];
-
-        // Fetch dynamic names for IDs
-        if (!label && segment.length > 10) {
-          try {
-            if (prevSegment === 'cities') {
-              const res = await fetch(`/api/cities/${segment}`);
-              if (res.ok) {
-                const city = await res.json();
-                label = city.name;
-              }
-            } else if (prevSegment === 'locations') {
-              const res = await fetch(`/api/locations/${segment}`);
-              if (res.ok) {
-                const location = await res.json();
-                label = location.name;
-              }
-            } else if (prevSegment === 'neighborhoods') {
-              const res = await fetch(`/api/neighborhoods/${segment}`);
-              if (res.ok) {
-                const neighborhood = await res.json();
-                label = neighborhood.name;
-              }
-            }
-          } catch (e) {
-            // Use segment as fallback
-          }
-        }
-
-        if (!label) label = segment;
-
-        // Truncate long names
-        if (label.length > 15) {
-          label = label.substring(0, 13) + '..';
-        }
-
-        crumbs.push({ label, href: currentPath });
-      }
-
-      setTravelBreadcrumbs(crumbs);
-    }
-
-    buildBreadcrumbs();
-  }, [pathname, isTravel]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -882,6 +806,42 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         }
         .global-nav.theme-mario .nav-logo-icon:hover {
           filter: drop-shadow(3px 3px 0 #000);
+        }
+
+        /* ===== APP-SPECIFIC LOGO COLORS ===== */
+        /* These override theme colors when in a specific app */
+
+        /* Fitness (Iron Quest) - Red gradient */
+        .logo-app-fitness .logo-g-top { fill: #FF6B6B !important; }
+        .logo-app-fitness .logo-g-mid { fill: #CC5555 !important; }
+        .logo-app-fitness .logo-g-bottom { fill: #993333 !important; }
+        .nav-logo-icon.logo-app-fitness {
+          filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.4)) !important;
+        }
+        .nav-logo-icon.logo-app-fitness:hover {
+          filter: drop-shadow(0 0 12px rgba(255, 107, 107, 0.6)) !important;
+        }
+
+        /* Today (Day Quest) - Cyan gradient */
+        .logo-app-today .logo-g-top { fill: #5CC9F5 !important; }
+        .logo-app-today .logo-g-mid { fill: #4AB8E4 !important; }
+        .logo-app-today .logo-g-bottom { fill: #2D8AB5 !important; }
+        .nav-logo-icon.logo-app-today {
+          filter: drop-shadow(0 0 8px rgba(92, 201, 245, 0.4)) !important;
+        }
+        .nav-logo-icon.logo-app-today:hover {
+          filter: drop-shadow(0 0 12px rgba(92, 201, 245, 0.6)) !important;
+        }
+
+        /* Travel (Explorer) - Teal gradient */
+        .logo-app-travel .logo-g-top { fill: #5fbf8a !important; }
+        .logo-app-travel .logo-g-mid { fill: #4a9d70 !important; }
+        .logo-app-travel .logo-g-bottom { fill: #3d8260 !important; }
+        .nav-logo-icon.logo-app-travel {
+          filter: drop-shadow(0 0 8px rgba(95, 191, 138, 0.4)) !important;
+        }
+        .nav-logo-icon.logo-app-travel:hover {
+          filter: drop-shadow(0 0 12px rgba(95, 191, 138, 0.6)) !important;
         }
 
         .nav-logo-btn {
@@ -1891,7 +1851,11 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                   className="nav-logo-btn"
                   aria-label="Open apps menu"
                 >
-                  <AppLogoIcon className="nav-logo-icon" />
+                  <AppLogoIcon className={`nav-logo-icon ${
+                    isFitness ? 'logo-app-fitness' :
+                    isToday ? 'logo-app-today' :
+                    isTravel ? 'logo-app-travel' : ''
+                  }`} />
                 </button>
               {showAppsMenu && (
                 <div className="nav-apps-dropdown">
@@ -1918,36 +1882,6 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                 </div>
               )}
               </div>
-              {/* Active app indicator - using icons */}
-              {(isFitness || isToday || pathname === '/account') && (
-                <>
-                  <span className="nav-separator">/</span>
-                  {isFitness && <Link href="/fitness" className="nav-active-app-icon"><DumbbellIcon active /></Link>}
-                  {isToday && <Link href="/today" className="nav-active-app-icon"><ChecklistIcon active /></Link>}
-                  {pathname === '/account' && <Link href="/account" className="nav-active-app-icon"><HomeIcon /></Link>}
-                </>
-              )}
-              {/* Travel full breadcrumb */}
-              {isTravel && travelBreadcrumbs.map((crumb, index) => (
-                <span key={crumb.href} style={{ display: 'flex', alignItems: 'center' }}>
-                  <span className="nav-separator">/</span>
-                  {index === 0 ? (
-                    // First segment (Explorer) - show icon
-                    index === travelBreadcrumbs.length - 1 ? (
-                      <span className="nav-active-app-icon"><PlaneIcon active /></span>
-                    ) : (
-                      <Link href={crumb.href} className="nav-active-app-icon" style={{ opacity: 0.6 }}><PlaneIcon active /></Link>
-                    )
-                  ) : (
-                    // Other segments - show text
-                    index === travelBreadcrumbs.length - 1 ? (
-                      <span className="nav-active-app travel" style={{ opacity: 1 }}>{crumb.label}</span>
-                    ) : (
-                      <Link href={crumb.href} className="nav-active-app travel" style={{ opacity: 0.6 }}>{crumb.label}</Link>
-                    )
-                  )}
-                </span>
-              ))}
             </div>
           </div>
 
