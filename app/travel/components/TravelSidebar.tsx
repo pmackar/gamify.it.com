@@ -4,12 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Globe,
-  Map,
-  Building2,
-  MapPin,
-  Heart,
-  Scroll,
-  Trophy,
   Plus,
   Compass,
 } from "lucide-react";
@@ -38,12 +32,12 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
   const xpProgress = user.xpToNext > 0 ? (user.xp / user.xpToNext) * 100 : 100;
 
   const navItems = [
-    { icon: <Map size={18} />, label: "World Map", href: "/travel/map" },
-    { icon: <Building2 size={18} />, label: "Cities", href: "/travel/cities", count: stats.cities },
-    { icon: <MapPin size={18} />, label: "Locations", href: "/travel/locations", count: stats.locations },
-    { icon: <Heart size={18} />, label: "Hotlist", href: "/travel/hotlist", count: stats.hotlist },
-    { icon: <Scroll size={18} />, label: "Quests", href: "/travel/quests", count: stats.activeQuests },
-    { icon: <Trophy size={18} />, label: "Achievements", href: "/travel/achievements", count: `${stats.achievements}/${stats.totalAchievements}` },
+    { label: "World Map", href: "/travel/map" },
+    { label: "Cities", href: "/travel/cities", count: stats.cities },
+    { label: "Locations", href: "/travel/locations", count: stats.locations },
+    { label: "Hotlist", href: "/travel/hotlist", count: stats.hotlist },
+    { label: "Quests", href: "/travel/quests", count: stats.activeQuests },
+    { label: "Achievements", href: "/travel/achievements", count: `${stats.achievements}/${stats.totalAchievements}` },
   ];
 
   return (
@@ -115,7 +109,6 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
               href={item.href}
               className={`nav-item ${isActive ? "nav-item-active" : ""}`}
             >
-              <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
               {item.count !== undefined && (
                 <span className="nav-count">{item.count}</span>
@@ -367,10 +360,10 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
           padding: 12px 14px;
           border-radius: 8px;
           color: var(--rpg-muted);
-          font-size: 14px;
+          font-size: 10px;
           font-weight: 500;
           transition: all 0.15s ease;
-          font-family: var(--font-subtitle);
+          font-family: var(--font-title);
         }
 
         .nav-item:hover {
@@ -383,22 +376,21 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
           color: var(--rpg-teal);
         }
 
-        .nav-icon {
-          display: flex;
-          align-items: center;
-          flex-shrink: 0;
-        }
-
         .nav-label {
           flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .nav-count {
-          font-size: 12px;
-          padding: 2px 8px;
+          font-size: 8px;
+          padding: 2px 6px;
           background: rgba(255, 255, 255, 0.08);
           border-radius: 10px;
           color: var(--rpg-muted);
+          flex-shrink: 0;
+          font-family: var(--font-title);
         }
 
         /* Footer - anchored to bottom */
