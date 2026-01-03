@@ -257,6 +257,12 @@ export default function TravelCommandBar({
         .travel-command-bar-desktop {
           display: block;
         }
+        /* On desktop, offset from sidebar (280px + 16px gap) */
+        @media (min-width: 1024px) {
+          .travel-command-bar-desktop :global(.fixed) {
+            left: 296px;
+          }
+        }
         @media (max-width: 1023px) {
           .travel-command-bar-desktop {
             display: none;
