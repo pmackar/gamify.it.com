@@ -54,7 +54,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     },
     orderBy: {
-      visited_at: "desc",
+      last_visited_at: "desc",
     },
   });
 
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       displayName: v.user.display_name,
       avatarUrl: v.user.avatar_url,
       level: v.user.main_level || 1,
-      visitedAt: v.visited_at,
+      visitedAt: v.last_visited_at,
       rating: v.personal_rating,
     })),
     count: friendVisits.length,

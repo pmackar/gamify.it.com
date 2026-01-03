@@ -80,7 +80,7 @@ async function getHomeData(userId: string) {
             },
           },
         },
-        orderBy: { visited_at: "desc" },
+        orderBy: { date: "desc" },
         take: 5,
       }),
       // Active quests
@@ -121,7 +121,7 @@ async function getHomeData(userId: string) {
       },
       recentVisits: recentVisits.map((v) => ({
         id: v.id,
-        visitedAt: v.visited_at.toISOString(),
+        visitedAt: v.date.toISOString(),
         location: {
           id: v.location.id,
           name: v.location.name,

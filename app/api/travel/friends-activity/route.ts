@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     where: {
       user_id: { in: friendIds },
       visited: true,
-      visited_at: { not: null },
+      last_visited_at: { not: null },
     },
     include: {
       user: {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       },
     },
     orderBy: {
-      visited_at: "desc",
+      last_visited_at: "desc",
     },
     take: limit,
   });
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
           city: visit.location.city,
         },
         rating: visit.personal_rating ? Number(visit.personal_rating) : null,
-        timestamp: visit.visited_at!,
+        timestamp: visit.last_visited_at!,
       });
     }
   }
