@@ -822,19 +822,18 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
         {/* Rating Modal - Shown when completing an item */}
         {showRatingModal && completingItem && (
           <div
-            className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
-            style={{ background: "rgba(0, 0, 0, 0.8)" }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            style={{ background: "rgba(0, 0, 0, 0.85)" }}
             onClick={() => {
               setShowRatingModal(false);
               setCompletingItem(null);
             }}
           >
             <div
-              className="w-full max-w-md rounded-t-xl md:rounded-xl p-6"
+              className="w-full max-w-md rounded-xl p-6"
               style={{
                 background: "var(--rpg-card)",
                 border: "2px solid var(--rpg-border)",
-                borderBottom: "none",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -915,12 +914,12 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
         {/* Review Modal - Shown when user clicks "Add Review" */}
         {showReviewModal && completingItem && (
           <div
-            className="fixed inset-0 z-[60] flex items-end md:items-center justify-center"
-            style={{ background: "rgba(0, 0, 0, 0.8)" }}
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+            style={{ background: "rgba(0, 0, 0, 0.85)" }}
             onClick={() => setShowReviewModal(false)}
           >
             <div
-              className="w-full max-w-md rounded-t-xl md:rounded-xl p-6"
+              className="w-full max-w-md rounded-xl p-6"
               style={{
                 background: "var(--rpg-card)",
                 border: "2px solid var(--rpg-border)",
