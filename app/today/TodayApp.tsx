@@ -2427,10 +2427,30 @@ export default function TodayApp() {
           justify-content: center;
           transition: all 0.15s ease;
           margin-top: 2px;
+          /* Mobile touch target - expand clickable area */
+          position: relative;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+
+        /* Invisible touch target expansion for mobile */
+        .task-checkbox::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
         }
 
         .task-checkbox:hover {
           border-color: var(--accent);
+        }
+
+        .task-checkbox:active {
+          transform: scale(0.9);
         }
 
         .task-checkbox.checked {
@@ -3602,8 +3622,16 @@ export default function TodayApp() {
           }
 
           .task-checkbox {
-            width: 22px;
-            height: 22px;
+            width: 26px;
+            height: 26px;
+            /* Ensure checkbox is above other elements for touch */
+            z-index: 10;
+          }
+
+          /* Even larger touch target on mobile */
+          .task-checkbox::before {
+            width: 48px;
+            height: 48px;
           }
 
           /* Empty state */
@@ -4162,7 +4190,14 @@ export default function TodayApp() {
                           ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                           className={`task-card overdue ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''}`}
                         >
-                          <div className={`task-checkbox`} onClick={() => handleToggleComplete(task.id)} />
+                          <div
+                            className={`task-checkbox`}
+                            onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); }}
+                            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleComplete(task.id); }}
+                            role="checkbox"
+                            aria-checked={false}
+                            tabIndex={0}
+                          />
                           <div className="task-content" onClick={() => openTaskModal(task)}>
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
@@ -4220,7 +4255,14 @@ export default function TodayApp() {
                           ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                           className={`task-card ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''}`}
                         >
-                          <div className={`task-checkbox`} onClick={() => handleToggleComplete(task.id)} />
+                          <div
+                            className={`task-checkbox`}
+                            onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); }}
+                            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleComplete(task.id); }}
+                            role="checkbox"
+                            aria-checked={false}
+                            tabIndex={0}
+                          />
                           <div className="task-content" onClick={() => openTaskModal(task)}>
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
@@ -4283,12 +4325,25 @@ export default function TodayApp() {
                       <div
                         className={`task-checkbox ${task.is_completed ? 'checked' : ''} ${isBulkSelected ? 'bulk-selected' : ''}`}
                         onClick={(e) => {
+                          e.stopPropagation();
                           if (e.metaKey || e.ctrlKey || e.shiftKey || selectedTaskIds.size > 0) {
                             handleTaskSelect(task.id, index, e);
                           } else {
                             handleToggleComplete(task.id);
                           }
                         }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (selectedTaskIds.size > 0) {
+                            handleTaskSelect(task.id, index, e as unknown as React.MouseEvent);
+                          } else {
+                            handleToggleComplete(task.id);
+                          }
+                        }}
+                        role="checkbox"
+                        aria-checked={task.is_completed}
+                        tabIndex={0}
                       >
                         {task.is_completed ? '✓' : isBulkSelected ? '✓' : ''}
                       </div>

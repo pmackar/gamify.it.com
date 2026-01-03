@@ -11,6 +11,57 @@ import { ThemeSwitcher } from './ThemeSwitcher';
 import { useTheme } from './ThemeContext';
 import NotificationBell from './social/NotificationBell';
 import { useDailyRewards } from './DailyRewards';
+import { useTodayStore } from '@/lib/today/store';
+
+// Sync indicator for Today app
+const SyncIndicator = () => {
+  const syncStatus = useTodayStore((state) => state.syncStatus);
+  const pendingSync = useTodayStore((state) => state.pendingSync);
+
+  if (syncStatus === 'syncing') {
+    return (
+      <div className="sync-indicator syncing" title="Syncing...">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (syncStatus === 'error') {
+    return (
+      <div className="sync-indicator error" title="Sync error - will retry">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (pendingSync) {
+    return (
+      <div className="sync-indicator pending" title="Changes pending sync">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12,6 12,12 16,14" />
+        </svg>
+      </div>
+    );
+  }
+
+  // Synced state - show checkmark briefly then fade
+  return (
+    <div className="sync-indicator synced" title="All changes synced">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+        <polyline points="22,4 12,14.01 9,11.01" />
+      </svg>
+    </div>
+  );
+};
 
 // Compact XP bar for when app content is active
 const CompactXPBar = ({ xp }: { xp: XPState }) => (
@@ -1583,6 +1634,40 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           50% { opacity: 0.4; transform: scale(0.9); }
         }
 
+        /* Sync indicator */
+        .sync-indicator {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+
+        .sync-indicator.syncing {
+          color: #5CC9F5;
+          animation: sync-spin 1s linear infinite;
+        }
+
+        .sync-indicator.error {
+          color: #ff6b6b;
+        }
+
+        .sync-indicator.pending {
+          color: #FFD700;
+        }
+
+        .sync-indicator.synced {
+          color: #5fbf8a;
+          opacity: 0.6;
+        }
+
+        @keyframes sync-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
         /* Workout status in navbar */
         .nav-workout-status {
           display: flex;
@@ -1966,6 +2051,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
             {authStatus === 'authenticated' && user && (
               <div className="nav-user-info">
+                {isToday && <SyncIndicator />}
                 <NotificationBell />
                 <div style={{ position: 'relative' }} className="nav-dropdown-zone">
                   <button
