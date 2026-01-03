@@ -23,8 +23,21 @@ interface FriendCardProps {
 export default function FriendCard({ friend, onRemove, isRemoving }: FriendCardProps) {
   const displayName = friend.displayName || friend.username || 'Player';
 
+  // Get initials (up to 2 characters)
+  const initials = displayName
+    .split(' ')
+    .slice(0, 2)
+    .map(n => n.charAt(0).toUpperCase())
+    .join('');
+
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 hover:border-purple-500/30 transition-all">
+    <div
+      className="rounded-lg p-4 transition-all"
+      style={{
+        background: 'var(--rpg-card)',
+        border: '1px solid var(--rpg-border)',
+      }}
+    >
       <div className="flex items-center gap-3">
         {/* Avatar */}
         <Link href={`/users/${friend.id}`} className="flex-shrink-0">
@@ -34,33 +47,52 @@ export default function FriendCard({ friend, onRemove, isRemoving }: FriendCardP
               alt={displayName}
               width={48}
               height={48}
-              className="rounded-full border-2 border-gray-600 hover:border-purple-500/50 transition-colors"
+              className="rounded-full"
+              style={{ border: '2px solid var(--rpg-border)' }}
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-gray-600">
-              <span className="text-white font-semibold text-lg">
-                {displayName.charAt(0).toUpperCase()}
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, var(--rpg-purple) 0%, var(--rpg-purple-dark, #6b21a8) 100%)',
+                border: '2px solid var(--rpg-border)',
+              }}
+            >
+              <span className="text-white font-semibold text-sm">
+                {initials}
               </span>
             </div>
           )}
         </Link>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <Link href={`/users/${friend.id}`} className="block">
-            <h3 className="font-semibold text-white hover:text-purple-400 transition-colors truncate">
+            <h3
+              className="font-semibold transition-colors truncate text-sm"
+              style={{ color: 'var(--rpg-text)' }}
+            >
               {displayName}
             </h3>
           </Link>
           {friend.username && friend.displayName && (
-            <p className="text-sm text-gray-400 truncate">@{friend.username}</p>
+            <p className="text-xs truncate" style={{ color: 'var(--rpg-muted)' }}>
+              @{friend.username}
+            </p>
           )}
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(168, 85, 247, 0.2)',
+                color: 'var(--rpg-purple)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+              }}
+            >
               LVL {friend.level}
             </span>
             {friend.friendSince && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs" style={{ color: 'var(--rpg-muted)' }}>
                 Friends {formatDistanceToNow(new Date(friend.friendSince), { addSuffix: true })}
               </span>
             )}
@@ -72,9 +104,10 @@ export default function FriendCard({ friend, onRemove, isRemoving }: FriendCardP
           <button
             onClick={() => onRemove(friend.friendshipId)}
             disabled={isRemoving}
-            className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-shrink-0 px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50"
+            style={{ color: 'var(--rpg-red, #ef4444)' }}
           >
-            {isRemoving ? 'Removing...' : 'Remove'}
+            {isRemoving ? '...' : 'Remove'}
           </button>
         )}
       </div>

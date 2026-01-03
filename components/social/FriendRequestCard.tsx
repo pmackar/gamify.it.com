@@ -33,8 +33,21 @@ export default function FriendRequestCard({
 }: FriendRequestCardProps) {
   const displayName = request.displayName || request.username || 'Player';
 
+  // Get initials (up to 2 characters)
+  const initials = displayName
+    .split(' ')
+    .slice(0, 2)
+    .map(n => n.charAt(0).toUpperCase())
+    .join('');
+
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 hover:border-amber-500/30 transition-all">
+    <div
+      className="rounded-lg p-4 transition-all"
+      style={{
+        background: 'var(--rpg-card)',
+        border: '1px solid var(--rpg-border)',
+      }}
+    >
       <div className="flex items-center gap-3">
         {/* Avatar */}
         <Link href={`/users/${request.id}`} className="flex-shrink-0">
@@ -44,32 +57,51 @@ export default function FriendRequestCard({
               alt={displayName}
               width={48}
               height={48}
-              className="rounded-full border-2 border-gray-600 hover:border-purple-500/50 transition-colors"
+              className="rounded-full"
+              style={{ border: '2px solid var(--rpg-border)' }}
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center border-2 border-gray-600">
-              <span className="text-white font-semibold text-lg">
-                {displayName.charAt(0).toUpperCase()}
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, var(--rpg-gold) 0%, #e6a000 100%)',
+                border: '2px solid var(--rpg-border)',
+              }}
+            >
+              <span style={{ color: '#1a1a1a' }} className="font-semibold text-sm">
+                {initials}
               </span>
             </div>
           )}
         </Link>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <Link href={`/users/${request.id}`} className="block">
-            <h3 className="font-semibold text-white hover:text-purple-400 transition-colors truncate">
+            <h3
+              className="font-semibold transition-colors truncate text-sm"
+              style={{ color: 'var(--rpg-text)' }}
+            >
               {displayName}
             </h3>
           </Link>
           {request.username && request.displayName && (
-            <p className="text-sm text-gray-400 truncate">@{request.username}</p>
+            <p className="text-xs truncate" style={{ color: 'var(--rpg-muted)' }}>
+              @{request.username}
+            </p>
           )}
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(168, 85, 247, 0.2)',
+                color: 'var(--rpg-purple)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+              }}
+            >
               LVL {request.level}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs" style={{ color: 'var(--rpg-muted)' }}>
               {type === 'incoming' ? 'Requested' : 'Sent'}{' '}
               {formatDistanceToNow(new Date(request.requestedAt), { addSuffix: true })}
             </span>
@@ -77,20 +109,26 @@ export default function FriendRequestCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {type === 'incoming' ? (
             <>
               <button
                 onClick={() => onAccept?.(request.friendshipId)}
                 disabled={isLoading}
-                className="px-3 py-1.5 text-xs bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg transition-colors disabled:opacity-50 border border-green-500/30"
+                className="px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50"
+                style={{
+                  background: 'rgba(34, 197, 94, 0.2)',
+                  color: 'var(--rpg-teal)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                }}
               >
                 Accept
               </button>
               <button
                 onClick={() => onDecline?.(request.friendshipId)}
                 disabled={isLoading}
-                className="px-3 py-1.5 text-xs text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50"
+                style={{ color: 'var(--rpg-muted)' }}
               >
                 Decline
               </button>
@@ -99,7 +137,8 @@ export default function FriendRequestCard({
             <button
               onClick={() => onCancel?.(request.friendshipId)}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50"
+              style={{ color: 'var(--rpg-muted)' }}
             >
               Cancel
             </button>
