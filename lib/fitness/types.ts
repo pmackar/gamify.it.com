@@ -61,10 +61,44 @@ export interface CampaignGoal {
   currentPR: number;
 }
 
-export interface WorkoutTemplate {
+// Legacy template format (for backwards compatibility)
+export interface LegacyWorkoutTemplate {
   id: string;
   name: string;
   exercises: string[];
+}
+
+// Enhanced template exercise with detailed configuration
+export interface TemplateExercise {
+  exerciseId: string;
+  exerciseName: string;
+  order: number;
+  targetSets: number;
+  targetReps?: string; // "8-12" or "8" or undefined for AMRAP
+  targetRpe?: number;
+  restSeconds?: number;
+  notes?: string;
+  supersetGroup?: number; // Exercises with same group are in a superset
+}
+
+// Enhanced workout template
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  exercises: TemplateExercise[];
+  estimatedDuration?: number; // minutes
+  targetMuscleGroups?: string[];
+  createdAt: string;
+  updatedAt: string;
+  isDefault?: boolean;
+  // Legacy support: if exercises is string[], it's old format
+  isLegacy?: boolean;
+}
+
+// Helper to check if template is legacy format
+export function isLegacyTemplate(template: WorkoutTemplate | LegacyWorkoutTemplate): template is LegacyWorkoutTemplate {
+  return template.exercises.length > 0 && typeof template.exercises[0] === 'string';
 }
 
 export interface FitnessState {
@@ -93,7 +127,7 @@ export interface ActiveWorkout {
   seconds: number;
 }
 
-export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach';
+export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor';
 
 export interface CommandSuggestion {
   type: string;

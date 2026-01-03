@@ -10,9 +10,12 @@ import type {
   Profile,
   Campaign,
   WorkoutTemplate,
+  TemplateExercise,
+  LegacyWorkoutTemplate,
   ViewType,
   SyncState
 } from './types';
+import { isLegacyTemplate } from './types';
 import { dispatchXPUpdate } from '@/components/XPContext';
 import {
   DEFAULT_TEMPLATES,
@@ -68,6 +71,7 @@ interface FitnessStore extends FitnessState, SyncState {
   // UI state
   currentView: ViewType;
   selectedWorkoutId: string | null;
+  editingTemplateId: string | null;
   toastMessage: string | null;
 
   // Actions
@@ -133,6 +137,13 @@ interface FitnessStore extends FitnessState, SyncState {
 
   // Templates
   saveTemplate: (name: string) => void;
+  createTemplate: (template: Omit<WorkoutTemplate, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateTemplate: (id: string, updates: Partial<WorkoutTemplate>) => void;
+  deleteTemplate: (id: string) => void;
+  duplicateTemplate: (id: string) => void;
+  editTemplate: (id: string | null) => void;
+  getTemplateById: (id: string) => WorkoutTemplate | null;
+  migrateTemplate: (template: WorkoutTemplate | LegacyWorkoutTemplate) => WorkoutTemplate;
 
   // Campaigns
   addCampaign: (campaign: Campaign) => void;
@@ -206,6 +217,7 @@ export const useFitnessStore = create<FitnessStore>()(
       // UI state
       currentView: 'home',
       selectedWorkoutId: null,
+      editingTemplateId: null,
       toastMessage: null,
 
       // Sync state
@@ -337,16 +349,24 @@ export const useFitnessStore = create<FitnessStore>()(
 
       startWorkoutFromTemplate: (templateId: string) => {
         const state = get();
-        const template = state.templates.find(t => t.id === templateId);
-        if (!template) return;
+        const rawTemplate = state.templates.find(t => t.id === templateId);
+        if (!rawTemplate) return;
 
-        const exercises: WorkoutExercise[] = template.exercises.map(exId => {
-          const exercise = getExerciseById(exId);
+        // Migrate to new format if needed
+        const template = get().migrateTemplate(rawTemplate);
+
+        const exercises: WorkoutExercise[] = template.exercises.map(ex => {
+          const exerciseData = getExerciseById(ex.exerciseId);
           return {
-            id: exId,
-            name: exercise?.name || exId,
-            sets: []
-          };
+            id: ex.exerciseId,
+            name: ex.exerciseName || exerciseData?.name || ex.exerciseId,
+            sets: [],
+            supersetGroup: ex.supersetGroup,
+            // Store target info for UI hints (not used directly in workout)
+            _targetSets: ex.targetSets,
+            _targetReps: ex.targetReps,
+            _targetRpe: ex.targetRpe,
+          } as WorkoutExercise;
         });
 
         const now = Date.now();
@@ -366,6 +386,7 @@ export const useFitnessStore = create<FitnessStore>()(
           currentView: 'workout'
         });
         get().saveState();
+        get().showToast(`Started ${template.name}`);
       },
 
       startWorkoutWithExercise: (exerciseId: string) => {
@@ -1058,10 +1079,20 @@ export const useFitnessStore = create<FitnessStore>()(
         const state = get();
         if (!state.currentWorkout) return;
 
+        const now = new Date().toISOString();
         const template: WorkoutTemplate = {
           id: Date.now().toString(),
           name,
-          exercises: state.currentWorkout.exercises.map(e => e.id)
+          exercises: state.currentWorkout.exercises.map((e, idx) => ({
+            exerciseId: e.id,
+            exerciseName: e.name,
+            order: idx,
+            targetSets: e.sets.length || 3,
+            targetReps: e.sets.length > 0 ? `${e.sets[0].reps}` : '8-12',
+            supersetGroup: e.supersetGroup,
+          })),
+          createdAt: now,
+          updatedAt: now,
         };
 
         set((state) => ({
@@ -1071,6 +1102,132 @@ export const useFitnessStore = create<FitnessStore>()(
         queueSync(get);
 
         get().showToast(`Template "${name}" saved`);
+      },
+
+      createTemplate: (templateData) => {
+        const now = new Date().toISOString();
+        const id = Date.now().toString();
+        const template: WorkoutTemplate = {
+          ...templateData,
+          id,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          templates: [...state.templates, template],
+          pendingSync: true
+        }));
+        queueSync(get);
+
+        get().showToast(`Template "${template.name}" created`);
+        return id;
+      },
+
+      updateTemplate: (id: string, updates: Partial<WorkoutTemplate>) => {
+        set((state) => ({
+          templates: state.templates.map(t =>
+            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+          ),
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Template updated');
+      },
+
+      deleteTemplate: (id: string) => {
+        const state = get();
+        const template = state.templates.find(t => t.id === id);
+        if (template?.isDefault) {
+          get().showToast('Cannot delete default templates');
+          return;
+        }
+
+        set((state) => ({
+          templates: state.templates.filter(t => t.id !== id),
+          editingTemplateId: state.editingTemplateId === id ? null : state.editingTemplateId,
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Template deleted');
+      },
+
+      duplicateTemplate: (id: string) => {
+        const state = get();
+        const template = state.templates.find(t => t.id === id);
+        if (!template) return;
+
+        const now = new Date().toISOString();
+        // Handle both legacy and new format
+        const migratedTemplate = get().migrateTemplate(template);
+
+        const newTemplate: WorkoutTemplate = {
+          ...migratedTemplate,
+          id: Date.now().toString(),
+          name: `${migratedTemplate.name} (Copy)`,
+          isDefault: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          templates: [...state.templates, newTemplate],
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast(`Template duplicated`);
+      },
+
+      editTemplate: (id: string | null) => {
+        set({
+          editingTemplateId: id,
+          currentView: id ? 'template-editor' : 'templates'
+        });
+      },
+
+      getTemplateById: (id: string) => {
+        const state = get();
+        const template = state.templates.find(t => t.id === id);
+        if (!template) return null;
+        // Always return migrated format
+        return get().migrateTemplate(template);
+      },
+
+      migrateTemplate: (template: WorkoutTemplate | LegacyWorkoutTemplate): WorkoutTemplate => {
+        // Check if it's already in new format (exercises is array of objects)
+        if (template.exercises.length === 0) {
+          return {
+            ...template,
+            exercises: [],
+            createdAt: (template as WorkoutTemplate).createdAt || new Date().toISOString(),
+            updatedAt: (template as WorkoutTemplate).updatedAt || new Date().toISOString(),
+          } as WorkoutTemplate;
+        }
+
+        // If first exercise is a string, it's legacy format
+        if (typeof template.exercises[0] === 'string') {
+          const legacyExercises = template.exercises as unknown as string[];
+          return {
+            id: template.id,
+            name: template.name,
+            exercises: legacyExercises.map((exId, idx) => {
+              const exercise = getExerciseById(exId);
+              return {
+                exerciseId: exId,
+                exerciseName: exercise?.name || exId,
+                order: idx,
+                targetSets: 3,
+                targetReps: '8-12',
+              };
+            }),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isDefault: (template as WorkoutTemplate).isDefault,
+          };
+        }
+
+        // Already in new format
+        return template as WorkoutTemplate;
       },
 
       addCampaign: (campaign: Campaign) => {

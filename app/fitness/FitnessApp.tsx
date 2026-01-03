@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP } from '@/lib/fitness/data';
-import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType } from '@/lib/fitness/types';
+import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
 import FitnessLeaderboard from './components/FitnessLeaderboard';
@@ -65,6 +65,8 @@ export default function FitnessApp() {
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [addingExerciseToTemplate, setAddingExerciseToTemplate] = useState(false);
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [campaignForm, setCampaignForm] = useState({ title: '', description: '', targetDate: '' });
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -395,12 +397,15 @@ export default function FitnessApp() {
     }
 
     if ('workout'.startsWith(q) || 'start'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[0] });
-    if ('history'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[1] });
-    if ('profile'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
-    if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
-    if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
-    if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[5] });
-    if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[6] });
+    if ('templates'.startsWith(q) || 'plan'.startsWith(q) || 'routines'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[1] });
+    if ('history'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
+    if ('profile'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
+    if ('coach'.startsWith(q) || 'ai'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
+    if ('social'.startsWith(q) || 'friends'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[5] });
+    if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[6] });
+    if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[7] });
+    if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[8] });
+    if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[9] });
 
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
@@ -425,6 +430,7 @@ export default function FitnessApp() {
     switch (suggestion.type) {
       case 'command':
         if (suggestion.id === 'workout') store.startWorkout();
+        else if (suggestion.id === 'templates') store.setView('templates');
         else if (suggestion.id === 'history') store.setView('history');
         else if (suggestion.id === 'profile') store.setView('profile');
         else if (suggestion.id === 'social') store.setView('social');
@@ -3056,6 +3062,329 @@ export default function FitnessApp() {
           font-weight: 600;
         }
 
+        /* Template List Styles */
+        .template-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+        }
+        .template-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 14px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .template-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .template-name {
+          font-weight: 600;
+          font-size: 15px;
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .default-badge {
+          font-size: 9px;
+          padding: 2px 5px;
+          background: var(--accent);
+          color: #fff;
+          border-radius: 4px;
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+        .template-meta {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          margin-top: 2px;
+        }
+        .template-description {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-top: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .template-actions {
+          display: flex;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .template-action-btn {
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          border: 1px solid var(--border);
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .template-action-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--border-light);
+        }
+        .template-action-btn.start {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #fff;
+        }
+        .template-action-btn.start:hover {
+          filter: brightness(1.1);
+        }
+        .template-action-btn.delete:hover {
+          background: rgba(255,107,107,0.15);
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        /* Template Editor Styles */
+        .template-editor {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .template-name-input {
+          flex: 1;
+          font-size: 17px;
+          font-weight: 600;
+          background: transparent;
+          border: none;
+          color: var(--text-primary);
+          outline: none;
+          padding: 4px 0;
+        }
+        .template-name-input::placeholder {
+          color: var(--text-tertiary);
+        }
+        .template-editor-section {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 16px;
+        }
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .editor-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .exercise-count {
+          font-size: 12px;
+          padding: 2px 8px;
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+          color: var(--text-tertiary);
+        }
+        .editor-textarea {
+          width: 100%;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 12px;
+          font-size: 14px;
+          color: var(--text-primary);
+          resize: none;
+          outline: none;
+          font-family: inherit;
+        }
+        .editor-textarea:focus {
+          border-color: var(--accent);
+        }
+        .empty-exercises {
+          text-align: center;
+          padding: 32px;
+          color: var(--text-tertiary);
+          font-size: 13px;
+        }
+        .empty-exercises .empty-icon {
+          font-size: 32px;
+          margin-bottom: 8px;
+        }
+        .template-exercises {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .template-exercise-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+        }
+        .exercise-drag-handle {
+          color: var(--text-tertiary);
+          cursor: grab;
+          padding: 4px;
+          font-size: 14px;
+        }
+        .exercise-content {
+          flex: 1;
+          min-width: 0;
+        }
+        .exercise-content .exercise-name {
+          font-weight: 500;
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+        .exercise-targets {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-top: 6px;
+        }
+        .target-input {
+          width: 50px;
+          padding: 6px 8px;
+          font-size: 13px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          color: var(--text-primary);
+          text-align: center;
+        }
+        .target-input:focus {
+          border-color: var(--accent);
+          outline: none;
+        }
+        .target-input.sets { width: 45px; }
+        .target-input.reps { width: 55px; }
+        .target-separator {
+          color: var(--text-tertiary);
+          font-size: 12px;
+        }
+        .target-rpe {
+          font-size: 11px;
+          color: var(--accent);
+          margin-left: 6px;
+        }
+        .remove-exercise-btn {
+          width: 28px;
+          height: 28px;
+          border: none;
+          background: transparent;
+          color: var(--text-tertiary);
+          font-size: 14px;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.15s;
+        }
+        .remove-exercise-btn:hover {
+          background: rgba(255,107,107,0.15);
+          color: var(--accent);
+        }
+        .add-exercise-btn {
+          width: 100%;
+          padding: 12px;
+          margin-top: 8px;
+          background: transparent;
+          border: 2px dashed var(--border);
+          border-radius: 10px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .add-exercise-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+          background: rgba(255,107,107,0.05);
+        }
+        .template-editor-actions {
+          display: flex;
+          gap: 12px;
+        }
+        .editor-btn {
+          flex: 1;
+          padding: 14px;
+          border-radius: 12px;
+          font-size: 15px;
+          font-weight: 600;
+          border: none;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .editor-btn.primary {
+          background: var(--accent);
+          color: #fff;
+        }
+        .editor-btn.primary:hover {
+          filter: brightness(1.1);
+        }
+
+        /* Exercise Picker Modal */
+        .exercise-picker-modal {
+          max-height: 70vh;
+          display: flex;
+          flex-direction: column;
+        }
+        .exercise-search-input {
+          width: 100%;
+          padding: 12px 14px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          font-size: 15px;
+          color: var(--text-primary);
+          margin: 12px 0;
+          outline: none;
+        }
+        .exercise-search-input:focus {
+          border-color: var(--accent);
+        }
+        .exercise-list {
+          flex: 1;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .exercise-option {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.15s;
+        }
+        .exercise-option:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+        .exercise-option .exercise-name {
+          font-weight: 500;
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+        .exercise-option .exercise-muscle {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
         /* ===== LIGHT MODE POLISH ===== */
         :global(html.light) .fitness-app {
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
@@ -3780,6 +4109,267 @@ gamify.it.com/fitness`;
           {/* Coach View */}
           {store.currentView === 'coach' && (
             <CoachView onBack={() => store.setView('home')} />
+          )}
+
+          {/* Templates View */}
+          {store.currentView === 'templates' && (
+            <div className="view-content">
+              <div className="view-header">
+                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <span className="view-title">Workout Templates</span>
+              </div>
+
+              <button
+                className="create-btn"
+                onClick={() => {
+                  const id = store.createTemplate({
+                    name: 'New Template',
+                    exercises: [],
+                  });
+                  store.editTemplate(id);
+                }}
+              >
+                + New Template
+              </button>
+
+              {store.templates.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📋</div>
+                  <div className="empty-title">No templates yet</div>
+                  <div className="empty-subtitle">Create a template to quickly start workouts</div>
+                </div>
+              ) : (
+                <div className="template-list">
+                  {store.templates.map(rawTemplate => {
+                    const template = store.migrateTemplate(rawTemplate);
+                    const exerciseCount = template.exercises.length;
+                    const muscleGroups = [...new Set(
+                      template.exercises.map(ex => {
+                        const exercise = getExerciseById(ex.exerciseId);
+                        return exercise?.muscle || 'Other';
+                      })
+                    )].slice(0, 3);
+
+                    return (
+                      <div key={template.id} className="template-card">
+                        <div className="template-info">
+                          <div className="template-name">
+                            {template.isDefault && <span className="default-badge">Default</span>}
+                            {template.name}
+                          </div>
+                          <div className="template-meta">
+                            {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
+                            {muscleGroups.length > 0 && ` • ${muscleGroups.join(', ')}`}
+                          </div>
+                          {template.description && (
+                            <div className="template-description">{template.description}</div>
+                          )}
+                        </div>
+                        <div className="template-actions">
+                          <button
+                            className="template-action-btn start"
+                            onClick={() => store.startWorkoutFromTemplate(template.id)}
+                          >
+                            Start
+                          </button>
+                          <button
+                            className="template-action-btn edit"
+                            onClick={() => store.editTemplate(template.id)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="template-action-btn duplicate"
+                            onClick={() => store.duplicateTemplate(template.id)}
+                            title="Duplicate"
+                          >
+                            ⧉
+                          </button>
+                          {!template.isDefault && (
+                            <button
+                              className="template-action-btn delete"
+                              onClick={() => {
+                                if (confirm('Delete this template?')) {
+                                  store.deleteTemplate(template.id);
+                                }
+                              }}
+                              title="Delete"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Template Editor View */}
+          {store.currentView === 'template-editor' && store.editingTemplateId && (() => {
+            const template = store.getTemplateById(store.editingTemplateId);
+            if (!template) return null;
+
+            return (
+              <div className="view-content template-editor">
+                <div className="view-header">
+                  <button className="back-btn" onClick={() => store.editTemplate(null)}>←</button>
+                  <input
+                    type="text"
+                    className="template-name-input"
+                    value={template.name}
+                    onChange={(e) => store.updateTemplate(template.id, { name: e.target.value })}
+                    placeholder="Template name"
+                  />
+                </div>
+
+                <div className="template-editor-section">
+                  <label className="editor-label">Description (optional)</label>
+                  <textarea
+                    className="editor-textarea"
+                    value={template.description || ''}
+                    onChange={(e) => store.updateTemplate(template.id, { description: e.target.value })}
+                    placeholder="Add a description..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="template-editor-section">
+                  <div className="section-header">
+                    <span className="editor-label">Exercises</span>
+                    <span className="exercise-count">{template.exercises.length}</span>
+                  </div>
+
+                  {template.exercises.length === 0 ? (
+                    <div className="empty-exercises">
+                      <div className="empty-icon">🏋️</div>
+                      <div>No exercises added yet</div>
+                    </div>
+                  ) : (
+                    <div className="template-exercises">
+                      {template.exercises.sort((a, b) => a.order - b.order).map((ex, idx) => (
+                        <div key={`${ex.exerciseId}-${idx}`} className="template-exercise-item">
+                          <div className="exercise-drag-handle">≡</div>
+                          <div className="exercise-content">
+                            <div className="exercise-name">{ex.exerciseName}</div>
+                            <div className="exercise-targets">
+                              <input
+                                type="number"
+                                className="target-input sets"
+                                value={ex.targetSets}
+                                onChange={(e) => {
+                                  const newExercises = template.exercises.map((exercise, i) =>
+                                    i === idx ? { ...exercise, targetSets: parseInt(e.target.value) || 1 } : exercise
+                                  );
+                                  store.updateTemplate(template.id, { exercises: newExercises });
+                                }}
+                                min={1}
+                                max={20}
+                              />
+                              <span className="target-separator">×</span>
+                              <input
+                                type="text"
+                                className="target-input reps"
+                                value={ex.targetReps || ''}
+                                onChange={(e) => {
+                                  const newExercises = template.exercises.map((exercise, i) =>
+                                    i === idx ? { ...exercise, targetReps: e.target.value } : exercise
+                                  );
+                                  store.updateTemplate(template.id, { exercises: newExercises });
+                                }}
+                                placeholder="8-12"
+                              />
+                              {ex.targetRpe && (
+                                <span className="target-rpe">@RPE {ex.targetRpe}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            className="remove-exercise-btn"
+                            onClick={() => {
+                              const newExercises = template.exercises.filter((_, i) => i !== idx);
+                              store.updateTemplate(template.id, { exercises: newExercises });
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    className="add-exercise-btn"
+                    onClick={() => setAddingExerciseToTemplate(true)}
+                  >
+                    + Add Exercise
+                  </button>
+                </div>
+
+                <div className="template-editor-actions">
+                  <button
+                    className="editor-btn primary"
+                    onClick={() => store.startWorkoutFromTemplate(template.id)}
+                  >
+                    Start Workout
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Add Exercise to Template Modal */}
+          {addingExerciseToTemplate && store.editingTemplateId && (
+            <div className="modal-overlay" onClick={() => setAddingExerciseToTemplate(false)}>
+              <div className="modal exercise-picker-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">Add Exercise</div>
+                <input
+                  type="text"
+                  className="exercise-search-input"
+                  placeholder="Search exercises..."
+                  value={exerciseSearchQuery}
+                  onChange={(e) => setExerciseSearchQuery(e.target.value)}
+                  autoFocus
+                />
+                <div className="exercise-list">
+                  {EXERCISES
+                    .filter(ex =>
+                      ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()) ||
+                      ex.muscle.toLowerCase().includes(exerciseSearchQuery.toLowerCase())
+                    )
+                    .slice(0, 20)
+                    .map(ex => (
+                      <button
+                        key={ex.id}
+                        className="exercise-option"
+                        onClick={() => {
+                          const template = store.getTemplateById(store.editingTemplateId!);
+                          if (template) {
+                            const newExercise: TemplateExercise = {
+                              exerciseId: ex.id,
+                              exerciseName: ex.name,
+                              order: template.exercises.length,
+                              targetSets: 3,
+                              targetReps: '8-12',
+                            };
+                            store.updateTemplate(template.id, {
+                              exercises: [...template.exercises, newExercise]
+                            });
+                          }
+                          setAddingExerciseToTemplate(false);
+                          setExerciseSearchQuery('');
+                        }}
+                      >
+                        <span className="exercise-name">{ex.name}</span>
+                        <span className="exercise-muscle">{ex.muscle}</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Campaign Detail Modal */}
