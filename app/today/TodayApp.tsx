@@ -1011,6 +1011,48 @@ export default function TodayApp() {
     store.showToast(actionLabels[action], 'success');
   };
 
+  // Format recurrence rule for display
+  const formatRecurrence = (rule: RecurrenceRule | null | undefined): string | null => {
+    if (!rule) return null;
+    const { frequency, interval, daysOfWeek, dayOfMonth } = rule;
+
+    if (frequency === 'daily') {
+      return interval === 1 ? 'Daily' : `Every ${interval} days`;
+    }
+    if (frequency === 'weekly') {
+      if (daysOfWeek && daysOfWeek.length > 0) {
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const days = daysOfWeek.map(d => dayNames[d]).join(', ');
+        return `Every ${days}`;
+      }
+      return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+    }
+    if (frequency === 'monthly') {
+      if (dayOfMonth) {
+        return `Monthly on ${dayOfMonth}${['st','nd','rd'][dayOfMonth-1] || 'th'}`;
+      }
+      return interval === 1 ? 'Monthly' : `Every ${interval} months`;
+    }
+    if (frequency === 'yearly') {
+      return interval === 1 ? 'Yearly' : `Every ${interval} years`;
+    }
+    return null;
+  };
+
+  // Defer task to someday
+  const handleDeferTask = (taskId: string) => {
+    store.deferTask(taskId);
+    setQuickActionTaskId(null);
+    store.showToast('Moved to Someday', 'info');
+  };
+
+  // Undefer task (bring back from someday)
+  const handleUndeferTask = (taskId: string) => {
+    store.undeferTask(taskId);
+    setQuickActionTaskId(null);
+    store.showToast('Moved back to Inbox', 'success');
+  };
+
   const toggleQuickActionMenu = (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setQuickActionTaskId(quickActionTaskId === taskId ? null : taskId);
@@ -1202,7 +1244,8 @@ export default function TodayApp() {
     { id: 'today', title: 'Go to Today', icon: '📅', shortcut: '2/T', category: 'Navigation', action: () => store.setView('today') },
     { id: 'upcoming', title: 'Go to Upcoming', icon: '📆', shortcut: '3/U', category: 'Navigation', action: () => store.setView('upcoming') },
     { id: 'completed', title: 'Go to Completed', icon: '✅', shortcut: '4', category: 'Navigation', action: () => store.setView('completed') },
-    { id: 'stats', title: 'View Stats', icon: '📊', shortcut: '5', category: 'Navigation', action: () => setShowStatsModal(true) },
+    { id: 'someday', title: 'Go to Someday', icon: '💭', shortcut: '5', category: 'Navigation', action: () => store.setView('someday') },
+    { id: 'stats', title: 'View Stats', icon: '📊', shortcut: '6', category: 'Navigation', action: () => setShowStatsModal(true) },
     { id: 'new-task', title: 'Quick Add Task', icon: '✨', shortcut: 'N', category: 'Create', action: () => quickAddRef.current?.focus() },
     { id: 'full-task', title: 'Full Task Modal', icon: '➕', shortcut: 'A', category: 'Create', action: () => openTaskModal() },
     { id: 'new-project', title: 'New Project', icon: '📁', shortcut: 'P', category: 'Create', action: () => openProjectModal() },
@@ -1227,6 +1270,7 @@ export default function TodayApp() {
     if (view === 'today') return { title: 'Today', subtitle: 'Tasks due today' };
     if (view === 'upcoming') return { title: 'Upcoming', subtitle: 'Future tasks' };
     if (view === 'completed') return { title: 'Completed', subtitle: 'Finished tasks' };
+    if (view === 'someday') return { title: 'Someday', subtitle: 'Deferred tasks for later' };
     if (view.startsWith('project-')) {
       const project = store.projects.find((p) => p.id === view.replace('project-', ''));
       if (project) return { title: project.name, subtitle: 'Project tasks' };
@@ -2210,6 +2254,16 @@ export default function TodayApp() {
           gap: 8px;
           font-size: 12px;
           color: var(--text-tertiary);
+        }
+
+        .task-recurrence {
+          color: var(--accent);
+          font-weight: 500;
+        }
+
+        .task-subtasks {
+          color: var(--teal);
+          font-weight: 500;
         }
 
         .task-project {
@@ -3390,6 +3444,13 @@ export default function TodayApp() {
                 active={store.currentView === 'completed'}
                 onClick={() => store.setView('completed')}
               />
+              <NavItem
+                icon="💭"
+                label="Someday"
+                count={store.tasks.filter((t) => t.is_someday && !t.is_completed).length}
+                active={store.currentView === 'someday'}
+                onClick={() => store.setView('someday')}
+              />
             </div>
 
             <div className="nav-section">
@@ -3608,6 +3669,11 @@ export default function TodayApp() {
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
                               {dueInfo && <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>}
+                              {task.recurrence_rule && <span className="task-recurrence">🔄 {formatRecurrence(task.recurrence_rule)}</span>}
+                              {(() => {
+                                const progress = store.getSubtaskProgress(task.id);
+                                return progress.total > 0 ? <span className="task-subtasks">📋 {progress.completed}/{progress.total}</span> : null;
+                              })()}
                               <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
                               <span className="task-xp">+{xpPreview} XP</span>
                             </div>
@@ -3620,6 +3686,8 @@ export default function TodayApp() {
                                 <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>🌅 Do tomorrow</button>
                                 <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>📆 Next week</button>
                                 {task.due_date && <button onClick={() => handleQuickDateAction(task.id, 'remove')}>❌ Remove date</button>}
+                                {!task.is_someday && <button onClick={() => handleDeferTask(task.id)}>💭 Someday</button>}
+                                {task.is_someday && <button onClick={() => handleUndeferTask(task.id)}>📥 Move to Inbox</button>}
                                 <div className="quick-action-divider" />
                                 <button onClick={() => { openTaskModal(task); setQuickActionTaskId(null); }}>✏️ Edit task</button>
                                 <button className="danger" onClick={() => { handleDeleteTask(task.id); setQuickActionTaskId(null); }}>🗑️ Delete</button>
@@ -3658,6 +3726,11 @@ export default function TodayApp() {
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
                               {dueInfo && <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>}
+                              {task.recurrence_rule && <span className="task-recurrence">🔄 {formatRecurrence(task.recurrence_rule)}</span>}
+                              {(() => {
+                                const progress = store.getSubtaskProgress(task.id);
+                                return progress.total > 0 ? <span className="task-subtasks">📋 {progress.completed}/{progress.total}</span> : null;
+                              })()}
                               <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
                               <span className="task-xp">+{xpPreview} XP</span>
                             </div>
@@ -3670,6 +3743,8 @@ export default function TodayApp() {
                                 <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>🌅 Do tomorrow</button>
                                 <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>📆 Next week</button>
                                 {task.due_date && <button onClick={() => handleQuickDateAction(task.id, 'remove')}>❌ Remove date</button>}
+                                {!task.is_someday && <button onClick={() => handleDeferTask(task.id)}>💭 Someday</button>}
+                                {task.is_someday && <button onClick={() => handleUndeferTask(task.id)}>📥 Move to Inbox</button>}
                                 <div className="quick-action-divider" />
                                 <button onClick={() => { openTaskModal(task); setQuickActionTaskId(null); }}>✏️ Edit task</button>
                                 <button className="danger" onClick={() => { handleDeleteTask(task.id); setQuickActionTaskId(null); }}>🗑️ Delete</button>
@@ -3729,6 +3804,11 @@ export default function TodayApp() {
                           {dueInfo && (
                             <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>
                           )}
+                          {task.recurrence_rule && <span className="task-recurrence">🔄 {formatRecurrence(task.recurrence_rule)}</span>}
+                          {(() => {
+                            const progress = store.getSubtaskProgress(task.id);
+                            return progress.total > 0 ? <span className="task-subtasks">📋 {progress.completed}/{progress.total}</span> : null;
+                          })()}
                           <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
                           {!task.is_completed && (
                             <span className="task-xp">+{xpPreview} XP</span>
