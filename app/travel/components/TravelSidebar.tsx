@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Globe,
-  Plus,
-  Compass,
-  Building2,
-  MapPin,
-  Scroll,
-} from "lucide-react";
+import { Globe } from "lucide-react";
 
 interface TravelSidebarProps {
   user: {
@@ -91,25 +84,25 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
       {/* Quick Actions */}
       <div className="sidebar-actions">
         <Link href="/travel/locations/new" className="sidebar-action action-teal">
-          <Plus size={18} />
+          <span className="action-icon">🗺️</span>
           <span>Add Location</span>
           <span className="action-xp">+15 XP</span>
         </Link>
         <Link href="/travel/quests/new" className="sidebar-action action-purple">
-          <Compass size={18} />
+          <span className="action-icon">⚔️</span>
           <span>New Quest</span>
         </Link>
         <div className="sidebar-nav-shortcuts">
           <Link href="/travel/cities" className="nav-shortcut">
-            <Building2 size={16} />
+            <span className="nav-shortcut-icon">🏰</span>
             <span>Cities</span>
           </Link>
           <Link href="/travel/locations" className="nav-shortcut">
-            <MapPin size={16} />
+            <span className="nav-shortcut-icon">📍</span>
             <span>Locations</span>
           </Link>
           <Link href="/travel/quests" className="nav-shortcut">
-            <Scroll size={16} />
+            <span className="nav-shortcut-icon">📜</span>
             <span>Quests</span>
           </Link>
         </div>
@@ -322,15 +315,25 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
 
         .sidebar-action {
           display: flex;
+          flex-direction: row;
           align-items: center;
           gap: 10px;
           padding: 12px 14px;
           border-radius: 10px;
-          font-size: 14px;
+          font-size: 8px;
           font-weight: 500;
           transition: all 0.2s;
           border: 1px solid;
-          font-family: var(--font-subtitle);
+          font-family: var(--font-pixel);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .action-icon {
+          font-size: 18px;
+          width: 24px;
+          text-align: center;
+          flex-shrink: 0;
         }
 
         .sidebar-action.action-teal {
@@ -362,29 +365,41 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
 
         .sidebar-nav-shortcuts {
           display: flex;
-          gap: 8px;
+          flex-direction: column;
+          gap: 6px;
           margin-top: 4px;
         }
 
         .nav-shortcut {
-          flex: 1;
           display: flex;
+          flex-direction: row;
           align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 8px 10px;
+          justify-content: flex-start;
+          gap: 10px;
+          padding: 10px 14px;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 8px;
           font-weight: 500;
           color: var(--rpg-muted);
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid var(--rpg-border);
           transition: all 0.15s ease;
+          font-family: var(--font-pixel);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .nav-shortcut-icon {
+          font-size: 16px;
+          width: 24px;
+          text-align: center;
+          flex-shrink: 0;
         }
 
         .nav-shortcut:hover {
           background: rgba(255, 255, 255, 0.08);
           color: var(--rpg-text);
+          border-color: var(--rpg-teal);
         }
 
         /* Navigation */
