@@ -1163,21 +1163,16 @@ export const useFitnessStore = create<FitnessStore>()(
           return;
         }
 
-        // Calculate stats from imported workouts (no XP per set for imports)
+        // Calculate stats from imported workouts
+        // Note: PRs are NOT updated from imports so achievements can still be earned manually
         let totalSets = 0;
         let totalVolume = 0;
-        const newRecords: Record<string, number> = { ...state.records };
 
         for (const workout of newWorkouts) {
           for (const exercise of workout.exercises) {
             for (const s of exercise.sets) {
               totalSets++;
               totalVolume += s.weight * s.reps;
-
-              // Update PRs
-              if (s.weight > (newRecords[exercise.id] || 0)) {
-                newRecords[exercise.id] = s.weight;
-              }
             }
           }
         }
@@ -1194,7 +1189,6 @@ export const useFitnessStore = create<FitnessStore>()(
 
         set((state) => ({
           workouts: allWorkouts,
-          records: newRecords,
           achievements: newAchievements,
           profile: {
             ...state.profile,
