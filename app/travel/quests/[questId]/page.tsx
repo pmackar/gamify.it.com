@@ -50,7 +50,6 @@ async function getQuest(questId: string, userId: string) {
       party: {
         include: {
           members: {
-            where: { status: "ACCEPTED" },
             include: {
               user: {
                 select: {
@@ -61,6 +60,7 @@ async function getQuest(questId: string, userId: string) {
                 },
               },
             },
+            orderBy: { invited_at: "asc" },
           },
         },
       },
@@ -127,12 +127,13 @@ async function getQuest(questId: string, userId: string) {
     party: quest.party
       ? {
           id: quest.party.id,
-          memberCount: quest.party.members.length,
+          memberCount: quest.party.members.filter((m) => m.status === "ACCEPTED").length,
           members: quest.party.members.map((m) => ({
             id: m.user.id,
             username: m.user.username,
             displayName: m.user.display_name,
             avatarUrl: m.user.avatar_url,
+            status: m.status,
           })),
         }
       : null,

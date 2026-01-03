@@ -68,6 +68,7 @@ interface Quest {
       username: string;
       displayName: string | null;
       avatarUrl: string | null;
+      status: string;
     }>;
   } | null;
 }
@@ -469,40 +470,58 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
 
           {quest.party && quest.party.members.length > 0 ? (
             <div className="flex flex-wrap gap-3">
-              {quest.party.members.map((member) => (
-                <Link
-                  key={member.id}
-                  href={`/users/${member.id}`}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/5"
-                  style={{
-                    background: "var(--rpg-bg)",
-                    border: "1px solid var(--rpg-border)",
-                  }}
-                >
-                  {member.avatarUrl ? (
-                    <img
-                      src={member.avatarUrl}
-                      alt={member.displayName || member.username}
-                      className="w-7 h-7 rounded-full"
-                      style={{ border: "2px solid var(--rpg-purple)" }}
-                    />
-                  ) : (
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium"
-                      style={{
-                        background: "var(--rpg-purple)",
-                        border: "2px solid var(--rpg-card)",
-                        color: "white",
-                      }}
-                    >
-                      {(member.displayName || member.username).charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-sm" style={{ color: "var(--rpg-text)" }}>
-                    {member.displayName || member.username}
-                  </span>
-                </Link>
-              ))}
+              {quest.party.members.map((member) => {
+                const isPending = member.status === "PENDING";
+                return (
+                  <Link
+                    key={member.id}
+                    href={`/users/${member.id}`}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/5"
+                    style={{
+                      background: "var(--rpg-bg)",
+                      border: isPending ? "1px dashed var(--rpg-border)" : "1px solid var(--rpg-border)",
+                      opacity: isPending ? 0.6 : 1,
+                    }}
+                  >
+                    {member.avatarUrl ? (
+                      <img
+                        src={member.avatarUrl}
+                        alt={member.displayName || member.username}
+                        className="w-7 h-7 rounded-full"
+                        style={{
+                          border: isPending ? "2px solid var(--rpg-border)" : "2px solid var(--rpg-purple)",
+                          filter: isPending ? "grayscale(50%)" : "none",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium"
+                        style={{
+                          background: isPending ? "var(--rpg-border)" : "var(--rpg-purple)",
+                          border: "2px solid var(--rpg-card)",
+                          color: "white",
+                        }}
+                      >
+                        {(member.displayName || member.username).charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm" style={{ color: isPending ? "var(--rpg-muted)" : "var(--rpg-text)" }}>
+                      {member.displayName || member.username}
+                    </span>
+                    {isPending && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded"
+                        style={{
+                          background: "rgba(107, 114, 128, 0.2)",
+                          color: "var(--rpg-muted)",
+                        }}
+                      >
+                        Pending
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm" style={{ color: "var(--rpg-muted)" }}>
