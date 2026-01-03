@@ -292,210 +292,228 @@ export default function TravelHomeClient({
           )}
         </div>
 
-        {/* ========== DESKTOP LAYOUT ========== */}
-        <div className="hidden lg:block">
-          <div className="desktop-container">
-            <div className="desktop-grid">
-              {/* Left Column */}
-              <div className="desktop-left">
-                {/* Level Card */}
-                <div className="desktop-level-card">
-                  <div className="desktop-level-header">
-                    <div className="desktop-xp-ring">
-                      <svg className="xp-ring-svg-sm" viewBox="0 0 100 100">
-                        <circle className="xp-ring-bg" cx="50" cy="50" r="42" strokeWidth="8" />
-                        <circle
-                          className="xp-ring-progress"
-                          cx="50"
-                          cy="50"
-                          r="42"
-                          strokeWidth="8"
-                          strokeDasharray={`${xpProgress * 2.64} 264`}
-                        />
-                      </svg>
-                      <span className="desktop-level-num">{user.level}</span>
-                    </div>
+        {/* ========== DESKTOP LAYOUT - Sidebar + Main ========== */}
+        <div className="hidden lg:flex desktop-layout">
+          {/* Sidebar */}
+          <aside className="travel-sidebar">
+            {/* Character Card / Level Section */}
+            <div className="sidebar-header">
+              <div className="character-card">
+                <div className="character-top">
+                  <div className="character-avatar">
+                    <Globe size={24} />
+                    <span className="level-badge">{user.level}</span>
+                  </div>
+                  <div className="character-info">
+                    <div className="character-rank">EXPLORER</div>
+                    <div className="character-title">World Traveler</div>
+                  </div>
+                </div>
+
+                <div className="xp-section">
+                  <div className="xp-label">
+                    <span>EXPERIENCE</span>
+                    <span className="xp-value">{user.xp} / {user.xpToNext}</span>
+                  </div>
+                  <div className="xp-bar">
+                    <div className="xp-bar-fill" style={{ width: `${xpProgress}%` }} />
+                  </div>
+                </div>
+
+                <div className="stat-badges">
+                  <div className="stat-badge">
+                    <span className="stat-badge-icon">🔥</span>
                     <div>
-                      <p className="desktop-level-label">Explorer Level</p>
-                      <p className="desktop-xp-text">{user.xp.toLocaleString()} / {user.xpToNext.toLocaleString()} XP</p>
+                      <div className="stat-badge-value">{user.streak}</div>
+                      <div className="stat-badge-label">Streak</div>
                     </div>
                   </div>
-
-                  <div className="desktop-stats-grid">
-                    <div className="desktop-stat"><p className="stat-teal">{stats.countries}</p><span>Countries</span></div>
-                    <div className="desktop-stat"><p className="stat-purple">{stats.cities}</p><span>Cities</span></div>
-                    <div className="desktop-stat"><p className="stat-cyan">{stats.locations}</p><span>Places</span></div>
-                    <div className="desktop-stat"><p className="stat-red">{user.streak}</p><span>Streak</span></div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="desktop-actions">
-                  <Link href="/travel/locations/new" className="desktop-action action-teal">
-                    <div className="desktop-action-icon"><Plus size={20} /></div>
-                    <div className="desktop-action-text">
-                      <p>Log a Visit</p>
-                      <span>+15 XP per location</span>
-                    </div>
-                    <ChevronRight size={18} className="desktop-action-arrow" />
-                  </Link>
-                  <Link href="/travel/quests/new" className="desktop-action action-purple">
-                    <div className="desktop-action-icon"><Compass size={20} /></div>
-                    <div className="desktop-action-text">
-                      <p>Plan a Quest</p>
-                      <span>Create travel itinerary</span>
-                    </div>
-                    <ChevronRight size={18} className="desktop-action-arrow" />
-                  </Link>
-                  <Link href="/travel/map" className="desktop-action action-cyan">
-                    <div className="desktop-action-icon"><Globe size={20} /></div>
-                    <div className="desktop-action-text">
-                      <p>World Map</p>
-                      <span>See all your travels</span>
-                    </div>
-                    <ChevronRight size={18} className="desktop-action-arrow" />
-                  </Link>
-                </div>
-
-                {/* Nav Links */}
-                <div className="desktop-nav">
-                  {[
-                    { icon: <Building2 size={18} />, label: "Cities", href: "/travel/cities", count: stats.cities },
-                    { icon: <MapPin size={18} />, label: "Locations", href: "/travel/locations", count: stats.locations },
-                    { icon: <Heart size={18} />, label: "Hotlist", href: "/travel/hotlist", count: stats.hotlist },
-                    { icon: <Scroll size={18} />, label: "Quests", href: "/travel/quests", count: activeQuests.length },
-                    { icon: <Trophy size={18} />, label: "Achievements", href: "/travel/achievements", count: stats.achievements },
-                  ].map((item) => (
-                    <Link key={item.label} href={item.href} className="desktop-nav-item">
-                      {item.icon}
-                      <span>{item.label}</span>
-                      <span className="desktop-nav-count">{item.count}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Center Column */}
-              <div className="desktop-center">
-                <div className="desktop-welcome">
-                  <h1>Welcome back, Explorer!</h1>
-                  <p>Ready to continue your adventure?</p>
-                </div>
-
-                {activeQuests.length > 0 && (
-                  <div className="desktop-section">
-                    <div className="section-header">
-                      <h2 className="section-title">
-                        <Target size={18} style={{ color: "var(--rpg-purple)" }} />
-                        Active Quests
-                      </h2>
-                      <Link href="/travel/quests" className="section-link">View all</Link>
-                    </div>
-
-                    <div className="desktop-quests">
-                      {activeQuests.map((quest) => {
-                        const progressPct = quest.progress.total > 0
-                          ? (quest.progress.completed / quest.progress.total) * 100
-                          : 0;
-                        return (
-                          <Link key={quest.id} href={`/travel/quests/${quest.id}`} className="desktop-quest-card">
-                            <div className="quest-header">
-                              <div>
-                                <h3 className="desktop-quest-name">{quest.name}</h3>
-                                <p className="quest-cities">
-                                  {quest.cities.map((c) => `${c.name}, ${c.country}`).join(" → ")}
-                                </p>
-                              </div>
-                              <span className={`quest-status ${quest.status === "ACTIVE" ? "active" : "planning"}`}>
-                                {quest.status === "ACTIVE" ? "In Progress" : "Planning"}
-                              </span>
-                            </div>
-                            <div className="desktop-quest-progress">
-                              <div className="quest-progress-bar">
-                                <div className="quest-progress-fill" style={{ width: `${progressPct}%` }} />
-                              </div>
-                              <span>{quest.progress.completed} / {quest.progress.total}</span>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="desktop-section">
-                  <div className="section-header">
-                    <h2 className="section-title">
-                      <Clock size={18} style={{ color: "var(--rpg-muted)" }} />
-                      Recent Visits
-                    </h2>
-                    <Link href="/travel/locations" className="section-link">View all</Link>
-                  </div>
-
-                  {recentVisits.length > 0 ? (
-                    <div className="desktop-visits">
-                      {recentVisits.map((visit) => (
-                        <Link key={visit.id} href={`/travel/locations/${visit.location.id}`} className="desktop-visit">
-                          <span className="visit-icon-lg">{getTypeIcon(visit.location.type)}</span>
-                          <div className="visit-info">
-                            <p className="visit-name">{visit.location.name}</p>
-                            <p className="visit-location">{visit.location.city}, {visit.location.country}</p>
-                          </div>
-                          <span className="visit-time">{formatRelativeTime(visit.visitedAt)}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="desktop-empty">
-                      <MapPin size={32} />
-                      <p>No visits logged yet</p>
-                      <Link href="/travel/locations/new" className="desktop-empty-cta">
-                        <Plus size={16} /> Log your first visit
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="desktop-right">
-                <Link href="/travel/achievements" className="desktop-achievements">
-                  <div className="desktop-achievements-header">
-                    <Trophy size={24} />
+                  <div className="stat-badge">
+                    <span className="stat-badge-icon">🌍</span>
                     <div>
-                      <p>Achievements</p>
-                      <span>{stats.achievements} / {stats.totalAchievements} unlocked</span>
+                      <div className="stat-badge-value">{stats.countries}</div>
+                      <div className="stat-badge-label">Countries</div>
                     </div>
                   </div>
-                  <div className="achievements-bar">
-                    <div
-                      className="achievements-fill"
-                      style={{ width: `${stats.totalAchievements > 0 ? (stats.achievements / stats.totalAchievements) * 100 : 0}%` }}
-                    />
-                  </div>
-                </Link>
-
-                <div className="desktop-card-red">
-                  <div className="desktop-card-header">
-                    <Heart size={18} />
-                    <p>Hotlist</p>
-                    <Link href="/travel/hotlist" className="section-link">View all</Link>
-                  </div>
-                  <p className="desktop-card-value stat-red">{stats.hotlist}</p>
-                  <span>places saved</span>
-                </div>
-
-                <div className="desktop-card-orange">
-                  <div className="desktop-card-header">
-                    <Flame size={18} />
-                    <p>Current Streak</p>
-                  </div>
-                  <p className="desktop-card-value stat-orange">{user.streak}</p>
-                  <span>{user.streak === 1 ? "day" : "days"} in a row</span>
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* Quick Actions */}
+            <div className="sidebar-actions">
+              <Link href="/travel/locations/new" className="sidebar-action action-teal">
+                <Plus size={18} />
+                <span>Log Visit</span>
+                <span className="action-xp">+15 XP</span>
+              </Link>
+              <Link href="/travel/quests/new" className="sidebar-action action-purple">
+                <Compass size={18} />
+                <span>New Quest</span>
+              </Link>
+            </div>
+
+            {/* Navigation */}
+            <nav className="sidebar-nav">
+              <div className="nav-section">
+                {[
+                  { icon: <Map size={18} />, label: "World Map", href: "/travel/map" },
+                  { icon: <Building2 size={18} />, label: "Cities", href: "/travel/cities", count: stats.cities },
+                  { icon: <MapPin size={18} />, label: "Locations", href: "/travel/locations", count: stats.locations },
+                  { icon: <Heart size={18} />, label: "Hotlist", href: "/travel/hotlist", count: stats.hotlist },
+                  { icon: <Scroll size={18} />, label: "Quests", href: "/travel/quests", count: activeQuests.length },
+                  { icon: <Trophy size={18} />, label: "Achievements", href: "/travel/achievements", count: `${stats.achievements}/${stats.totalAchievements}` },
+                ].map((item) => (
+                  <Link key={item.label} href={item.href} className="nav-item">
+                    <span className="nav-icon">{item.icon}</span>
+                    <span className="nav-label">{item.label}</span>
+                    {item.count !== undefined && <span className="nav-count">{item.count}</span>}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+
+            {/* Sidebar Footer Stats */}
+            <div className="sidebar-footer">
+              <div className="footer-stat">
+                <span className="footer-stat-value stat-purple">{stats.cities}</span>
+                <span className="footer-stat-label">Cities</span>
+              </div>
+              <div className="footer-stat">
+                <span className="footer-stat-value stat-cyan">{stats.locations}</span>
+                <span className="footer-stat-label">Places</span>
+              </div>
+              <div className="footer-stat">
+                <span className="footer-stat-value stat-teal">{stats.visits}</span>
+                <span className="footer-stat-label">Visits</span>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className="travel-main">
+            {/* Welcome Header */}
+            <div className="main-header">
+              <div className="main-header-text">
+                <h1>Welcome back, Explorer!</h1>
+                <p>Ready to continue your adventure?</p>
+              </div>
+              <div className="main-header-actions">
+                <Link href="/travel/locations/new" className="header-btn header-btn-primary">
+                  <Plus size={18} />
+                  Log Visit
+                </Link>
+                <Link href="/travel/quests/new" className="header-btn header-btn-secondary">
+                  <Compass size={18} />
+                  Plan Quest
+                </Link>
+              </div>
+            </div>
+
+            {/* Active Quests Section */}
+            {activeQuests.length > 0 && (
+              <div className="main-section">
+                <div className="section-header">
+                  <h2 className="section-title">
+                    <Target size={18} />
+                    Active Quests
+                  </h2>
+                  <Link href="/travel/quests" className="section-link">View all <ChevronRight size={14} /></Link>
+                </div>
+
+                <div className="quests-grid">
+                  {activeQuests.map((quest) => {
+                    const progressPct = quest.progress.total > 0
+                      ? (quest.progress.completed / quest.progress.total) * 100
+                      : 0;
+                    return (
+                      <Link key={quest.id} href={`/travel/quests/${quest.id}`} className="quest-card-desktop">
+                        <div className="quest-card-header">
+                          <h3>{quest.name}</h3>
+                          <span className={`quest-badge ${quest.status === "ACTIVE" ? "active" : "planning"}`}>
+                            {quest.status === "ACTIVE" ? "Active" : "Planning"}
+                          </span>
+                        </div>
+                        <p className="quest-card-cities">{quest.cities.map((c) => c.name).join(" → ")}</p>
+                        <div className="quest-card-progress">
+                          <div className="progress-bar">
+                            <div className="progress-fill" style={{ width: `${progressPct}%` }} />
+                          </div>
+                          <span className="progress-text">{quest.progress.completed}/{quest.progress.total}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Visits Section */}
+            <div className="main-section">
+              <div className="section-header">
+                <h2 className="section-title">
+                  <Clock size={18} />
+                  Recent Visits
+                </h2>
+                <Link href="/travel/locations" className="section-link">View all <ChevronRight size={14} /></Link>
+              </div>
+
+              {recentVisits.length > 0 ? (
+                <div className="visits-grid">
+                  {recentVisits.map((visit) => (
+                    <Link key={visit.id} href={`/travel/locations/${visit.location.id}`} className="visit-card-desktop">
+                      <span className="visit-type-icon">{getTypeIcon(visit.location.type)}</span>
+                      <div className="visit-card-info">
+                        <p className="visit-card-name">{visit.location.name}</p>
+                        <p className="visit-card-location">{visit.location.city}, {visit.location.country}</p>
+                      </div>
+                      <span className="visit-card-time">{formatRelativeTime(visit.visitedAt)}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-section">
+                  <MapPin size={32} />
+                  <p>No visits logged yet</p>
+                  <Link href="/travel/locations/new" className="empty-cta">
+                    <Plus size={16} /> Log your first visit
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Stats Overview */}
+            <div className="main-section">
+              <div className="section-header">
+                <h2 className="section-title">
+                  <Sparkles size={18} />
+                  Your Journey
+                </h2>
+              </div>
+
+              <div className="stats-overview">
+                <div className="stat-card stat-card-teal">
+                  <Globe size={24} />
+                  <div className="stat-card-value">{stats.countries}</div>
+                  <div className="stat-card-label">Countries</div>
+                </div>
+                <div className="stat-card stat-card-purple">
+                  <Building2 size={24} />
+                  <div className="stat-card-value">{stats.cities}</div>
+                  <div className="stat-card-label">Cities</div>
+                </div>
+                <div className="stat-card stat-card-cyan">
+                  <MapPin size={24} />
+                  <div className="stat-card-value">{stats.locations}</div>
+                  <div className="stat-card-label">Places</div>
+                </div>
+                <div className="stat-card stat-card-gold">
+                  <Trophy size={24} />
+                  <div className="stat-card-value">{stats.achievements}/{stats.totalAchievements}</div>
+                  <div className="stat-card-label">Achievements</div>
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
 
         {/* Mobile Bottom Spacer */}
@@ -925,313 +943,521 @@ export default function TravelHomeClient({
             background: linear-gradient(135deg, var(--rpg-teal) 0%, var(--rpg-teal-dark) 100%);
           }
 
-          /* ===== DESKTOP STYLES ===== */
-          .desktop-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 32px;
-          }
-          .desktop-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr 280px;
-            gap: 32px;
+          /* ===== DESKTOP STYLES - Sidebar Layout ===== */
+          .desktop-layout {
+            min-height: 100vh;
           }
 
-          .desktop-left, .desktop-right {
+          .travel-sidebar {
+            width: 280px;
+            background: var(--rpg-card);
+            border-right: 1px solid var(--rpg-border);
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            overflow-y: auto;
           }
 
-          .desktop-level-card {
-            padding: 24px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, rgba(95, 191, 138, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+          .sidebar-header {
+            padding: 20px;
           }
-          .desktop-level-header {
+
+          .character-card {
+            background: linear-gradient(180deg, var(--rpg-bg) 0%, var(--rpg-card) 100%);
+            border: 1px solid var(--rpg-border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+          }
+
+          .character-top {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 12px;
+            margin-bottom: 12px;
           }
-          .desktop-xp-ring {
-            position: relative;
-            width: 64px;
-            height: 64px;
-          }
-          .desktop-level-num {
-            position: absolute;
-            inset: 0;
+
+          .character-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--rpg-teal), var(--rpg-purple));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: var(--rpg-gold);
-            text-shadow: 0 0 10px var(--rpg-gold-glow);
-          }
-          .desktop-level-label {
-            font-size: 14px;
-            color: var(--rpg-muted);
-          }
-          .desktop-xp-text {
-            color: var(--rpg-text);
-          }
-          .desktop-stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-          }
-          .desktop-stat {
-            padding: 12px;
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.2);
-          }
-          .desktop-stat p {
-            font-size: 24px;
-            font-weight: bold;
-          }
-          .desktop-stat span {
-            font-size: 12px;
-            color: var(--rpg-muted);
+            position: relative;
+            border: 2px solid var(--rpg-teal);
+            box-shadow: 0 0 15px var(--rpg-teal-glow);
+            color: white;
           }
 
-          .desktop-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-          .desktop-action {
+          .level-badge {
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, var(--rpg-gold), #E6A000);
+            color: #1a1a1a;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 24px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid;
-            transition: transform 0.2s, background 0.2s;
+            justify-content: center;
+            box-shadow: 0 2px 0 #996600;
           }
-          .desktop-action:hover { transform: scale(1.02); }
-          .desktop-action.action-teal {
+
+          .character-info { flex: 1; }
+
+          .character-rank {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--rpg-teal);
+            text-shadow: 0 0 8px var(--rpg-teal-glow);
+          }
+
+          .character-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--rpg-text);
+          }
+
+          .xp-section { margin-bottom: 12px; }
+
+          .xp-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--rpg-muted);
+            margin-bottom: 6px;
+          }
+
+          .xp-value {
+            color: var(--rpg-gold);
+            text-shadow: 0 0 8px var(--rpg-gold-glow);
+          }
+
+          .xp-bar {
+            height: 6px;
+            background: var(--rpg-border);
+            border-radius: 3px;
+            overflow: hidden;
+          }
+
+          .xp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--rpg-teal) 0%, var(--rpg-purple) 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px var(--rpg-teal-glow);
+          }
+
+          .stat-badges {
+            display: flex;
+            gap: 8px;
+          }
+
+          .stat-badge {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--rpg-bg);
+            border: 1px solid var(--rpg-border);
+            border-radius: 8px;
+          }
+
+          .stat-badge-icon { font-size: 16px; }
+          .stat-badge-value { font-size: 14px; font-weight: 600; color: var(--rpg-text); }
+          .stat-badge-label { font-size: 9px; text-transform: uppercase; color: var(--rpg-muted); letter-spacing: 0.5px; }
+
+          /* Sidebar Actions */
+          .sidebar-actions {
+            padding: 0 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .sidebar-action {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid;
+          }
+
+          .sidebar-action.action-teal {
             background: rgba(95, 191, 138, 0.1);
             border-color: rgba(95, 191, 138, 0.3);
+            color: var(--rpg-teal);
           }
-          .desktop-action.action-teal:hover { background: rgba(95, 191, 138, 0.15); }
-          .desktop-action.action-purple {
+          .sidebar-action.action-teal:hover {
+            background: rgba(95, 191, 138, 0.2);
+          }
+
+          .sidebar-action.action-purple {
             background: rgba(168, 85, 247, 0.1);
             border-color: rgba(168, 85, 247, 0.3);
+            color: var(--rpg-purple);
           }
-          .desktop-action.action-purple:hover { background: rgba(168, 85, 247, 0.15); }
-          .desktop-action.action-cyan {
-            background: rgba(6, 182, 212, 0.1);
-            border-color: rgba(6, 182, 212, 0.3);
+          .sidebar-action.action-purple:hover {
+            background: rgba(168, 85, 247, 0.2);
           }
-          .desktop-action.action-cyan:hover { background: rgba(6, 182, 212, 0.15); }
-          .desktop-action-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .desktop-action.action-teal .desktop-action-icon { background: rgba(95, 191, 138, 0.2); color: var(--rpg-teal); }
-          .desktop-action.action-purple .desktop-action-icon { background: rgba(168, 85, 247, 0.2); color: var(--rpg-purple); }
-          .desktop-action.action-cyan .desktop-action-icon { background: rgba(6, 182, 212, 0.2); color: var(--rpg-cyan); }
-          .desktop-action-text {
-            flex: 1;
-          }
-          .desktop-action-text p {
-            font-weight: 500;
-            color: var(--rpg-text);
-          }
-          .desktop-action-text span {
-            font-size: 12px;
-            color: var(--rpg-muted);
-          }
-          .desktop-action-arrow {
-            color: var(--rpg-muted);
-            transition: color 0.2s;
-          }
-          .desktop-action:hover .desktop-action-arrow { color: var(--rpg-text); }
 
-          .desktop-nav {
-            padding: 16px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+          .sidebar-action span:first-of-type { flex: 1; }
+          .action-xp {
+            font-size: 12px;
+            color: var(--rpg-gold);
           }
-          .desktop-nav-item {
+
+          /* Sidebar Navigation */
+          .sidebar-nav {
+            flex: 1;
+            padding: 0 12px;
+          }
+
+          .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+
+          .nav-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
+            padding: 12px 14px;
             border-radius: 8px;
             color: var(--rpg-muted);
-            transition: background 0.2s, color 0.2s;
+            font-size: 14px;
+            transition: all 0.15s ease;
           }
-          .desktop-nav-item:hover {
+
+          .nav-item:hover {
             background: rgba(255, 255, 255, 0.05);
             color: var(--rpg-text);
           }
-          .desktop-nav-item span:first-of-type { flex: 1; }
-          .desktop-nav-count {
-            font-size: 14px;
+
+          .nav-icon { display: flex; align-items: center; }
+          .nav-label { flex: 1; }
+          .nav-count {
+            font-size: 12px;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
             color: var(--rpg-muted);
           }
 
-          .desktop-welcome {
-            margin-bottom: 24px;
+          /* Sidebar Footer */
+          .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--rpg-border);
+            display: flex;
+            justify-content: space-around;
           }
-          .desktop-welcome h1 {
+
+          .footer-stat {
+            text-align: center;
+          }
+
+          .footer-stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            display: block;
+          }
+
+          .footer-stat-label {
+            font-size: 10px;
+            color: var(--rpg-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          /* Main Content Area */
+          .travel-main {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            max-width: 900px;
+          }
+
+          .main-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--rpg-border);
+          }
+
+          .main-header-text h1 {
             font-size: 24px;
             font-weight: bold;
             color: var(--rpg-text);
             margin-bottom: 4px;
           }
-          .desktop-welcome p {
+
+          .main-header-text p {
             color: var(--rpg-muted);
           }
 
-          .desktop-section {
-            margin-bottom: 24px;
-          }
-          .desktop-quests {
+          .main-header-actions {
             display: flex;
-            flex-direction: column;
+            gap: 12px;
+          }
+
+          .header-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+          }
+
+          .header-btn-primary {
+            background: linear-gradient(135deg, var(--rpg-teal) 0%, rgba(95, 191, 138, 0.8) 100%);
+            color: white;
+            box-shadow: 0 4px 12px var(--rpg-teal-glow);
+          }
+          .header-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--rpg-teal-glow);
+          }
+
+          .header-btn-secondary {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: var(--rpg-purple);
+          }
+          .header-btn-secondary:hover {
+            background: rgba(168, 85, 247, 0.25);
+          }
+
+          /* Main Sections */
+          .main-section {
+            margin-bottom: 32px;
+          }
+
+          /* Quest Cards Grid */
+          .quests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 16px;
           }
-          .desktop-quest-card {
+
+          .quest-card-desktop {
             padding: 20px;
             border-radius: 12px;
             background: rgba(168, 85, 247, 0.08);
             border: 1px solid rgba(168, 85, 247, 0.2);
-            transition: transform 0.2s;
+            transition: all 0.2s;
           }
-          .desktop-quest-card:hover { transform: scale(1.01); }
-          .desktop-quest-name {
-            font-size: 18px;
+          .quest-card-desktop:hover {
+            transform: translateY(-2px);
+            background: rgba(168, 85, 247, 0.12);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+          }
+
+          .quest-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+          }
+
+          .quest-card-header h3 {
+            font-size: 16px;
+            font-weight: 600;
             color: var(--rpg-text);
           }
-          .desktop-quest-progress {
+
+          .quest-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+          }
+          .quest-badge.active {
+            background: rgba(95, 191, 138, 0.2);
+            color: var(--rpg-teal);
+          }
+          .quest-badge.planning {
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--rpg-purple);
+          }
+
+          .quest-card-cities {
+            font-size: 13px;
+            color: var(--rpg-muted);
+            margin-bottom: 12px;
+          }
+
+          .quest-card-progress {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
           }
-          .desktop-quest-progress .quest-progress-bar { flex: 1; }
-          .desktop-quest-progress span {
-            font-size: 14px;
+
+          .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--rpg-border);
+            border-radius: 3px;
+            overflow: hidden;
+          }
+
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--rpg-purple) 0%, var(--rpg-teal) 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+          }
+
+          .progress-text {
+            font-size: 12px;
             color: var(--rpg-muted);
             white-space: nowrap;
           }
 
-          .desktop-visits {
+          /* Visits Grid */
+          .visits-grid {
             display: flex;
             flex-direction: column;
             gap: 8px;
           }
-          .desktop-visit {
+
+          .visit-card-desktop {
             display: flex;
             align-items: center;
             gap: 16px;
             padding: 16px;
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: background 0.2s;
+            border: 1px solid var(--rpg-border);
+            transition: all 0.2s;
           }
-          .desktop-visit:hover { background: rgba(255, 255, 255, 0.05); }
+          .visit-card-desktop:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+          }
 
-          .desktop-empty {
-            padding: 32px;
+          .visit-type-icon { font-size: 28px; }
+
+          .visit-card-info { flex: 1; min-width: 0; }
+
+          .visit-card-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--rpg-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .visit-card-location {
+            font-size: 13px;
+            color: var(--rpg-muted);
+          }
+
+          .visit-card-time {
+            font-size: 12px;
+            color: var(--rpg-muted);
+            white-space: nowrap;
+          }
+
+          /* Empty Section */
+          .empty-section {
+            padding: 40px;
             border-radius: 12px;
             text-align: center;
             background: rgba(255, 255, 255, 0.02);
             border: 1px dashed rgba(255, 255, 255, 0.1);
             color: var(--rpg-muted);
           }
-          .desktop-empty p { margin: 12px 0 16px; }
-          .desktop-empty-cta {
+          .empty-section p {
+            margin: 12px 0 16px;
+          }
+          .empty-cta {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 8px;
             color: var(--rpg-teal);
             background: rgba(95, 191, 138, 0.1);
             transition: background 0.2s;
           }
-          .desktop-empty-cta:hover { background: rgba(95, 191, 138, 0.2); }
+          .empty-cta:hover {
+            background: rgba(95, 191, 138, 0.2);
+          }
 
-          .desktop-achievements {
-            display: block;
+          /* Stats Overview */
+          .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+          }
+
+          .stat-card {
             padding: 20px;
             border-radius: 12px;
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.05) 100%);
-            border: 1px solid rgba(255, 215, 0, 0.2);
+            text-align: center;
+            border: 1px solid;
             transition: transform 0.2s;
           }
-          .desktop-achievements:hover { transform: scale(1.02); }
-          .desktop-achievements-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-            color: var(--rpg-gold);
-          }
-          .desktop-achievements-header p {
-            font-weight: 500;
-            color: var(--rpg-text);
-          }
-          .desktop-achievements-header span {
-            font-size: 14px;
-            color: var(--rpg-muted);
-          }
-          .achievements-bar {
-            height: 8px;
-            border-radius: 4px;
-            background: rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-          }
-          .achievements-fill {
-            height: 100%;
-            border-radius: 4px;
-            background: linear-gradient(90deg, var(--rpg-gold) 0%, #f97316 100%);
+          .stat-card:hover {
+            transform: translateY(-2px);
           }
 
-          .desktop-card-red, .desktop-card-orange {
-            padding: 20px;
-            border-radius: 12px;
+          .stat-card-teal {
+            background: rgba(95, 191, 138, 0.08);
+            border-color: rgba(95, 191, 138, 0.2);
+            color: var(--rpg-teal);
           }
-          .desktop-card-red {
-            background: rgba(239, 68, 68, 0.05);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+          .stat-card-purple {
+            background: rgba(168, 85, 247, 0.08);
+            border-color: rgba(168, 85, 247, 0.2);
+            color: var(--rpg-purple);
           }
-          .desktop-card-orange {
-            background: rgba(249, 115, 22, 0.05);
-            border: 1px solid rgba(249, 115, 22, 0.2);
+          .stat-card-cyan {
+            background: rgba(6, 182, 212, 0.08);
+            border-color: rgba(6, 182, 212, 0.2);
+            color: var(--rpg-cyan);
           }
-          .desktop-card-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
+          .stat-card-gold {
+            background: rgba(255, 215, 0, 0.08);
+            border-color: rgba(255, 215, 0, 0.2);
+            color: var(--rpg-gold);
           }
-          .desktop-card-header p {
-            flex: 1;
-            font-weight: 500;
+
+          .stat-card-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 8px 0 4px;
             color: var(--rpg-text);
           }
-          .desktop-card-red .desktop-card-header { color: #ef4444; }
-          .desktop-card-orange .desktop-card-header { color: #f97316; }
-          .desktop-card-value {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 4px;
-          }
-          .desktop-card-red span, .desktop-card-orange span {
-            font-size: 14px;
+
+          .stat-card-label {
+            font-size: 12px;
             color: var(--rpg-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
           }
         `}</style>
 
