@@ -54,10 +54,8 @@ export function generateInviteCode(userId: string): GeneratedInvite {
   // Combine payload and signature
   const code = encodeBase64Url(payloadStr) + '.' + signature;
 
-  // Determine base URL
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                  'https://gamify.it.com';
+  // Always use the canonical domain for invite links
+  const baseUrl = 'https://gamify.it.com';
 
   return {
     code,
