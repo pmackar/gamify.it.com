@@ -64,6 +64,10 @@ export default function TodayApp() {
   const [mounted, setMounted] = useState(false);
   const { setCenterContent } = useNavBar();
 
+  // Wide screen detection for right sidebar
+  const [isWideScreen, setIsWideScreen] = useState(false);
+  const WIDE_SCREEN_THRESHOLD = 1200;
+
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -152,6 +156,16 @@ export default function TodayApp() {
       setTimeout(() => setShowTutorial(true), 500);
     }
   }, []);
+
+  // Wide screen detection for right sidebar
+  useEffect(() => {
+    const checkWidth = () => {
+      setIsWideScreen(window.innerWidth >= WIDE_SCREEN_THRESHOLD);
+    };
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
+  }, [WIDE_SCREEN_THRESHOLD]);
 
   // Sync on page unload
   useEffect(() => {
@@ -1503,6 +1517,35 @@ export default function TodayApp() {
         @media (max-width: 768px) {
           .today-sidebar {
             display: none;
+          }
+        }
+
+        /* Right sidebar for wide screens */
+        .today-right-sidebar {
+          width: 280px;
+          height: 100vh;
+          position: fixed;
+          top: 0;
+          right: 0;
+          background: var(--bg-secondary);
+          border-left: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          z-index: 40;
+          padding: var(--content-top, 60px) 16px 16px;
+          overflow-y: auto;
+        }
+
+        @media (max-width: 1199px) {
+          .today-right-sidebar {
+            display: none;
+          }
+        }
+
+        /* Adjust main content when right sidebar is visible */
+        @media (min-width: 1200px) {
+          .today-main {
+            margin-right: 280px;
           }
         }
 
@@ -3607,74 +3650,79 @@ export default function TodayApp() {
 
         {/* Sidebar */}
         <aside className="today-sidebar">
-          <div className="sidebar-header">
-            <div className="character-card">
-              <div className="character-top">
-                <div className="character-avatar">
-                  {rankInfo.icon}
-                  <span className="level-badge">{store.profile.level}</span>
-                </div>
-                <div className="character-info">
-                  <div className="character-rank">{rankInfo.rank.toUpperCase()}</div>
-                  <div className="character-title">Task Warrior</div>
+          {/* Character Card & Daily Quests - only show when not wide screen */}
+          {!isWideScreen && (
+            <>
+              <div className="sidebar-header">
+                <div className="character-card">
+                  <div className="character-top">
+                    <div className="character-avatar">
+                      {rankInfo.icon}
+                      <span className="level-badge">{store.profile.level}</span>
+                    </div>
+                    <div className="character-info">
+                      <div className="character-rank">{rankInfo.rank.toUpperCase()}</div>
+                      <div className="character-title">Task Warrior</div>
+                    </div>
+                  </div>
+
+                  <div className="xp-section">
+                    <div className="xp-label">
+                      <span>EXPERIENCE</span>
+                      <span className="xp-value">{store.profile.xp} / {store.profile.xp_to_next}</span>
+                    </div>
+                    <div className="xp-bar">
+                      <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="stat-badges">
+                    <div className="stat-badge">
+                      <span className="stat-badge-icon">🔥</span>
+                      <div>
+                        <div className="stat-badge-value">{store.profile.current_streak}</div>
+                        <div className="stat-badge-label">Streak</div>
+                      </div>
+                    </div>
+                    <div className="stat-badge">
+                      <span className="stat-badge-icon">✅</span>
+                      <div>
+                        <div className="stat-badge-value">{todayCount}</div>
+                        <div className="stat-badge-label">Today</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="xp-section">
-                <div className="xp-label">
-                  <span>EXPERIENCE</span>
-                  <span className="xp-value">{store.profile.xp} / {store.profile.xp_to_next}</span>
+              {/* Daily Quests Widget */}
+              <div className="daily-quests-widget">
+                <div className="daily-quests-header">
+                  <span className="daily-quests-icon">⚔️</span>
+                  <span className="daily-quests-title">Daily Quests</span>
                 </div>
-                <div className="xp-bar">
-                  <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
+                <div className="daily-quests-list">
+                  {store.getDailyQuests().quests.map((quest) => (
+                    <div key={quest.id} className={`daily-quest-item ${quest.completed ? 'completed' : ''}`}>
+                      <div className="daily-quest-check">
+                        {quest.completed ? '✓' : `${quest.progress}/${quest.target}`}
+                      </div>
+                      <div className="daily-quest-info">
+                        <div className="daily-quest-title">{quest.title}</div>
+                        <div className="daily-quest-desc">{quest.description}</div>
+                      </div>
+                      <div className="daily-quest-xp">+{quest.xp_reward}</div>
+                    </div>
+                  ))}
                 </div>
+                {store.getDailyQuests().quests.every(q => q.completed) && (
+                  <div className="daily-quests-bonus">
+                    ✨ All quests complete! +50 XP bonus
+                  </div>
+                )}
               </div>
-
-              <div className="stat-badges">
-                <div className="stat-badge">
-                  <span className="stat-badge-icon">🔥</span>
-                  <div>
-                    <div className="stat-badge-value">{store.profile.current_streak}</div>
-                    <div className="stat-badge-label">Streak</div>
-                  </div>
-                </div>
-                <div className="stat-badge">
-                  <span className="stat-badge-icon">✅</span>
-                  <div>
-                    <div className="stat-badge-value">{todayCount}</div>
-                    <div className="stat-badge-label">Today</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Daily Quests Widget */}
-          <div className="daily-quests-widget">
-            <div className="daily-quests-header">
-              <span className="daily-quests-icon">⚔️</span>
-              <span className="daily-quests-title">Daily Quests</span>
-            </div>
-            <div className="daily-quests-list">
-              {store.getDailyQuests().quests.map((quest) => (
-                <div key={quest.id} className={`daily-quest-item ${quest.completed ? 'completed' : ''}`}>
-                  <div className="daily-quest-check">
-                    {quest.completed ? '✓' : `${quest.progress}/${quest.target}`}
-                  </div>
-                  <div className="daily-quest-info">
-                    <div className="daily-quest-title">{quest.title}</div>
-                    <div className="daily-quest-desc">{quest.description}</div>
-                  </div>
-                  <div className="daily-quest-xp">+{quest.xp_reward}</div>
-                </div>
-              ))}
-            </div>
-            {store.getDailyQuests().quests.every(q => q.completed) && (
-              <div className="daily-quests-bonus">
-                ✨ All quests complete! +50 XP bonus
-              </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Accountability Partners - hidden for now */}
           {/* <AccountabilityPartners /> */}
@@ -3808,6 +3856,78 @@ export default function TodayApp() {
             </button>
           </div>
         </aside>
+
+        {/* Right Sidebar - visible on wide screens */}
+        {isWideScreen && (
+          <aside className="today-right-sidebar">
+            <div className="character-card">
+              <div className="character-top">
+                <div className="character-avatar">
+                  {rankInfo.icon}
+                  <span className="level-badge">{store.profile.level}</span>
+                </div>
+                <div className="character-info">
+                  <div className="character-rank">{rankInfo.rank.toUpperCase()}</div>
+                  <div className="character-title">Task Warrior</div>
+                </div>
+              </div>
+
+              <div className="xp-section">
+                <div className="xp-label">
+                  <span>EXPERIENCE</span>
+                  <span className="xp-value">{store.profile.xp} / {store.profile.xp_to_next}</span>
+                </div>
+                <div className="xp-bar">
+                  <div className="xp-bar-fill" style={{ width: `${xpPercent}%` }} />
+                </div>
+              </div>
+
+              <div className="stat-badges">
+                <div className="stat-badge">
+                  <span className="stat-badge-icon">🔥</span>
+                  <div>
+                    <div className="stat-badge-value">{store.profile.current_streak}</div>
+                    <div className="stat-badge-label">Streak</div>
+                  </div>
+                </div>
+                <div className="stat-badge">
+                  <span className="stat-badge-icon">✅</span>
+                  <div>
+                    <div className="stat-badge-value">{todayCount}</div>
+                    <div className="stat-badge-label">Today</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Daily Quests Widget */}
+            <div className="daily-quests-widget" style={{ marginTop: '16px' }}>
+              <div className="daily-quests-header">
+                <span className="daily-quests-icon">⚔️</span>
+                <span className="daily-quests-title">Daily Quests</span>
+              </div>
+              <div className="daily-quests-list">
+                {store.getDailyQuests().quests.map((quest) => (
+                  <div key={quest.id} className={`daily-quest-item ${quest.completed ? 'completed' : ''}`}>
+                    <div className="daily-quest-check">
+                      {quest.completed ? '✓' : `${quest.progress}/${quest.target}`}
+                    </div>
+                    <div className="daily-quest-info">
+                      <div className="daily-quest-title">{quest.title}</div>
+                      <div className="daily-quest-desc">{quest.description}</div>
+                    </div>
+                    <div className="daily-quest-xp">+{quest.xp_reward}</div>
+                  </div>
+                ))}
+              </div>
+              {store.getDailyQuests().quests.every(q => q.completed) && (
+                <div className="daily-quests-bonus">
+                  ✨ All quests complete! +50 XP bonus
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
 
         {/* Main Content */}
         <main className="today-main">
