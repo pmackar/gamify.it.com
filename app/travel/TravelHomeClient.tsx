@@ -195,28 +195,23 @@ export default function TravelHomeClient({
                 </Link>
               </div>
 
-              <div ref={questsRef} className="quests-carousel">
+              <div ref={questsRef} className="quests-gallery">
                 {activeQuests.map((quest) => {
                   const progressPct = quest.progress.total > 0
                     ? (quest.progress.completed / quest.progress.total) * 100
                     : 0;
                   return (
                     <Link key={quest.id} href={`/travel/quests/${quest.id}`} className="quest-card">
-                      <div className="quest-header">
-                        <div>
-                          <h3 className="quest-name">{quest.name}</h3>
-                          <p className="quest-cities">{quest.cities.map((c) => c.name).join(", ")}</p>
-                        </div>
-                        <span className={`quest-status ${quest.status === "ACTIVE" ? "active" : "planning"}`}>
-                          {quest.status === "ACTIVE" ? "Active" : "Planning"}
-                        </span>
-                      </div>
+                      <span className={`quest-status ${quest.status === "ACTIVE" ? "active" : "planning"}`}>
+                        {quest.status === "ACTIVE" ? "⚔️ Active" : "📋 Planning"}
+                      </span>
+                      <h3 className="quest-name">{quest.name}</h3>
+                      <p className="quest-cities">{quest.cities.map((c) => c.name).join(", ") || "No cities yet"}</p>
                       <div className="quest-progress-bar">
                         <div className="quest-progress-fill" style={{ width: `${progressPct}%` }} />
                       </div>
                       <div className="quest-progress-text">
-                        <span>{quest.progress.completed} completed</span>
-                        <span>{quest.progress.total} total</span>
+                        <span>{quest.progress.completed}/{quest.progress.total}</span>
                       </div>
                     </Link>
                   );
@@ -695,103 +690,113 @@ export default function TravelHomeClient({
             gap: 4px;
           }
 
-          .quests-carousel {
-            display: flex;
+          .quests-gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            margin: 0 -16px;
-            padding-left: 16px;
-            padding-right: 16px;
-            scroll-snap-type: x mandatory;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
           }
-          .quests-carousel::-webkit-scrollbar { display: none; }
 
           .quest-card {
-            flex-shrink: 0;
-            width: 280px;
-            padding: 16px;
-            border-radius: 12px;
-            scroll-snap-align: start;
-            transition: transform 0.2s;
-            background: rgba(168, 85, 247, 0.1);
-            border: 1px solid rgba(168, 85, 247, 0.3);
-          }
-          .quest-card:active { transform: scale(0.98); }
-          .quest-card-new {
-            flex-shrink: 0;
-            width: 280px;
-            padding: 16px 20px;
-            border-radius: 12px;
-            scroll-snap-align: start;
+            padding: 14px;
+            border-radius: 16px;
+            transition: all 0.2s;
+            background: var(--rpg-card);
+            border: 2px solid rgba(168, 85, 247, 0.4);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
+          }
+          .quest-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+          }
+          .quest-card-new {
+            padding: 14px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 80px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px dashed rgba(255, 255, 255, 0.2);
+            min-height: 100px;
+            background: var(--rpg-card);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
             color: var(--rpg-muted);
-            font-size: 8px;
+            font-size: 7px;
             font-family: var(--font-pixel);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            gap: 12px;
+            gap: 8px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+          }
+          .quest-card-new:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0.2);
+          }
+          .quest-card-new:hover {
+            border-color: var(--rpg-teal);
           }
           .quest-new-icon {
-            font-size: 24px;
-            flex-shrink: 0;
-          }
-          .quest-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
+            font-size: 28px;
           }
           .quest-name {
+            font-size: 8px;
+            font-family: var(--font-pixel);
             font-weight: 500;
             color: var(--rpg-text);
-            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            margin: 8px 0 4px;
           }
           .quest-cities {
-            font-size: 12px;
+            font-size: 10px;
             color: var(--rpg-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 10px;
+            flex: 1;
           }
           .quest-status {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
+            font-size: 6px;
+            font-family: var(--font-pixel);
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            align-self: flex-start;
           }
           .quest-status.active {
             background: rgba(95, 191, 138, 0.2);
             color: var(--rpg-teal);
+            border: 1px solid rgba(95, 191, 138, 0.4);
           }
           .quest-status.planning {
             background: rgba(168, 85, 247, 0.2);
             color: var(--rpg-purple);
+            border: 1px solid rgba(168, 85, 247, 0.4);
           }
           .quest-progress-bar {
-            height: 8px;
-            border-radius: 4px;
+            height: 6px;
+            border-radius: 3px;
             background: var(--rpg-border);
             overflow: hidden;
+            margin-top: auto;
           }
           .quest-progress-fill {
             height: 100%;
-            border-radius: 4px;
+            border-radius: 3px;
             background: linear-gradient(90deg, var(--rpg-purple) 0%, var(--rpg-teal) 100%);
             transition: width 0.5s ease;
           }
           .quest-progress-text {
             display: flex;
             justify-content: space-between;
-            margin-top: 8px;
-            font-size: 12px;
+            margin-top: 6px;
+            font-size: 9px;
             color: var(--rpg-muted);
           }
 
