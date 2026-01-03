@@ -31,7 +31,9 @@ import {
   calculateSetXP,
   getLevelFromXP,
   getExerciseById,
-  EXERCISES
+  EXERCISES,
+  PREBUILT_PROGRAMS,
+  type PrebuiltProgram
 } from './data';
 
 const STORAGE_KEY = 'gamify_fitness';
@@ -160,6 +162,7 @@ interface FitnessStore extends FitnessState, SyncState {
   updateProgram: (id: string, updates: Partial<Program>) => void;
   deleteProgram: (id: string) => void;
   duplicateProgram: (id: string) => void;
+  importPrebuiltProgram: (prebuiltId: string) => string | null;
   getProgramById: (id: string) => Program | null;
   startProgram: (programId: string) => void;
   stopProgram: () => void;
@@ -181,6 +184,13 @@ interface FitnessStore extends FitnessState, SyncState {
   updateCampaign: (campaignId: string, updates: Partial<Campaign>) => void;
   deleteCampaign: (campaignId: string) => void;
   updateCampaignProgress: () => void;
+
+  // Analytics
+  getVolumeByWeek: (weeks?: number) => { week: string; volume: number }[];
+  getVolumeByMuscle: () => { muscle: string; volume: number; percentage: number }[];
+  getStrengthProgress: (exerciseId: string) => { date: string; weight: number }[];
+  getWeeklySummary: () => { workouts: number; sets: number; volume: number; xp: number };
+  getMonthlySummary: () => { workouts: number; sets: number; volume: number; xp: number };
 
   // Toast
   showToast: (message: string) => void;
@@ -1338,6 +1348,52 @@ export const useFitnessStore = create<FitnessStore>()(
         get().showToast('Program duplicated');
       },
 
+      importPrebuiltProgram: (prebuiltId: string) => {
+        const prebuilt = PREBUILT_PROGRAMS.find(p => p.id === prebuiltId);
+        if (!prebuilt) return null;
+
+        const now = new Date().toISOString();
+        const programId = Date.now().toString();
+
+        // Import templates with unique IDs
+        const templateIdMap: Record<string, string> = {};
+        const newTemplates: WorkoutTemplate[] = prebuilt.templates.map(t => {
+          const newId = `${programId}-${t.id}`;
+          templateIdMap[t.id] = newId;
+          return {
+            ...t,
+            id: newId,
+            createdAt: now,
+            updatedAt: now,
+            isDefault: false,
+          };
+        });
+
+        // Create program with remapped template IDs
+        const newProgram: Program = {
+          ...prebuilt.program,
+          id: programId,
+          createdAt: now,
+          updatedAt: now,
+          weeks: prebuilt.program.weeks.map(week => ({
+            ...week,
+            days: week.days.map(day => ({
+              ...day,
+              templateId: day.templateId ? templateIdMap[day.templateId] : undefined,
+            })),
+          })),
+        };
+
+        set((state) => ({
+          templates: [...state.templates, ...newTemplates],
+          programs: [...state.programs, newProgram],
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast(`${prebuilt.name} imported!`);
+        return programId;
+      },
+
       getProgramById: (id: string) => {
         return get().programs.find(p => p.id === id) || null;
       },
@@ -1663,6 +1719,165 @@ export const useFitnessStore = create<FitnessStore>()(
           pendingSync: true
         }));
         queueSync(get);
+      },
+
+      // Analytics
+      getVolumeByWeek: (weeks = 8) => {
+        const state = get();
+        const now = new Date();
+        const result: { week: string; volume: number }[] = [];
+
+        for (let i = weeks - 1; i >= 0; i--) {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - (i * 7) - now.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 7);
+
+          let weekVolume = 0;
+          state.workouts.forEach(workout => {
+            const workoutDate = new Date(workout.startTime);
+            if (workoutDate >= weekStart && workoutDate < weekEnd) {
+              workout.exercises.forEach(ex => {
+                ex.sets.forEach(set => {
+                  if (!set.isWarmup) {
+                    weekVolume += set.weight * set.reps;
+                  }
+                });
+              });
+            }
+          });
+
+          const label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          result.push({ week: label, volume: weekVolume });
+        }
+
+        return result;
+      },
+
+      getVolumeByMuscle: () => {
+        const state = get();
+        const muscleVolume: Record<string, number> = {};
+        let totalVolume = 0;
+
+        // Calculate volume for last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        state.workouts.forEach(workout => {
+          const workoutDate = new Date(workout.startTime);
+          if (workoutDate >= thirtyDaysAgo) {
+            workout.exercises.forEach(ex => {
+              const exercise = EXERCISES.find(e => e.id === ex.id || e.name === ex.name);
+              const muscle = exercise?.muscle || 'other';
+
+              ex.sets.forEach(set => {
+                if (!set.isWarmup) {
+                  const setVolume = set.weight * set.reps;
+                  muscleVolume[muscle] = (muscleVolume[muscle] || 0) + setVolume;
+                  totalVolume += setVolume;
+                }
+              });
+            });
+          }
+        });
+
+        return Object.entries(muscleVolume)
+          .map(([muscle, volume]) => ({
+            muscle,
+            volume,
+            percentage: totalVolume > 0 ? Math.round((volume / totalVolume) * 100) : 0
+          }))
+          .sort((a, b) => b.volume - a.volume);
+      },
+
+      getStrengthProgress: (exerciseId: string) => {
+        const state = get();
+        const progress: { date: string; weight: number }[] = [];
+        const seenDates = new Set<string>();
+
+        // Get max weight per workout day for this exercise
+        state.workouts
+          .filter(w => w.exercises.some(e => e.id === exerciseId || e.name === exerciseId))
+          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+          .forEach(workout => {
+            const dateKey = new Date(workout.startTime).toLocaleDateString();
+            if (seenDates.has(dateKey)) return;
+
+            const exercise = workout.exercises.find(e => e.id === exerciseId || e.name === exerciseId);
+            if (exercise) {
+              const maxWeight = Math.max(...exercise.sets.filter(s => !s.isWarmup).map(s => s.weight));
+              if (maxWeight > 0) {
+                progress.push({
+                  date: dateKey,
+                  weight: maxWeight
+                });
+                seenDates.add(dateKey);
+              }
+            }
+          });
+
+        return progress;
+      },
+
+      getWeeklySummary: () => {
+        const state = get();
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+
+        let workouts = 0;
+        let sets = 0;
+        let volume = 0;
+        let xp = 0;
+
+        state.workouts.forEach(workout => {
+          const workoutDate = new Date(workout.startTime);
+          if (workoutDate >= weekStart) {
+            workouts++;
+            xp += workout.totalXP;
+            workout.exercises.forEach(ex => {
+              ex.sets.forEach(set => {
+                if (!set.isWarmup) {
+                  sets++;
+                  volume += set.weight * set.reps;
+                }
+              });
+            });
+          }
+        });
+
+        return { workouts, sets, volume, xp };
+      },
+
+      getMonthlySummary: () => {
+        const state = get();
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let workouts = 0;
+        let sets = 0;
+        let volume = 0;
+        let xp = 0;
+
+        state.workouts.forEach(workout => {
+          const workoutDate = new Date(workout.startTime);
+          if (workoutDate >= monthStart) {
+            workouts++;
+            xp += workout.totalXP;
+            workout.exercises.forEach(ex => {
+              ex.sets.forEach(set => {
+                if (!set.isWarmup) {
+                  sets++;
+                  volume += set.weight * set.reps;
+                }
+              });
+            });
+          }
+        });
+
+        return { workouts, sets, volume, xp };
       },
 
       showToast: (message: string) => {
