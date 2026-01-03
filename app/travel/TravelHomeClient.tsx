@@ -705,6 +705,8 @@ export default function TravelHomeClient({
             box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
           }
           .quest-card:active {
             transform: translateY(4px);
@@ -750,6 +752,7 @@ export default function TravelHomeClient({
             text-overflow: ellipsis;
             white-space: nowrap;
             margin: 8px 0 4px;
+            max-width: 100%;
           }
           .quest-cities {
             font-size: 10px;
@@ -759,6 +762,7 @@ export default function TravelHomeClient({
             white-space: nowrap;
             margin-bottom: 10px;
             flex: 1;
+            max-width: 100%;
           }
           .quest-status {
             font-size: 6px;
