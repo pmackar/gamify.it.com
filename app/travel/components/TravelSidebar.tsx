@@ -6,6 +6,9 @@ import {
   Globe,
   Plus,
   Compass,
+  Building2,
+  MapPin,
+  Scroll,
 } from "lucide-react";
 
 interface TravelSidebarProps {
@@ -89,13 +92,27 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
       <div className="sidebar-actions">
         <Link href="/travel/locations/new" className="sidebar-action action-teal">
           <Plus size={18} />
-          <span>Log Visit</span>
+          <span>Add Location</span>
           <span className="action-xp">+15 XP</span>
         </Link>
         <Link href="/travel/quests/new" className="sidebar-action action-purple">
           <Compass size={18} />
           <span>New Quest</span>
         </Link>
+        <div className="sidebar-nav-shortcuts">
+          <Link href="/travel/cities" className="nav-shortcut">
+            <Building2 size={16} />
+            <span>Cities</span>
+          </Link>
+          <Link href="/travel/locations" className="nav-shortcut">
+            <MapPin size={16} />
+            <span>Locations</span>
+          </Link>
+          <Link href="/travel/quests" className="nav-shortcut">
+            <Scroll size={16} />
+            <span>Quests</span>
+          </Link>
+        </div>
       </div>
 
       {/* Navigation - grows to fill space */}
@@ -341,6 +358,33 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
         .action-xp {
           font-size: 12px;
           color: var(--rpg-gold);
+        }
+
+        .sidebar-nav-shortcuts {
+          display: flex;
+          gap: 8px;
+          margin-top: 4px;
+        }
+
+        .nav-shortcut {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--rpg-muted);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--rpg-border);
+          transition: all 0.15s ease;
+        }
+
+        .nav-shortcut:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: var(--rpg-text);
         }
 
         /* Navigation */
