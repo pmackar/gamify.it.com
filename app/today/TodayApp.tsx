@@ -1407,16 +1407,10 @@ export default function TodayApp() {
           display: flex;
           min-height: 100vh;
           min-height: 100dvh;
-          padding-top: 66px;
+          padding-top: var(--content-top);
           background: var(--bg-primary);
           color: var(--text-primary);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        @media (max-width: 768px) {
-          .today-app {
-            padding-top: 56px;
-          }
         }
 
         .today-sidebar {

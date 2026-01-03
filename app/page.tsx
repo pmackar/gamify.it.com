@@ -238,7 +238,7 @@ function SplashIntro() {
     <div className="crt-wrapper">
       <PixelParticles />
       <div className="page-content">
-        <section className="crt-intro" style={{ paddingTop: '66px' }}>
+        <section className="crt-intro" style={{ paddingTop: 'var(--content-top)' }}>
           <div className="video-background">
             <video ref={primaryVideoRef} className={`video-primary ${showVideo && primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" />
             <video ref={secondaryVideoRef} className={`video-secondary ${showVideo && !primaryActive ? 'active' : ''}`} muted loop playsInline preload="auto" />
@@ -800,7 +800,7 @@ export default function LandingPage() {
         /* Dashboard Wrapper */
         .dashboard-wrapper { background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%); position: relative; min-height: 100vh; min-height: 100dvh; }
         .dashboard-wrapper::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px); pointer-events: none; z-index: 1000; }
-        .dashboard-content { position: relative; z-index: 2; padding: 80px 2rem 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
+        .dashboard-content { position: relative; z-index: 2; padding: var(--content-top) 2rem 4rem; max-width: 1100px; margin: 0 auto; font-family: 'Press Start 2P', monospace; }
 
         /* Welcome Section */
         .welcome-section { margin-bottom: 3rem; }
@@ -921,10 +921,9 @@ export default function LandingPage() {
           .game-icon { width: 48px; height: 48px; }
           .game-name { font-size: 0.6rem; }
           .retro-section { padding: 4rem 1.25rem; }
-          .crt-intro { padding-top: 56px; }
           .welcome-card { flex-direction: column; text-align: center; gap: 1.5rem; }
           .stats-grid { grid-template-columns: 1fr; }
-          .dashboard-content { padding: 70px 1rem 2rem; }
+          .dashboard-content { padding-left: 1rem; padding-right: 1rem; padding-bottom: 2rem; }
         }
       `}</style>
 

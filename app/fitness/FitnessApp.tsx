@@ -897,7 +897,7 @@ export default function FitnessApp() {
 
         /* Main Content */
         .content-area {
-          padding-top: 70px;
+          padding-top: var(--content-top);
           padding-bottom: 200px;
           min-height: 100vh;
           min-height: 100dvh;

@@ -69,6 +69,7 @@
   --vh: 1vh;
   --keyboard-height: 0px;
   --navbar-height: 66px;
+  --content-top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   --command-bar-height: 80px;
 
   /* Safe Areas (fallback to 0 if not supported) */
@@ -639,6 +640,11 @@ input, textarea, select {
 /* Keyboard-aware content padding */
 body.keyboard-open .keyboard-aware-content {
   padding-bottom: calc(var(--command-bar-height) + var(--keyboard-height) + 20px);
+}
+
+/* Navbar offset - use on page containers to avoid content hidden behind fixed navbar */
+.navbar-offset {
+  padding-top: var(--content-top);
 }
 
 /* Respect reduced motion preferences */
