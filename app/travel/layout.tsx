@@ -94,21 +94,24 @@ export default async function TravelLayout({
           font-family: var(--font-body);
         }
 
-        /* Desktop: sidebar + main content aligned with navbar */
+        /* Desktop: match navbar's exact centering */
         @media (min-width: 1024px) {
           .travel-layout {
-            /* Match navbar centering: 1000px max-width centered */
+            /* Match navbar: outer 16px padding, then centered 1000px inner */
+            padding: 0 16px;
+          }
+          .travel-inner {
             max-width: 1000px;
             margin: 0 auto;
             display: flex;
-            position: relative;
           }
           .travel-main-content {
             padding-top: var(--content-top, 60px);
             min-height: 100vh;
             flex: 1;
-            /* Account for sidebar width within the 1000px container */
+            /* Sidebar takes 280px, so offset content */
             margin-left: 280px;
+            padding: 0 16px;
           }
         }
 
@@ -117,6 +120,9 @@ export default async function TravelLayout({
           .travel-layout {
             padding-top: var(--content-top);
             padding-bottom: calc(var(--command-bar-height, 100px) + 20px);
+          }
+          .travel-inner {
+            width: 100%;
           }
         }
 
@@ -127,24 +133,26 @@ export default async function TravelLayout({
       `}</style>
 
       <div className="travel-layout">
-        {/* Desktop Sidebar - only for logged in users */}
-        {isLoggedIn && stats && (
-          <TravelSidebar
-            user={{
-              level: user.travel.level,
-              xp: user.travel.xp,
-              xpToNext: user.travel.xpToNext,
-              streak: user.currentStreak,
-            }}
-            stats={stats}
-          />
-        )}
+        <div className="travel-inner">
+          {/* Desktop Sidebar - only for logged in users */}
+          {isLoggedIn && stats && (
+            <TravelSidebar
+              user={{
+                level: user.travel.level,
+                xp: user.travel.xp,
+                xpToNext: user.travel.xpToNext,
+                streak: user.currentStreak,
+              }}
+              stats={stats}
+            />
+          )}
 
-        {/* Main content area */}
-        <div className="travel-main-content">
-          <TravelApp isLoggedIn={isLoggedIn}>
-            {children}
-          </TravelApp>
+          {/* Main content area */}
+          <div className="travel-main-content">
+            <TravelApp isLoggedIn={isLoggedIn}>
+              {children}
+            </TravelApp>
+          </div>
         </div>
       </div>
     </>
