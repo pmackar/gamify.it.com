@@ -215,15 +215,14 @@ export default function NotificationBell() {
               className="px-4 py-2"
               style={{ borderTop: '1px solid var(--rpg-border)' }}
             >
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                }}
-                className="text-xs transition-colors w-full text-center hover:opacity-80"
+              <a
+                href="/activity"
+                onClick={() => setIsOpen(false)}
+                className="block text-xs transition-colors w-full text-center hover:opacity-80"
                 style={{ color: 'var(--rpg-muted)' }}
               >
                 View all notifications
-              </button>
+              </a>
             </div>
           )}
         </div>

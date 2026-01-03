@@ -6,6 +6,7 @@ import FriendCard from '@/components/social/FriendCard';
 import FriendRequestCard from '@/components/social/FriendRequestCard';
 import UserSearchInput from '@/components/social/UserSearchInput';
 import FriendLeaderboard from '@/components/social/FriendLeaderboard';
+import FriendSuggestions from '@/components/social/FriendSuggestions';
 
 type TabType = 'friends' | 'requests' | 'find';
 
@@ -440,6 +441,9 @@ export default function FriendsPage() {
                       Search by username, display name, or email
                     </p>
                   </div>
+
+                  {/* Friend Suggestions */}
+                  <FriendSuggestions onSendRequest={handleSendRequest} />
                 </div>
               )}
             </>

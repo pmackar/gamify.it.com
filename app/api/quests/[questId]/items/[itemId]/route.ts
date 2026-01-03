@@ -84,6 +84,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (quest.party && quest.party.members.length > 1) {
     const otherMembers = quest.party.members.filter((m) => m.user_id !== user.id);
     if (otherMembers.length > 0 && completed) {
+      // Get item name for notification
+      const itemWithLocation = await prisma.travel_quest_items.findUnique({
+        where: { id: itemId },
+        include: { location: { select: { name: true } } },
+      });
+      const itemName = itemWithLocation?.location?.name || "an item";
+
       await prisma.activity_feed.createMany({
         data: otherMembers.map((m) => ({
           user_id: m.user_id,
@@ -95,6 +102,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             questId: quest.id,
             questName: quest.name,
             itemId: itemId,
+            itemName: itemName,
           },
         })),
       });
