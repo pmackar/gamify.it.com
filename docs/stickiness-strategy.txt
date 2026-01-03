@@ -15,6 +15,11 @@ IMPLEMENTATION STATUS
 - Streak Protection (Streak Shields) - auto-protect on missed day
 - Database schema for gamification (daily_login_claims, inventory_items, user_inventory)
 - Streak shields earned on Day 5 of login streak (max 3)
+- Loot Drop System with variable rewards (Common 20%, Rare 7%, Epic 2.5%, Legendary 0.5%)
+- Loot tables with 25+ items (XP crystals, streak shields, cosmetics, pet eggs)
+- Loot drops integrated with XP awards (every task/workout/location)
+- Animated loot drop notification popup
+- Inventory page with filtering and item usage
 
 [ ] IN PROGRESS
 --------------------------------------------------------------------------------
@@ -22,11 +27,10 @@ IMPLEMENTATION STATUS
 
 [ ] PLANNED (P0)
 --------------------------------------------------------------------------------
-(moved to in progress or completed)
+(all completed)
 
 [ ] PLANNED (P1)
 --------------------------------------------------------------------------------
-- Loot Drop System
 - Weekly Leagues
 - Battle Pass / Seasons
 

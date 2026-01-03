@@ -10,6 +10,7 @@ import { MobileViewportProvider } from "@/components/MobileViewportProvider";
 import AppSwitcher from "@/components/AppSwitcher";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { DailyRewardsProvider } from "@/components/DailyRewards";
+import { LootDropProvider } from "@/components/LootDropPopup";
 
 // Inline script to prevent FOUC (flash of unstyled content)
 const themeScript = `
@@ -92,12 +93,14 @@ export default function RootLayout({
             <NavBarProvider>
               <XPProvider>
                 <DailyRewardsProvider>
-                  <AchievementProvider>
-                    <RetroNavBar />
-                    <AppSwitcher />
-                    {children}
-                    <UpdatePrompt />
-                  </AchievementProvider>
+                  <LootDropProvider>
+                    <AchievementProvider>
+                      <RetroNavBar />
+                      <AppSwitcher />
+                      {children}
+                      <UpdatePrompt />
+                    </AchievementProvider>
+                  </LootDropProvider>
                 </DailyRewardsProvider>
               </XPProvider>
             </NavBarProvider>

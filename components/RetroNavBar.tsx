@@ -2023,6 +2023,11 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                         )}
                       </button>
                       <Link href="/account" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>PROFILE</Link>
+                      <Link href="/inventory" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>🎒</span> INVENTORY
+                        </span>
+                      </Link>
                       <Link href="/friends" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>FRIENDS</Link>
                       <Link href="/settings" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>SETTINGS</Link>
                       <button onClick={handleSignOut} className="nav-dropdown-item danger">SIGN OUT</button>

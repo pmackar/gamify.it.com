@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { rollForLoot, LootDrop, ItemRarity, getItem } from '@/lib/loot';
 
 // XP required per level (each level needs 1.5x more)
 function calculateXPForLevel(level: number): number {
@@ -305,6 +306,94 @@ export async function POST(request: Request) {
       });
     }
 
+    // --- Roll for Loot Drop ---
+    let lootDrop: {
+      item: { code: string; name: string; icon: string; rarity: ItemRarity };
+      quantity: number;
+      instantXP?: number;
+      message: string;
+    } | null = null;
+
+    const lootResult = rollForLoot(false);
+    if (lootResult.dropped && lootResult.drop) {
+      const drop = lootResult.drop;
+
+      // Find or create the item in the database
+      let dbItem = await prisma.inventory_items.findUnique({
+        where: { code: drop.item.code },
+      });
+
+      if (!dbItem) {
+        dbItem = await prisma.inventory_items.create({
+          data: {
+            code: drop.item.code,
+            name: drop.item.name,
+            description: drop.item.description,
+            type: drop.item.type,
+            rarity: drop.item.rarity,
+            icon: drop.item.icon,
+            effects: drop.item.effects || {},
+            stackable: drop.item.stackable,
+            max_stack: drop.item.maxStack,
+          },
+        });
+      }
+
+      // Handle XP crystals (instant XP)
+      if (drop.instantXP) {
+        await prisma.profiles.update({
+          where: { id: user.id },
+          data: {
+            total_xp: { increment: drop.instantXP },
+            updated_at: new Date(),
+          },
+        });
+        lootDrop = {
+          item: {
+            code: drop.item.code,
+            name: drop.item.name,
+            icon: drop.item.icon,
+            rarity: lootResult.rarity!,
+          },
+          quantity: 1,
+          instantXP: drop.instantXP,
+          message: `Found ${drop.item.name}! +${drop.instantXP} bonus XP`,
+        };
+      } else {
+        // Add to inventory
+        const existing = await prisma.user_inventory.findFirst({
+          where: { user_id: user.id, item_id: dbItem.id },
+        });
+
+        if (existing && drop.item.stackable) {
+          await prisma.user_inventory.update({
+            where: { id: existing.id },
+            data: { quantity: { increment: 1 }, acquired_at: new Date() },
+          });
+        } else {
+          await prisma.user_inventory.create({
+            data: {
+              user_id: user.id,
+              item_id: dbItem.id,
+              quantity: 1,
+              source: appId,
+            },
+          });
+        }
+
+        lootDrop = {
+          item: {
+            code: drop.item.code,
+            name: drop.item.name,
+            icon: drop.item.icon,
+            rarity: lootResult.rarity!,
+          },
+          quantity: 1,
+          message: `Found ${drop.item.name}!`,
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       xpAwarded: finalXP,
@@ -335,6 +424,7 @@ export async function POST(request: Request) {
         tier: a.tier,
         icon: a.icon,
       })),
+      lootDrop,
     });
   } catch (error) {
     console.error('XP API error:', error);
