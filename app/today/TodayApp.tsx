@@ -6,6 +6,8 @@ import { Task, Project, Category, ViewType, RecurrenceRule, RecurrenceFrequency 
 import {
   calculateXPPreview,
   formatDueDate,
+  formatTime,
+  getTimeColor,
   TIERS,
   DIFFICULTIES,
   PRIORITIES,
@@ -89,7 +91,7 @@ export default function TodayApp() {
     title: '',
     description: '',
     priority: '' as 'High' | 'Medium' | 'Low' | '',
-    tier: 'tier3' as 'tier1' | 'tier2' | 'tier3',
+    estimated_time: 0.25, // Hours (0.25 = 15min)
     difficulty: 'medium' as 'easy' | 'medium' | 'hard' | 'epic',
     due_date: '',
     project_id: '',
@@ -453,16 +455,18 @@ export default function TodayApp() {
         .map(d => ({ type: 'difficulty', ...d }));
       setActiveToken({ type: 'difficulty', start: tokenStart, query });
     } else if (tokenChar === '^') {
-      // Tier suggestions
-      const tiers = [
-        { value: 'quick', label: 'Quick Task (1x)', icon: '⚡' },
-        { value: 'standard', label: 'Standard Task (2x)', icon: '📋' },
-        { value: 'major', label: 'Major Task (3x)', icon: '🎯' }
+      // Time suggestions
+      const times = [
+        { value: '15m', label: '15 min', icon: '⚡' },
+        { value: '30m', label: '30 min', icon: '⏱️' },
+        { value: '1h', label: '1 hour', icon: '⏰' },
+        { value: '2h', label: '2 hours', icon: '📋' },
+        { value: '4h', label: '4 hours', icon: '🎯' }
       ];
-      newSuggestions = tiers
+      newSuggestions = times
         .filter(t => t.label.toLowerCase().includes(query) || t.value.includes(query))
-        .map(t => ({ type: 'tier', ...t }));
-      setActiveToken({ type: 'tier', start: tokenStart, query });
+        .map(t => ({ type: 'time', ...t }));
+      setActiveToken({ type: 'time', start: tokenStart, query });
     }
 
     setSuggestions(newSuggestions);
@@ -509,7 +513,7 @@ export default function TodayApp() {
         title: task.title,
         description: task.description || '',
         priority: task.priority || '',
-        tier: task.tier,
+        estimated_time: task.estimated_time || 0.25,
         difficulty: task.difficulty,
         due_date: task.due_date ? task.due_date.slice(0, 16) : '',
         project_id: task.project_id || '',
@@ -521,7 +525,7 @@ export default function TodayApp() {
         title: '',
         description: '',
         priority: '',
-        tier: 'tier3',
+        estimated_time: 0.25,
         difficulty: 'medium',
         due_date: '',
         project_id: '',
@@ -564,11 +568,15 @@ export default function TodayApp() {
       return;
     }
 
+    // Convert time to legacy tier for backwards compatibility
+    const tierFromTime = taskForm.estimated_time >= 2 ? 'tier1' : taskForm.estimated_time >= 0.5 ? 'tier2' : 'tier3';
+
     const data = {
       title: taskForm.title,
       description: taskForm.description || undefined,
       priority: taskForm.priority || undefined,
-      tier: taskForm.tier,
+      tier: tierFromTime as 'tier1' | 'tier2' | 'tier3',
+      estimated_time: taskForm.estimated_time,
       difficulty: taskForm.difficulty,
       due_date: taskForm.due_date || undefined,
       project_id: taskForm.project_id || undefined,
@@ -642,6 +650,7 @@ export default function TodayApp() {
     let title = text;
     const result: Partial<Task> = {
       tier: 'tier3',
+      estimated_time: 0.25,
       difficulty: 'medium'
     };
 
@@ -691,13 +700,20 @@ export default function TodayApp() {
       title = title.replace(/~\S+/, '').trim();
     }
 
-    // Parse ^tier
-    const tierMatch = title.match(/\^(\S+)/);
-    if (tierMatch) {
-      const t = tierMatch[1].toLowerCase();
-      if (t === 'major' || t === 'm' || t === '3') result.tier = 'tier1';
-      else if (t === 'standard' || t === 's' || t === '2') result.tier = 'tier2';
-      title = title.replace(/\^\S+/, '').trim();
+    // Parse ^time (e.g. ^15m, ^30m, ^1h, ^2h, ^1.5h)
+    const timeMatch = title.match(/\^(\d+(?:\.\d+)?)(m|h)?/i);
+    if (timeMatch) {
+      const value = parseFloat(timeMatch[1]);
+      const unit = (timeMatch[2] || 'm').toLowerCase();
+      if (unit === 'h') {
+        result.estimated_time = Math.round(value * 4) / 4; // Round to 0.25
+      } else {
+        result.estimated_time = Math.round(value / 15) * 0.25; // Minutes to hours, round to 15min
+      }
+      result.estimated_time = Math.max(0.25, result.estimated_time);
+      // Set legacy tier based on time
+      result.tier = result.estimated_time >= 2 ? 'tier1' : result.estimated_time >= 0.5 ? 'tier2' : 'tier3';
+      title = title.replace(/\^\d+(?:\.\d+)?(?:m|h)?/i, '').trim();
     }
 
     // Parse recurrence first (before due date, as recurrence often implies a due date)
@@ -2418,6 +2434,18 @@ export default function TodayApp() {
           color: var(--text-secondary);
         }
 
+        .time-badge {
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
+          border: 2px solid;
+        }
+
         .task-xp {
           color: var(--success);
           font-weight: 600;
@@ -4034,9 +4062,9 @@ export default function TodayApp() {
                     </div>
                     {taskCategories.overdue.map((task, index) => {
                       const project = store.projects.find((p) => p.id === task.project_id);
+                      const category = store.categories.find((c) => c.id === task.category_id);
                       const dueInfo = formatDueDate(task.due_date);
                       const xpPreview = calculateXPPreview(task, store.profile.current_streak);
-                      const tierInfo = TIERS[task.tier];
                       const globalIndex = index;
                       const isSelected = globalIndex === selectedTaskIndex;
 
@@ -4051,13 +4079,14 @@ export default function TodayApp() {
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
+                              {category && <span style={{ color: category.color }}>🏷️ {category.name}</span>}
                               {dueInfo && <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>}
                               {task.recurrence_rule && <span className="task-recurrence">🔄 {formatRecurrence(task.recurrence_rule)}</span>}
                               {(() => {
                                 const progress = store.getSubtaskProgress(task.id);
                                 return progress.total > 0 ? <span className="task-subtasks">📋 {progress.completed}/{progress.total}</span> : null;
                               })()}
-                              <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
+                              <span className="time-badge" style={{ borderColor: getTimeColor(task.estimated_time || 0.25) }}>{formatTime(task.estimated_time || 0.25)}</span>
                               <span className="task-xp">+{xpPreview} XP</span>
                             </div>
                           </div>
@@ -4091,9 +4120,9 @@ export default function TodayApp() {
                     </div>
                     {taskCategories.dueToday.map((task, index) => {
                       const project = store.projects.find((p) => p.id === task.project_id);
+                      const category = store.categories.find((c) => c.id === task.category_id);
                       const dueInfo = formatDueDate(task.due_date);
                       const xpPreview = calculateXPPreview(task, store.profile.current_streak);
-                      const tierInfo = TIERS[task.tier];
                       const globalIndex = taskCategories.overdue.length + index;
                       const isSelected = globalIndex === selectedTaskIndex;
 
@@ -4108,13 +4137,14 @@ export default function TodayApp() {
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
+                              {category && <span style={{ color: category.color }}>🏷️ {category.name}</span>}
                               {dueInfo && <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>}
                               {task.recurrence_rule && <span className="task-recurrence">🔄 {formatRecurrence(task.recurrence_rule)}</span>}
                               {(() => {
                                 const progress = store.getSubtaskProgress(task.id);
                                 return progress.total > 0 ? <span className="task-subtasks">📋 {progress.completed}/{progress.total}</span> : null;
                               })()}
-                              <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
+                              <span className="time-badge" style={{ borderColor: getTimeColor(task.estimated_time || 0.25) }}>{formatTime(task.estimated_time || 0.25)}</span>
                               <span className="task-xp">+{xpPreview} XP</span>
                             </div>
                           </div>
@@ -4142,9 +4172,9 @@ export default function TodayApp() {
                 {/* Standard flat list for non-Today views */}
                 {store.currentView !== 'today' && filteredTasks.map((task, index) => {
                   const project = store.projects.find((p) => p.id === task.project_id);
+                  const category = store.categories.find((c) => c.id === task.category_id);
                   const dueInfo = formatDueDate(task.due_date);
                   const xpPreview = calculateXPPreview(task, store.profile.current_streak);
-                  const tierInfo = TIERS[task.tier];
                   const isKeyboardSelected = index === selectedTaskIndex;
                   const isBulkSelected = selectedTaskIds.has(task.id);
 
@@ -4184,6 +4214,7 @@ export default function TodayApp() {
                         <div className="task-title">{task.title}</div>
                         <div className="task-meta">
                           {project && <span>📁 {project.name}</span>}
+                          {category && <span style={{ color: category.color }}>🏷️ {category.name}</span>}
                           {dueInfo && (
                             <span className={`task-due ${dueInfo.class}`}>📅 {dueInfo.text}</span>
                           )}
@@ -4192,7 +4223,7 @@ export default function TodayApp() {
                             const progress = store.getSubtaskProgress(task.id);
                             return progress.total > 0 ? <span className="task-subtasks">📋 {progress.completed}/{progress.total}</span> : null;
                           })()}
-                          <span className={`tier-badge ${task.tier}`}>{tierInfo.name}</span>
+                          <span className="time-badge" style={{ borderColor: getTimeColor(task.estimated_time || 0.25) }}>{formatTime(task.estimated_time || 0.25)}</span>
                           {!task.is_completed && (
                             <span className="task-xp">+{xpPreview} XP</span>
                           )}
@@ -4438,15 +4469,22 @@ export default function TodayApp() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Tier (XP Multiplier)</label>
+                  <label className="form-label">Time Estimate</label>
                   <select
                     className="form-select"
-                    value={taskForm.tier}
-                    onChange={(e) => setTaskForm({ ...taskForm, tier: e.target.value as any })}
+                    value={taskForm.estimated_time}
+                    onChange={(e) => setTaskForm({ ...taskForm, estimated_time: parseFloat(e.target.value) })}
                   >
-                    <option value="tier3">Quick (1x XP)</option>
-                    <option value="tier2">Standard (2x XP)</option>
-                    <option value="tier1">Major (3x XP)</option>
+                    <option value="0.25">15 min</option>
+                    <option value="0.5">30 min</option>
+                    <option value="0.75">45 min</option>
+                    <option value="1">1 hour</option>
+                    <option value="1.5">1.5 hours</option>
+                    <option value="2">2 hours</option>
+                    <option value="3">3 hours</option>
+                    <option value="4">4 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="8">8 hours</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -4496,7 +4534,7 @@ export default function TodayApp() {
                 <div className="xp-preview-value">
                   +{calculateXPPreview(
                     {
-                      tier: taskForm.tier,
+                      estimated_time: taskForm.estimated_time,
                       difficulty: taskForm.difficulty,
                       due_date: taskForm.due_date || null
                     },

@@ -449,6 +449,7 @@ export const useTodayStore = create<TodayStore>()(
           status: 'Not started',
           priority: data.priority || null,
           tier: data.tier || 'tier3',
+          estimated_time: data.estimated_time || 0.25,
           difficulty: data.difficulty || 'medium',
           due_date: data.due_date || null,
           start_date: data.start_date || null,

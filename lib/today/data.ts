@@ -6,7 +6,9 @@
 // XP Constants
 export const XP_CONFIG = {
   BASE_XP: 10,
-  TIER_MULTIPLIER: { tier1: 3, tier2: 2, tier3: 1 } as Record<string, number>,
+  // Time multiplier: scales with estimated hours (0.25 = 15min increments)
+  // 0.25h = 1x, 0.5h = 1.25x, 1h = 1.5x, 2h = 2x, 4h = 3x
+  TIME_MULTIPLIER: (hours: number) => Math.max(1, 1 + Math.log2(Math.max(0.25, hours) * 4) * 0.5),
   DIFFICULTY_MULTIPLIER: { easy: 1, medium: 1.5, hard: 2, epic: 3 } as Record<string, number>,
   ON_TIME_BONUS: 1.5,
   STREAK_BONUS_PER_DAY: 0.1,
@@ -20,11 +22,12 @@ export function xpToNextLevel(level: number): number {
 
 // Calculate XP preview for a task
 export function calculateXPPreview(
-  task: { tier?: string; difficulty?: string; due_date?: string | null },
+  task: { estimated_time?: number; difficulty?: string; due_date?: string | null },
   currentStreak: number
 ): number {
   let xp = XP_CONFIG.BASE_XP;
-  xp *= XP_CONFIG.TIER_MULTIPLIER[task.tier || 'tier3'] || XP_CONFIG.TIER_MULTIPLIER.tier3;
+  // Time multiplier based on estimated hours (default 0.25h = 15min)
+  xp *= XP_CONFIG.TIME_MULTIPLIER(task.estimated_time || 0.25);
   xp *= XP_CONFIG.DIFFICULTY_MULTIPLIER[task.difficulty || 'medium'] || XP_CONFIG.DIFFICULTY_MULTIPLIER.medium;
 
   // Assume on-time if has due date in future
@@ -41,11 +44,32 @@ export function calculateXPPreview(
   return Math.floor(xp);
 }
 
-// Tier display info
+// Time display helpers
+export function formatTime(hours: number): string {
+  if (hours < 1) {
+    return `${Math.round(hours * 60)}m`;
+  } else if (hours === Math.floor(hours)) {
+    return `${hours}h`;
+  } else {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+}
+
+export function getTimeColor(hours: number): string {
+  if (hours <= 0.25) return '#22c55e'; // Quick (green)
+  if (hours <= 0.5) return '#3b82f6';  // Short (blue)
+  if (hours <= 1) return '#f59e0b';    // Medium (amber)
+  if (hours <= 2) return '#ef4444';    // Long (red)
+  return '#8b5cf6';                     // Extended (purple)
+}
+
+// Legacy TIERS for backwards compatibility (maps to time)
 export const TIERS = {
-  tier1: { name: 'Major', color: '#8b5cf6', multiplier: '3x XP' },
-  tier2: { name: 'Standard', color: '#3b82f6', multiplier: '2x XP' },
-  tier3: { name: 'Quick', color: '#6b7280', multiplier: '1x XP' },
+  tier1: { name: '2h+', color: '#8b5cf6', multiplier: '2x+ XP' },
+  tier2: { name: '30m-2h', color: '#3b82f6', multiplier: '1.5x XP' },
+  tier3: { name: '15m', color: '#6b7280', multiplier: '1x XP' },
 };
 
 // Difficulty display info

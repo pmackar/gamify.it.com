@@ -20,7 +20,8 @@ export interface Task {
   description?: string;
   status: string;
   priority?: 'High' | 'Medium' | 'Low' | null;
-  tier: 'tier1' | 'tier2' | 'tier3';
+  tier: 'tier1' | 'tier2' | 'tier3';           // Legacy, kept for compatibility
+  estimated_time: number;                       // Hours (0.25 = 15min increments)
   difficulty: 'easy' | 'medium' | 'hard' | 'epic';
   due_date?: string | null;
   start_date?: string | null;           // Task hidden until this date
