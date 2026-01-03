@@ -13,7 +13,6 @@ import {
   Trophy,
   Flame,
   ChevronRight,
-  Map,
   Sparkles,
   Clock,
   Target,
@@ -223,7 +222,7 @@ export default function TravelHomeClient({
                   );
                 })}
                 <Link href="/travel/quests/new" className="quest-card-new">
-                  <Plus size={24} />
+                  <span className="quest-new-icon">⚔️</span>
                   <span>New Quest</span>
                 </Link>
               </div>
@@ -235,13 +234,13 @@ export default function TravelHomeClient({
             <h2 className="section-title-solo">Explore</h2>
             <div className="quick-grid">
               {[
-                { icon: <Map size={20} />, label: "Map", href: "/travel/map", colorClass: "cyan" },
-                { icon: <Heart size={20} />, label: "Hotlist", href: "/travel/hotlist", colorClass: "red" },
-                { icon: <Building2 size={20} />, label: "Cities", href: "/travel/cities", colorClass: "purple" },
-                { icon: <Trophy size={20} />, label: "Badges", href: "/travel/achievements", colorClass: "gold" },
+                { icon: "🗺️", label: "Map", href: "/travel/map", colorClass: "cyan" },
+                { icon: "❤️", label: "Hotlist", href: "/travel/hotlist", colorClass: "red" },
+                { icon: "🏰", label: "Cities", href: "/travel/cities", colorClass: "purple" },
+                { icon: "🏆", label: "Badges", href: "/travel/achievements", colorClass: "gold" },
               ].map((item) => (
                 <Link key={item.label} href={item.href} className={`quick-item quick-${item.colorClass}`}>
-                  {item.icon}
+                  <span className="quick-icon">{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               ))}
@@ -722,19 +721,26 @@ export default function TravelHomeClient({
           .quest-card-new {
             flex-shrink: 0;
             width: 280px;
-            padding: 16px;
+            padding: 16px 20px;
             border-radius: 12px;
             scroll-snap-align: start;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
-            min-height: 120px;
+            min-height: 80px;
             background: rgba(255, 255, 255, 0.02);
             border: 1px dashed rgba(255, 255, 255, 0.2);
             color: var(--rpg-muted);
-            font-size: 14px;
-            gap: 8px;
+            font-size: 8px;
+            font-family: var(--font-pixel);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            gap: 12px;
+          }
+          .quest-new-icon {
+            font-size: 24px;
+            flex-shrink: 0;
           }
           .quest-header {
             display: flex;
@@ -789,27 +795,39 @@ export default function TravelHomeClient({
 
           .quick-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
           }
           .quick-item {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            padding: 16px 8px;
+            justify-content: flex-start;
+            padding: 14px 16px;
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.2s;
-            font-size: 12px;
-            gap: 8px;
+            transition: all 0.2s;
+            font-size: 8px;
+            font-family: var(--font-pixel);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            gap: 12px;
           }
           .quick-item:active { transform: scale(0.95); }
+          .quick-item:hover {
+            border-color: var(--rpg-teal);
+            background: rgba(255, 255, 255, 0.06);
+          }
           .quick-item span { color: var(--rpg-muted); }
-          .quick-cyan { color: var(--rpg-cyan); }
-          .quick-red { color: #ef4444; }
-          .quick-purple { color: var(--rpg-purple); }
-          .quick-gold { color: var(--rpg-gold); }
+          .quick-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+          }
+          .quick-cyan .quick-icon { filter: hue-rotate(180deg); }
+          .quick-red .quick-icon { filter: none; }
+          .quick-purple .quick-icon { filter: hue-rotate(270deg); }
+          .quick-gold .quick-icon { filter: none; }
 
           .visits-list {
             display: flex;
