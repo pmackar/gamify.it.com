@@ -2249,11 +2249,17 @@ export default function TodayApp() {
         .task-card {
           position: relative;
           display: flex;
-          align-items: flex-start;
-          gap: 14px;
+          flex-direction: column;
+          gap: 0;
           padding: 14px 16px;
           border-bottom: 1px solid var(--border);
-          transition: all 0.15s ease;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .task-card-main {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
         }
 
         .task-card:last-child {
@@ -3672,15 +3678,35 @@ export default function TodayApp() {
             display: none;
           }
 
-          /* Mobile action menu */
+          /* Task card with action menu open - FLOAT effect */
+          .task-card.action-menu-open {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-color: var(--accent);
+            z-index: 10;
+            position: relative;
+          }
+
+          /* Mobile action menu - DRAWER animation */
           .mobile-action-menu {
             display: flex;
-            gap: 8px;
-            padding: 12px;
+            gap: 10px;
+            padding: 0 12px;
             background: var(--bg-secondary);
             border-top: 1px solid var(--border);
             margin: 0 -12px -12px -12px;
             border-radius: 0 0 12px 12px;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out;
+          }
+
+          /* Drawer OPEN state */
+          .task-card.action-menu-open .mobile-action-menu {
+            max-height: 80px;
+            opacity: 1;
+            padding: 12px;
           }
 
           .mobile-action-btn {
@@ -3692,11 +3718,27 @@ export default function TodayApp() {
             padding: 14px 16px;
             border: none;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: transform 0.15s ease, background 0.15s ease;
             -webkit-tap-highlight-color: transparent;
+            transform: translateY(10px);
+            opacity: 0;
+          }
+
+          /* Buttons animate in when drawer opens */
+          .task-card.action-menu-open .mobile-action-btn {
+            transform: translateY(0);
+            opacity: 1;
+          }
+
+          .task-card.action-menu-open .mobile-action-btn.complete {
+            transition-delay: 0.05s;
+          }
+
+          .task-card.action-menu-open .mobile-action-btn.edit {
+            transition-delay: 0.1s;
           }
 
           .mobile-action-btn.complete {
@@ -3722,12 +3764,6 @@ export default function TodayApp() {
 
           .mobile-action-btn-icon {
             font-size: 18px;
-          }
-
-          /* Task card with action menu open */
-          .task-card.action-menu-open {
-            border-color: var(--accent);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           }
 
           /* Empty state */
@@ -4324,8 +4360,8 @@ export default function TodayApp() {
                               </div>
                             )}
                           </div>
-                          {/* Mobile action menu */}
-                          {mobileActionTaskId === task.id && (
+                          {/* Mobile action menu - always rendered for CSS animation */}
+                          {isMobile && (
                             <div className="mobile-action-menu">
                               <button
                                 className="mobile-action-btn complete"
@@ -4407,8 +4443,8 @@ export default function TodayApp() {
                               </div>
                             )}
                           </div>
-                          {/* Mobile action menu */}
-                          {mobileActionTaskId === task.id && (
+                          {/* Mobile action menu - always rendered for CSS animation */}
+                          {isMobile && (
                             <div className="mobile-action-menu">
                               <button
                                 className="mobile-action-btn complete"
@@ -4532,8 +4568,8 @@ export default function TodayApp() {
                           </div>
                         )}
                       </div>
-                      {/* Mobile action menu */}
-                      {mobileActionTaskId === task.id && (
+                      {/* Mobile action menu - always rendered for CSS animation */}
+                      {isMobile && (
                         <div className="mobile-action-menu">
                           <button
                             className="mobile-action-btn complete"
