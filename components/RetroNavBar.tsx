@@ -10,6 +10,7 @@ import { useXP, XPState } from './XPContext';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { useTheme } from './ThemeContext';
 import NotificationBell from './social/NotificationBell';
+import { useDailyRewards } from './DailyRewards';
 
 // Compact XP bar for when app content is active
 const CompactXPBar = ({ xp }: { xp: XPState }) => (
@@ -144,6 +145,9 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
   // Get theme from ThemeContext (universal theme system)
   const { resolvedTheme } = useTheme();
+
+  // Daily rewards
+  const { rewardState, openModal: openDailyRewards } = useDailyRewards();
 
   // Use prop if provided, otherwise use resolved theme from context
   const theme = themeProp ?? resolvedTheme;
@@ -1999,6 +2003,25 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                         </div>
                       )}
                       <ThemeSwitcher />
+                      <button
+                        onClick={() => { openDailyRewards(); setShowUserMenu(false); }}
+                        className="nav-dropdown-item"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>📅</span> DAILY REWARDS
+                        </span>
+                        {rewardState && !rewardState.claimedToday && (
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            background: '#FF6B6B',
+                            borderRadius: '50%',
+                            boxShadow: '0 0 6px rgba(255, 107, 107, 0.6)',
+                            animation: 'nav-pulse 1.5s ease infinite',
+                          }} />
+                        )}
+                      </button>
                       <Link href="/account" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>PROFILE</Link>
                       <Link href="/friends" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>FRIENDS</Link>
                       <Link href="/settings" className="nav-dropdown-item" onClick={() => setShowUserMenu(false)}>SETTINGS</Link>

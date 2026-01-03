@@ -9,6 +9,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { MobileViewportProvider } from "@/components/MobileViewportProvider";
 import AppSwitcher from "@/components/AppSwitcher";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { DailyRewardsProvider } from "@/components/DailyRewards";
 
 // Inline script to prevent FOUC (flash of unstyled content)
 const themeScript = `
@@ -90,12 +91,14 @@ export default function RootLayout({
           <ThemeProvider>
             <NavBarProvider>
               <XPProvider>
-                <AchievementProvider>
-                  <RetroNavBar />
-                  <AppSwitcher />
-                  {children}
-                  <UpdatePrompt />
-                </AchievementProvider>
+                <DailyRewardsProvider>
+                  <AchievementProvider>
+                    <RetroNavBar />
+                    <AppSwitcher />
+                    {children}
+                    <UpdatePrompt />
+                  </AchievementProvider>
+                </DailyRewardsProvider>
               </XPProvider>
             </NavBarProvider>
           </ThemeProvider>

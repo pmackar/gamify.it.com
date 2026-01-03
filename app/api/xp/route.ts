@@ -172,17 +172,27 @@ export async function POST(request: Request) {
     today.setHours(0, 0, 0, 0);
 
     let newStreak = 1;
+    let streakShieldUsed = false;
+    let streakShieldsRemaining = profile.streak_shields || 0;
+
     if (profile.last_activity_date) {
       const lastActive = new Date(profile.last_activity_date);
       lastActive.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
 
       if (diffDays === 0) {
+        // Same day - keep current streak
         newStreak = profile.current_streak || 1;
       } else if (diffDays === 1) {
+        // Next day - increment streak
         newStreak = (profile.current_streak || 0) + 1;
+      } else if (diffDays === 2 && streakShieldsRemaining > 0) {
+        // Missed exactly 1 day - use streak shield if available
+        streakShieldUsed = true;
+        streakShieldsRemaining -= 1;
+        newStreak = (profile.current_streak || 0) + 1; // Continue streak
       }
-      // else: streak resets to 1
+      // else: missed 2+ days without shield, streak resets to 1
     }
 
     // Apply streak multiplier to XP
@@ -212,6 +222,7 @@ export async function POST(request: Request) {
         current_streak: newStreak,
         longest_streak: Math.max(newStreak, profile.longest_streak || 0),
         last_activity_date: today,
+        streak_shields: streakShieldUsed ? streakShieldsRemaining : undefined,
         updated_at: new Date(),
       },
     });
@@ -314,6 +325,8 @@ export async function POST(request: Request) {
         current: newStreak,
         longest: Math.max(newStreak, profile.longest_streak || 0),
         multiplier: streakMultiplier,
+        shieldUsed: streakShieldUsed,
+        shieldsRemaining: streakShieldsRemaining,
       },
       achievements: newAchievements.map(a => ({
         code: a.code,
