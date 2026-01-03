@@ -224,34 +224,34 @@ export default function FriendsPage() {
   return (
     <>
       <RetroNavBar />
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black pb-8" style={{ paddingTop: 'var(--content-top)' }}>
+      <div className="min-h-screen pb-8" style={{ paddingTop: 'var(--content-top)', background: 'var(--theme-bg-base)' }}>
         <div className="max-w-2xl mx-auto px-4">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white mb-2">Friends</h1>
-            <p className="text-gray-400 text-sm">Connect with other players and team up for quests</p>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--theme-text-primary)' }}>Friends</h1>
+            <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>Connect with other players and team up for quests</p>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-800 pb-2">
+          <div className="flex gap-2 mb-6 pb-2" style={{ borderBottom: '1px solid var(--theme-border)' }}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative ${
-                  activeTab === tab.id
-                    ? 'text-purple-400 bg-purple-500/10'
-                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/50'
-                }`}
+                className="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative"
+                style={{
+                  color: activeTab === tab.id ? 'var(--rpg-purple)' : 'var(--theme-text-muted)',
+                  background: activeTab === tab.id ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
+                }}
               >
                 {tab.label}
                 {tab.count !== null && tab.count > 0 && (
                   <span
-                    className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                      activeTab === tab.id
-                        ? 'bg-purple-500/30 text-purple-300'
-                        : 'bg-gray-700 text-gray-400'
-                    }`}
+                    className="ml-2 px-1.5 py-0.5 text-xs rounded-full"
+                    style={{
+                      background: activeTab === tab.id ? 'rgba(168, 85, 247, 0.3)' : 'var(--theme-bg-tertiary)',
+                      color: activeTab === tab.id ? 'var(--rpg-purple)' : 'var(--theme-text-muted)',
+                    }}
                   >
                     {tab.count}
                   </span>
@@ -263,7 +263,7 @@ export default function FriendsPage() {
           {/* Content */}
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--rpg-purple)', borderTopColor: 'transparent' }} />
             </div>
           ) : (
             <>
