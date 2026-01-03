@@ -478,6 +478,15 @@ export default function LocationsClient({ initialData }: { initialData: InitialD
           </button>
         </div>
       )}
+
+      {/* Data Attribution */}
+      {locations.length > 0 && (
+        <div className="text-center mt-8 pt-4" style={{ borderTop: '1px solid var(--rpg-border)' }}>
+          <p className="text-[0.45rem]" style={{ color: 'var(--rpg-muted)' }}>
+            Location data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--rpg-teal)', textDecoration: 'underline' }}>OpenStreetMap</a> contributors
+          </p>
+        </div>
+      )}
     </div>
   );
 }

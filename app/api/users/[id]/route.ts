@@ -67,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const appProfiles = await prisma.app_profiles.findMany({
     where: { user_id: userId },
     select: {
-      app_name: true,
+      app_id: true,
       xp: true,
       level: true,
     },
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       memberSince: profile.created_at?.toISOString() || null,
     },
     appStats: appProfiles.map((ap) => ({
-      app: ap.app_name,
+      app: ap.app_id,
       xp: ap.xp || 0,
       level: ap.level || 1,
     })),
