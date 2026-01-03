@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import TravelSidebar from "./components/TravelSidebar";
+import TravelHeader from "./components/TravelHeader";
 import TravelApp from "./TravelApp";
 
 export const metadata: Metadata = {
@@ -149,6 +150,9 @@ export default async function TravelLayout({
 
           {/* Main content area */}
           <div className="travel-main-content">
+            {/* Back button and breadcrumbs - consistent across all pages */}
+            <TravelHeader />
+
             <TravelApp isLoggedIn={isLoggedIn}>
               {children}
             </TravelApp>
