@@ -2249,17 +2249,22 @@ export default function TodayApp() {
         .task-card {
           position: relative;
           display: flex;
-          flex-direction: column;
-          gap: 0;
+          flex-wrap: wrap;
+          align-items: flex-start;
+          gap: 14px;
           padding: 14px 16px;
           border-bottom: 1px solid var(--border);
           transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
-        .task-card-main {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
+        .task-content {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .task-actions {
+          flex-shrink: 0;
+          margin-left: auto;
         }
 
         .task-card:last-child {
@@ -3689,24 +3694,23 @@ export default function TodayApp() {
 
           /* Mobile action menu - DRAWER animation */
           .mobile-action-menu {
+            width: 100%;
             display: flex;
             gap: 10px;
-            padding: 0 12px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            margin: 0 -12px -12px -12px;
-            border-radius: 0 0 12px 12px;
+            padding: 0;
+            margin-top: 0;
             overflow: hidden;
             max-height: 0;
             opacity: 0;
-            transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out;
+            transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out, margin 0.25s ease-out;
           }
 
           /* Drawer OPEN state */
           .task-card.action-menu-open .mobile-action-menu {
-            max-height: 80px;
+            max-height: 60px;
             opacity: 1;
-            padding: 12px;
+            padding-top: 12px;
+            margin-top: 0;
           }
 
           .mobile-action-btn {
@@ -4321,6 +4325,7 @@ export default function TodayApp() {
                           key={task.id}
                           ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                           className={`task-card overdue ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''} ${mobileActionTaskId === task.id ? 'action-menu-open' : ''}`}
+                          onClick={() => handleMobileTaskTap(task.id, task)}
                         >
                           <div
                             className={`task-checkbox`}
@@ -4329,7 +4334,7 @@ export default function TodayApp() {
                             aria-checked={false}
                             tabIndex={0}
                           />
-                          <div className="task-content" onClick={() => handleMobileTaskTap(task.id, task)}>
+                          <div className="task-content">
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
@@ -4344,10 +4349,10 @@ export default function TodayApp() {
                               <span className="task-xp">+{xpPreview} XP</span>
                             </div>
                           </div>
-                          <div className="task-actions">
-                            <button className="task-more-btn" onClick={(e) => toggleQuickActionMenu(task.id, e)} title="Quick actions">⋯</button>
+                          <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+                            <button className="task-more-btn" onClick={(e) => { e.stopPropagation(); toggleQuickActionMenu(task.id, e); }} title="Quick actions">⋯</button>
                             {quickActionTaskId === task.id && (
-                              <div className="quick-action-menu" onClick={(e) => e.stopPropagation()}>
+                              <div className="quick-action-menu">
                                 <button onClick={() => handleQuickDateAction(task.id, 'today')}>📅 Do today</button>
                                 <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>🌅 Do tomorrow</button>
                                 <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>📆 Next week</button>
@@ -4362,17 +4367,17 @@ export default function TodayApp() {
                           </div>
                           {/* Mobile action menu - always rendered for CSS animation */}
                           {isMobile && (
-                            <div className="mobile-action-menu">
+                            <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
                               <button
                                 className="mobile-action-btn complete"
-                                onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                                onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
                               >
                                 <span className="mobile-action-btn-icon">✓</span>
                                 Complete
                               </button>
                               <button
                                 className="mobile-action-btn edit"
-                                onClick={(e) => { e.stopPropagation(); openTaskModal(task); setMobileActionTaskId(null); }}
+                                onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
                               >
                                 <span className="mobile-action-btn-icon">✏️</span>
                                 Edit
@@ -4404,6 +4409,7 @@ export default function TodayApp() {
                           key={task.id}
                           ref={isSelected ? (el) => el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) : undefined}
                           className={`task-card ${task.priority ? `priority-${task.priority.toLowerCase()}` : ''} ${isSelected ? 'keyboard-selected' : ''} ${mobileActionTaskId === task.id ? 'action-menu-open' : ''}`}
+                          onClick={() => handleMobileTaskTap(task.id, task)}
                         >
                           <div
                             className={`task-checkbox`}
@@ -4412,7 +4418,7 @@ export default function TodayApp() {
                             aria-checked={false}
                             tabIndex={0}
                           />
-                          <div className="task-content" onClick={() => handleMobileTaskTap(task.id, task)}>
+                          <div className="task-content">
                             <div className="task-title">{task.title}</div>
                             <div className="task-meta">
                               {project && <span>📁 {project.name}</span>}
@@ -4427,10 +4433,10 @@ export default function TodayApp() {
                               <span className="task-xp">+{xpPreview} XP</span>
                             </div>
                           </div>
-                          <div className="task-actions">
-                            <button className="task-more-btn" onClick={(e) => toggleQuickActionMenu(task.id, e)} title="Quick actions">⋯</button>
+                          <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+                            <button className="task-more-btn" onClick={(e) => { e.stopPropagation(); toggleQuickActionMenu(task.id, e); }} title="Quick actions">⋯</button>
                             {quickActionTaskId === task.id && (
-                              <div className="quick-action-menu" onClick={(e) => e.stopPropagation()}>
+                              <div className="quick-action-menu">
                                 <button onClick={() => handleQuickDateAction(task.id, 'today')}>📅 Do today</button>
                                 <button onClick={() => handleQuickDateAction(task.id, 'tomorrow')}>🌅 Do tomorrow</button>
                                 <button onClick={() => handleQuickDateAction(task.id, 'next-week')}>📆 Next week</button>
@@ -4445,17 +4451,17 @@ export default function TodayApp() {
                           </div>
                           {/* Mobile action menu - always rendered for CSS animation */}
                           {isMobile && (
-                            <div className="mobile-action-menu">
+                            <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
                               <button
                                 className="mobile-action-btn complete"
-                                onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                                onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
                               >
                                 <span className="mobile-action-btn-icon">✓</span>
                                 Complete
                               </button>
                               <button
                                 className="mobile-action-btn edit"
-                                onClick={(e) => { e.stopPropagation(); openTaskModal(task); setMobileActionTaskId(null); }}
+                                onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
                               >
                                 <span className="mobile-action-btn-icon">✏️</span>
                                 Edit
@@ -4489,6 +4495,13 @@ export default function TodayApp() {
                       onDragOver={(e) => handleDragOver(e, task.id)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, task.id)}
+                      onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                          handleTaskSelect(task.id, index, e);
+                        } else {
+                          handleMobileTaskTap(task.id, task);
+                        }
+                      }}
                     >
                       <div
                         className={`task-checkbox ${task.is_completed ? 'checked' : ''} ${isBulkSelected ? 'bulk-selected' : ''}`}
@@ -4506,13 +4519,7 @@ export default function TodayApp() {
                       >
                         {task.is_completed ? '✓' : isBulkSelected ? '✓' : ''}
                       </div>
-                      <div className="task-content" onClick={(e) => {
-                        if (e.metaKey || e.ctrlKey || e.shiftKey) {
-                          handleTaskSelect(task.id, index, e);
-                        } else {
-                          handleMobileTaskTap(task.id, task);
-                        }
-                      }}>
+                      <div className="task-content">
                         <div className="task-title">{task.title}</div>
                         <div className="task-meta">
                           {project && <span>📁 {project.name}</span>}
@@ -4534,16 +4541,16 @@ export default function TodayApp() {
                           )}
                         </div>
                       </div>
-                      <div className="task-actions">
+                      <div className="task-actions" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="task-more-btn"
-                          onClick={(e) => toggleQuickActionMenu(task.id, e)}
+                          onClick={(e) => { e.stopPropagation(); toggleQuickActionMenu(task.id, e); }}
                           title="Quick actions"
                         >
                           ⋯
                         </button>
                         {quickActionTaskId === task.id && (
-                          <div className="quick-action-menu" onClick={(e) => e.stopPropagation()}>
+                          <div className="quick-action-menu">
                             <button onClick={() => handleQuickDateAction(task.id, 'today')}>
                               📅 Do today
                             </button>
@@ -4570,17 +4577,17 @@ export default function TodayApp() {
                       </div>
                       {/* Mobile action menu - always rendered for CSS animation */}
                       {isMobile && (
-                        <div className="mobile-action-menu">
+                        <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
                           <button
                             className="mobile-action-btn complete"
-                            onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                            onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
                           >
                             <span className="mobile-action-btn-icon">{task.is_completed ? '↩' : '✓'}</span>
                             {task.is_completed ? 'Uncomplete' : 'Complete'}
                           </button>
                           <button
                             className="mobile-action-btn edit"
-                            onClick={(e) => { e.stopPropagation(); openTaskModal(task); setMobileActionTaskId(null); }}
+                            onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
                           >
                             <span className="mobile-action-btn-icon">✏️</span>
                             Edit
