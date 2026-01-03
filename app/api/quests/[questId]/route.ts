@@ -216,14 +216,72 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   });
 }
 
-// PATCH /api/quests/[questId] - Complete quest
+// PATCH /api/quests/[questId] - Update or complete quest
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { questId } = await params;
-  const { action } = await request.json();
+  const body = await request.json();
+  const { action } = body;
+
+  // Handle edit action
+  if (action === "edit") {
+    const { name, description, startDate, endDate, status } = body;
+
+    const quest = await prisma.travel_quests.findUnique({
+      where: { id: questId },
+      select: { id: true, user_id: true },
+    });
+
+    if (!quest) {
+      return NextResponse.json({ error: "Quest not found" }, { status: 404 });
+    }
+
+    // Only owner can edit quest
+    if (quest.user_id !== user.id) {
+      return NextResponse.json(
+        { error: "Only the quest owner can edit it" },
+        { status: 403 }
+      );
+    }
+
+    // Build update data
+    const updateData: Record<string, unknown> = { updated_at: new Date() };
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (startDate !== undefined) updateData.start_date = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.end_date = endDate ? new Date(endDate) : null;
+    if (status !== undefined && ["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"].includes(status)) {
+      updateData.status = status;
+    }
+
+    const updatedQuest = await prisma.travel_quests.update({
+      where: { id: questId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        start_date: true,
+        end_date: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      quest: {
+        id: updatedQuest.id,
+        name: updatedQuest.name,
+        description: updatedQuest.description,
+        status: updatedQuest.status,
+        startDate: updatedQuest.start_date,
+        endDate: updatedQuest.end_date,
+      },
+    });
+  }
 
   if (action !== "complete") {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

@@ -13,7 +13,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { questId, itemId } = await params;
-  const { completed } = await request.json();
+  const { completed, rating, review } = await request.json();
 
   if (typeof completed !== "boolean") {
     return NextResponse.json(
@@ -79,6 +79,47 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     where: { id: questId },
     data: { updated_at: new Date() },
   });
+
+  // If completing and rating/review provided, save to user location data
+  if (completed && (rating || review)) {
+    // Upsert user location data with rating
+    if (rating) {
+      await prisma.travel_user_location_data.upsert({
+        where: {
+          user_id_location_id: {
+            user_id: user.id,
+            location_id: item.location_id,
+          },
+        },
+        update: {
+          personal_rating: rating,
+          visited: true,
+          visit_count: { increment: 1 },
+          last_visited_at: new Date(),
+        },
+        create: {
+          user_id: user.id,
+          location_id: item.location_id,
+          personal_rating: rating,
+          visited: true,
+          visit_count: 1,
+          last_visited_at: new Date(),
+        },
+      });
+    }
+
+    // Create review if provided
+    if (review && review.trim() && rating) {
+      await prisma.travel_reviews.create({
+        data: {
+          author_id: user.id,
+          location_id: item.location_id,
+          content: review.trim(),
+          rating: rating,
+        },
+      });
+    }
+  }
 
   // If this was in a party, notify other members
   if (quest.party && quest.party.members.length > 1) {

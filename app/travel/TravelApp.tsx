@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useCallback } from "react";
-import { Plus, MapPin, Compass, X } from "lucide-react";
+import { Plus, MapPin, Compass, X, ListPlus } from "lucide-react";
 import TravelCommandBar, { Command } from "./components/TravelCommandBar";
 
 // Home mode commands
@@ -72,9 +72,15 @@ interface TravelAppProps {
 
 export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mode] = useState<"home" | "quest" | "location-search" | "city-search" | "quest-create">("home");
   const [query, setQuery] = useState("");
   const [fabOpen, setFabOpen] = useState(false);
+
+  // Detect if we're on a quest detail page
+  const questDetailMatch = pathname?.match(/^\/travel\/quests\/([^\/]+)$/);
+  const isOnQuestDetail = !!questDetailMatch && questDetailMatch[1] !== "new";
+  const currentQuestId = questDetailMatch?.[1];
 
   // Get commands based on current mode
   const getCommands = useCallback((): Command[] => {
@@ -155,30 +161,60 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
       {/* Mobile FAB - only show for logged in users */}
       {isLoggedIn && (
         <div className="mobile-fab-container">
-          {/* FAB Menu Items */}
+          {/* FAB Menu Items - Context aware */}
           {fabOpen && (
             <div className="fab-menu">
-              <button
-                className="fab-menu-item"
-                onClick={() => {
-                  router.push("/travel/locations/new");
-                  setFabOpen(false);
-                }}
-              >
-                <MapPin size={20} />
-                <span>Log Visit</span>
-                <span className="fab-xp">+15 XP</span>
-              </button>
-              <button
-                className="fab-menu-item"
-                onClick={() => {
-                  router.push("/travel/quests/new");
-                  setFabOpen(false);
-                }}
-              >
-                <Compass size={20} />
-                <span>New Quest</span>
-              </button>
+              {isOnQuestDetail ? (
+                <>
+                  {/* Quest detail context: Add location to this quest */}
+                  <button
+                    className="fab-menu-item fab-menu-item-primary"
+                    onClick={() => {
+                      router.push(`/travel/quests/${currentQuestId}/suggestions`);
+                      setFabOpen(false);
+                    }}
+                  >
+                    <ListPlus size={20} />
+                    <span>Add Location</span>
+                  </button>
+                  <button
+                    className="fab-menu-item"
+                    onClick={() => {
+                      router.push("/travel/locations/new");
+                      setFabOpen(false);
+                    }}
+                  >
+                    <MapPin size={20} />
+                    <span>Log New Visit</span>
+                    <span className="fab-xp">+15 XP</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Default context */}
+                  <button
+                    className="fab-menu-item"
+                    onClick={() => {
+                      router.push("/travel/locations/new");
+                      setFabOpen(false);
+                    }}
+                  >
+                    <MapPin size={20} />
+                    <span>Log Visit</span>
+                    <span className="fab-xp">+15 XP</span>
+                  </button>
+                  <button
+                    className="fab-menu-item"
+                    onClick={() => {
+                      router.push("/travel/quests/new");
+                      setFabOpen(false);
+                    }}
+                  >
+                    <Compass size={20} />
+                    <span>New Quest</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -283,6 +319,15 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
           .fab-menu-item:active {
             transform: scale(0.98);
             background: var(--rpg-border);
+          }
+
+          .fab-menu-item-primary {
+            background: rgba(95, 191, 138, 0.15);
+            border-color: var(--rpg-teal);
+          }
+
+          .fab-menu-item-primary:active {
+            background: rgba(95, 191, 138, 0.25);
           }
 
           .fab-xp {
