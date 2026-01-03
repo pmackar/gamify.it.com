@@ -235,8 +235,10 @@ export default function TravelHomeClient({
             <div className="quick-grid">
               {[
                 { icon: "🗺️", label: "Map", href: "/travel/map", colorClass: "cyan" },
-                { icon: "❤️", label: "Hotlist", href: "/travel/hotlist", colorClass: "red" },
+                { icon: "📍", label: "Locations", href: "/travel/locations", colorClass: "teal" },
                 { icon: "🏰", label: "Cities", href: "/travel/cities", colorClass: "purple" },
+                { icon: "📜", label: "Quests", href: "/travel/quests", colorClass: "orange" },
+                { icon: "❤️", label: "Hotlist", href: "/travel/hotlist", colorClass: "red" },
                 { icon: "🏆", label: "Badges", href: "/travel/achievements", colorClass: "gold" },
               ].map((item) => (
                 <Link key={item.label} href={item.href} className={`quick-item quick-${item.colorClass}`}>
@@ -832,6 +834,10 @@ export default function TravelHomeClient({
             border-color: rgba(6, 182, 212, 0.4);
             background: rgba(6, 182, 212, 0.1);
           }
+          .quick-teal {
+            border-color: rgba(95, 191, 138, 0.4);
+            background: rgba(95, 191, 138, 0.1);
+          }
           .quick-red {
             border-color: rgba(239, 68, 68, 0.4);
             background: rgba(239, 68, 68, 0.1);
@@ -839,6 +845,10 @@ export default function TravelHomeClient({
           .quick-purple {
             border-color: rgba(168, 85, 247, 0.4);
             background: rgba(168, 85, 247, 0.1);
+          }
+          .quick-orange {
+            border-color: rgba(249, 115, 22, 0.4);
+            background: rgba(249, 115, 22, 0.1);
           }
           .quick-gold {
             border-color: rgba(255, 215, 0, 0.4);
