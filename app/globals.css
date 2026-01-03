@@ -25,7 +25,9 @@
   /* Iron Quest (Fitness) - Red */
   --app-fitness: #FF6B6B;
   --app-fitness-dark: #CC5555;
-  --app-fitness-glow: rgba(255, 107, 107, 0.3);
+  --app-fitness-darker: #993333;
+  --app-fitness-glow: rgba(255, 107, 107, 0.15);
+  --app-fitness-border: rgba(255, 107, 107, 0.2);
 
   /* Day Quest (Today/Tasks) - Cyan */
   --app-today: #5CC9F5;
@@ -60,6 +62,28 @@
   --rpg-muted: var(--theme-text-muted);
   --rpg-text: var(--theme-text-primary);
   --rpg-text-dim: var(--theme-text-secondary);
+
+  /* ===== EXTENDED SEMANTIC COLORS ===== */
+  /* Additional backgrounds */
+  --theme-bg-deep: #050508;
+
+  /* Success colors (green) */
+  --color-success: #5fbf8a;
+  --color-success-dark: #4a9d70;
+  --color-success-darker: #3d8260;
+
+  /* Legendary/Gold colors (for XP, achievements) */
+  --color-legendary: #FFD700;
+  --color-legendary-dark: #FFA500;
+  --color-legendary-glow: rgba(255, 215, 0, 0.15);
+  --color-legendary-border: #CC8800;
+  --color-legendary-shadow: #996600;
+
+  /* Achievement tier colors */
+  --tier-common: #5fbf8a;
+  --tier-rare: #5CC9F5;
+  --tier-epic: #a855f7;
+  --tier-legendary: #FFD700;
 
   /* Font families */
   --font-pixel: 'Press Start 2P', monospace;

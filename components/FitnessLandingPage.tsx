@@ -1098,7 +1098,7 @@ export default function FitnessLandingPage() {
         /* Achievements Section */
         .achievements-section {
           padding: 5rem 1.5rem;
-          background: rgba(255, 215, 0, 0.02);
+          background: var(--color-legendary-glow);
         }
 
         .achievements-grid {
@@ -1110,8 +1110,8 @@ export default function FitnessLandingPage() {
         }
 
         .achievement-card {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid #222;
+          background: var(--theme-bg-card);
+          border: 1px solid var(--theme-border);
           border-radius: 12px;
           padding: 1rem 1.25rem;
           display: flex;
@@ -1132,12 +1132,12 @@ export default function FitnessLandingPage() {
           display: block;
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #fff;
+          color: var(--theme-text-primary);
           margin-bottom: 0.25rem;
         }
         .achievement-req {
           font-size: 0.7rem;
-          color: #666;
+          color: var(--theme-text-muted);
         }
         .achievement-tier {
           font-family: 'Press Start 2P', monospace;
@@ -1153,8 +1153,8 @@ export default function FitnessLandingPage() {
         }
 
         .story-card {
-          background: linear-gradient(180deg, rgba(255, 107, 107, 0.05) 0%, transparent 100%);
-          border: 1px solid #222;
+          background: linear-gradient(180deg, var(--app-fitness-glow) 0%, transparent 100%);
+          border: 1px solid var(--theme-border);
           border-radius: 16px;
           padding: 3rem 2rem;
           position: relative;
@@ -1166,7 +1166,7 @@ export default function FitnessLandingPage() {
           left: 1.5rem;
           font-family: Georgia, serif;
           font-size: 4rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
           opacity: 0.3;
           line-height: 1;
         }
@@ -1174,14 +1174,14 @@ export default function FitnessLandingPage() {
         .story-title {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.8rem;
-          color: #FF6B6B;
+          color: var(--app-fitness);
           margin-bottom: 1.5rem;
           text-align: center;
         }
 
         .story-content {
           font-size: 0.95rem;
-          color: #aaa;
+          color: var(--theme-text-secondary);
           line-height: 1.8;
         }
 
@@ -1199,20 +1199,20 @@ export default function FitnessLandingPage() {
           gap: 1rem;
           margin-top: 2rem;
           padding-top: 1.5rem;
-          border-top: 1px solid #222;
+          border-top: 1px solid var(--theme-border);
         }
 
         .author-avatar {
           width: 48px;
           height: 48px;
-          background: linear-gradient(135deg, #FF6B6B, #FFD700);
+          background: linear-gradient(135deg, var(--app-fitness), var(--color-legendary));
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           font-family: 'Press Start 2P', monospace;
           font-size: 0.6rem;
-          color: #1a1a1a;
+          color: var(--theme-bg-base);
         }
 
         .author-info {
@@ -1224,12 +1224,12 @@ export default function FitnessLandingPage() {
         .author-name {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.55rem;
-          color: #fff;
+          color: var(--theme-text-primary);
         }
 
         .author-title {
           font-size: 0.75rem;
-          color: #666;
+          color: var(--theme-text-muted);
         }
 
         /* Final CTA */
@@ -1241,13 +1241,13 @@ export default function FitnessLandingPage() {
         .final-title {
           font-family: 'Press Start 2P', monospace;
           font-size: clamp(1rem, 3vw, 1.5rem);
-          color: #fff;
+          color: var(--theme-text-primary);
           margin-bottom: 0.75rem;
         }
 
         .final-subtitle {
           font-size: 0.9rem;
-          color: #666;
+          color: var(--theme-text-muted);
           margin-bottom: 2rem;
         }
 
@@ -1262,19 +1262,19 @@ export default function FitnessLandingPage() {
         .landing-footer {
           padding: 3rem 1.5rem;
           text-align: center;
-          border-top: 1px solid #1a1a1a;
+          border-top: 1px solid var(--theme-border-light);
         }
 
         .footer-tagline {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
-          color: #444;
+          color: var(--theme-text-muted);
           margin-bottom: 0.75rem;
         }
 
         .footer-text {
           font-size: 0.7rem;
-          color: #333;
+          color: var(--theme-text-muted);
         }
 
         /* Particles */
