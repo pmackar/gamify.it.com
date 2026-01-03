@@ -101,6 +101,7 @@ interface FitnessStore extends FitnessState, SyncState {
   startWorkoutWithExercise: (exerciseId: string) => void;
   addExerciseToWorkout: (exerciseId: string) => void;
   addCustomExercise: (name: string) => void;
+  updateCustomExercise: (id: string, updates: { name?: string; muscle?: string }) => void;
   selectExercise: (index: number) => void;
   logSet: (weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
   updateSet: (setIndex: number, weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
@@ -522,6 +523,18 @@ export const useFitnessStore = create<FitnessStore>()(
           get().saveState();
           get().showToast(`Added ${formattedName}`);
         }
+      },
+
+      updateCustomExercise: (id: string, updates: { name?: string; muscle?: string }) => {
+        set((state) => ({
+          customExercises: state.customExercises.map(ex =>
+            ex.id === id ? { ...ex, ...updates } : ex
+          ),
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().saveState();
+        get().showToast('Exercise updated');
       },
 
       selectExercise: (index: number) => {

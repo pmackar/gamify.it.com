@@ -81,6 +81,8 @@ export default function FitnessApp() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [programsTab, setProgramsTab] = useState<'my' | 'library'>('my');
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
+  const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
+  const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -4608,6 +4610,194 @@ export default function FitnessApp() {
           transform: scale(0.98);
         }
 
+        /* ===== CLICKABLE MUSCLE BARS ===== */
+        .muscle-bar-row.clickable {
+          cursor: pointer;
+          transition: all 0.2s ease;
+          padding: 6px 8px;
+          margin: -6px -8px;
+          border-radius: 8px;
+        }
+
+        .muscle-bar-row.clickable:hover {
+          background: var(--surface-hover);
+        }
+
+        .muscle-arrow {
+          font-size: 16px;
+          color: var(--text-tertiary);
+          margin-left: 4px;
+        }
+
+        /* ===== MUSCLE GROUP MODAL ===== */
+        .muscle-group-modal {
+          max-height: 70vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .muscle-group-list {
+          flex: 1;
+          overflow-y: auto;
+          padding: 8px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .muscle-group-exercise {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: var(--surface-hover);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .muscle-group-exercise:hover {
+          background: var(--border);
+        }
+
+        .muscle-group-exercise.custom {
+          border: 1px dashed var(--accent);
+        }
+
+        .muscle-group-exercise-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .muscle-group-exercise-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .custom-badge {
+          font-size: 10px;
+          font-weight: 500;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: rgba(var(--accent-rgb), 0.2);
+          color: var(--accent);
+        }
+
+        .muscle-group-exercise-equipment {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          text-transform: capitalize;
+        }
+
+        .muscle-group-exercise-pr {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--accent);
+          white-space: nowrap;
+        }
+
+        .edit-muscle-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .edit-muscle-btn:hover {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+        }
+
+        .muscle-group-empty {
+          text-align: center;
+          padding: 24px;
+          color: var(--text-tertiary);
+          font-size: 13px;
+        }
+
+        .muscle-group-empty p {
+          margin: 4px 0;
+        }
+
+        /* ===== EDIT EXERCISE MODAL ===== */
+        .edit-exercise-modal {
+          width: 100%;
+          max-width: 360px;
+        }
+
+        .muscle-select-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .muscle-select-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          padding: 12px 8px;
+          background: var(--surface-hover);
+          border: 2px solid transparent;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .muscle-select-btn:hover {
+          background: var(--border);
+        }
+
+        .muscle-select-btn.selected {
+          border-color: var(--accent);
+          background: rgba(var(--accent-rgb), 0.15);
+        }
+
+        .muscle-select-icon {
+          font-size: 20px;
+        }
+
+        .muscle-select-name {
+          font-size: 11px;
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+
+        .muscle-select-btn.selected .muscle-select-name {
+          color: var(--accent);
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        .modal-btn.secondary {
+          flex: 1;
+          background: var(--surface-hover);
+          color: var(--text-secondary);
+        }
+
+        .modal-btn.primary {
+          flex: 1;
+          background: var(--accent);
+          color: white;
+        }
+
         /* ===== LIGHT MODE POLISH ===== */
         :global(html.light) .fitness-app {
           background: linear-gradient(180deg, var(--theme-bg-base) 0%, var(--theme-bg-elevated) 50%, var(--theme-bg-base) 100%);
@@ -5852,10 +6042,14 @@ gamify.it.com/fitness`;
                 {/* Muscle Distribution */}
                 <div className="analytics-section">
                   <h3 className="section-title">Muscle Distribution</h3>
-                  <p className="section-subtitle">Last 30 days</p>
+                  <p className="section-subtitle">Last 30 days · Tap to view exercises</p>
                   <div className="muscle-bars">
                     {volumeByMuscle.slice(0, 8).map(({ muscle, percentage }) => (
-                      <div key={muscle} className="muscle-bar-row">
+                      <div
+                        key={muscle}
+                        className="muscle-bar-row clickable"
+                        onClick={() => setViewingMuscleGroup(muscle.toLowerCase())}
+                      >
                         <div className="muscle-name">{muscle}</div>
                         <div className="muscle-bar-container">
                           <div
@@ -5864,6 +6058,7 @@ gamify.it.com/fitness`;
                           />
                         </div>
                         <div className="muscle-percent">{percentage}%</div>
+                        <div className="muscle-arrow">›</div>
                       </div>
                     ))}
                   </div>
@@ -7680,6 +7875,133 @@ gamify.it.com/fitness`;
                   Cancel
                 </button>
                 <button className="body-stats-btn body-stats-btn-save" onClick={handleSaveBodyStats}>
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Muscle Group Exercises Modal */}
+        {viewingMuscleGroup && (
+          <div className="modal-overlay" onClick={() => setViewingMuscleGroup(null)}>
+            <div className="modal muscle-group-modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <span>{MUSCLE_CATEGORIES.find(c => c.id === viewingMuscleGroup)?.icon || '💪'} </span>
+                {viewingMuscleGroup.charAt(0).toUpperCase() + viewingMuscleGroup.slice(1)} Exercises
+              </div>
+              <div className="muscle-group-list">
+                {/* Standard exercises */}
+                {EXERCISES.filter(ex => ex.muscle === viewingMuscleGroup).map(exercise => (
+                  <div
+                    key={exercise.id}
+                    className="muscle-group-exercise"
+                    onClick={() => {
+                      setExerciseDetailId(exercise.id);
+                      store.setView('exercise-detail');
+                      setViewingMuscleGroup(null);
+                    }}
+                  >
+                    <div className="muscle-group-exercise-info">
+                      <div className="muscle-group-exercise-name">{exercise.name}</div>
+                      <div className="muscle-group-exercise-equipment">{exercise.equipment}</div>
+                    </div>
+                    {store.records[exercise.id] && (
+                      <div className="muscle-group-exercise-pr">PR: {store.records[exercise.id]} lbs</div>
+                    )}
+                  </div>
+                ))}
+                {/* Custom exercises in this muscle group */}
+                {store.customExercises.filter(ex => ex.muscle === viewingMuscleGroup).map(exercise => (
+                  <div key={exercise.id} className="muscle-group-exercise custom">
+                    <div
+                      className="muscle-group-exercise-info"
+                      onClick={() => {
+                        setEditingCustomExercise(exercise);
+                      }}
+                    >
+                      <div className="muscle-group-exercise-name">
+                        {exercise.name}
+                        <span className="custom-badge">Custom</span>
+                      </div>
+                      <div className="muscle-group-exercise-equipment">Tap to edit category</div>
+                    </div>
+                    {store.records[exercise.id] && (
+                      <div className="muscle-group-exercise-pr">PR: {store.records[exercise.id]} lbs</div>
+                    )}
+                    <button
+                      className="edit-muscle-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingCustomExercise(exercise);
+                      }}
+                    >
+                      ✎
+                    </button>
+                  </div>
+                ))}
+                {/* Show custom exercises from "other" category that might belong here */}
+                {viewingMuscleGroup === 'other' && store.customExercises.filter(ex => ex.muscle === 'other').length === 0 && (
+                  <div className="muscle-group-empty">
+                    <p>No custom exercises in this category yet.</p>
+                    <p>Custom exercises default here until you categorize them.</p>
+                  </div>
+                )}
+              </div>
+              <button className="modal-btn" onClick={() => setViewingMuscleGroup(null)}>Close</button>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Custom Exercise Modal */}
+        {editingCustomExercise && (
+          <div className="modal-overlay" onClick={() => setEditingCustomExercise(null)}>
+            <div className="modal edit-exercise-modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">Edit Exercise</div>
+              <div className="modal-subtitle">{editingCustomExercise.name}</div>
+
+              <div className="form-group">
+                <label>Muscle Group</label>
+                <div className="muscle-select-grid">
+                  {MUSCLE_CATEGORIES.map(cat => (
+                    <button
+                      key={cat.id}
+                      className={`muscle-select-btn ${editingCustomExercise.muscle === cat.id ? 'selected' : ''}`}
+                      onClick={() => setEditingCustomExercise({
+                        ...editingCustomExercise,
+                        muscle: cat.id
+                      })}
+                    >
+                      <span className="muscle-select-icon">{cat.icon}</span>
+                      <span className="muscle-select-name">{cat.name}</span>
+                    </button>
+                  ))}
+                  <button
+                    className={`muscle-select-btn ${editingCustomExercise.muscle === 'other' ? 'selected' : ''}`}
+                    onClick={() => setEditingCustomExercise({
+                      ...editingCustomExercise,
+                      muscle: 'other'
+                    })}
+                  >
+                    <span className="muscle-select-icon">❓</span>
+                    <span className="muscle-select-name">Other</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button className="modal-btn secondary" onClick={() => setEditingCustomExercise(null)}>
+                  Cancel
+                </button>
+                <button
+                  className="modal-btn primary"
+                  onClick={() => {
+                    store.updateCustomExercise(editingCustomExercise.id, {
+                      muscle: editingCustomExercise.muscle
+                    });
+                    setEditingCustomExercise(null);
+                  }}
+                >
                   Save
                 </button>
               </div>
