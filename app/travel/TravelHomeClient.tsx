@@ -224,20 +224,51 @@ export default function TravelHomeClient({
             </div>
           )}
 
-          {/* Quick Access Grid */}
-          <div className="section">
-            <h2 className="section-title-solo">Explore</h2>
-            <div className="quick-grid">
+          {/* Quick Access Grid - Explore Menu */}
+          <div style={{ marginTop: 20, padding: "0 16px" }}>
+            <h2
+              style={{
+                fontSize: 10,
+                fontFamily: "'Press Start 2P', monospace",
+                color: "var(--rpg-text)",
+                marginBottom: 14,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}
+            >
+              Explore
+            </h2>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {[
-                { icon: "🗺️", label: "Map", href: "/travel/map", colorClass: "cyan" },
-                { icon: "📍", label: "Locations", href: "/travel/locations", colorClass: "teal" },
-                { icon: "🏰", label: "Cities", href: "/travel/cities", colorClass: "purple" },
-                { icon: "📜", label: "Quests", href: "/travel/quests", colorClass: "orange" },
-                { icon: "❤️", label: "Hotlist", href: "/travel/hotlist", colorClass: "red" },
-                { icon: "🏆", label: "Badges", href: "/travel/achievements", colorClass: "gold" },
+                { icon: "🗺️", label: "Map", href: "/travel/map", bg: "rgba(6, 182, 212, 0.15)", border: "rgba(6, 182, 212, 0.5)" },
+                { icon: "📍", label: "Locations", href: "/travel/locations", bg: "rgba(95, 191, 138, 0.15)", border: "rgba(95, 191, 138, 0.5)" },
+                { icon: "🏰", label: "Cities", href: "/travel/cities", bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.5)" },
+                { icon: "📜", label: "Quests", href: "/travel/quests", bg: "rgba(249, 115, 22, 0.15)", border: "rgba(249, 115, 22, 0.5)" },
+                { icon: "❤️", label: "Hotlist", href: "/travel/hotlist", bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.5)" },
+                { icon: "🏆", label: "Badges", href: "/travel/achievements", bg: "rgba(255, 215, 0, 0.15)", border: "rgba(255, 215, 0, 0.5)" },
               ].map((item) => (
-                <Link key={item.label} href={item.href} className={`quick-item quick-${item.colorClass}`}>
-                  <span className="quick-icon">{item.icon}</span>
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 18px",
+                    borderRadius: 50,
+                    background: item.bg,
+                    border: `2px solid ${item.border}`,
+                    boxShadow: "0 3px 0 rgba(0, 0, 0, 0.4)",
+                    fontSize: 8,
+                    fontFamily: "'Press Start 2P', monospace",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    color: "var(--rpg-text)",
+                    textDecoration: "none",
+                    transition: "transform 0.15s, box-shadow 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               ))}
