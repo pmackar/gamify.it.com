@@ -15,6 +15,7 @@ import {
   Lightbulb,
   Pencil,
   X,
+  UserPlus,
 } from "lucide-react";
 import TravelApp from "../../TravelApp";
 import StarRating from "@/components/ui/StarRating";
@@ -424,30 +425,49 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
           </div>
         </div>
 
-        {/* Party (if exists) */}
-        {quest.party && (
-          <div
-            className="rounded-lg p-5 mb-6"
-            style={{
-              background: "var(--rpg-card)",
-              border: "2px solid var(--rpg-border)",
-            }}
-          >
-            <div className="flex items-center gap-2 mb-4">
+        {/* Party Section */}
+        <div
+          className="rounded-lg p-5 mb-6"
+          style={{
+            background: "var(--rpg-card)",
+            border: "2px solid var(--rpg-border)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
               <Users size={16} style={{ color: "var(--rpg-purple)" }} />
               <span className="text-sm font-medium" style={{ color: "var(--rpg-text)" }}>
                 Quest Party
               </span>
-              <span
-                className="text-xs px-2 py-0.5 rounded-full"
+              {quest.party && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(168, 85, 247, 0.2)",
+                    color: "var(--rpg-purple)",
+                  }}
+                >
+                  {quest.party.memberCount} {quest.party.memberCount === 1 ? "member" : "members"}
+                </span>
+              )}
+            </div>
+            {quest.isOwner && (
+              <Link
+                href={`/friends?invite_to_quest=${quest.id}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors"
                 style={{
-                  background: "rgba(168, 85, 247, 0.2)",
+                  background: "rgba(168, 85, 247, 0.15)",
                   color: "var(--rpg-purple)",
+                  border: "1px solid rgba(168, 85, 247, 0.3)",
                 }}
               >
-                {quest.party.memberCount} {quest.party.memberCount === 1 ? "member" : "members"}
-              </span>
-            </div>
+                <UserPlus size={14} />
+                <span>Add to Party</span>
+              </Link>
+            )}
+          </div>
+
+          {quest.party && quest.party.members.length > 0 ? (
             <div className="flex flex-wrap gap-3">
               {quest.party.members.map((member) => (
                 <Link
@@ -484,8 +504,12 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
                 </Link>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-sm" style={{ color: "var(--rpg-muted)" }}>
+              No party members yet. Invite friends to join this quest!
+            </p>
+          )}
+        </div>
 
         {/* Suggestions hint */}
         <Link
