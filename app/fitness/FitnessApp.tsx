@@ -2631,6 +2631,8 @@ export default function FitnessApp() {
 
         /* PR Section */
         .section-title {
+          display: flex;
+          align-items: center;
           font-size: 14px;
           font-weight: 600;
           color: var(--text-secondary);
@@ -2648,16 +2650,82 @@ export default function FitnessApp() {
           border: 1px solid var(--border);
           border-radius: 12px;
           padding: 14px;
+          position: relative;
+        }
+        .pr-card.imported {
+          border-color: rgba(59, 130, 246, 0.3);
+          background: rgba(59, 130, 246, 0.05);
+        }
+        .pr-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 4px;
         }
         .pr-exercise {
           font-size: 12px;
           color: var(--text-secondary);
           margin-bottom: 4px;
+          flex: 1;
+        }
+        .pr-edit-btn {
+          background: none;
+          border: none;
+          padding: 2px;
+          font-size: 12px;
+          cursor: pointer;
+          opacity: 0.6;
+          transition: opacity 0.15s;
+        }
+        .pr-edit-btn:hover {
+          opacity: 1;
         }
         .pr-weight {
           font-size: 20px;
           font-weight: 700;
           color: var(--gold);
+        }
+        .pr-meta {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 4px;
+        }
+        .pr-date {
+          font-size: 10px;
+          color: var(--text-secondary);
+          opacity: 0.7;
+        }
+        .pr-imported-badge {
+          font-size: 10px;
+        }
+        .pr-progress {
+          margin-top: 6px;
+          padding-top: 6px;
+          border-top: 1px solid var(--border);
+        }
+        .pr-progress-value {
+          font-size: 12px;
+          font-weight: 600;
+          color: #22c55e;
+        }
+        .pr-progress-percent {
+          font-size: 10px;
+          color: var(--text-secondary);
+          margin-left: 4px;
+        }
+        .section-action-btn {
+          background: none;
+          border: none;
+          padding: 4px 8px;
+          font-size: 14px;
+          cursor: pointer;
+          opacity: 0.6;
+          transition: opacity 0.15s;
+          margin-left: 8px;
+        }
+        .section-action-btn:hover {
+          opacity: 1;
         }
 
         /* Workout Cards */
@@ -6347,18 +6415,62 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
-              <div className="section-title">Personal Records</div>
+              <div className="section-title">
+                Personal Records
+                <button
+                  className="section-action-btn"
+                  onClick={() => store.recalculatePRsFromHistory()}
+                  title="Recalculate PRs from workout history"
+                >
+                  🔄
+                </button>
+              </div>
               <div className="pr-grid">
                 {Object.entries(store.records)
-                  .filter(([id]) => EXERCISES.some(e => e.id === id))
+                  .filter(([id]) => EXERCISES.some(e => e.id === id) || store.customExercises.some(e => e.id === id))
                   .sort((a, b) => b[1] - a[1])
-                  .slice(0, 8)
+                  .slice(0, 12)
                   .map(([id, weight]) => {
-                    const exercise = getExerciseById(id);
+                    const exercise = getExerciseById(id) || store.customExercises.find(e => e.id === id);
+                    const meta = store.recordsMeta[id];
+                    const progress = meta?.firstWeight ? weight - meta.firstWeight : 0;
+                    const progressPercent = meta?.firstWeight ? Math.round((progress / meta.firstWeight) * 100) : 0;
+
                     return (
-                      <div key={id} className="pr-card">
-                        <div className="pr-exercise">{exercise?.name || id}</div>
+                      <div key={id} className={`pr-card ${meta?.imported ? 'imported' : ''}`}>
+                        <div className="pr-header">
+                          <div className="pr-exercise">{exercise?.name || id}</div>
+                          {meta?.imported && (
+                            <button
+                              className="pr-edit-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newWeight = prompt(`Edit PR for ${exercise?.name || id}:`, String(weight));
+                                if (newWeight && !isNaN(Number(newWeight))) {
+                                  store.editPR(id, Number(newWeight));
+                                }
+                              }}
+                              title="Edit imported PR"
+                            >
+                              ✏️
+                            </button>
+                          )}
+                        </div>
                         <div className="pr-weight">{weight} lbs</div>
+                        <div className="pr-meta">
+                          {meta?.date && (
+                            <span className="pr-date">
+                              {new Date(meta.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                            </span>
+                          )}
+                          {meta?.imported && <span className="pr-imported-badge">📥</span>}
+                        </div>
+                        {progress > 0 && (
+                          <div className="pr-progress">
+                            <span className="pr-progress-value">+{progress} lbs</span>
+                            <span className="pr-progress-percent">(+{progressPercent}%)</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

@@ -1,53 +1,42 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+const NudgeSchema = z.object({
+  message: z.string().max(200).optional(),
+});
 
 // POST /api/accountability/[id]/nudge - Send a nudge to partner
-export async function POST(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
+    const partnership = await prisma.accountability_partnerships.findUnique({
+      where: { id },
+    });
 
-  const { id } = await context.params;
+    if (!partnership) {
+      return Errors.notFound("Partnership not found");
+    }
 
-  const partnership = await prisma.accountability_partnerships.findUnique({
-    where: { id },
-  });
+    if (
+      partnership.requester_id !== user.id &&
+      partnership.partner_id !== user.id
+    ) {
+      return Errors.forbidden("Not authorized");
+    }
 
-  if (!partnership) {
-    return NextResponse.json(
-      { error: "Partnership not found" },
-      { status: 404 }
-    );
-  }
+    if (partnership.status !== "ACTIVE") {
+      return Errors.invalidInput("Partnership is not active");
+    }
 
-  if (
-    partnership.requester_id !== user.id &&
-    partnership.partner_id !== user.id
-  ) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
+    const partnerId =
+      partnership.requester_id === user.id
+        ? partnership.partner_id
+        : partnership.requester_id;
 
-  if (partnership.status !== "ACTIVE") {
-    return NextResponse.json(
-      { error: "Partnership is not active" },
-      { status: 400 }
-    );
-  }
-
-  const partnerId =
-    partnership.requester_id === user.id
-      ? partnership.partner_id
-      : partnership.requester_id;
-
-  try {
     const body = await request.json();
-    const { message } = body;
+    const parsed = NudgeSchema.safeParse(body);
+    const message = parsed.success ? parsed.data.message : undefined;
 
     // Check if already nudged today
     const today = new Date();
@@ -67,10 +56,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     if (recentNudge) {
-      return NextResponse.json(
-        { error: "Already nudged today. Try again tomorrow!" },
-        { status: 400 }
-      );
+      return Errors.invalidInput("Already nudged today. Try again tomorrow!");
     }
 
     // Create nudge
@@ -106,78 +92,64 @@ export async function POST(request: NextRequest, context: RouteContext) {
         createdAt: nudge.created_at.toISOString(),
       },
     });
-  } catch (error) {
-    console.error("Error sending nudge:", error);
-    return NextResponse.json(
-      { error: "Failed to send nudge" },
-      { status: 500 }
-    );
   }
-}
+);
 
 // GET /api/accountability/[id]/nudge - Get nudge history
-export async function GET(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withAuthParams<{ id: string }>(
+  async (_request, user, { id }) => {
+    const partnership = await prisma.accountability_partnerships.findUnique({
+      where: { id },
+    });
 
-  const { id } = await context.params;
+    if (!partnership) {
+      return Errors.notFound("Partnership not found");
+    }
 
-  const partnership = await prisma.accountability_partnerships.findUnique({
-    where: { id },
-  });
+    if (
+      partnership.requester_id !== user.id &&
+      partnership.partner_id !== user.id
+    ) {
+      return Errors.forbidden("Not authorized");
+    }
 
-  if (!partnership) {
-    return NextResponse.json(
-      { error: "Partnership not found" },
-      { status: 404 }
-    );
-  }
-
-  if (
-    partnership.requester_id !== user.id &&
-    partnership.partner_id !== user.id
-  ) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
-  const nudges = await prisma.partnership_nudges.findMany({
-    where: { partnership_id: id },
-    include: {
-      sender: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
+    const nudges = await prisma.partnership_nudges.findMany({
+      where: { partnership_id: id },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+          },
         },
       },
-    },
-    orderBy: { created_at: "desc" },
-    take: 20,
-  });
+      orderBy: { created_at: "desc" },
+      take: 20,
+    });
 
-  // Mark received nudges as read
-  await prisma.partnership_nudges.updateMany({
-    where: {
-      partnership_id: id,
-      recipient_id: user.id,
-      read: false,
-    },
-    data: { read: true },
-  });
-
-  return NextResponse.json({
-    nudges: nudges.map((n) => ({
-      id: n.id,
-      message: n.message,
-      sentByMe: n.sender_id === user.id,
-      sender: {
-        id: n.sender.id,
-        username: n.sender.username,
-        displayName: n.sender.display_name,
+    // Mark received nudges as read
+    await prisma.partnership_nudges.updateMany({
+      where: {
+        partnership_id: id,
+        recipient_id: user.id,
+        read: false,
       },
-      createdAt: n.created_at.toISOString(),
-    })),
-  });
-}
+      data: { read: true },
+    });
+
+    return NextResponse.json({
+      nudges: nudges.map((n) => ({
+        id: n.id,
+        message: n.message,
+        sentByMe: n.sender_id === user.id,
+        sender: {
+          id: n.sender.id,
+          username: n.sender.username,
+          displayName: n.sender.display_name,
+        },
+        createdAt: n.created_at.toISOString(),
+      })),
+    });
+  }
+);

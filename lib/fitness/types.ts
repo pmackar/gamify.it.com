@@ -243,10 +243,18 @@ export interface ExerciseProgressEntry {
 
 // ============================================
 
+export interface PRMeta {
+  date: string;           // When the PR was set
+  imported: boolean;      // Whether it came from CSV import
+  firstWeight?: number;   // First recorded weight for this exercise
+  firstDate?: string;     // Date of first recorded weight
+}
+
 export interface FitnessState {
   profile: Profile;
   workouts: Workout[];
   records: Record<string, number>;
+  recordsMeta: Record<string, PRMeta>;  // Metadata about each PR
   achievements: string[];
   customExercises: { id: string; name: string; muscle: string }[];
   templates: WorkoutTemplate[];

@@ -1,27 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+const RespondSchema = z.object({
+  action: z.enum(["accept", "decline"]),
+});
 
 // POST /api/accountability/[id]/respond - Accept or decline partnership
-export async function POST(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await context.params;
-
-  try {
+export const POST = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
     const body = await request.json();
-    const { action } = body; // 'accept' or 'decline'
+    const parsed = RespondSchema.safeParse(body);
 
-    if (!action || !["accept", "decline"].includes(action)) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    if (!parsed.success) {
+      return Errors.invalidInput("Invalid action");
     }
+
+    const { action } = parsed.data;
 
     const partnership = await prisma.accountability_partnerships.findUnique({
       where: { id },
@@ -33,22 +29,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     if (!partnership) {
-      return NextResponse.json(
-        { error: "Partnership not found" },
-        { status: 404 }
-      );
+      return Errors.notFound("Partnership not found");
     }
 
     // Only the partner (addressee) can respond
     if (partnership.partner_id !== user.id) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      return Errors.forbidden("Not authorized");
     }
 
     if (partnership.status !== "PENDING") {
-      return NextResponse.json(
-        { error: "Partnership is not pending" },
-        { status: 400 }
-      );
+      return Errors.invalidInput("Partnership is not pending");
     }
 
     if (action === "accept") {
@@ -86,11 +76,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       return NextResponse.json({ success: true, status: "ENDED" });
     }
-  } catch (error) {
-    console.error("Error responding to partnership:", error);
-    return NextResponse.json(
-      { error: "Failed to respond to partnership" },
-      { status: 500 }
-    );
   }
-}
+);

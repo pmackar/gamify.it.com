@@ -147,6 +147,9 @@ interface FitnessStore extends FitnessState, SyncState {
   // Records & Achievements
   checkPR: (exerciseId: string, weight: number) => boolean;
   checkMilestone: (exerciseId: string, weight: number) => { name: string; icon: string; xp: number } | null;
+  editPR: (exerciseId: string, weight: number) => void;
+  deletePR: (exerciseId: string) => void;
+  recalculatePRsFromHistory: () => void;
 
   // Templates
   saveTemplate: (name: string) => void;
@@ -229,6 +232,7 @@ const defaultState: FitnessState = {
   profile: defaultProfile,
   workouts: [],
   records: {},
+  recordsMeta: {},
   achievements: [],
   customExercises: [],
   templates: [...DEFAULT_TEMPLATES],
@@ -1110,14 +1114,102 @@ export const useFitnessStore = create<FitnessStore>()(
         const currentPR = state.records[exerciseId] || 0;
 
         if (weight > currentPR) {
+          const now = new Date().toISOString();
+          const existingMeta = state.recordsMeta[exerciseId];
           set((state) => ({
             records: { ...state.records, [exerciseId]: weight },
+            recordsMeta: {
+              ...state.recordsMeta,
+              [exerciseId]: {
+                date: now,
+                imported: false,
+                firstWeight: existingMeta?.firstWeight || weight,
+                firstDate: existingMeta?.firstDate || now,
+              }
+            },
             pendingSync: true
           }));
           queueSync(get);
           return true;
         }
         return false;
+      },
+
+      editPR: (exerciseId: string, weight: number) => {
+        const state = get();
+        const existingMeta = state.recordsMeta[exerciseId];
+        set((state) => ({
+          records: { ...state.records, [exerciseId]: weight },
+          recordsMeta: {
+            ...state.recordsMeta,
+            [exerciseId]: {
+              ...existingMeta,
+              date: existingMeta?.date || new Date().toISOString(),
+              imported: existingMeta?.imported || false,
+            }
+          },
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('PR updated');
+      },
+
+      deletePR: (exerciseId: string) => {
+        set((state) => {
+          const { [exerciseId]: _, ...remainingRecords } = state.records;
+          const { [exerciseId]: __, ...remainingMeta } = state.recordsMeta;
+          return {
+            records: remainingRecords,
+            recordsMeta: remainingMeta,
+            pendingSync: true
+          };
+        });
+        queueSync(get);
+        get().showToast('PR removed');
+      },
+
+      recalculatePRsFromHistory: () => {
+        const state = get();
+        const newRecords: Record<string, number> = {};
+        const newMeta: Record<string, { date: string; imported: boolean; firstWeight?: number; firstDate?: string }> = {};
+
+        // Sort workouts by date (oldest first)
+        const sortedWorkouts = [...state.workouts].sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+
+        for (const workout of sortedWorkouts) {
+          const isImported = workout.source === 'csv';
+          for (const exercise of workout.exercises) {
+            for (const s of exercise.sets) {
+              if (s.isWarmup) continue;
+
+              // Track first weight
+              if (!newMeta[exercise.exerciseId]?.firstWeight) {
+                newMeta[exercise.exerciseId] = {
+                  date: workout.startTime,
+                  imported: isImported,
+                  firstWeight: s.weight,
+                  firstDate: workout.startTime
+                };
+              }
+
+              // Track PR
+              if (s.weight > (newRecords[exercise.exerciseId] || 0)) {
+                newRecords[exercise.exerciseId] = s.weight;
+                newMeta[exercise.exerciseId] = {
+                  ...newMeta[exercise.exerciseId],
+                  date: workout.startTime,
+                  imported: isImported
+                };
+              }
+            }
+          }
+        }
+
+        set({ records: newRecords, recordsMeta: newMeta, pendingSync: true });
+        queueSync(get);
+        get().showToast('PRs recalculated from history');
       },
 
       checkMilestone: (exerciseId: string, weight: number) => {

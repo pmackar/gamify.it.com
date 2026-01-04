@@ -1,48 +1,44 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+const CheckinSchema = z.object({
+  notes: z.string().max(500).optional(),
+  mood: z.number().int().min(1).max(5).optional(),
+  completed: z.boolean().optional(),
+});
 
 // POST /api/accountability/[id]/checkin - Daily check-in
-export async function POST(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
+    const partnership = await prisma.accountability_partnerships.findUnique({
+      where: { id },
+    });
 
-  const { id } = await context.params;
+    if (!partnership) {
+      return Errors.notFound("Partnership not found");
+    }
 
-  const partnership = await prisma.accountability_partnerships.findUnique({
-    where: { id },
-  });
+    if (
+      partnership.requester_id !== user.id &&
+      partnership.partner_id !== user.id
+    ) {
+      return Errors.forbidden("Not authorized");
+    }
 
-  if (!partnership) {
-    return NextResponse.json(
-      { error: "Partnership not found" },
-      { status: 404 }
-    );
-  }
+    if (partnership.status !== "ACTIVE") {
+      return Errors.invalidInput("Partnership is not active");
+    }
 
-  if (
-    partnership.requester_id !== user.id &&
-    partnership.partner_id !== user.id
-  ) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
-  if (partnership.status !== "ACTIVE") {
-    return NextResponse.json(
-      { error: "Partnership is not active" },
-      { status: 400 }
-    );
-  }
-
-  try {
     const body = await request.json();
-    const { notes, mood, completed } = body;
+    const parsed = CheckinSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return Errors.invalidInput("Invalid check-in data");
+    }
+
+    const { notes, mood, completed } = parsed.data;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -107,7 +103,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         metadata: {
           partnershipId: id,
           mood,
-          message: notes ? `Check-in: "${notes.slice(0, 50)}..."` : "Checked in today!",
+          message: notes
+            ? `Check-in: "${notes.slice(0, 50)}..."`
+            : "Checked in today!",
         },
       },
     });
@@ -122,103 +120,93 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
       created: true,
     });
-  } catch (error) {
-    console.error("Error creating check-in:", error);
-    return NextResponse.json(
-      { error: "Failed to create check-in" },
-      { status: 500 }
-    );
   }
-}
+);
 
 // GET /api/accountability/[id]/checkin - Get check-in history
-export async function GET(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
+    const { searchParams } = new URL(request.url);
+    const days = parseInt(searchParams.get("days") || "30");
 
-  const { id } = await context.params;
-  const { searchParams } = new URL(request.url);
-  const days = parseInt(searchParams.get("days") || "30");
+    const partnership = await prisma.accountability_partnerships.findUnique({
+      where: { id },
+    });
 
-  const partnership = await prisma.accountability_partnerships.findUnique({
-    where: { id },
-  });
-
-  if (!partnership) {
-    return NextResponse.json(
-      { error: "Partnership not found" },
-      { status: 404 }
-    );
-  }
-
-  if (
-    partnership.requester_id !== user.id &&
-    partnership.partner_id !== user.id
-  ) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-  startDate.setHours(0, 0, 0, 0);
-
-  const checkins = await prisma.partnership_checkins.findMany({
-    where: {
-      partnership_id: id,
-      date: { gte: startDate },
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
-          avatar_url: true,
-        },
-      },
-    },
-    orderBy: { date: "desc" },
-  });
-
-  // Group by date
-  const byDate: Record<string, {
-    date: string;
-    user?: {
-      completed: boolean;
-      notes?: string | null;
-      mood?: number | null;
-    };
-    partner?: {
-      completed: boolean;
-      notes?: string | null;
-      mood?: number | null;
-    };
-  }> = {};
-
-  for (const checkin of checkins) {
-    const dateStr = checkin.date.toISOString().split("T")[0];
-    if (!byDate[dateStr]) {
-      byDate[dateStr] = { date: dateStr };
+    if (!partnership) {
+      return Errors.notFound("Partnership not found");
     }
 
-    const isUser = checkin.user_id === user.id;
-    const key = isUser ? "user" : "partner";
-    byDate[dateStr][key] = {
-      completed: checkin.completed,
-      notes: checkin.notes,
-      mood: checkin.mood,
-    };
-  }
+    if (
+      partnership.requester_id !== user.id &&
+      partnership.partner_id !== user.id
+    ) {
+      return Errors.forbidden("Not authorized");
+    }
 
-  return NextResponse.json({
-    checkins: Object.values(byDate).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    ),
-    partnerId:
-      partnership.requester_id === user.id
-        ? partnership.partner_id
-        : partnership.requester_id,
-  });
-}
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    const checkins = await prisma.partnership_checkins.findMany({
+      where: {
+        partnership_id: id,
+        date: { gte: startDate },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            avatar_url: true,
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+    });
+
+    // Group by date
+    const byDate: Record<
+      string,
+      {
+        date: string;
+        user?: {
+          completed: boolean;
+          notes?: string | null;
+          mood?: number | null;
+        };
+        partner?: {
+          completed: boolean;
+          notes?: string | null;
+          mood?: number | null;
+        };
+      }
+    > = {};
+
+    for (const checkin of checkins) {
+      const dateStr = checkin.date.toISOString().split("T")[0];
+      if (!byDate[dateStr]) {
+        byDate[dateStr] = { date: dateStr };
+      }
+
+      const isUser = checkin.user_id === user.id;
+      const key = isUser ? "user" : "partner";
+      byDate[dateStr][key] = {
+        completed: checkin.completed,
+        notes: checkin.notes,
+        mood: checkin.mood,
+      };
+    }
+
+    return NextResponse.json({
+      checkins: Object.values(byDate).sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+      partnerId:
+        partnership.requester_id === user.id
+          ? partnership.partner_id
+          : partnership.requester_id,
+    });
+  }
+);

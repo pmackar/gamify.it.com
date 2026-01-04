@@ -1,107 +1,100 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+const CreateGoalSchema = z.object({
+  type: z.string().min(1),
+  title: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  target: z.number().int().min(1),
+  period: z.enum(["day", "week", "month"]).optional(),
+  deadline: z.string().datetime().optional(),
+});
+
+const UpdateGoalSchema = z.object({
+  goalId: z.string().uuid(),
+  progress: z.number().int().min(0),
+});
+
+const DeleteGoalSchema = z.object({
+  goalId: z.string().uuid(),
+});
 
 // GET /api/accountability/[id]/goals - Get partnership goals
-export async function GET(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await context.params;
-
-  const partnership = await prisma.accountability_partnerships.findUnique({
-    where: { id },
-    include: {
-      goals: {
-        orderBy: { created_at: "desc" },
+export const GET = withAuthParams<{ id: string }>(
+  async (_request, user, { id }) => {
+    const partnership = await prisma.accountability_partnerships.findUnique({
+      where: { id },
+      include: {
+        goals: {
+          orderBy: { created_at: "desc" },
+        },
       },
-    },
-  });
+    });
 
-  if (!partnership) {
-    return NextResponse.json(
-      { error: "Partnership not found" },
-      { status: 404 }
-    );
+    if (!partnership) {
+      return Errors.notFound("Partnership not found");
+    }
+
+    // Check if user is part of partnership
+    if (
+      partnership.requester_id !== user.id &&
+      partnership.partner_id !== user.id
+    ) {
+      return Errors.forbidden("Not authorized");
+    }
+
+    const isRequester = partnership.requester_id === user.id;
+
+    return NextResponse.json({
+      goals: partnership.goals.map((g) => ({
+        id: g.id,
+        type: g.type,
+        title: g.title,
+        description: g.description,
+        target: g.target,
+        currentUser: isRequester ? g.current_user1 : g.current_user2,
+        currentPartner: isRequester ? g.current_user2 : g.current_user1,
+        period: g.period,
+        deadline: g.deadline?.toISOString(),
+        active: g.active,
+        createdAt: g.created_at.toISOString(),
+      })),
+    });
   }
-
-  // Check if user is part of partnership
-  if (
-    partnership.requester_id !== user.id &&
-    partnership.partner_id !== user.id
-  ) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
-  const isRequester = partnership.requester_id === user.id;
-
-  return NextResponse.json({
-    goals: partnership.goals.map((g) => ({
-      id: g.id,
-      type: g.type,
-      title: g.title,
-      description: g.description,
-      target: g.target,
-      currentUser: isRequester ? g.current_user1 : g.current_user2,
-      currentPartner: isRequester ? g.current_user2 : g.current_user1,
-      period: g.period,
-      deadline: g.deadline?.toISOString(),
-      active: g.active,
-      createdAt: g.created_at.toISOString(),
-    })),
-  });
-}
+);
 
 // POST /api/accountability/[id]/goals - Add a new goal
-export async function POST(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
+    const partnership = await prisma.accountability_partnerships.findUnique({
+      where: { id },
+    });
 
-  const { id } = await context.params;
-
-  const partnership = await prisma.accountability_partnerships.findUnique({
-    where: { id },
-  });
-
-  if (!partnership) {
-    return NextResponse.json(
-      { error: "Partnership not found" },
-      { status: 404 }
-    );
-  }
-
-  if (
-    partnership.requester_id !== user.id &&
-    partnership.partner_id !== user.id
-  ) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
-  if (partnership.status !== "ACTIVE") {
-    return NextResponse.json(
-      { error: "Partnership is not active" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const body = await request.json();
-    const { type, title, description, target, period, deadline } = body;
-
-    if (!type || !title || !target) {
-      return NextResponse.json(
-        { error: "Type, title, and target are required" },
-        { status: 400 }
-      );
+    if (!partnership) {
+      return Errors.notFound("Partnership not found");
     }
+
+    if (
+      partnership.requester_id !== user.id &&
+      partnership.partner_id !== user.id
+    ) {
+      return Errors.forbidden("Not authorized");
+    }
+
+    if (partnership.status !== "ACTIVE") {
+      return Errors.invalidInput("Partnership is not active");
+    }
+
+    const body = await request.json();
+    const parsed = CreateGoalSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return Errors.invalidInput("Type, title, and target are required");
+    }
+
+    const { type, title, description, target, period, deadline } = parsed.data;
 
     const goal = await prisma.partnership_goals.create({
       data: {
@@ -124,34 +117,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
         period: goal.period,
       },
     });
-  } catch (error) {
-    console.error("Error creating goal:", error);
-    return NextResponse.json(
-      { error: "Failed to create goal" },
-      { status: 500 }
-    );
   }
-}
+);
 
 // PUT /api/accountability/[id]/goals - Update goal progress
-export async function PUT(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await context.params;
-
-  try {
+export const PUT = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
     const body = await request.json();
-    const { goalId, progress } = body;
+    const parsed = UpdateGoalSchema.safeParse(body);
 
-    if (!goalId || progress === undefined) {
-      return NextResponse.json(
-        { error: "Goal ID and progress are required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      return Errors.invalidInput("Goal ID and progress are required");
     }
+
+    const { goalId, progress } = parsed.data;
 
     const goal = await prisma.partnership_goals.findUnique({
       where: { id: goalId },
@@ -159,11 +138,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     });
 
     if (!goal) {
-      return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+      return Errors.notFound("Goal not found");
     }
 
     if (goal.partnership_id !== id) {
-      return NextResponse.json({ error: "Goal mismatch" }, { status: 400 });
+      return Errors.invalidInput("Goal mismatch");
     }
 
     const partnership = goal.partnership;
@@ -171,7 +150,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       partnership.requester_id !== user.id &&
       partnership.partner_id !== user.id
     ) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      return Errors.forbidden("Not authorized");
     }
 
     // Update the correct user's progress
@@ -186,34 +165,20 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     });
 
     return NextResponse.json({ success: true, progress });
-  } catch (error) {
-    console.error("Error updating goal:", error);
-    return NextResponse.json(
-      { error: "Failed to update goal" },
-      { status: 500 }
-    );
   }
-}
+);
 
 // DELETE /api/accountability/[id]/goals - Deactivate a goal
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await context.params;
-
-  try {
+export const DELETE = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
     const body = await request.json();
-    const { goalId } = body;
+    const parsed = DeleteGoalSchema.safeParse(body);
 
-    if (!goalId) {
-      return NextResponse.json(
-        { error: "Goal ID is required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      return Errors.invalidInput("Goal ID is required");
     }
+
+    const { goalId } = parsed.data;
 
     const goal = await prisma.partnership_goals.findUnique({
       where: { id: goalId },
@@ -221,11 +186,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     });
 
     if (!goal) {
-      return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+      return Errors.notFound("Goal not found");
     }
 
     if (goal.partnership_id !== id) {
-      return NextResponse.json({ error: "Goal mismatch" }, { status: 400 });
+      return Errors.invalidInput("Goal mismatch");
     }
 
     const partnership = goal.partnership;
@@ -233,7 +198,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       partnership.requester_id !== user.id &&
       partnership.partner_id !== user.id
     ) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      return Errors.forbidden("Not authorized");
     }
 
     await prisma.partnership_goals.update({
@@ -242,11 +207,5 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting goal:", error);
-    return NextResponse.json(
-      { error: "Failed to delete goal" },
-      { status: 500 }
-    );
   }
-}
+);
