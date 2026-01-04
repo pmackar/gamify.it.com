@@ -7533,6 +7533,13 @@ gamify.it.com/fitness`;
                                   </button>
                                   <button
                                     className="program-action-btn"
+                                    onClick={() => store.editProgram(program.id)}
+                                    title="Edit program"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    className="program-action-btn"
                                     onClick={() => store.stopProgram()}
                                   >
                                     Stop
