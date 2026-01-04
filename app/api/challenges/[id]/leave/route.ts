@@ -1,59 +1,46 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
-
 // POST /api/challenges/[id]/leave - Leave a challenge
-export async function POST(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withAuthParams<{ id: string }>(
+  async (_request, user, { id }) => {
+    const challenge = await prisma.challenges.findUnique({
+      where: { id },
+      select: { id: true, creator_id: true, status: true },
+    });
 
-  const { id } = await context.params;
+    if (!challenge) {
+      return Errors.notFound("Challenge not found");
+    }
 
-  const challenge = await prisma.challenges.findUnique({
-    where: { id },
-    select: { id: true, creator_id: true, status: true },
-  });
+    // Creator cannot leave their own challenge
+    if (challenge.creator_id === user.id) {
+      return Errors.invalidInput(
+        "Creator cannot leave the challenge. Delete it instead."
+      );
+    }
 
-  if (!challenge) {
-    return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
-  }
-
-  // Creator cannot leave their own challenge
-  if (challenge.creator_id === user.id) {
-    return NextResponse.json(
-      { error: "Creator cannot leave the challenge. Delete it instead." },
-      { status: 400 }
-    );
-  }
-
-  // Find participation
-  const participant = await prisma.challenge_participants.findUnique({
-    where: {
-      challenge_id_user_id: {
-        challenge_id: id,
-        user_id: user.id,
+    // Find participation
+    const participant = await prisma.challenge_participants.findUnique({
+      where: {
+        challenge_id_user_id: {
+          challenge_id: id,
+          user_id: user.id,
+        },
       },
-    },
-  });
+    });
 
-  if (!participant) {
-    return NextResponse.json(
-      { error: "Not a participant in this challenge" },
-      { status: 400 }
-    );
+    if (!participant) {
+      return Errors.invalidInput("Not a participant in this challenge");
+    }
+
+    // Update status to LEFT
+    await prisma.challenge_participants.update({
+      where: { id: participant.id },
+      data: { status: "LEFT" },
+    });
+
+    return NextResponse.json({ success: true, left: true });
   }
-
-  // Update status to LEFT
-  await prisma.challenge_participants.update({
-    where: { id: participant.id },
-    data: { status: "LEFT" },
-  });
-
-  return NextResponse.json({ success: true, left: true });
-}
+);
