@@ -3778,15 +3778,23 @@ export default function FitnessApp() {
           padding: 14px;
           cursor: pointer;
           transition: all 0.15s ease;
+          text-align: left;
         }
 
         .progression-option:hover {
-          border-color: var(--text-tertiary);
+          border-color: var(--accent);
+          background: var(--surface-hover);
         }
 
         .progression-option.selected {
           border-color: var(--accent);
-          background: rgba(var(--accent-rgb), 0.05);
+          background: var(--accent);
+          box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+        }
+
+        .progression-option.selected .progression-name,
+        .progression-option.selected .progression-desc {
+          color: white;
         }
 
         .progression-option .option-header {
