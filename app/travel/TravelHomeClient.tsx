@@ -102,60 +102,123 @@ export default function TravelHomeClient({
     <div className="travel-home">
       {/* ========== MOBILE LAYOUT ========== */}
       <div className="lg:hidden">
-          {/* Hero Section */}
-          <div className="hero-section">
+          {/* Hero Section - Rebuilt with inline styles */}
+          <div
+            style={{
+              position: "relative",
+              minHeight: "38vh",
+              display: "flex",
+              flexDirection: "column",
+              background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(95, 191, 138, 0.15) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 20%, rgba(168, 85, 247, 0.1) 0%, transparent 50%), linear-gradient(180deg, var(--rpg-bg) 0%, var(--rpg-card) 100%)",
+            }}
+          >
             {/* Floating Stats Badges */}
-            <div className="floating-badges">
-              <Link href="/travel/achievements" className="badge badge-gold">
+            <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between" }}>
+              <Link
+                href="/travel/achievements"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 12px",
+                  borderRadius: 20,
+                  backdropFilter: "blur(8px)",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  background: "rgba(255, 215, 0, 0.15)",
+                  border: "1px solid rgba(255, 215, 0, 0.3)",
+                  color: "var(--rpg-gold)",
+                  textDecoration: "none",
+                }}
+              >
                 <Trophy size={16} />
                 <span>{stats.achievements}/{stats.totalAchievements}</span>
               </Link>
-              <Link href="/travel/profile" className="badge badge-streak">
+              <Link
+                href="/travel/profile"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 12px",
+                  borderRadius: 20,
+                  backdropFilter: "blur(8px)",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  background: "rgba(239, 68, 68, 0.15)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  color: "#ef4444",
+                  textDecoration: "none",
+                }}
+              >
                 <Flame size={16} />
                 <span>{user.streak} day{user.streak !== 1 ? "s" : ""}</span>
               </Link>
             </div>
 
             {/* Level Circle */}
-            <div className="level-container">
-              <div className="xp-ring">
-                <svg className="xp-ring-svg" viewBox="0 0 100 100">
-                  <circle className="xp-ring-bg" cx="50" cy="50" r="45" />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px 16px" }}>
+              <div style={{ position: "relative", marginBottom: 12 }}>
+                <svg style={{ width: 100, height: 100, transform: "rotate(-90deg)" }} viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(95, 191, 138, 0.2)" strokeWidth="6" />
                   <circle
-                    className="xp-ring-progress"
                     cx="50"
                     cy="50"
                     r="45"
+                    fill="none"
+                    stroke="url(#xpGradient)"
+                    strokeWidth="6"
+                    strokeLinecap="round"
                     strokeDasharray={`${xpProgress * 2.83} 283`}
                   />
                 </svg>
-                <div className="level-display">
-                  <span className="level-label">Level</span>
-                  <span className="level-number">{user.level}</span>
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  <span
+                    style={{
+                      fontSize: 8,
+                      fontFamily: "'Press Start 2P', monospace",
+                      color: "var(--rpg-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: 2,
+                    }}
+                  >
+                    Level
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 24,
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontWeight: "bold",
+                      color: "var(--rpg-gold)",
+                      textShadow: "0 0 20px rgba(255, 215, 0, 0.5)",
+                    }}
+                  >
+                    {user.level}
+                  </span>
                 </div>
               </div>
 
-              <p className="xp-text">
-                <span className="xp-current">{user.xp.toLocaleString()}</span>
+              <p style={{ fontSize: 13, color: "var(--rpg-muted)", marginBottom: 16 }}>
+                <span style={{ color: "var(--rpg-text)", fontWeight: 500 }}>{user.xp.toLocaleString()}</span>
                 {" / "}
                 <span>{user.xpToNext.toLocaleString()} XP</span>
               </p>
 
               {/* Stats Row */}
-              <div className="stats-row">
-                <Link href="/travel/cities" className="stat-item">
-                  <div className="stat-value stat-teal">{stats.countries}</div>
-                  <div className="stat-label">Countries</div>
+              <div style={{ display: "flex", gap: 24, justifyContent: "center" }}>
+                <Link href="/travel/cities" style={{ textAlign: "center", textDecoration: "none" }}>
+                  <div style={{ fontSize: 22, fontFamily: "'Press Start 2P', monospace", color: "var(--rpg-teal)", marginBottom: 4 }}>{stats.countries}</div>
+                  <div style={{ fontSize: 9, fontFamily: "'Press Start 2P', monospace", color: "var(--rpg-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Countries</div>
                 </Link>
-                <div className="stat-divider" />
-                <Link href="/travel/cities" className="stat-item">
-                  <div className="stat-value stat-purple">{stats.cities}</div>
-                  <div className="stat-label">Cities</div>
+                <div style={{ width: 1, background: "var(--rpg-border)" }} />
+                <Link href="/travel/cities" style={{ textAlign: "center", textDecoration: "none" }}>
+                  <div style={{ fontSize: 22, fontFamily: "'Press Start 2P', monospace", color: "var(--rpg-purple)", marginBottom: 4 }}>{stats.cities}</div>
+                  <div style={{ fontSize: 9, fontFamily: "'Press Start 2P', monospace", color: "var(--rpg-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Cities</div>
                 </Link>
-                <div className="stat-divider" />
-                <Link href="/travel/locations" className="stat-item">
-                  <div className="stat-value stat-cyan">{stats.locations}</div>
-                  <div className="stat-label">Places</div>
+                <div style={{ width: 1, background: "var(--rpg-border)" }} />
+                <Link href="/travel/locations" style={{ textAlign: "center", textDecoration: "none" }}>
+                  <div style={{ fontSize: 22, fontFamily: "'Press Start 2P', monospace", color: "var(--rpg-cyan)", marginBottom: 4 }}>{stats.locations}</div>
+                  <div style={{ fontSize: 9, fontFamily: "'Press Start 2P', monospace", color: "var(--rpg-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Places</div>
                 </Link>
               </div>
             </div>
