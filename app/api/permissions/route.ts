@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth';
-import { getUserPermissions } from '@/lib/permissions-server';
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
+import { getUserPermissions } from "@/lib/permissions-server";
 
 /**
  * GET /api/permissions
@@ -9,25 +9,7 @@ import { getUserPermissions } from '@/lib/permissions-server';
  * - Global role (user/admin)
  * - Per-app subscription tiers and features
  */
-export async function GET() {
-  try {
-    const authUser = await getAuthUser();
-
-    if (!authUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const permissions = await getUserPermissions(authUser.id);
-
-    return NextResponse.json(permissions);
-  } catch (error) {
-    console.error('Error fetching permissions:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch permissions' },
-      { status: 500 }
-    );
-  }
-}
+export const GET = withAuth(async (_request, user) => {
+  const permissions = await getUserPermissions(user.id);
+  return NextResponse.json(permissions);
+});
