@@ -1532,7 +1532,7 @@ export const useFitnessStore = create<FitnessStore>()(
             upcoming.push({
               weekNumber: weekNum,
               dayNumber: day.dayNumber,
-              dayName: ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.dayNumber] || `Day ${day.dayNumber}`,
+              dayName: `Day ${day.dayNumber}`,
               workoutName: day.isRest ? 'Rest Day' : (template?.name || day.name),
               isRest: day.isRest,
               isToday,
