@@ -1781,8 +1781,11 @@ export const useFitnessStore = create<FitnessStore>()(
           const workoutDate = new Date(workout.startTime);
           if (workoutDate >= thirtyDaysAgo) {
             workout.exercises.forEach(ex => {
-              const exercise = EXERCISES.find(e => e.id === ex.id || e.name === ex.name);
-              const muscle = exercise?.muscle || 'other';
+              // Check custom exercises first (they may have updated muscle categories)
+              const customExercise = state.customExercises.find(e => e.id === ex.id || e.name === ex.name);
+              const standardExercise = EXERCISES.find(e => e.id === ex.id || e.name === ex.name);
+              // Custom exercise muscle takes priority over standard
+              const muscle = customExercise?.muscle || standardExercise?.muscle || 'other';
 
               ex.sets.forEach(set => {
                 if (!set.isWarmup) {
