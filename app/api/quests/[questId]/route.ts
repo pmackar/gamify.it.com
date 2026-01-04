@@ -1,453 +1,314 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
-import { addXP, XP_VALUES } from "@/lib/gamification";
-import { checkAchievements } from "@/lib/achievements";
+import { awardXP, calculateQuestCompletionXP, checkAchievements } from "@/lib/services/gamification.service";
+import { toUserPublicResponse } from "@/lib/services/response-transformers";
 
-interface RouteParams {
-  params: Promise<{ questId: string }>;
-}
+const PatchSchema = z.object({
+  action: z.enum(["edit", "complete"]),
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  startDate: z.string().datetime().nullable().optional(),
+  endDate: z.string().datetime().nullable().optional(),
+  status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]).optional(),
+});
 
 // GET /api/quests/[questId] - Get quest details
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { questId } = await params;
-
-  const quest = await prisma.travel_quests.findUnique({
-    where: { id: questId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
-          avatar_url: true,
-        },
-      },
-      // Legacy single city/neighborhood
-      target_city: {
-        select: { id: true, name: true, country: true },
-      },
-      target_neighborhood: {
-        select: { id: true, name: true },
-      },
-      // Multi-city/neighborhood support
-      cities: {
-        include: { city: { select: { id: true, name: true, country: true } } },
-        orderBy: { sort_order: "asc" },
-      },
-      neighborhoods: {
-        include: { neighborhood: { select: { id: true, name: true } } },
-      },
-      items: {
-        include: {
-          location: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              latitude: true,
-              longitude: true,
-              city: {
-                select: { id: true, name: true, country: true },
-              },
-            },
-          },
-          added_by: {
-            select: { id: true, username: true, display_name: true, avatar_url: true },
-          },
-          completed_by: {
-            select: { id: true, username: true, display_name: true, avatar_url: true },
-          },
-        },
-        orderBy: [{ sort_order: "asc" }, { completed: "asc" }],
-      },
-      party: {
-        include: {
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  display_name: true,
-                  avatar_url: true,
-                  main_level: true,
-                },
-              },
-            },
-            orderBy: [{ role: "asc" }, { joined_at: "asc" }],
-          },
-        },
-      },
-    },
-  });
-
-  if (!quest) {
-    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
-  }
-
-  // Check if user has access to this quest
-  const isOwner = quest.user_id === user.id;
-  const isPartyMember = quest.party?.members.some(
-    (m) => m.user_id === user.id && m.status === "ACCEPTED"
-  );
-
-  if (!isOwner && !isPartyMember) {
-    return NextResponse.json({ error: "Access denied" }, { status: 403 });
-  }
-
-  // Calculate completion stats
-  const totalItems = quest.items.length;
-  const completedItems = quest.items.filter((i) => i.completed).length;
-
-  return NextResponse.json({
-    quest: {
-      id: quest.id,
-      name: quest.name,
-      description: quest.description,
-      status: quest.status,
-      startDate: quest.start_date,
-      endDate: quest.end_date,
-      createdAt: quest.created_at,
-      updatedAt: quest.updated_at,
-      owner: {
-        id: quest.user.id,
-        username: quest.user.username,
-        displayName: quest.user.display_name,
-        avatarUrl: quest.user.avatar_url,
-      },
-      targetCity: quest.target_city
-        ? {
-            id: quest.target_city.id,
-            name: quest.target_city.name,
-            country: quest.target_city.country,
-          }
-        : null,
-      targetNeighborhood: quest.target_neighborhood
-        ? {
-            id: quest.target_neighborhood.id,
-            name: quest.target_neighborhood.name,
-          }
-        : null,
-      // Multi-city/neighborhood arrays
-      cities: quest.cities.map((qc) => ({
-        id: qc.city.id,
-        name: qc.city.name,
-        country: qc.city.country,
-      })),
-      neighborhoods: quest.neighborhoods.map((qn) => ({
-        id: qn.neighborhood.id,
-        name: qn.neighborhood.name,
-      })),
-      items: quest.items.map((item) => ({
-        id: item.id,
-        completed: item.completed,
-        completedAt: item.completed_at,
-        sortOrder: item.sort_order,
-        priority: item.priority,
-        notes: item.notes,
-        location: {
-          id: item.location.id,
-          name: item.location.name,
-          type: item.location.type,
-          latitude: item.location.latitude,
-          longitude: item.location.longitude,
-          photoUrl: null,
-          city: item.location.city
-            ? {
-                id: item.location.city.id,
-                name: item.location.city.name,
-                country: item.location.city.country,
-              }
-            : null,
-        },
-        addedBy: item.added_by
-          ? {
-              id: item.added_by.id,
-              username: item.added_by.username,
-              displayName: item.added_by.display_name,
-              avatarUrl: item.added_by.avatar_url,
-            }
-          : null,
-        completedBy: item.completed_by
-          ? {
-              id: item.completed_by.id,
-              username: item.completed_by.username,
-              displayName: item.completed_by.display_name,
-              avatarUrl: item.completed_by.avatar_url,
-            }
-          : null,
-      })),
-      party: quest.party
-        ? {
-            id: quest.party.id,
-            questId: quest.party.quest_id,
-            createdAt: quest.party.created_at,
-            members: quest.party.members.map((m) => ({
-              id: m.id,
-              userId: m.user_id,
-              role: m.role,
-              status: m.status,
-              invitedAt: m.invited_at,
-              joinedAt: m.joined_at,
-              user: {
-                id: m.user.id,
-                username: m.user.username,
-                displayName: m.user.display_name,
-                avatarUrl: m.user.avatar_url,
-                level: m.user.main_level || 1,
-              },
-            })),
-          }
-        : null,
-      completionStats: {
-        total: totalItems,
-        completed: completedItems,
-        percentage: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0,
-      },
-    },
-    isOwner,
-    isPartyMember: isPartyMember || false,
-    currentUserId: user.id,
-  });
-}
-
-// PATCH /api/quests/[questId] - Update or complete quest
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { questId } = await params;
-  const body = await request.json();
-  const { action } = body;
-
-  // Handle edit action
-  if (action === "edit") {
-    const { name, description, startDate, endDate, status } = body;
-
+export const GET = withAuthParams<{ questId: string }>(
+  async (_request, user, { questId }) => {
     const quest = await prisma.travel_quests.findUnique({
       where: { id: questId },
-      select: { id: true, user_id: true },
+      include: {
+        user: {
+          select: { id: true, username: true, display_name: true, avatar_url: true },
+        },
+        target_city: { select: { id: true, name: true, country: true } },
+        target_neighborhood: { select: { id: true, name: true } },
+        cities: {
+          include: { city: { select: { id: true, name: true, country: true } } },
+          orderBy: { sort_order: "asc" },
+        },
+        neighborhoods: {
+          include: { neighborhood: { select: { id: true, name: true } } },
+        },
+        items: {
+          include: {
+            location: {
+              select: {
+                id: true, name: true, type: true, latitude: true, longitude: true,
+                city: { select: { id: true, name: true, country: true } },
+              },
+            },
+            added_by: { select: { id: true, username: true, display_name: true, avatar_url: true } },
+            completed_by: { select: { id: true, username: true, display_name: true, avatar_url: true } },
+          },
+          orderBy: [{ sort_order: "asc" }, { completed: "asc" }],
+        },
+        party: {
+          include: {
+            members: {
+              include: {
+                user: { select: { id: true, username: true, display_name: true, avatar_url: true, main_level: true } },
+              },
+              orderBy: [{ role: "asc" }, { joined_at: "asc" }],
+            },
+          },
+        },
+      },
     });
 
     if (!quest) {
-      return NextResponse.json({ error: "Quest not found" }, { status: 404 });
+      return Errors.notFound("Quest not found");
     }
 
-    // Only owner can edit quest
-    if (quest.user_id !== user.id) {
-      return NextResponse.json(
-        { error: "Only the quest owner can edit it" },
-        { status: 403 }
-      );
+    const isOwner = quest.user_id === user.id;
+    const isPartyMember = quest.party?.members.some(
+      (m) => m.user_id === user.id && m.status === "ACCEPTED"
+    );
+
+    if (!isOwner && !isPartyMember) {
+      return Errors.forbidden("Access denied");
     }
 
-    // Build update data
-    const updateData: Record<string, unknown> = { updated_at: new Date() };
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (startDate !== undefined) updateData.start_date = startDate ? new Date(startDate) : null;
-    if (endDate !== undefined) updateData.end_date = endDate ? new Date(endDate) : null;
-    if (status !== undefined && ["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"].includes(status)) {
-      updateData.status = status;
-    }
-
-    const updatedQuest = await prisma.travel_quests.update({
-      where: { id: questId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        status: true,
-        start_date: true,
-        end_date: true,
-      },
-    });
+    const totalItems = quest.items.length;
+    const completedItems = quest.items.filter((i) => i.completed).length;
 
     return NextResponse.json({
-      success: true,
       quest: {
-        id: updatedQuest.id,
-        name: updatedQuest.name,
-        description: updatedQuest.description,
-        status: updatedQuest.status,
-        startDate: updatedQuest.start_date,
-        endDate: updatedQuest.end_date,
+        id: quest.id,
+        name: quest.name,
+        description: quest.description,
+        status: quest.status,
+        startDate: quest.start_date,
+        endDate: quest.end_date,
+        createdAt: quest.created_at,
+        updatedAt: quest.updated_at,
+        owner: toUserPublicResponse(quest.user),
+        targetCity: quest.target_city,
+        targetNeighborhood: quest.target_neighborhood,
+        cities: quest.cities.map((qc) => qc.city),
+        neighborhoods: quest.neighborhoods.map((qn) => qn.neighborhood),
+        items: quest.items.map((item) => ({
+          id: item.id,
+          completed: item.completed,
+          completedAt: item.completed_at,
+          sortOrder: item.sort_order,
+          priority: item.priority,
+          notes: item.notes,
+          location: {
+            ...item.location,
+            photoUrl: null,
+          },
+          addedBy: item.added_by ? toUserPublicResponse(item.added_by) : null,
+          completedBy: item.completed_by ? toUserPublicResponse(item.completed_by) : null,
+        })),
+        party: quest.party ? {
+          id: quest.party.id,
+          questId: quest.party.quest_id,
+          createdAt: quest.party.created_at,
+          members: quest.party.members.map((m) => ({
+            id: m.id,
+            userId: m.user_id,
+            role: m.role,
+            status: m.status,
+            invitedAt: m.invited_at,
+            joinedAt: m.joined_at,
+            user: { ...toUserPublicResponse(m.user), level: m.user.main_level || 1 },
+          })),
+        } : null,
+        completionStats: {
+          total: totalItems,
+          completed: completedItems,
+          percentage: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0,
+        },
       },
+      isOwner,
+      isPartyMember: isPartyMember || false,
+      currentUserId: user.id,
     });
   }
+);
 
-  if (action !== "complete") {
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  }
+// PATCH /api/quests/[questId] - Update or complete quest
+export const PATCH = withAuthParams<{ questId: string }>(
+  async (request, user, { questId }) => {
+    const body = await request.json();
+    const parsed = PatchSchema.safeParse(body);
 
-  // Get quest with party and items
-  const quest = await prisma.travel_quests.findUnique({
-    where: { id: questId },
-    include: {
-      items: true,
-      party: {
-        include: {
-          members: {
-            where: { status: "ACCEPTED" },
-            include: {
-              user: {
-                select: { id: true, username: true, display_name: true },
-              },
+    if (!parsed.success) {
+      return Errors.invalidInput("Invalid request body");
+    }
+
+    const { action, name, description, startDate, endDate, status } = parsed.data;
+
+    // Handle edit action
+    if (action === "edit") {
+      const quest = await prisma.travel_quests.findUnique({
+        where: { id: questId },
+        select: { id: true, user_id: true },
+      });
+
+      if (!quest) {
+        return Errors.notFound("Quest not found");
+      }
+
+      if (quest.user_id !== user.id) {
+        return Errors.forbidden("Only the quest owner can edit it");
+      }
+
+      const updateData: Record<string, unknown> = { updated_at: new Date() };
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
+      if (startDate !== undefined) updateData.start_date = startDate ? new Date(startDate) : null;
+      if (endDate !== undefined) updateData.end_date = endDate ? new Date(endDate) : null;
+      if (status !== undefined) updateData.status = status;
+
+      const updatedQuest = await prisma.travel_quests.update({
+        where: { id: questId },
+        data: updateData,
+        select: { id: true, name: true, description: true, status: true, start_date: true, end_date: true },
+      });
+
+      return NextResponse.json({
+        success: true,
+        quest: {
+          id: updatedQuest.id,
+          name: updatedQuest.name,
+          description: updatedQuest.description,
+          status: updatedQuest.status,
+          startDate: updatedQuest.start_date,
+          endDate: updatedQuest.end_date,
+        },
+      });
+    }
+
+    // Handle complete action
+    const quest = await prisma.travel_quests.findUnique({
+      where: { id: questId },
+      include: {
+        items: true,
+        party: {
+          include: {
+            members: {
+              where: { status: "ACCEPTED" },
+              include: { user: { select: { id: true, username: true, display_name: true } } },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!quest) {
-    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
-  }
+    if (!quest) {
+      return Errors.notFound("Quest not found");
+    }
 
-  if (quest.status === "COMPLETED") {
-    return NextResponse.json(
-      { error: "Quest is already completed" },
-      { status: 400 }
-    );
-  }
+    if (quest.status === "COMPLETED") {
+      return Errors.conflict("Quest is already completed");
+    }
 
-  // Only owner can complete quest
-  if (quest.user_id !== user.id) {
-    return NextResponse.json(
-      { error: "Only the quest owner can complete it" },
-      { status: 403 }
-    );
-  }
+    if (quest.user_id !== user.id) {
+      return Errors.forbidden("Only the quest owner can complete it");
+    }
 
-  // Check that all items are completed
-  const incompletItems = quest.items.filter((i) => !i.completed);
-  if (incompletItems.length > 0) {
-    return NextResponse.json(
-      { error: "All items must be completed before finishing the quest" },
-      { status: 400 }
-    );
-  }
+    const incompleteItems = quest.items.filter((i) => !i.completed);
+    if (incompleteItems.length > 0) {
+      return Errors.invalidInput("All items must be completed before finishing the quest");
+    }
 
-  // Calculate XP
-  const itemCount = quest.items.length;
-  let baseXP = XP_VALUES.quest_complete_base + itemCount * XP_VALUES.quest_complete_per_item;
+    // Calculate XP using gamification service
+    const itemCount = quest.items.length;
+    const hasParty = quest.party && quest.party.members.length > 1;
+    const partyMembers = quest.party?.members || [];
+    const totalXP = calculateQuestCompletionXP(itemCount, hasParty || false, partyMembers.length);
 
-  const hasParty = quest.party && quest.party.members.length > 1;
-  const partyMembers = quest.party?.members || [];
+    // Mark quest as completed
+    await prisma.travel_quests.update({
+      where: { id: questId },
+      data: { status: "COMPLETED", updated_at: new Date() },
+    });
 
-  let totalXP = baseXP;
-  if (hasParty) {
-    // Apply party bonus
-    totalXP = Math.floor(baseXP * XP_VALUES.party_bonus_multiplier);
-    // Add bonus per member
-    totalXP += (partyMembers.length - 1) * XP_VALUES.party_member_bonus;
-  }
+    // Award XP to owner using gamification service
+    const ownerXPResult = await awardXP(user.id, "travel", totalXP, {
+      reason: "quest_complete",
+      metadata: { questId, questName: quest.name, itemCount },
+    });
 
-  // Mark quest as completed
-  await prisma.travel_quests.update({
-    where: { id: questId },
-    data: {
-      status: "COMPLETED",
-      updated_at: new Date(),
-    },
-  });
+    // Award XP to party members
+    const memberXPResults: { userId: string; username: string; xp: number }[] = [];
+    if (hasParty) {
+      for (const member of partyMembers) {
+        if (member.user_id !== user.id) {
+          await awardXP(member.user_id, "travel", totalXP, {
+            reason: "quest_complete",
+            metadata: { questId, questName: quest.name, itemCount },
+          });
+          memberXPResults.push({
+            userId: member.user_id,
+            username: member.user.display_name || member.user.username || "Unknown",
+            xp: totalXP,
+          });
 
-  // Award XP to owner
-  const ownerXPResult = await addXP(user.id, totalXP);
-
-  // Award XP to party members (same amount for fairness)
-  const memberXPResults: { userId: string; username: string; xp: number }[] = [];
-  if (hasParty) {
-    for (const member of partyMembers) {
-      if (member.user_id !== user.id) {
-        await addXP(member.user_id, totalXP);
-        memberXPResults.push({
-          userId: member.user_id,
-          username: member.user.display_name || member.user.username || "Unknown",
-          xp: totalXP,
-        });
-
-        // Notify party members
-        await prisma.activity_feed.create({
-          data: {
-            user_id: member.user_id,
-            actor_id: user.id,
-            type: "QUEST_COMPLETED",
-            entity_type: "travel_quests",
-            entity_id: questId,
-            metadata: {
-              questId,
-              questName: quest.name,
-              xpAwarded: totalXP,
+          // Notify party members
+          await prisma.activity_feed.create({
+            data: {
+              user_id: member.user_id,
+              actor_id: user.id,
+              type: "QUEST_COMPLETED",
+              entity_type: "travel_quests",
+              entity_id: questId,
+              metadata: { questId, questName: quest.name, xpAwarded: totalXP },
             },
-          },
-        });
+          });
+        }
       }
     }
-  }
 
-  // Check achievements for all party members
-  const achievementChecks = [checkAchievements(user.id)];
-  for (const member of partyMembers) {
-    if (member.user_id !== user.id) {
-      achievementChecks.push(checkAchievements(member.user_id));
+    // Check achievements for all party members
+    const achievementChecks = [checkAchievements(user.id, "travel")];
+    for (const member of partyMembers) {
+      if (member.user_id !== user.id) {
+        achievementChecks.push(checkAchievements(member.user_id, "travel"));
+      }
     }
-  }
-  await Promise.all(achievementChecks);
+    await Promise.all(achievementChecks);
 
-  return NextResponse.json({
-    success: true,
-    questId,
-    xpAwarded: {
-      base: baseXP,
-      partyBonus: hasParty ? totalXP - baseXP : 0,
-      total: totalXP,
-    },
-    partyMembers: memberXPResults,
-    ownerLevelUp: ownerXPResult.leveledUp,
-    ownerNewLevel: ownerXPResult.newLevel,
-  });
-}
+    return NextResponse.json({
+      success: true,
+      questId,
+      xpAwarded: {
+        base: totalXP,
+        partyBonus: hasParty ? Math.floor(totalXP * 0.25) : 0,
+        total: totalXP,
+      },
+      partyMembers: memberXPResults,
+      ownerLevelUp: ownerXPResult.appLeveledUp,
+      ownerNewLevel: ownerXPResult.newAppLevel,
+    });
+  }
+);
 
 // DELETE /api/quests/[questId] - Delete quest
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const DELETE = withAuthParams<{ questId: string }>(
+  async (_request, user, { questId }) => {
+    const quest = await prisma.travel_quests.findUnique({
+      where: { id: questId },
+      select: { id: true, user_id: true, name: true },
+    });
+
+    if (!quest) {
+      return Errors.notFound("Quest not found");
+    }
+
+    if (quest.user_id !== user.id) {
+      return Errors.forbidden("Only the quest owner can delete it");
+    }
+
+    await prisma.travel_quests.delete({ where: { id: questId } });
+
+    return NextResponse.json({
+      success: true,
+      message: `Quest "${quest.name}" deleted successfully`,
+    });
   }
-  const { questId } = await params;
-
-  const quest = await prisma.travel_quests.findUnique({
-    where: { id: questId },
-    select: { id: true, user_id: true, name: true },
-  });
-
-  if (!quest) {
-    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
-  }
-
-  // Only owner can delete quest
-  if (quest.user_id !== user.id) {
-    return NextResponse.json(
-      { error: "Only the quest owner can delete it" },
-      { status: 403 }
-    );
-  }
-
-  // Delete quest (cascade will remove items, cities, neighborhoods, party)
-  await prisma.travel_quests.delete({
-    where: { id: questId },
-  });
-
-  return NextResponse.json({
-    success: true,
-    message: `Quest "${quest.name}" deleted successfully`,
-  });
-}
+);

@@ -1,131 +1,110 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser, getUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteParams {
-  params: Promise<{ neighborhoodId: string }>;
-}
+const PatchSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
 
-export async function GET(
-  req: NextRequest,
-  { params }: RouteParams
-) {
-  // Use lightweight auth for read-only endpoint
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { neighborhoodId } = await params;
-
-  const neighborhood = await prisma.travel_neighborhoods.findUnique({
-    where: { id: neighborhoodId },
-    include: {
-      city: {
-        select: { id: true, name: true, country: true },
-      },
-      locations: {
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          avg_rating: true,
-          visited: true,
-          hotlist: true,
+// GET /api/neighborhoods/[neighborhoodId] - Get neighborhood details
+export const GET = withAuthParams<{ neighborhoodId: string }>(
+  async (_request, _user, { neighborhoodId }) => {
+    const neighborhood = await prisma.travel_neighborhoods.findUnique({
+      where: { id: neighborhoodId },
+      include: {
+        city: { select: { id: true, name: true, country: true } },
+        locations: {
+          select: {
+            id: true, name: true, type: true, avg_rating: true, visited: true, hotlist: true,
+          },
+          orderBy: { name: "asc" },
         },
-        orderBy: { name: 'asc' },
       },
-    },
-  });
+    });
 
-  if (!neighborhood) {
-    return NextResponse.json({ error: "Neighborhood not found" }, { status: 404 });
+    if (!neighborhood) {
+      return Errors.notFound("Neighborhood not found");
+    }
+
+    return NextResponse.json({
+      id: neighborhood.id,
+      name: neighborhood.name,
+      description: neighborhood.description,
+      latitude: neighborhood.latitude,
+      longitude: neighborhood.longitude,
+      cityId: neighborhood.city_id,
+      city: neighborhood.city,
+      locations: neighborhood.locations.map((l) => ({
+        id: l.id,
+        name: l.name,
+        type: l.type,
+        avgRating: l.avg_rating,
+        visited: l.visited,
+        hotlist: l.hotlist,
+      })),
+    });
   }
+);
 
-  return NextResponse.json({
-    id: neighborhood.id,
-    name: neighborhood.name,
-    description: neighborhood.description,
-    latitude: neighborhood.latitude,
-    longitude: neighborhood.longitude,
-    cityId: neighborhood.city_id,
-    city: neighborhood.city,
-    locations: neighborhood.locations.map(l => ({
-      id: l.id,
-      name: l.name,
-      type: l.type,
-      avgRating: l.avg_rating,
-      visited: l.visited,
-      hotlist: l.hotlist,
-    })),
-  });
-}
+// PATCH /api/neighborhoods/[neighborhoodId] - Update neighborhood
+export const PATCH = withAuthParams<{ neighborhoodId: string }>(
+  async (request, user, { neighborhoodId }) => {
+    const body = await request.json();
+    const parsed = PatchSchema.safeParse(body);
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: RouteParams
-) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!parsed.success) {
+      return Errors.invalidInput("Invalid neighborhood data");
+    }
+
+    const { name, description, latitude, longitude } = parsed.data;
+
+    // Verify user owns this neighborhood
+    const existing = await prisma.travel_neighborhoods.findFirst({
+      where: { id: neighborhoodId, user_id: user.id },
+    });
+
+    if (!existing) {
+      return Errors.notFound("Neighborhood not found");
+    }
+
+    const neighborhood = await prisma.travel_neighborhoods.update({
+      where: { id: neighborhoodId },
+      data: {
+        name: name ?? existing.name,
+        description: description ?? existing.description,
+        latitude: latitude ?? existing.latitude,
+        longitude: longitude ?? existing.longitude,
+      },
+    });
+
+    return NextResponse.json({
+      id: neighborhood.id,
+      name: neighborhood.name,
+      description: neighborhood.description,
+      latitude: neighborhood.latitude,
+      longitude: neighborhood.longitude,
+      cityId: neighborhood.city_id,
+    });
   }
+);
 
-  const { neighborhoodId } = await params;
-  const body = await req.json();
-  const { name, description, latitude, longitude } = body;
+// DELETE /api/neighborhoods/[neighborhoodId] - Delete neighborhood
+export const DELETE = withAuthParams<{ neighborhoodId: string }>(
+  async (_request, user, { neighborhoodId }) => {
+    const existing = await prisma.travel_neighborhoods.findFirst({
+      where: { id: neighborhoodId, user_id: user.id },
+    });
 
-  // Verify user owns this neighborhood
-  const existing = await prisma.travel_neighborhoods.findFirst({
-    where: { id: neighborhoodId, user_id: user.id },
-  });
+    if (!existing) {
+      return Errors.notFound("Neighborhood not found");
+    }
 
-  if (!existing) {
-    return NextResponse.json({ error: "Neighborhood not found" }, { status: 404 });
+    await prisma.travel_neighborhoods.delete({ where: { id: neighborhoodId } });
+
+    return NextResponse.json({ success: true });
   }
-
-  const neighborhood = await prisma.travel_neighborhoods.update({
-    where: { id: neighborhoodId },
-    data: {
-      name: name ?? existing.name,
-      description: description ?? existing.description,
-      latitude: latitude ?? existing.latitude,
-      longitude: longitude ?? existing.longitude,
-    },
-  });
-
-  return NextResponse.json({
-    id: neighborhood.id,
-    name: neighborhood.name,
-    description: neighborhood.description,
-    latitude: neighborhood.latitude,
-    longitude: neighborhood.longitude,
-    cityId: neighborhood.city_id,
-  });
-}
-
-export async function DELETE(
-  req: NextRequest,
-  { params }: RouteParams
-) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { neighborhoodId } = await params;
-
-  // Verify user owns this neighborhood
-  const existing = await prisma.travel_neighborhoods.findFirst({
-    where: { id: neighborhoodId, user_id: user.id },
-  });
-
-  if (!existing) {
-    return NextResponse.json({ error: "Neighborhood not found" }, { status: 404 });
-  }
-
-  await prisma.travel_neighborhoods.delete({
-    where: { id: neighborhoodId },
-  });
-
-  return NextResponse.json({ success: true });
-}
+);
