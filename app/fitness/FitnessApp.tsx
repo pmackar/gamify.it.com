@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS } from '@/lib/fitness/data';
+import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
@@ -86,6 +86,7 @@ export default function FitnessApp() {
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
+  const [showSubstituteModal, setShowSubstituteModal] = useState(false);
   const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
     name: string;
     muscle: string;
@@ -609,11 +610,48 @@ export default function FitnessApp() {
       setEditingSetIndex(setIdx);
       store.selectExercise(exIdx);
     } else {
-      // Adding new set
+      // Adding new set - prioritize values in this order:
+      // 1. Last set from current workout
+      // 2. Previous workout for this exercise
+      // 3. Program prescription (for reps/RPE)
+      // 4. Personal record (for weight)
+      // 5. Defaults
       const lastSet = currentEx.sets[currentEx.sets.length - 1];
-      setSetWeight(lastSet?.weight || store.records[currentEx.id] || 135);
-      setSetReps(lastSet?.reps || 8);
-      setSetRpe(lastSet?.rpe || null);
+      const lastWorkoutEx = store.getLastWorkoutForExercise(currentEx.id);
+      const lastWorkoutSet = lastWorkoutEx?.sets[lastWorkoutEx.sets.length - 1];
+
+      // Get program prescription from template data if available
+      const targetReps = (currentEx as { _targetReps?: string })._targetReps;
+      const targetRpe = (currentEx as { _targetRpe?: number })._targetRpe;
+
+      // Parse target reps (handles "8-12" format, takes lower bound)
+      const parseTargetReps = (reps?: string): number | null => {
+        if (!reps) return null;
+        const match = reps.match(/^(\d+)/);
+        return match ? parseInt(match[1], 10) : null;
+      };
+
+      // Weight priority: current workout > previous workout > PR > default
+      const weight = lastSet?.weight
+        || lastWorkoutSet?.weight
+        || store.records[currentEx.id]
+        || 135;
+
+      // Reps priority: current workout > previous workout > program prescription > default
+      const reps = lastSet?.reps
+        || lastWorkoutSet?.reps
+        || parseTargetReps(targetReps)
+        || 8;
+
+      // RPE priority: current workout > program prescription > previous workout > null
+      const rpe = lastSet?.rpe
+        || targetRpe
+        || lastWorkoutSet?.rpe
+        || null;
+
+      setSetWeight(weight);
+      setSetReps(reps);
+      setSetRpe(rpe);
       setSetIsWarmup(false);  // New sets default to working sets
       setEditingSetIndex(null);
     }
@@ -5963,6 +6001,54 @@ export default function FitnessApp() {
           margin: 4px 0;
         }
 
+        /* ===== SUBSTITUTE EXERCISE MODAL ===== */
+        .substitute-modal {
+          width: 100%;
+          max-width: 360px;
+        }
+
+        .substitute-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin: 16px 0;
+        }
+
+        .substitute-option {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 14px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.15s;
+          text-align: left;
+        }
+
+        .substitute-option:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+
+        .substitute-name {
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .substitute-info {
+          font-size: 12px;
+          color: var(--text-muted);
+          text-transform: capitalize;
+        }
+
+        .no-substitutes {
+          padding: 20px;
+          text-align: center;
+          color: var(--text-muted);
+        }
+
         /* ===== EDIT EXERCISE MODAL ===== */
         .edit-exercise-modal {
           width: 100%;
@@ -9574,6 +9660,13 @@ gamify.it.com/fitness`;
                   )}
                   <button
                     className="chart-btn"
+                    onClick={() => setShowSubstituteModal(true)}
+                    title="Substitute exercise"
+                  >
+                    🔄
+                  </button>
+                  <button
+                    className="chart-btn"
                     onClick={() => {
                       if (currentEx) {
                         setChartExerciseId(currentEx.id);
@@ -10572,6 +10665,50 @@ gamify.it.com/fitness`;
             </div>
           </div>
         )}
+
+        {/* Substitute Exercise Modal */}
+        {showSubstituteModal && store.currentWorkout && (() => {
+          const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+          if (!currentEx) return null;
+
+          const substituteIds = getExerciseSubstitutes(currentEx.id);
+          const substitutes = substituteIds
+            .map(id => [...EXERCISES, ...store.customExercises].find(e => e.id === id))
+            .filter(Boolean) as { id: string; name: string; muscle: string; equipment?: string }[];
+
+          return (
+            <div className="modal-overlay" onClick={() => setShowSubstituteModal(false)}>
+              <div className="modal substitute-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">Substitute Exercise</div>
+                <div className="modal-subtitle">Replace {currentEx.name} with:</div>
+
+                <div className="substitute-list">
+                  {substitutes.length > 0 ? (
+                    substitutes.map(sub => (
+                      <button
+                        key={sub.id}
+                        className="substitute-option"
+                        onClick={() => {
+                          store.substituteExercise(store.currentExerciseIndex, sub.id, sub.name);
+                          setShowSubstituteModal(false);
+                        }}
+                      >
+                        <span className="substitute-name">{sub.name}</span>
+                        <span className="substitute-info">{sub.equipment || sub.muscle}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="no-substitutes">No substitutes available for this exercise</div>
+                  )}
+                </div>
+
+                <button className="modal-btn secondary" onClick={() => setShowSubstituteModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Edit Custom Exercise Modal */}
         {editingCustomExercise && (

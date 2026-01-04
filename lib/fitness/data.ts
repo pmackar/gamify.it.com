@@ -116,6 +116,118 @@ export interface Exercise {
   commonMistakes?: string[];
 }
 
+// Exercise substitutes - maps exercise ID to array of substitute exercise IDs
+// Substitutes are exercises that target similar muscles with different equipment/angles
+export const EXERCISE_SUBSTITUTES: Record<string, string[]> = {
+  // CHEST
+  bench: ['db_bench', 'machine_chest_press', 'pushups'],
+  incline_bench: ['incline_db', 'low_cable_flies', 'incline_machine_press'],
+  decline_bench: ['decline_db', 'dips_chest', 'high_cable_flies'],
+  db_bench: ['bench', 'machine_chest_press', 'pushups'],
+  incline_db: ['incline_bench', 'low_cable_flies', 'incline_flies'],
+  db_flies: ['cable_flies', 'pec_deck', 'incline_flies'],
+  cable_flies: ['db_flies', 'pec_deck', 'high_cable_flies'],
+  pec_deck: ['cable_flies', 'db_flies', 'machine_chest_press'],
+  pushups: ['db_bench', 'bench', 'machine_chest_press'],
+  dips_chest: ['decline_bench', 'high_cable_flies', 'decline_db'],
+
+  // BACK
+  rows: ['db_row', 'cable_row', 't_bar_row'],
+  pullups: ['lat_pulldown', 'chinups', 'assisted_pullup'],
+  chinups: ['pullups', 'lat_pulldown', 'underhand_pulldown'],
+  lat_pulldown: ['pullups', 'chinups', 'straight_arm_pulldown'],
+  db_row: ['rows', 'cable_row', 'machine_row'],
+  cable_row: ['rows', 'db_row', 'machine_row'],
+  t_bar_row: ['rows', 'db_row', 'machine_row'],
+  machine_row: ['cable_row', 'db_row', 'rows'],
+  face_pull: ['rear_delt_fly', 'reverse_pec_deck', 'band_pull_apart'],
+
+  // SHOULDERS
+  ohp: ['db_shoulder_press', 'machine_shoulder_press', 'arnold_press'],
+  db_shoulder_press: ['ohp', 'machine_shoulder_press', 'arnold_press'],
+  arnold_press: ['db_shoulder_press', 'ohp', 'machine_shoulder_press'],
+  lateral_raise: ['cable_lateral_raise', 'machine_lateral_raise', 'db_lateral_raise'],
+  cable_lateral_raise: ['lateral_raise', 'machine_lateral_raise', 'db_lateral_raise'],
+  front_raise: ['cable_front_raise', 'plate_front_raise', 'db_front_raise'],
+  rear_delt_fly: ['face_pull', 'reverse_pec_deck', 'cable_rear_delt'],
+  reverse_pec_deck: ['rear_delt_fly', 'face_pull', 'cable_rear_delt'],
+  shrugs: ['db_shrugs', 'machine_shrug', 'barbell_shrugs'],
+
+  // BICEPS
+  barbell_curl: ['ez_curl', 'db_curl', 'cable_curl'],
+  ez_curl: ['barbell_curl', 'db_curl', 'preacher_curl'],
+  db_curl: ['barbell_curl', 'ez_curl', 'cable_curl'],
+  hammer_curl: ['cross_body_curl', 'rope_hammer_curl', 'db_curl'],
+  preacher_curl: ['ez_curl', 'machine_curl', 'concentration_curl'],
+  cable_curl: ['barbell_curl', 'db_curl', 'machine_curl'],
+  concentration_curl: ['preacher_curl', 'db_curl', 'cable_curl'],
+  incline_curl: ['db_curl', 'spider_curl', 'cable_curl'],
+
+  // TRICEPS
+  tricep_pushdown: ['rope_pushdown', 'overhead_extension', 'dip'],
+  rope_pushdown: ['tricep_pushdown', 'overhead_extension', 'kickbacks'],
+  overhead_extension: ['skull_crusher', 'tricep_pushdown', 'cable_overhead'],
+  skull_crusher: ['overhead_extension', 'close_grip_bench', 'tricep_pushdown'],
+  close_grip_bench: ['skull_crusher', 'dip', 'tricep_pushdown'],
+  dip: ['close_grip_bench', 'tricep_pushdown', 'bench_dip'],
+  kickbacks: ['rope_pushdown', 'tricep_pushdown', 'overhead_extension'],
+
+  // QUADS
+  squat: ['leg_press', 'hack_squat', 'goblet_squat'],
+  leg_press: ['squat', 'hack_squat', 'lunges'],
+  hack_squat: ['squat', 'leg_press', 'front_squat'],
+  front_squat: ['squat', 'goblet_squat', 'hack_squat'],
+  goblet_squat: ['squat', 'front_squat', 'leg_press'],
+  leg_extension: ['sissy_squat', 'leg_press', 'lunges'],
+  lunges: ['bulgarian_split_squat', 'leg_press', 'step_ups'],
+  bulgarian_split_squat: ['lunges', 'leg_press', 'step_ups'],
+
+  // HAMSTRINGS
+  rdl: ['deadlift', 'good_morning', 'stiff_leg_deadlift'],
+  deadlift: ['rdl', 'trap_bar_deadlift', 'stiff_leg_deadlift'],
+  leg_curl: ['seated_leg_curl', 'nordic_curl', 'rdl'],
+  seated_leg_curl: ['leg_curl', 'nordic_curl', 'rdl'],
+  good_morning: ['rdl', 'back_extension', 'stiff_leg_deadlift'],
+  nordic_curl: ['leg_curl', 'seated_leg_curl', 'rdl'],
+
+  // GLUTES
+  hip_thrust: ['glute_bridge', 'cable_pull_through', 'glute_kickback'],
+  glute_bridge: ['hip_thrust', 'cable_pull_through', 'rdl'],
+  cable_pull_through: ['hip_thrust', 'glute_bridge', 'rdl'],
+  glute_kickback: ['cable_kickback', 'hip_thrust', 'glute_bridge'],
+
+  // CALVES
+  calf_raise: ['seated_calf_raise', 'leg_press_calf', 'smith_calf_raise'],
+  seated_calf_raise: ['calf_raise', 'leg_press_calf', 'donkey_calf_raise'],
+
+  // CORE
+  plank: ['dead_bug', 'ab_wheel', 'hollow_hold'],
+  crunches: ['cable_crunch', 'decline_situp', 'machine_crunch'],
+  cable_crunch: ['crunches', 'decline_situp', 'ab_wheel'],
+  leg_raise: ['hanging_leg_raise', 'captain_chair', 'lying_leg_raise'],
+  russian_twist: ['cable_woodchop', 'pallof_press', 'oblique_crunch'],
+  ab_wheel: ['plank', 'dead_bug', 'cable_crunch'],
+};
+
+// Helper function to get substitutes for an exercise
+export function getExerciseSubstitutes(exerciseId: string): string[] {
+  // First check direct mapping
+  if (EXERCISE_SUBSTITUTES[exerciseId]) {
+    return EXERCISE_SUBSTITUTES[exerciseId];
+  }
+
+  // If no direct mapping, find exercises with same muscle group
+  const exercise = EXERCISES.find(e => e.id === exerciseId);
+  if (exercise) {
+    return EXERCISES
+      .filter(e => e.id !== exerciseId && e.muscle === exercise.muscle)
+      .slice(0, 3)
+      .map(e => e.id);
+  }
+
+  return [];
+}
+
 // All exercises organized by muscle group
 export const EXERCISES: Exercise[] = [
   // CHEST

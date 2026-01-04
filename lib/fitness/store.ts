@@ -107,6 +107,7 @@ interface FitnessStore extends FitnessState, SyncState {
   updateSet: (setIndex: number, weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
   removeSet: (exerciseIndex: number, setIndex: number) => void;
   removeExercise: (exerciseIndex: number) => void;
+  substituteExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
   reorderExercises: (fromIndex: number, toIndex: number) => void;
   linkSuperset: (exerciseIndex: number) => void;  // Link exercise to previous exercise's superset
   unlinkSuperset: (exerciseIndex: number) => void;  // Remove exercise from superset
@@ -731,6 +732,36 @@ export const useFitnessStore = create<FitnessStore>()(
 
         get().saveState();
         get().showToast(`${exercise.name} removed`);
+      },
+
+      substituteExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        const exercise = state.currentWorkout.exercises[exerciseIndex];
+        if (!exercise) return;
+
+        const oldName = exercise.name;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          // Replace exercise but keep same position, preserve any logged sets
+          exercises[exerciseIndex] = {
+            ...exercises[exerciseIndex],
+            id: newExerciseId,
+            name: newExerciseName,
+            originalExerciseId: exercise.originalExerciseId || exercise.id, // Track original for program
+          };
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises }
+          };
+        });
+
+        get().saveState();
+        get().showToast(`Swapped ${oldName} → ${newExerciseName}`);
       },
 
       reorderExercises: (fromIndex: number, toIndex: number) => {
