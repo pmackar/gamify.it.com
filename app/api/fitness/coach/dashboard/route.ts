@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { withAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coach/dashboard - Get coach dashboard stats
-export async function GET() {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const GET = withAuth(async (_request, user) => {
+  const coachProfile = await prisma.coach_profiles.findUnique({
+    where: { user_id: user.id },
+  });
 
-    const coachProfile = await prisma.coach_profiles.findUnique({
-      where: { user_id: user.id },
-    });
-
-    if (!coachProfile) {
-      return NextResponse.json(
-        { error: "Not registered as a coach" },
-        { status: 404 }
-      );
-    }
+  if (!coachProfile) {
+    return Errors.notFound("Not registered as a coach");
+  }
 
     // Get athlete counts by status
     const athleteCounts = await prisma.coaching_relationships.groupBy({
@@ -160,22 +151,15 @@ export async function GET() {
         ? Math.round((totalCompleted / totalScheduled) * 100)
         : null;
 
-    return NextResponse.json({
-      stats: {
-        total_athletes: statusCounts.ACTIVE || 0,
-        pending_invites: statusCounts.PENDING || 0,
-        workouts_this_week: totalWorkoutsThisWeek,
-        compliance_rate: complianceRate,
-        max_athletes: coachProfile.max_athletes,
-      },
-      athletes_needing_attention: athletesNeedingAttention.slice(0, 5),
-      recent_activity: recentActivity.slice(0, 10),
-    });
-  } catch (error) {
-    console.error("Error fetching coach dashboard:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch dashboard" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({
+    stats: {
+      total_athletes: statusCounts.ACTIVE || 0,
+      pending_invites: statusCounts.PENDING || 0,
+      workouts_this_week: totalWorkoutsThisWeek,
+      compliance_rate: complianceRate,
+      max_athletes: coachProfile.max_athletes,
+    },
+    athletes_needing_attention: athletesNeedingAttention.slice(0, 5),
+    recent_activity: recentActivity.slice(0, 10),
+  });
+});

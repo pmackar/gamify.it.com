@@ -1,29 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coach/athletes/[athleteId] - Get athlete details
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ athleteId: string }> }
-) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { athleteId } = await params;
-
+export const GET = withAuthParams<{ athleteId: string }>(
+  async (_request, user, { athleteId }) => {
     const coachProfile = await prisma.coach_profiles.findUnique({
       where: { user_id: user.id },
     });
 
     if (!coachProfile) {
-      return NextResponse.json(
-        { error: "Not registered as a coach" },
-        { status: 404 }
-      );
+      return Errors.notFound("Not registered as a coach");
     }
 
     // Find the relationship
@@ -60,10 +47,7 @@ export async function GET(
     });
 
     if (!relationship) {
-      return NextResponse.json(
-        { error: "Athlete not found or not actively coached" },
-        { status: 404 }
-      );
+      return Errors.notFound("Athlete not found or not actively coached");
     }
 
     // Get athlete's fitness data
@@ -108,37 +92,18 @@ export async function GET(
         : null,
       compliance_rate: complianceRate,
     });
-  } catch (error) {
-    console.error("Error fetching athlete:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch athlete" },
-      { status: 500 }
-    );
   }
-}
+);
 
 // PUT /api/fitness/coach/athletes/[athleteId] - Update relationship (notes, status)
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ athleteId: string }> }
-) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { athleteId } = await params;
-
+export const PUT = withAuthParams<{ athleteId: string }>(
+  async (request, user, { athleteId }) => {
     const coachProfile = await prisma.coach_profiles.findUnique({
       where: { user_id: user.id },
     });
 
     if (!coachProfile) {
-      return NextResponse.json(
-        { error: "Not registered as a coach" },
-        { status: 404 }
-      );
+      return Errors.notFound("Not registered as a coach");
     }
 
     const relationship = await prisma.coaching_relationships.findFirst({
@@ -149,13 +114,10 @@ export async function PUT(
     });
 
     if (!relationship) {
-      return NextResponse.json(
-        { error: "Athlete relationship not found" },
-        { status: 404 }
-      );
+      return Errors.notFound("Athlete relationship not found");
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { coach_notes, status } = body;
 
     const updated = await prisma.coaching_relationships.update({
@@ -186,37 +148,18 @@ export async function PUT(
       success: true,
       relationship: updated,
     });
-  } catch (error) {
-    console.error("Error updating athlete relationship:", error);
-    return NextResponse.json(
-      { error: "Failed to update relationship" },
-      { status: 500 }
-    );
   }
-}
+);
 
 // DELETE /api/fitness/coach/athletes/[athleteId] - End coaching relationship
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ athleteId: string }> }
-) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { athleteId } = await params;
-
+export const DELETE = withAuthParams<{ athleteId: string }>(
+  async (_request, user, { athleteId }) => {
     const coachProfile = await prisma.coach_profiles.findUnique({
       where: { user_id: user.id },
     });
 
     if (!coachProfile) {
-      return NextResponse.json(
-        { error: "Not registered as a coach" },
-        { status: 404 }
-      );
+      return Errors.notFound("Not registered as a coach");
     }
 
     const relationship = await prisma.coaching_relationships.findFirst({
@@ -227,10 +170,7 @@ export async function DELETE(
     });
 
     if (!relationship) {
-      return NextResponse.json(
-        { error: "Athlete relationship not found" },
-        { status: 404 }
-      );
+      return Errors.notFound("Athlete relationship not found");
     }
 
     // End the relationship (soft delete)
@@ -257,11 +197,5 @@ export async function DELETE(
       success: true,
       message: "Coaching relationship ended",
     });
-  } catch (error) {
-    console.error("Error ending coaching relationship:", error);
-    return NextResponse.json(
-      { error: "Failed to end relationship" },
-      { status: 500 }
-    );
   }
-}
+);

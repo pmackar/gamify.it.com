@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -75,12 +75,7 @@ async function incrementAIUsage(userId: string) {
 }
 
 // POST /api/life/quests/generate - AI generates quest from goal
-export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withAuth(async (request, user) => {
   // Check usage limits
   const usageCheck = await checkAIUsageLimit(user.id);
   if (!usageCheck.allowed) {
@@ -99,7 +94,7 @@ export async function POST(request: NextRequest) {
   const { goal, deadline, hoursPerWeek } = body;
 
   if (!goal) {
-    return NextResponse.json({ error: "Goal is required" }, { status: 400 });
+    return Errors.invalidInput("Goal is required");
   }
 
   const systemPrompt = `You are a quest architect for a life gamification app. Transform user goals into epic, actionable quests using the Hero's Journey narrative framework.
@@ -230,4 +225,4 @@ Respond with this exact JSON structure:
       { status: 500 }
     );
   }
-}
+});

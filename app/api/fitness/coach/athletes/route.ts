@@ -1,27 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coach/athletes - List coached athletes
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const GET = withAuth(async (request, user) => {
+  const coachProfile = await prisma.coach_profiles.findUnique({
+    where: { user_id: user.id },
+  });
 
-    const coachProfile = await prisma.coach_profiles.findUnique({
-      where: { user_id: user.id },
-    });
+  if (!coachProfile) {
+    return Errors.notFound("Not registered as a coach");
+  }
 
-    if (!coachProfile) {
-      return NextResponse.json(
-        { error: "Not registered as a coach" },
-        { status: 404 }
-      );
-    }
-
-    const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "ACTIVE";
 
     const relationships = await prisma.coaching_relationships.findMany({
@@ -94,49 +85,32 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ athletes });
-  } catch (error) {
-    console.error("Error fetching athletes:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch athletes" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({ athletes });
+});
 
 // POST /api/fitness/coach/athletes - Invite an athlete
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const coachProfile = await prisma.coach_profiles.findUnique({
-      where: { user_id: user.id },
-      include: {
-        athletes: {
-          where: { status: "ACTIVE" },
-        },
+export const POST = withAuth(async (request, user) => {
+  const coachProfile = await prisma.coach_profiles.findUnique({
+    where: { user_id: user.id },
+    include: {
+      athletes: {
+        where: { status: "ACTIVE" },
       },
-    });
+    },
+  });
 
-    if (!coachProfile) {
-      return NextResponse.json(
-        { error: "Not registered as a coach" },
-        { status: 404 }
-      );
-    }
+  if (!coachProfile) {
+    return Errors.notFound("Not registered as a coach");
+  }
 
-    // Check athlete limit
-    if (coachProfile.athletes.length >= coachProfile.max_athletes) {
-      return NextResponse.json(
-        { error: `Maximum athlete limit (${coachProfile.max_athletes}) reached` },
-        { status: 400 }
-      );
-    }
+  // Check athlete limit
+  if (coachProfile.athletes.length >= coachProfile.max_athletes) {
+    return Errors.invalidInput(
+      `Maximum athlete limit (${coachProfile.max_athletes}) reached`
+    );
+  }
 
-    const body = await req.json();
+  const body = await request.json();
     const { athlete_id, email, username } = body;
 
     // Find athlete by ID, email, or username
@@ -155,20 +129,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (!athlete) {
-      return NextResponse.json(
-        { error: "Athlete not found" },
-        { status: 404 }
-      );
-    }
+  if (!athlete) {
+    return Errors.notFound("Athlete not found");
+  }
 
-    // Can't coach yourself
-    if (athlete.id === user.id) {
-      return NextResponse.json(
-        { error: "You cannot coach yourself" },
-        { status: 400 }
-      );
-    }
+  // Can't coach yourself
+  if (athlete.id === user.id) {
+    return Errors.invalidInput("You cannot coach yourself");
+  }
 
     // Check for existing relationship
     const existingRelationship = await prisma.coaching_relationships.findUnique({
@@ -180,69 +148,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (existingRelationship) {
-      if (existingRelationship.status === "ACTIVE") {
-        return NextResponse.json(
-          { error: "Already coaching this athlete" },
-          { status: 400 }
-        );
-      }
-      if (existingRelationship.status === "PENDING") {
-        return NextResponse.json(
-          { error: "Invitation already pending" },
-          { status: 400 }
-        );
-      }
-      // If ended/paused, allow re-invitation by updating
-      const updated = await prisma.coaching_relationships.update({
-        where: { id: existingRelationship.id },
-        data: {
-          status: "PENDING",
-          invited_at: new Date(),
-          accepted_at: null,
-          ended_at: null,
-        },
-        include: {
-          athlete: {
-            select: {
-              id: true,
-              email: true,
-              display_name: true,
-              username: true,
-              avatar_url: true,
-            },
-          },
-        },
-      });
-
-      // Create activity notification
-      await prisma.activity_feed.create({
-        data: {
-          user_id: athlete.id,
-          actor_id: user.id,
-          type: "PARTY_INVITE_RECEIVED", // Reusing for coaching invite
-          entity_type: "coaching",
-          entity_id: updated.id,
-          metadata: {
-            coach_name: coachProfile.business_name || user.email,
-            type: "coaching_invite",
-          },
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        relationship: updated,
-        message: "Re-invited athlete",
-      });
+  if (existingRelationship) {
+    if (existingRelationship.status === "ACTIVE") {
+      return Errors.invalidInput("Already coaching this athlete");
     }
-
-    // Create new relationship
-    const relationship = await prisma.coaching_relationships.create({
+    if (existingRelationship.status === "PENDING") {
+      return Errors.invalidInput("Invitation already pending");
+    }
+    // If ended/paused, allow re-invitation by updating
+    const updated = await prisma.coaching_relationships.update({
+      where: { id: existingRelationship.id },
       data: {
-        coach_id: coachProfile.id,
-        athlete_id: athlete.id,
         status: "PENDING",
+        invited_at: new Date(),
+        accepted_at: null,
+        ended_at: null,
       },
       include: {
         athlete: {
@@ -262,9 +182,9 @@ export async function POST(req: NextRequest) {
       data: {
         user_id: athlete.id,
         actor_id: user.id,
-        type: "PARTY_INVITE_RECEIVED", // Reusing existing type
+        type: "PARTY_INVITE_RECEIVED", // Reusing for coaching invite
         entity_type: "coaching",
-        entity_id: relationship.id,
+        entity_id: updated.id,
         metadata: {
           coach_name: coachProfile.business_name || user.email,
           type: "coaching_invite",
@@ -274,14 +194,49 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      relationship,
-      message: "Invitation sent",
+      relationship: updated,
+      message: "Re-invited athlete",
     });
-  } catch (error) {
-    console.error("Error inviting athlete:", error);
-    return NextResponse.json(
-      { error: "Failed to invite athlete" },
-      { status: 500 }
-    );
   }
-}
+
+  // Create new relationship
+  const relationship = await prisma.coaching_relationships.create({
+    data: {
+      coach_id: coachProfile.id,
+      athlete_id: athlete.id,
+      status: "PENDING",
+    },
+    include: {
+      athlete: {
+        select: {
+          id: true,
+          email: true,
+          display_name: true,
+          username: true,
+          avatar_url: true,
+        },
+      },
+    },
+  });
+
+  // Create activity notification
+  await prisma.activity_feed.create({
+    data: {
+      user_id: athlete.id,
+      actor_id: user.id,
+      type: "PARTY_INVITE_RECEIVED", // Reusing existing type
+      entity_type: "coaching",
+      entity_id: relationship.id,
+      metadata: {
+        coach_name: coachProfile.business_name || user.email,
+        type: "coaching_invite",
+      },
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    relationship,
+    message: "Invitation sent",
+  });
+});

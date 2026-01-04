@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
 import { requireAdmin } from "@/lib/permissions-server";
 import prisma from "@/lib/db";
 
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const GET = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "PENDING";
@@ -50,42 +44,29 @@ export async function GET(request: NextRequest) {
       prisma.travel_reviews.count({ where }),
     ]);
 
-    return NextResponse.json({
-      reviews: reviews.map((r) => ({
-        id: r.id,
-        title: r.title,
-        content: r.content,
-        rating: r.rating,
-        status: r.status,
-        created_at: r.created_at.toISOString(),
-        moderated_at: r.moderated_at?.toISOString() || null,
-        author: r.author,
-        location: r.location,
-      })),
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Moderation reviews error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch reviews" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({
+    reviews: reviews.map((r) => ({
+      id: r.id,
+      title: r.title,
+      content: r.content,
+      rating: r.rating,
+      status: r.status,
+      created_at: r.created_at.toISOString(),
+      moderated_at: r.moderated_at?.toISOString() || null,
+      author: r.author,
+      location: r.location,
+    })),
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
+});
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const PATCH = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
     const body = await request.json();
     const { reviewId, action } = body;
@@ -113,19 +94,12 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      review: {
-        id: review.id,
-        status: review.status,
-        moderated_at: review.moderated_at?.toISOString(),
-      },
-    });
-  } catch (error) {
-    console.error("Moderation action error:", error);
-    return NextResponse.json(
-      { error: "Failed to moderate review" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({
+    success: true,
+    review: {
+      id: review.id,
+      status: review.status,
+      moderated_at: review.moderated_at?.toISOString(),
+    },
+  });
+});
