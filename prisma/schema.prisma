@@ -976,7 +976,8 @@ model coaching_programs {
   description        String?
   duration_weeks     Int
   difficulty         String?         // beginner, intermediate, advanced
-  goal               String?         // strength, hypertrophy, endurance, general
+  goal               String?         // strength, hypertrophy, endurance, general (legacy)
+  goal_priorities    Json?           // ["strength", "hypertrophy", "endurance", "general"] in priority order
   is_template        Boolean         @default(false)
   progression_config Json?           // Stores ProgressionConfig from types.ts
   created_at         DateTime        @default(now()) @db.Timestamptz(6)

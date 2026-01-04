@@ -62,7 +62,7 @@ export default function ProgramsPage() {
     description: "",
     duration_weeks: 4,
     difficulty: "intermediate",
-    goal: "strength",
+    goalPriorities: ["strength", "hypertrophy", "endurance", "general"] as string[],
   });
 
   // Edit state
@@ -72,7 +72,7 @@ export default function ProgramsPage() {
     description: "",
     duration_weeks: 4,
     difficulty: "intermediate",
-    goal: "strength",
+    goalPriorities: ["strength", "hypertrophy", "endurance", "general"] as string[],
   });
   const [updating, setUpdating] = useState(false);
 
@@ -81,7 +81,7 @@ export default function ProgramsPage() {
   const [aiStep, setAiStep] = useState(1);
   const [generating, setGenerating] = useState(false);
   const [aiForm, setAiForm] = useState({
-    goal: "strength" as "strength" | "hypertrophy" | "endurance" | "general",
+    goalPriorities: ["strength", "hypertrophy", "endurance", "general"] as string[],
     durationWeeks: 4,
     daysPerWeek: 4,
     experienceLevel: "intermediate" as "beginner" | "intermediate" | "advanced",
@@ -152,13 +152,36 @@ export default function ProgramsPage() {
 
   const openEditModal = (program: Program) => {
     setEditingProgram(program);
+    // Handle both old (single goal) and new (priority array) formats
+    const defaultPriorities = ["strength", "hypertrophy", "endurance", "general"];
+    let priorities = defaultPriorities;
+    if ((program as any).goal_priorities && Array.isArray((program as any).goal_priorities)) {
+      priorities = (program as any).goal_priorities;
+    } else if (program.goal) {
+      // Move the old single goal to first position
+      priorities = [program.goal, ...defaultPriorities.filter(g => g !== program.goal)];
+    }
     setEditForm({
       name: program.name,
       description: program.description || "",
       duration_weeks: program.duration_weeks,
       difficulty: program.difficulty || "intermediate",
-      goal: program.goal || "strength",
+      goalPriorities: priorities,
     });
+  };
+
+  // Helper to reorder priorities by moving an item to a new position
+  const reorderPriorities = (priorities: string[], item: string, newIndex: number): string[] => {
+    const filtered = priorities.filter(p => p !== item);
+    filtered.splice(newIndex, 0, item);
+    return filtered;
+  };
+
+  const GOAL_INFO: Record<string, { label: string; desc: string }> = {
+    strength: { label: "Strength", desc: "Build max strength" },
+    hypertrophy: { label: "Hypertrophy", desc: "Build muscle size" },
+    endurance: { label: "Endurance", desc: "Muscular endurance" },
+    general: { label: "General", desc: "Overall fitness" },
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -532,17 +555,32 @@ export default function ProgramsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-400 text-sm mb-1">Goal</label>
-                  <select
-                    value={form.goal}
-                    onChange={(e) => setForm({ ...form, goal: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-[#FF6B6B] focus:outline-none"
-                  >
-                    <option value="strength">Strength</option>
-                    <option value="hypertrophy">Hypertrophy</option>
-                    <option value="endurance">Endurance</option>
-                    <option value="general">General Fitness</option>
-                  </select>
+                  <label className="block text-gray-400 text-sm mb-2">Goal Priority (drag to reorder)</label>
+                  <div className="space-y-2">
+                    {form.goalPriorities.map((goal, idx) => (
+                      <div
+                        key={goal}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData("text/plain", goal)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedGoal = e.dataTransfer.getData("text/plain");
+                          if (draggedGoal !== goal) {
+                            setForm({ ...form, goalPriorities: reorderPriorities(form.goalPriorities, draggedGoal, idx) });
+                          }
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg bg-black/30 border border-gray-600 cursor-grab active:cursor-grabbing hover:border-[#FF6B6B] transition-colors"
+                      >
+                        <span className="text-[#FF6B6B] font-bold text-sm w-6">{idx + 1}.</span>
+                        <span className="text-gray-400 cursor-grab">⋮⋮</span>
+                        <div className="flex-1">
+                          <div className="text-white font-medium text-sm">{GOAL_INFO[goal]?.label || goal}</div>
+                          <div className="text-gray-500 text-xs">{GOAL_INFO[goal]?.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -613,28 +651,31 @@ export default function ProgramsPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-gray-400 text-sm mb-2">
-                    Training Goal
+                    Goal Priority (drag to reorder)
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { id: "strength", label: "Strength", desc: "Build max strength" },
-                      { id: "hypertrophy", label: "Hypertrophy", desc: "Build muscle size" },
-                      { id: "endurance", label: "Endurance", desc: "Muscular endurance" },
-                      { id: "general", label: "General", desc: "Overall fitness" },
-                    ].map((goal) => (
-                      <button
-                        key={goal.id}
-                        onClick={() => setAiForm({ ...aiForm, goal: goal.id as any })}
-                        className={`p-3 rounded-lg text-left transition-all ${
-                          aiForm.goal === goal.id
-                            ? "border-purple-500 bg-purple-500/10"
-                            : "border-gray-700 bg-black/30 hover:border-gray-600"
-                        }`}
-                        style={{ border: `1px solid ${aiForm.goal === goal.id ? "#9333ea" : "#374151"}` }}
+                  <div className="space-y-2">
+                    {aiForm.goalPriorities.map((goal, idx) => (
+                      <div
+                        key={goal}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData("text/plain", goal)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedGoal = e.dataTransfer.getData("text/plain");
+                          if (draggedGoal !== goal) {
+                            setAiForm({ ...aiForm, goalPriorities: reorderPriorities(aiForm.goalPriorities, draggedGoal, idx) });
+                          }
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg bg-black/30 border border-gray-600 cursor-grab active:cursor-grabbing hover:border-purple-500 transition-colors"
                       >
-                        <div className="font-medium text-white text-sm">{goal.label}</div>
-                        <div className="text-gray-500 text-xs">{goal.desc}</div>
-                      </button>
+                        <span className="text-purple-400 font-bold text-sm w-6">{idx + 1}.</span>
+                        <span className="text-gray-400 cursor-grab">⋮⋮</span>
+                        <div className="flex-1">
+                          <div className="text-white font-medium text-sm">{GOAL_INFO[goal]?.label || goal}</div>
+                          <div className="text-gray-500 text-xs">{GOAL_INFO[goal]?.desc}</div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -952,17 +993,32 @@ export default function ProgramsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-400 text-sm mb-1">Goal</label>
-                  <select
-                    value={editForm.goal}
-                    onChange={(e) => setEditForm({ ...editForm, goal: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-[#FFD700] focus:outline-none"
-                  >
-                    <option value="strength">Strength</option>
-                    <option value="hypertrophy">Hypertrophy</option>
-                    <option value="endurance">Endurance</option>
-                    <option value="general">General Fitness</option>
-                  </select>
+                  <label className="block text-gray-400 text-sm mb-2">Goal Priority (drag to reorder)</label>
+                  <div className="space-y-2">
+                    {editForm.goalPriorities.map((goal, idx) => (
+                      <div
+                        key={goal}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData("text/plain", goal)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedGoal = e.dataTransfer.getData("text/plain");
+                          if (draggedGoal !== goal) {
+                            setEditForm({ ...editForm, goalPriorities: reorderPriorities(editForm.goalPriorities, draggedGoal, idx) });
+                          }
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg bg-black/30 border border-gray-600 cursor-grab active:cursor-grabbing hover:border-[#FFD700] transition-colors"
+                      >
+                        <span className="text-[#FFD700] font-bold text-sm w-6">{idx + 1}.</span>
+                        <span className="text-gray-400 cursor-grab">⋮⋮</span>
+                        <div className="flex-1">
+                          <div className="text-white font-medium text-sm">{GOAL_INFO[goal]?.label || goal}</div>
+                          <div className="text-gray-500 text-xs">{GOAL_INFO[goal]?.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

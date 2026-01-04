@@ -7,7 +7,8 @@ import { EXERCISES, EXERCISE_TIERS } from "@/lib/fitness/data";
 const anthropic = new Anthropic();
 
 interface GenerateRequest {
-  goal: "strength" | "hypertrophy" | "endurance" | "general";
+  goal?: "strength" | "hypertrophy" | "endurance" | "general";
+  goalPriorities?: string[];
   durationWeeks: number;
   daysPerWeek: number;
   experienceLevel: "beginner" | "intermediate" | "advanced";
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
   const body: GenerateRequest = await request.json();
   const {
     goal,
+    goalPriorities,
     durationWeeks,
     daysPerWeek,
     experienceLevel,
@@ -46,8 +48,12 @@ export async function POST(request: NextRequest) {
     programName,
   } = body;
 
+  // Support both legacy goal and new goalPriorities
+  const primaryGoal = goalPriorities?.[0] || goal;
+  const priorities = goalPriorities || (goal ? [goal] : []);
+
   // Validate inputs
-  if (!goal || !durationWeeks || !daysPerWeek || !experienceLevel) {
+  if (!primaryGoal || !durationWeeks || !daysPerWeek || !experienceLevel) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -69,9 +75,20 @@ export async function POST(request: NextRequest) {
     ).map((ex) => ({ id: ex.id, name: ex.name, muscle: ex.muscle })),
   };
 
+  // Build goal priority description
+  const goalDescriptions: Record<string, string> = {
+    strength: "Strength (lower reps 3-6, higher intensity, longer rest)",
+    hypertrophy: "Hypertrophy (moderate reps 8-12, moderate intensity)",
+    endurance: "Endurance (higher reps 12-20, lower intensity, shorter rest)",
+    general: "General fitness (balanced approach)",
+  };
+  const priorityText = priorities.map((g, i) => `${i + 1}. ${goalDescriptions[g] || g}`).join("\n");
+
   const prompt = `You are an expert strength and conditioning coach. Generate a ${durationWeeks}-week training program with the following specifications:
 
-GOAL: ${goal}
+GOAL PRIORITIES (in order of importance):
+${priorityText}
+
 EXPERIENCE LEVEL: ${experienceLevel}
 TRAINING DAYS PER WEEK: ${daysPerWeek}
 AVAILABLE EQUIPMENT: ${equipment.join(", ") || "full gym"}
@@ -92,10 +109,7 @@ GUIDELINES:
    - Advanced: 4-5 sets per exercise, 4-10 reps
 4. Include appropriate rest days
 5. Balance push/pull/legs appropriately
-6. For ${goal} goal, prioritize:
-   - Strength: lower reps (3-6), higher intensity
-   - Hypertrophy: moderate reps (8-12), moderate intensity
-   - Endurance: higher reps (12-20), lower intensity
+6. IMPORTANT: Design the program based on the GOAL PRIORITIES above. The #1 priority should heavily influence rep ranges, rest times, and exercise selection. Lower priorities should be considered but not dominate.
 
 Return a JSON object with this exact structure:
 {
@@ -180,11 +194,12 @@ IMPORTANT:
       const newProgram = await tx.coaching_programs.create({
         data: {
           coach_id: coach.id,
-          name: programName || programData.name || `${goal} Program`,
+          name: programName || programData.name || `${primaryGoal} Program`,
           description: programData.description,
           duration_weeks: durationWeeks,
           difficulty: experienceLevel,
-          goal,
+          goal: primaryGoal,
+          goal_priorities: priorities.length > 0 ? priorities : null,
           progression_config: progressionType
             ? { type: progressionType }
             : { type: "linear", weightIncrement: 5, deloadThreshold: 3, deloadPercent: 0.1 },

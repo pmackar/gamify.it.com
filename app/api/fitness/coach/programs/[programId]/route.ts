@@ -98,7 +98,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 
   const body = await request.json();
-  const { name, description, difficulty, goal, is_template, progression_config } = body;
+  const { name, description, difficulty, goal, goalPriorities, is_template, progression_config } = body;
+
+  // Support both legacy goal and new goalPriorities
+  const primaryGoal = goalPriorities?.[0] || goal;
 
   const program = await prisma.coaching_programs.update({
     where: { id: programId },
@@ -106,7 +109,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       ...(name && { name }),
       ...(description !== undefined && { description }),
       ...(difficulty !== undefined && { difficulty }),
-      ...(goal !== undefined && { goal }),
+      ...(primaryGoal !== undefined && { goal: primaryGoal }),
+      ...(goalPriorities !== undefined && { goal_priorities: goalPriorities }),
       ...(is_template !== undefined && { is_template }),
       ...(progression_config !== undefined && { progression_config }),
       updated_at: new Date(),

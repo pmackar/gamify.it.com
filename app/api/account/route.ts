@@ -1,25 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { withAuth, Errors } from "@/lib/api";
-
-// Calculate level and XP progress from total XP
-function calculateLevelFromXP(totalXp: number) {
-  let level = 1;
-  let xpNeeded = 100;
-  let cumulativeXP = 0;
-
-  while (cumulativeXP + xpNeeded <= totalXp) {
-    cumulativeXP += xpNeeded;
-    level++;
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-
-  return {
-    level,
-    currentLevelXP: totalXp - cumulativeXP,
-    xpToNext: xpNeeded,
-  };
-}
+import { getMainLevelFromXP } from "@/lib/levels";
 
 export const GET = withAuth(async (_request, user) => {
   try {

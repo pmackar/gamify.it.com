@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
-export async function GET(req: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(req.url);
+// GET /api/locations/search - Search locations by name
+export const GET = withAuth(async (request, user) => {
+  const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
   const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 50);
 
@@ -61,4 +57,4 @@ export async function GET(req: NextRequest) {
       };
     }),
   });
-}
+});

@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     duration_weeks: p.duration_weeks,
     difficulty: p.difficulty,
     goal: p.goal,
+    goal_priorities: p.goal_priorities,
     is_template: p.is_template,
     created_at: p.created_at,
     updated_at: p.updated_at,
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, description, duration_weeks, difficulty, goal, is_template } = body;
+  const { name, description, duration_weeks, difficulty, goal, goalPriorities, is_template } = body;
 
   if (!name || !duration_weeks) {
     return NextResponse.json(
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  // Support both legacy goal and new goalPriorities
+  const primaryGoal = goalPriorities?.[0] || goal || null;
 
   // Create program with empty weeks
   const program = await prisma.coaching_programs.create({
@@ -93,7 +97,8 @@ export async function POST(request: NextRequest) {
       description: description || null,
       duration_weeks,
       difficulty: difficulty || null,
-      goal: goal || null,
+      goal: primaryGoal,
+      goal_priorities: goalPriorities || null,
       is_template: is_template || false,
       weeks: {
         create: Array.from({ length: duration_weeks }, (_, i) => ({
