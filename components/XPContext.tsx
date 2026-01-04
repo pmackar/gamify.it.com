@@ -1,7 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { dispatchLevelUp } from './LevelUpPopup';
+import { dispatchXPGain } from './XPToast';
 
 export interface XPState {
   level: number;
@@ -32,6 +34,9 @@ export function XPProvider({ children }: { children: ReactNode }) {
   const [xp, setXP] = useState<XPState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const previousLevelRef = useRef<number | null>(null);
+  const previousXPRef = useRef<number | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   const fetchXP = useCallback(async () => {
     try {
@@ -50,9 +55,35 @@ export function XPProvider({ children }: { children: ReactNode }) {
 
       const data = await res.json();
       if (data?.character) {
+        const newLevel = data.character.level;
+        const newTotalXP = data.character.xp;
+        const previousLevel = previousLevelRef.current;
+        const previousXP = previousXPRef.current;
+
+        // Only show notifications after initial load
+        if (!isInitialLoadRef.current) {
+          // Check for XP gain
+          if (previousXP !== null && newTotalXP > previousXP) {
+            const xpGained = newTotalXP - previousXP;
+            // Dispatch XP gain toast
+            dispatchXPGain(xpGained);
+          }
+
+          // Check for level up
+          if (previousLevel !== null && newLevel > previousLevel) {
+            // Trigger level-up celebration!
+            dispatchLevelUp(newLevel, previousLevel);
+          }
+        }
+
+        // Update the refs
+        previousLevelRef.current = newLevel;
+        previousXPRef.current = newTotalXP;
+        isInitialLoadRef.current = false;
+
         setXP({
-          level: data.character.level,
-          xp: data.character.xp,
+          level: newLevel,
+          xp: newTotalXP,
           xpInCurrentLevel: data.character.xpInCurrentLevel,
           xpToNextLevel: data.character.xpToNextLevel,
         });

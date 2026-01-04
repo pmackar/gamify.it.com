@@ -107,13 +107,52 @@ export function calculateLocationXP(
   return Math.floor(baseXP * typeMultiplier * streakMultiplier);
 }
 
+// Check for active XP boost and return multiplier
+export async function getActiveXPBoost(userId: string): Promise<{
+  active: boolean;
+  multiplier: number;
+  expiresAt: Date | null;
+}> {
+  const profile = await prisma.profiles.findUnique({
+    where: { id: userId },
+    select: { xp_boost_multiplier: true, xp_boost_expires_at: true },
+  });
+
+  if (!profile || !profile.xp_boost_expires_at || !profile.xp_boost_multiplier) {
+    return { active: false, multiplier: 1.0, expiresAt: null };
+  }
+
+  const now = new Date();
+  if (profile.xp_boost_expires_at > now) {
+    return {
+      active: true,
+      multiplier: profile.xp_boost_multiplier,
+      expiresAt: profile.xp_boost_expires_at,
+    };
+  }
+
+  // Boost has expired, clear it
+  await prisma.profiles.update({
+    where: { id: userId },
+    data: { xp_boost_multiplier: 1.0, xp_boost_expires_at: null },
+  });
+
+  return { active: false, multiplier: 1.0, expiresAt: null };
+}
+
 // Add XP to travel app profile and handle level-ups
 export async function addXP(userId: string, amount: number): Promise<{
   newXP: number;
   newLevel: number;
   leveledUp: boolean;
   xpToNext: number;
+  boostApplied: boolean;
+  boostMultiplier: number;
 }> {
+  // Check for active XP boost
+  const boost = await getActiveXPBoost(userId);
+  const boostedAmount = Math.floor(amount * boost.multiplier);
+
   // Get or create travel app profile
   let appProfile = await prisma.app_profiles.findUnique({
     where: {
@@ -137,7 +176,7 @@ export async function addXP(userId: string, amount: number): Promise<{
     });
   }
 
-  let newXP = (appProfile.xp || 0) + amount;
+  let newXP = (appProfile.xp || 0) + boostedAmount;
   let newLevel = appProfile.level || 1;
   let xpToNext = appProfile.xp_to_next || 100;
   let leveledUp = false;
@@ -161,7 +200,7 @@ export async function addXP(userId: string, amount: number): Promise<{
     select: { total_xp: true },
   });
 
-  const newTotalXP = (profile?.total_xp || 0) + amount;
+  const newTotalXP = (profile?.total_xp || 0) + boostedAmount;
   const globalLevelInfo = calculateLevelFromTotalXP(newTotalXP);
 
   await prisma.profiles.update({
@@ -172,7 +211,14 @@ export async function addXP(userId: string, amount: number): Promise<{
     },
   });
 
-  return { newXP, newLevel, leveledUp, xpToNext };
+  return {
+    newXP,
+    newLevel,
+    leveledUp,
+    xpToNext,
+    boostApplied: boost.active,
+    boostMultiplier: boost.multiplier,
+  };
 }
 
 // Update streak

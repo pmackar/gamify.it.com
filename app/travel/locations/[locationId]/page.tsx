@@ -17,6 +17,7 @@ import {
 import LocationActions from "./LocationActions";
 import FriendsWhoVisited from "./FriendsWhoVisited";
 import FriendsHotlist from "./FriendsHotlist";
+import ReviewList from "@/components/location/ReviewList";
 
 interface Props {
   params: Promise<{ locationId: string }>;
@@ -348,6 +349,20 @@ export default async function LocationDetailPage({ params }: Props) {
 
       {/* Friends Who Want to Visit (Hotlist) */}
       {user && <FriendsHotlist locationId={locationId} />}
+
+      {/* Reviews Section */}
+      {user && (
+        <div
+          className="rounded-lg p-5 mt-6"
+          style={{
+            background: "var(--rpg-card)",
+            border: "2px solid var(--rpg-border)",
+            boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
+          }}
+        >
+          <ReviewList locationId={locationId} currentUserId={user.id} />
+        </div>
+      )}
 
       {/* User Notes */}
       {userData?.notes && (

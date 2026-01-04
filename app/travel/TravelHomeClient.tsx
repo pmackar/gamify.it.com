@@ -245,6 +245,51 @@ export default function TravelHomeClient({
             </div>
           </div>
 
+          {/* Hotlist Quick Access */}
+          {stats.hotlist > 0 && (
+            <Link
+              href="/travel/hotlist"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                margin: "0 16px 16px",
+                padding: "14px 18px",
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%)",
+                border: "2px solid rgba(239, 68, 68, 0.4)",
+                textDecoration: "none",
+                boxShadow: "0 4px 0 rgba(0, 0, 0, 0.15)",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    background: "rgba(239, 68, 68, 0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Heart size={20} style={{ color: "#ef4444" }} fill="#ef4444" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--rpg-text)", marginBottom: 2 }}>
+                    {stats.hotlist} {stats.hotlist === 1 ? "place" : "places"} to explore
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--rpg-muted)" }}>
+                    Tap to view your hotlist
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={18} style={{ color: "var(--rpg-muted)" }} />
+            </Link>
+          )}
+
           {/* Active Quests Carousel */}
           {activeQuests.length > 0 && (
             <div className="section">

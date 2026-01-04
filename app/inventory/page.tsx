@@ -71,6 +71,8 @@ export default function InventoryPage() {
       });
 
       if (res.ok) {
+        // Dispatch event for boost indicator to refresh
+        window.dispatchEvent(new CustomEvent('item-used'));
         // Refresh inventory
         fetchInventory();
         setSelectedItem(null);

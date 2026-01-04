@@ -145,22 +145,25 @@ async function applyConsumableEffect(
 
     case 'xp_boost_1h':
     case 'xp_boost_24h':
-      // Store active boost in user profile or separate table
+      // Store active boost in user profile
       const durationMinutes = effects.duration_minutes as number || 60;
+      const multiplier = effects.xp_multiplier as number || 2.0;
       const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
 
-      // For now, store in profile metadata (could use separate table)
+      // Store boost in profile
       await prisma.profiles.update({
         where: { id: userId },
         data: {
-          // Store boost info - we'd need to add this field or use a JSON column
+          xp_boost_multiplier: multiplier,
+          xp_boost_expires_at: expiresAt,
           updated_at: new Date(),
         },
       });
       return {
-        message: `2x XP Boost activated for ${durationMinutes / 60} hours!`,
+        message: `${multiplier}x XP Boost activated for ${Math.round(durationMinutes / 60)} hour${durationMinutes >= 120 ? 's' : ''}!`,
         expiresAt: expiresAt.toISOString(),
-        multiplier: effects.xp_multiplier,
+        multiplier,
+        activated: true,
       };
 
     case 'loot_box_rare':

@@ -11,6 +11,8 @@ import AppSwitcher from "@/components/AppSwitcher";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { DailyRewardsProvider } from "@/components/DailyRewards";
 import { LootDropProvider } from "@/components/LootDropPopup";
+import { LevelUpProvider } from "@/components/LevelUpPopup";
+import { XPToastProvider } from "@/components/XPToast";
 
 // Inline script to prevent FOUC (flash of unstyled content)
 const themeScript = `
@@ -92,16 +94,20 @@ export default function RootLayout({
           <ThemeProvider>
             <NavBarProvider>
               <XPProvider>
-                <DailyRewardsProvider>
-                  <LootDropProvider>
-                    <AchievementProvider>
-                      <RetroNavBar />
-                      <AppSwitcher />
-                      {children}
-                      <UpdatePrompt />
-                    </AchievementProvider>
-                  </LootDropProvider>
-                </DailyRewardsProvider>
+                <XPToastProvider>
+                  <LevelUpProvider>
+                    <DailyRewardsProvider>
+                      <LootDropProvider>
+                        <AchievementProvider>
+                          <RetroNavBar />
+                          <AppSwitcher />
+                          {children}
+                          <UpdatePrompt />
+                        </AchievementProvider>
+                      </LootDropProvider>
+                    </DailyRewardsProvider>
+                  </LevelUpProvider>
+                </XPToastProvider>
               </XPProvider>
             </NavBarProvider>
           </ThemeProvider>

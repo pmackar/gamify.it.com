@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
+import { dispatchXPUpdate } from '@/components/XPContext';
 
 interface Review {
   id: string;
@@ -111,6 +112,8 @@ export default function ReviewList({ locationId, currentUserId }: ReviewListProp
       setNewReview({ title: '', content: '', rating: 5 });
       setShowForm(false);
       setUserHasReviewed(true);
+      // Trigger XP update to show toast
+      dispatchXPUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit review');
     } finally {
