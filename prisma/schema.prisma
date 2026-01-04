@@ -108,6 +108,10 @@ model profiles {
   login_streak       Int?                @default(0)  // Consecutive days claiming login reward
   last_login_claim   DateTime?           @db.Date     // Last date login reward was claimed
 
+  // XP Boost
+  xp_boost_multiplier Float?              @default(1.0)  // Current XP multiplier (e.g., 2.0 for 2x)
+  xp_boost_expires_at DateTime?           @db.Timestamptz(6)  // When the boost expires
+
   legacy_prisma_id   String?
   legacy_clerk_id    String?
   created_at         DateTime?           @default(now()) @db.Timestamptz(6)
@@ -161,6 +165,9 @@ model profiles {
   partnership_checkins    partnership_checkins[]        @relation("PartnershipCheckinAuthor")
   nudges_sent             partnership_nudges[]          @relation("PartnershipNudgeSender")
   nudges_received         partnership_nudges[]          @relation("PartnershipNudgeRecipient")
+
+  // Life Quest relations
+  life_quests             life_quests[]
 
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
@@ -1141,4 +1148,241 @@ model user_inventory {
   @@unique([user_id, item_id])
   @@index([user_id])
   @@index([item_id])
+}
+
+// ============================================
+// LIFE QUESTS - Universal Goal Gamification
+// ============================================
+
+enum life_quest_type {
+  COUNTING      // "Read 52 books" - divide into time periods
+  COLLECTION    // "Try every hot dog brand" - checklist tracking
+  ACHIEVEMENT   // "Get an A in calculus" - milestone-based
+  HABIT         // "Meditate daily" - streak-based
+  PROJECT       // "Launch my startup" - dependency-based tasks
+  FITNESS       // "Run a marathon" - progressive training
+  LEARNING      // "Learn Spanish" - skill tree progression
+}
+
+enum journey_stage {
+  CALLING       // 0% - Quest accepted, commitment made
+  THRESHOLD     // 1-24% - First steps taken
+  TESTS         // 25-49% - Challenges emerge
+  ORDEAL        // 50-74% - The hard middle, "the slog"
+  REWARD        // 75-99% - Breakthrough moment
+  RETURN        // 100% - Mastery achieved
+}
+
+enum life_quest_status {
+  PLANNING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+enum task_difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EPIC
+}
+
+/// Universal quest that spans any life goal
+model life_quests {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String            @db.Uuid
+  user               profiles          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Quest definition
+  title              String
+  description        String?
+  original_goal      String            // User's natural language input
+  quest_type         life_quest_type
+
+  // Hero's Journey tracking
+  journey_stage      journey_stage     @default(CALLING)
+
+  // Narrative elements
+  narrator_type      String?           // 'sage', 'coach', 'explorer', 'strategist'
+  story_hook         String?           // Opening narrative
+  quest_icon         String?           // Emoji or icon code
+
+  // Progress
+  status             life_quest_status @default(ACTIVE)
+  progress_percent   Int               @default(0)
+
+  // For counting quests
+  target_count       Int?              // Total goal (e.g., 52 books)
+  current_count      Int               @default(0)
+  count_unit         String?           // "books", "workouts", "items"
+
+  // Scheduling
+  start_date         DateTime?         @db.Timestamptz(6)
+  target_date        DateTime?         @db.Timestamptz(6)
+  recurrence_rule    Json?             // { frequency: 'weekly', target: 1 }
+
+  // XP tracking
+  total_xp_available Int               @default(0)
+  xp_earned          Int               @default(0)
+
+  // Cross-app integration (optional)
+  linked_app         String?           // 'fitness', 'travel', 'today', null for standalone
+
+  // AI generation tracking
+  ai_generated       Boolean           @default(false)
+  template_id        String?           @db.Uuid
+
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime          @default(now()) @db.Timestamptz(6)
+  completed_at       DateTime?         @db.Timestamptz(6)
+
+  // Relations
+  milestones         life_quest_milestones[]
+  tasks              life_quest_tasks[]
+  logs               life_quest_logs[]
+  template           life_quest_templates? @relation(fields: [template_id], references: [id])
+
+  @@index([user_id, status])
+  @@index([user_id, quest_type])
+  @@index([journey_stage])
+}
+
+/// Milestones representing Hero's Journey stages
+model life_quest_milestones {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quest_id           String        @db.Uuid
+  quest              life_quests   @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+
+  title              String
+  description        String?
+  journey_stage      journey_stage // Which Hero's Journey stage
+
+  // Progress
+  sort_order         Int
+  is_completed       Boolean       @default(false)
+  completed_at       DateTime?     @db.Timestamptz(6)
+
+  // For counting milestones
+  target_count       Int?          // e.g., 13 books for Q1
+  current_count      Int           @default(0)
+
+  // XP
+  xp_reward          Int           @default(0)
+  bonus_xp           Int           @default(0)  // Stage completion bonus
+
+  // Narrative
+  mentor_message     String?       // Encouragement at this stage
+  completion_message String?       // Story beat when completed
+
+  created_at         DateTime      @default(now()) @db.Timestamptz(6)
+
+  tasks              life_quest_tasks[]
+
+  @@index([quest_id])
+  @@index([journey_stage])
+}
+
+/// Individual tasks within a quest
+model life_quest_tasks {
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quest_id          String                 @db.Uuid
+  quest             life_quests            @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  milestone_id      String?                @db.Uuid
+  milestone         life_quest_milestones? @relation(fields: [milestone_id], references: [id], onDelete: SetNull)
+
+  title             String
+  description       String?
+
+  // Task properties
+  difficulty        task_difficulty        @default(MEDIUM)
+  estimated_minutes Int                    @default(30)
+
+  // Scheduling
+  due_date          DateTime?              @db.Timestamptz(6)
+  recurrence_rule   Json?                  // { frequency: 'weekly', daysOfWeek: [1,3,5] }
+  is_recurring      Boolean                @default(false)
+
+  // Progress
+  is_completed      Boolean                @default(false)
+  completed_at      DateTime?              @db.Timestamptz(6)
+
+  // For counting tasks
+  target_count      Int?                   // e.g., 1 book
+  current_count     Int                    @default(0)
+
+  // XP
+  xp_value          Int                    @default(10)
+  xp_earned         Int                    @default(0)  // Actual XP with multipliers
+
+  // Variable rewards (stickiness)
+  critical_hit      Boolean                @default(false)  // 2x XP (10% chance)
+
+  sort_order        Int                    @default(0)
+  created_at        DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime               @default(now()) @db.Timestamptz(6)
+
+  @@index([quest_id])
+  @@index([milestone_id])
+  @@index([due_date])
+  @@index([is_completed])
+}
+
+/// Progress logs for tracking over time (especially counting quests)
+model life_quest_logs {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quest_id    String      @db.Uuid
+  quest       life_quests @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+
+  log_date    DateTime    @db.Date
+  count_added Int         @default(1)   // How many items completed
+  notes       String?                   // "Finished 'Project Hail Mary'"
+  xp_earned   Int         @default(0)
+
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@index([quest_id])
+  @@index([log_date])
+}
+
+/// Pre-built quest templates
+model life_quest_templates {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  name              String
+  description       String?
+  quest_type        life_quest_type
+  category          String          // 'reading', 'fitness', 'learning', 'career', 'health'
+  icon              String?         // Emoji
+
+  // Template structure (JSON)
+  structure         Json            // { milestones: [...], defaultTarget: 52, unit: 'books' }
+
+  // Popularity
+  times_used        Int             @default(0)
+  avg_completion    Float?          // Average completion rate
+
+  // Metadata
+  is_featured       Boolean         @default(false)
+  is_system         Boolean         @default(true)  // System vs user-created
+
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+
+  quests            life_quests[]
+
+  @@index([category])
+  @@index([quest_type])
+  @@index([is_featured])
+}
+
+/// Track AI quest generation usage for tier limits
+model ai_quest_usage {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @db.Uuid
+  month           DateTime @db.Date  // First of month for grouping
+  generation_count Int     @default(0)
+  last_used       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, month])
+  @@index([user_id])
 }

@@ -12,6 +12,7 @@ import { useTheme } from './ThemeContext';
 import NotificationBell from './social/NotificationBell';
 import { useDailyRewards } from './DailyRewards';
 import { useTodayStore } from '@/lib/today/store';
+import XPBoostIndicator from './XPBoostIndicator';
 
 // Sync indicator for Today app
 const SyncIndicator = () => {
@@ -122,8 +123,8 @@ const PlaneIcon = ({ active }: { active?: boolean }) => (
   </svg>
 );
 
-const LifeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 64 64" fill="none" style={{ opacity: 0.25 }}>
+const LifeIcon = ({ active }: { active?: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 64 64" fill="none" style={{ opacity: active ? 1 : 0.6 }}>
     <path d="M32 56L12 36C4 28 4 16 14 12C24 8 32 18 32 18C32 18 40 8 50 12C60 16 60 28 52 36L32 56Z" fill="#a855f7"/>
     <path d="M32 48L18 34C12 28 12 20 18 17C24 14 32 22 32 22C32 22 40 14 46 17C52 20 52 28 46 34L32 48Z" fill="#c084fc"/>
   </svg>
@@ -206,6 +207,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
   const isFitness = pathname.startsWith('/fitness');
   const isToday = pathname.startsWith('/today');
   const isTravel = pathname.startsWith('/travel');
+  const isLife = pathname.startsWith('/life');
 
 
   useEffect(() => {
@@ -1974,10 +1976,10 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                     <span className="nav-apps-dropdown-icon"><PlaneIcon active={isTravel} /></span>
                     EXPLORER
                   </Link>
-                  <div className="nav-apps-dropdown-item disabled">
-                    <span className="nav-apps-dropdown-icon"><LifeIcon /></span>
-                    LIFE (SOON)
-                  </div>
+                  <Link href="/life" className={`nav-apps-dropdown-item ${isLife ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                    <span className="nav-apps-dropdown-icon"><LifeIcon active={isLife} /></span>
+                    LIFE QUESTS
+                  </Link>
                 </div>
               )}
               </div>
@@ -2052,6 +2054,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             {authStatus === 'authenticated' && user && (
               <div className="nav-user-info">
                 {isToday && <SyncIndicator />}
+                <XPBoostIndicator />
                 <NotificationBell />
                 <div style={{ position: 'relative' }} className="nav-dropdown-zone">
                   <button
