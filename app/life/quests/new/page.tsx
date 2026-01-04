@@ -297,18 +297,17 @@ export default function NewQuestPage() {
 
               {/* Actions */}
               <div className="flex gap-4">
-                <button
-                  onClick={handleGenerate}
-                  disabled={!goal.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 py-4 rounded-lg font-medium transition-all disabled:opacity-50"
+                <div
+                  className="flex-1 flex items-center justify-center gap-2 py-4 rounded-lg font-medium cursor-not-allowed"
                   style={{
-                    background: "linear-gradient(135deg, var(--rpg-purple), var(--rpg-teal))",
-                    color: "#000",
+                    background: "linear-gradient(135deg, rgba(100, 100, 100, 0.5), rgba(80, 80, 80, 0.5))",
+                    color: "var(--rpg-muted)",
+                    border: "2px solid var(--rpg-border)",
                   }}
                 >
                   <Wand2 className="w-5 h-5" />
-                  Generate with AI
-                </button>
+                  AI Generation Coming Soon
+                </div>
                 <button
                   onClick={() => {
                     setManualTitle(goal);
