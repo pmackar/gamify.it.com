@@ -1,68 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { z } from "zod";
+import { NextResponse } from "next/server";
+import { withAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 import { travel_location_type } from "@prisma/client";
+import {
+  calculateDistance,
+  getUserLocationDataBatch,
+} from "@/lib/services/location.service";
+import { toLocationResponse } from "@/lib/services/response-transformers";
 
-// Haversine formula to calculate distance between two coordinates
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function toRad(deg: number): number {
-  return deg * (Math.PI / 180);
-}
+const QuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  radius: z.coerce.number().min(0.1).max(100).default(5),
+  type: z.string().toUpperCase().optional(),
+  limit: z.coerce.number().min(1).max(100).default(50),
+});
 
 // GET /api/locations/nearby - Find locations near a point
-export async function GET(request: NextRequest) {
-  // Use lightweight auth for read-only endpoint
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(async (request, user) => {
   const searchParams = request.nextUrl.searchParams;
-  const lat = parseFloat(searchParams.get("lat") || "");
-  const lng = parseFloat(searchParams.get("lng") || "");
-  const radiusKm = parseFloat(searchParams.get("radius") || "5");
-  const type = searchParams.get("type")?.toUpperCase() as travel_location_type | null;
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
 
-  if (isNaN(lat) || isNaN(lng)) {
-    return NextResponse.json({ error: "lat and lng are required" }, { status: 400 });
+  const parsed = QuerySchema.safeParse({
+    lat: searchParams.get("lat"),
+    lng: searchParams.get("lng"),
+    radius: searchParams.get("radius") ?? undefined,
+    type: searchParams.get("type") ?? undefined,
+    limit: searchParams.get("limit") ?? undefined,
+  });
+
+  if (!parsed.success) {
+    return Errors.invalidInput("lat and lng are required as valid coordinates");
   }
 
-  if (radiusKm <= 0 || radiusKm > 100) {
-    return NextResponse.json({ error: "radius must be between 0 and 100 km" }, { status: 400 });
-  }
+  const { lat, lng, radius: radiusKm, type, limit } = parsed.data;
 
   // Calculate bounding box for initial filtering
+  const toRad = (deg: number) => deg * (Math.PI / 180);
   const latDelta = radiusKm / 111;
   const lngDelta = radiusKm / (111 * Math.cos(toRad(lat)));
 
-  const minLat = lat - latDelta;
-  const maxLat = lat + latDelta;
-  const minLng = lng - lngDelta;
-  const maxLng = lng + lngDelta;
-
-  // Query locations within bounding box
   const where: {
     latitude: { gte: number; lte: number };
     longitude: { gte: number; lte: number };
     type?: travel_location_type;
   } = {
-    latitude: { gte: minLat, lte: maxLat },
-    longitude: { gte: minLng, lte: maxLng },
+    latitude: { gte: lat - latDelta, lte: lat + latDelta },
+    longitude: { gte: lng - lngDelta, lte: lng + lngDelta },
   };
 
-  if (type) {
-    where.type = type;
+  if (type && Object.values(travel_location_type).includes(type as travel_location_type)) {
+    where.type = type as travel_location_type;
   }
 
   const locations = await prisma.travel_locations.findMany({
@@ -76,44 +64,29 @@ export async function GET(request: NextRequest) {
 
   // Get user's location data for these locations
   const locationIds = locations.map((l) => l.id);
-  const userLocationData = await prisma.travel_user_location_data.findMany({
-    where: {
-      user_id: user.id,
-      location_id: { in: locationIds },
-    },
-    select: {
-      location_id: true,
-      hotlist: true,
-      visited: true,
-      personal_rating: true,
-    },
-  });
-
-  const userDataMap = new Map(
-    userLocationData.map((uld) => [uld.location_id, uld])
-  );
+  const userDataMap = await getUserLocationDataBatch(user.id, locationIds);
 
   // Calculate actual distance and filter by radius
   const locationsWithDistance = locations
     .map((loc) => {
       const userData = userDataMap.get(loc.id);
+      const distanceKm = calculateDistance(lat, lng, Number(loc.latitude), Number(loc.longitude));
+
       return {
-        id: loc.id,
-        name: loc.name,
-        type: loc.type,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        address: loc.address,
-        blurb: loc.blurb,
-        city: loc.city,
-        neighborhood: loc.neighborhood,
+        ...toLocationResponse(loc),
         avgRating: loc.avg_rating,
         totalVisits: loc.total_visits,
+        blurb: loc.blurb,
         _count: loc._count,
-        distanceKm: calculateDistance(lat, lng, loc.latitude, loc.longitude),
-        userVisited: userData?.visited ?? loc.visited ?? false,
-        userHotlist: userData?.hotlist ?? loc.hotlist ?? false,
-        userRating: userData?.personal_rating ?? null,
+        distanceKm: Math.round(distanceKm * 100) / 100,
+        userData: userData ?? {
+          isVisited: false,
+          isHotlisted: false,
+          rating: null,
+          visitCount: 0,
+          firstVisited: null,
+          lastVisited: null,
+        },
       };
     })
     .filter((loc) => loc.distanceKm <= radiusKm)
@@ -126,4 +99,4 @@ export async function GET(request: NextRequest) {
     radiusKm,
     total: locationsWithDistance.length,
   });
-}
+});

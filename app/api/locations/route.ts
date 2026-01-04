@@ -3,6 +3,8 @@ import { z } from "zod";
 import prisma from "@/lib/db";
 import { travel_location_type } from "@prisma/client";
 import { withAuth, validateBody, validateQuery, Errors } from "@/lib/api";
+import { awardXP } from "@/lib/services/gamification.service";
+import { toLocationResponse } from "@/lib/services/response-transformers";
 
 // Query params schema for GET
 const locationsQuerySchema = z.object({
@@ -71,7 +73,7 @@ export const GET = withAuth(async (request, user) => {
     prisma.travel_locations.findMany({
       where,
       include: {
-        city: { select: { name: true, country: true } },
+        city: { select: { id: true, name: true, country: true } },
         neighborhood: { select: { id: true, name: true } },
         _count: { select: { visits: true, photos: true, reviews: true } },
       },
@@ -84,13 +86,8 @@ export const GET = withAuth(async (request, user) => {
 
   return NextResponse.json({
     data: locations.map((location) => ({
-      id: location.id,
-      name: location.name,
-      type: location.type,
+      ...toLocationResponse(location),
       cuisine: location.cuisine,
-      address: location.address,
-      latitude: location.latitude,
-      longitude: location.longitude,
       blurb: location.blurb,
       description: location.description,
       website: location.website,
@@ -104,11 +101,8 @@ export const GET = withAuth(async (request, user) => {
       ratingCount: location.rating_count,
       reviewCount: location.review_count,
       totalVisits: location.total_visits,
-      city: location.city,
-      neighborhood: location.neighborhood,
       _count: location._count,
-      createdAt: location.created_at,
-      updatedAt: location.updated_at,
+      updatedAt: location.updated_at?.toISOString(),
     })),
     pagination: {
       total,
@@ -156,7 +150,7 @@ export const POST = withAuth(async (request, user) => {
         total_visits: markVisited ? 1 : 0,
       },
       include: {
-        city: { select: { name: true, country: true } },
+        city: { select: { id: true, name: true, country: true } },
         neighborhood: { select: { id: true, name: true } },
       },
     });
@@ -192,43 +186,26 @@ export const POST = withAuth(async (request, user) => {
       data: { location_count: { increment: 1 } },
     });
 
-    // Award XP
+    // Award XP using the gamification service
     const baseXP = 25;
     const visitXP = markVisited ? 15 : 0;
     const xpGained = baseXP + visitXP;
 
-    await prisma.app_profiles.upsert({
-      where: {
-        user_id_app_id: {
-          user_id: user.id,
-          app_id: 'travel',
-        },
-      },
-      update: {
-        xp: { increment: xpGained },
-      },
-      create: {
-        user_id: user.id,
-        app_id: 'travel',
-        xp: xpGained,
-        level: 1,
-        xp_to_next: 100,
-      },
+    const xpResult = await awardXP(user.id, "travel", xpGained, {
+      reason: "new_location",
+      metadata: { locationId: location.id, locationName: location.name },
     });
 
     return NextResponse.json({
       location: {
-        id: location.id,
-        name: location.name,
-        type: location.type,
-        city: location.city,
-        neighborhood: location.neighborhood,
+        ...toLocationResponse(location),
         visited: markVisited,
         hotlist: addToHotlist,
         rating: initialRating,
       },
-      xpGained,
-      leveledUp: false,
+      xpGained: xpResult.xpAwarded,
+      leveledUp: xpResult.appLeveledUp,
+      newLevel: xpResult.newAppLevel,
     });
   } catch (error) {
     console.error("Error creating location:", error);

@@ -128,13 +128,13 @@ interface DbLocation {
   id: string;
   name: string;
   type: string;
-  address: string | null;
+  address?: string | null;
   latitude: Decimal | number;
   longitude: Decimal | number;
   city_id: string;
-  neighborhood_id: string | null;
-  google_place_id: string | null;
-  notes: string | null;
+  neighborhood_id?: string | null;
+  google_place_id?: string | null;
+  notes?: string | null;
   created_at: Date;
   city?: { id: string; name: string; country: string };
   neighborhood?: { id: string; name: string } | null;
@@ -223,13 +223,13 @@ export function toLocationResponse(
     id: location.id,
     name: location.name,
     type: location.type,
-    address: location.address,
+    address: location.address ?? null,
     latitude: Number(location.latitude),
     longitude: Number(location.longitude),
     cityId: location.city_id,
-    neighborhoodId: location.neighborhood_id,
-    googlePlaceId: location.google_place_id,
-    notes: location.notes,
+    neighborhoodId: location.neighborhood_id ?? null,
+    googlePlaceId: location.google_place_id ?? null,
+    notes: location.notes ?? null,
     createdAt: location.created_at.toISOString(),
     city: location.city
       ? {
