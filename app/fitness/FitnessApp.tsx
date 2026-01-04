@@ -3681,15 +3681,23 @@ export default function FitnessApp() {
           text-align: center;
           cursor: pointer;
           transition: all 0.15s ease;
+          color: var(--text-primary);
         }
 
         .option-btn:hover {
-          border-color: var(--text-tertiary);
+          border-color: var(--accent);
+          background: var(--surface-hover);
         }
 
         .option-btn.selected {
           border-color: var(--accent);
-          background: rgba(var(--accent-rgb), 0.1);
+          background: var(--accent);
+          color: white;
+          box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+        }
+
+        .option-btn.selected span {
+          color: white;
         }
 
         .option-btn .option-label {
