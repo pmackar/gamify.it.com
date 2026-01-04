@@ -433,16 +433,20 @@ export default function FitnessApp() {
       return DEFAULT_COMMANDS.map(cmd => ({ type: 'command', ...cmd }));
     }
 
-    if ('workout'.startsWith(q) || 'start'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[0] });
-    if ('templates'.startsWith(q) || 'plan'.startsWith(q) || 'routines'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[1] });
-    if ('history'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
-    if ('profile'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
-    if ('coach'.startsWith(q) || 'ai'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
-    if ('social'.startsWith(q) || 'friends'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[5] });
-    if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[6] });
-    if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[7] });
-    if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[8] });
-    if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[9] });
+    if ('blank'.startsWith(q) || ('start'.startsWith(q) && q.length <= 5)) results.push({ type: 'command', ...DEFAULT_COMMANDS[0] });
+    if ('choose'.startsWith(q) || 'library'.startsWith(q) || 'pick'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[1] });
+    if ('templates'.startsWith(q) || 'plan'.startsWith(q) || 'routines'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[2] });
+    if ('programs'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[3] });
+    if ('history'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[4] });
+    if ('analytics'.startsWith(q) || 'stats'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[5] });
+    if ('exercises'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[6] });
+    if ('profile'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[7] });
+    if ('coach'.startsWith(q) || 'ai'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[8] });
+    if ('social'.startsWith(q) || 'friends'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[9] });
+    if ('campaigns'.startsWith(q) || 'goals'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[10] });
+    if ('achievements'.startsWith(q) || 'badges'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[11] });
+    if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[12] });
+    if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[13] });
 
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
@@ -467,6 +471,7 @@ export default function FitnessApp() {
     switch (suggestion.type) {
       case 'command':
         if (suggestion.id === 'workout') store.startWorkout();
+        else if (suggestion.id === 'choose-workout') store.setView('templates');
         else if (suggestion.id === 'templates') store.setView('templates');
         else if (suggestion.id === 'history') store.setView('history');
         else if (suggestion.id === 'profile') store.setView('profile');

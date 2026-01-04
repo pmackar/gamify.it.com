@@ -391,7 +391,8 @@ export interface Command {
 
 // Default commands for the command palette
 export const DEFAULT_COMMANDS: Command[] = [
-  { id: 'workout', title: 'Start Workout', subtitle: 'Begin a new workout session', icon: '💪' },
+  { id: 'workout', title: 'Start Blank Workout', subtitle: 'Begin an empty workout session', icon: '💪' },
+  { id: 'choose-workout', title: 'Choose Workout', subtitle: 'Pick from your workout library', icon: '📋' },
   { id: 'templates', title: 'Templates', subtitle: 'Plan and manage workout templates', icon: '📝' },
   { id: 'programs', title: 'Programs', subtitle: 'Multi-week training programs with progression', icon: '📅' },
   { id: 'history', title: 'History', subtitle: 'View past workouts', icon: '📋' },
