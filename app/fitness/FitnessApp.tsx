@@ -820,7 +820,8 @@ export default function FitnessApp() {
             startTime: workoutData.date,
             endTime: workoutData.date,
             duration: durationSeconds,
-            totalXP
+            totalXP,
+            source: 'csv'  // Mark as CSV import so it doesn't count toward leaderboards
           };
 
           workouts.push(workout);

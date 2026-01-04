@@ -19,6 +19,8 @@ export interface WorkoutExercise {
   supersetGroup?: number;  // Exercises with same group number are in a superset
 }
 
+export type WorkoutSource = 'manual' | 'csv' | 'apple_health' | 'strava' | 'garmin';
+
 export interface Workout {
   id: string;
   exercises: WorkoutExercise[];
@@ -26,6 +28,7 @@ export interface Workout {
   endTime?: string;
   totalXP: number;
   duration?: number;
+  source?: WorkoutSource;  // Where the workout originated (manual = logged in-app)
 }
 
 export interface WeightEntry {

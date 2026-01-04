@@ -153,22 +153,54 @@ PHASE 5: INTEGRATIONS
 ===========================================
 Connect with other services.
 
-[ ] 1. Apple Health / Google Fit
-    - Sync workouts
-    - Import weight data
-    - Share activity data
+NOTE: Workout source tracking is implemented. CSV imports are marked
+as source='csv' and excluded from leaderboards. Future integrations
+(Strava, Garmin, etc.) will use their own source values and COUNT
+toward leaderboards.
 
-[ ] 2. Wearables
-    - Apple Watch companion
+[ ] 1. Strava Integration (FREE - HIGH PRIORITY)
+    - OAuth flow for user authorization
+    - Import running/cycling/swimming workouts
+    - Strava API is free with rate limits
+    - source: 'strava'
+
+[ ] 2. Fitbit Integration (FREE)
+    - OAuth + REST API
+    - Import workouts, steps, sleep
+    - source: 'fitbit'
+
+[ ] 3. Garmin Connect (FREE - requires partner app)
+    - Apply for API access (free once approved)
+    - Import strength training, cardio
+    - source: 'garmin'
+
+[ ] 4. Apple Health (REQUIRES NATIVE APP)
+    Options:
+    a) Capacitor wrapper - build thin iOS app with HealthKit
+    b) Health Auto Export - users install $5 app, sends webhooks
+    c) Manual XML import - user exports, uploads ZIP
+    - HealthKit has NO web API - native app required
+    - source: 'apple_health'
+
+[ ] 5. Aggregator Services (EXPENSIVE - LAST RESORT)
+    - Terra API: $499/mo minimum
+    - Vital: Similar pricing
+    - One integration = all platforms
+    - Only consider at scale (1000+ users)
+
+RECOMMENDED ORDER: Strava > Fitbit > Garmin > Apple Health
+
+[ ] 6. Wearables
+    - Apple Watch companion (requires native app)
     - Heart rate during workouts
     - Rest timer on wrist
 
-[ ] 3. Gym Equipment
+[ ] 7. Gym Equipment
     - Connect to smart equipment
     - Auto-log weight/reps
     - Cable machine presets
 
-[ ] 4. Music
+[ ] 8. Music
     - Spotify/Apple Music integration
     - Workout playlists
     - BPM-based suggestions

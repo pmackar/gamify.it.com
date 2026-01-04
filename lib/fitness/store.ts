@@ -381,7 +381,8 @@ export const useFitnessStore = create<FitnessStore>()(
           id: now.toString(),
           exercises: [],
           startTime: new Date().toISOString(),
-          totalXP: 0
+          totalXP: 0,
+          source: 'manual'
         };
         set({
           currentWorkout: workout,
@@ -421,7 +422,8 @@ export const useFitnessStore = create<FitnessStore>()(
           id: now.toString(),
           exercises,
           startTime: new Date().toISOString(),
-          totalXP: 0
+          totalXP: 0,
+          source: 'manual'
         };
 
         set({
@@ -449,7 +451,8 @@ export const useFitnessStore = create<FitnessStore>()(
             sets: []
           }],
           startTime: new Date().toISOString(),
-          totalXP: 0
+          totalXP: 0,
+          source: 'manual'
         };
 
         set({

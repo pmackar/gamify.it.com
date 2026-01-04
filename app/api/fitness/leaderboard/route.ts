@@ -18,6 +18,7 @@ interface Workout {
   endTime?: string;
   totalXP: number;
   duration?: number;
+  source?: 'manual' | 'csv' | 'apple_health' | 'strava' | 'garmin';
 }
 
 interface FitnessData {
@@ -104,13 +105,18 @@ export async function GET(request: NextRequest) {
     let prsCount = 0;
 
     if (fitness?.workouts) {
-      // Filter workouts by period
-      const relevantWorkouts = periodCutoff
-        ? fitness.workouts.filter((w) => {
-            const date = new Date(w.endTime || w.startTime);
-            return date >= periodCutoff;
-          })
-        : fitness.workouts;
+      // Filter workouts by period AND exclude CSV imports (they don't count toward leaderboards)
+      // Future integrations (Apple Health, Strava, etc.) are allowed
+      const relevantWorkouts = fitness.workouts.filter((w) => {
+        // Exclude CSV imports from leaderboard stats
+        if (w.source === 'csv') return false;
+        // Apply period filter if set
+        if (periodCutoff) {
+          const date = new Date(w.endTime || w.startTime);
+          return date >= periodCutoff;
+        }
+        return true;
+      });
 
       workoutsCount = relevantWorkouts.length;
       totalXP = relevantWorkouts.reduce((sum, w) => sum + w.totalXP, 0);

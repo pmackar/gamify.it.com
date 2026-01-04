@@ -107,6 +107,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
     console.error("Error updating activity feed:", error);
-    return NextResponse.json({ success: true }); // Fail silently
+    return NextResponse.json(
+      { error: "Failed to update activity feed", code: "ACTIVITY_UPDATE_FAILED" },
+      { status: 500 }
+    );
   }
 }
