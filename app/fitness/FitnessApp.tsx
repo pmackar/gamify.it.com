@@ -102,10 +102,18 @@ export default function FitnessApp() {
   // Program wizard - inline workout creation
   const [creatingWorkoutForDay, setCreatingWorkoutForDay] = useState<number | null>(null);
   const [newWorkoutName, setNewWorkoutName] = useState('');
-  const [newWorkoutExercises, setNewWorkoutExercises] = useState<{ exerciseId: string; exerciseName: string; targetSets: number; targetReps: string }[]>([]);
+  const [newWorkoutExercises, setNewWorkoutExercises] = useState<{
+    exerciseId: string;
+    exerciseName: string;
+    targetSets: number;
+    minReps: number;
+    maxReps: number;
+    perSetReps?: { min: number; max: number }[];  // For advanced per-set mode
+  }[]>([]);
   const [newWorkoutMuscleGroups, setNewWorkoutMuscleGroups] = useState<string[]>([]);
   const [addingExerciseToNewWorkout, setAddingExerciseToNewWorkout] = useState(false);
   const [newWorkoutExerciseSearch, setNewWorkoutExerciseSearch] = useState('');
+  const [showWorkoutAdvancedMode, setShowWorkoutAdvancedMode] = useState(false);
   // Program wizard - advanced progression mode
   const [showAdvancedProgression, setShowAdvancedProgression] = useState(false);
 
@@ -3947,13 +3955,115 @@ export default function FitnessApp() {
           text-align: center;
         }
 
-        .mini-input.reps {
-          width: 50px;
+        .mini-input.sets {
+          width: 44px;
+        }
+
+        .mini-input.reps-min,
+        .mini-input.reps-max {
+          width: 44px;
+        }
+
+        @media (min-width: 768px) {
+          .mini-input.reps-min,
+          .mini-input.reps-max {
+            width: 56px;
+            padding: 6px 8px;
+            font-size: 14px;
+          }
         }
 
         .mini-input:focus {
           outline: none;
           border-color: var(--accent);
+        }
+
+        .config-separator {
+          color: var(--text-muted);
+          font-size: 12px;
+          flex-shrink: 0;
+        }
+
+        .config-label {
+          color: var(--text-muted);
+          font-size: 11px;
+          margin-left: 2px;
+        }
+
+        .advanced-indicator {
+          color: var(--accent);
+          font-size: 12px;
+        }
+
+        .advanced-mode-toggle {
+          margin-bottom: 8px;
+        }
+
+        .advanced-mode-toggle .toggle-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .advanced-mode-toggle input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+          accent-color: var(--accent);
+        }
+
+        .advanced-mode-toggle .toggle-text {
+          color: var(--text-primary);
+          font-weight: 500;
+        }
+
+        .advanced-mode-toggle .toggle-hint {
+          color: var(--text-muted);
+          font-size: 11px;
+        }
+
+        .builder-exercise-item {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .builder-exercise-item .exercise-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .builder-exercise-item .exercise-info {
+          flex: 1;
+        }
+
+        .builder-exercise-item .exercise-name {
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        .per-set-config {
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px dashed var(--border);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .set-config-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding-left: 8px;
+        }
+
+        .set-config-row .set-label {
+          width: 50px;
+          color: var(--text-muted);
+          font-size: 12px;
         }
 
         .remove-btn {
@@ -4245,10 +4355,22 @@ export default function FitnessApp() {
         }
 
         .form-input.mini {
-          width: 40px;
+          width: 48px;
           padding: 6px;
           font-size: 13px;
           text-align: center;
+        }
+
+        @media (min-width: 768px) {
+          .form-input.mini {
+            width: 64px;
+            padding: 8px 10px;
+            font-size: 14px;
+          }
+
+          .range-inputs {
+            gap: 10px;
+          }
         }
 
         .form-input.tiny {
@@ -6487,11 +6609,23 @@ gamify.it.com/fitness`;
 
           {/* Inline Workout Builder Modal (for Program Wizard) */}
           {creatingWorkoutForDay !== null && (
-            <div className="modal-overlay" onClick={() => setCreatingWorkoutForDay(null)}>
+            <div className="modal-overlay" onClick={() => {
+              setCreatingWorkoutForDay(null);
+              setNewWorkoutName('');
+              setNewWorkoutExercises([]);
+              setNewWorkoutMuscleGroups([]);
+              setShowWorkoutAdvancedMode(false);
+            }}>
               <div className="modal workout-builder-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                   <span>Create Workout</span>
-                  <button className="modal-close" onClick={() => setCreatingWorkoutForDay(null)}>✕</button>
+                  <button className="modal-close" onClick={() => {
+                    setCreatingWorkoutForDay(null);
+                    setNewWorkoutName('');
+                    setNewWorkoutExercises([]);
+                    setNewWorkoutMuscleGroups([]);
+                    setShowWorkoutAdvancedMode(false);
+                  }}>✕</button>
                 </div>
 
                 <div className="workout-builder-content">
@@ -6534,6 +6668,21 @@ gamify.it.com/fitness`;
                       <span className="exercise-count">{newWorkoutExercises.length}</span>
                     </div>
 
+                    {/* Advanced mode toggle */}
+                    {newWorkoutExercises.length > 0 && (
+                      <div className="advanced-mode-toggle">
+                        <label className="toggle-label">
+                          <input
+                            type="checkbox"
+                            checked={showWorkoutAdvancedMode}
+                            onChange={(e) => setShowWorkoutAdvancedMode(e.target.checked)}
+                          />
+                          <span className="toggle-text">Advanced Mode</span>
+                          <span className="toggle-hint">(per-set rep ranges)</span>
+                        </label>
+                      </div>
+                    )}
+
                     {newWorkoutExercises.length === 0 ? (
                       <div className="empty-exercises-mini">
                         <span>No exercises added yet</span>
@@ -6542,43 +6691,120 @@ gamify.it.com/fitness`;
                       <div className="workout-builder-exercises">
                         {newWorkoutExercises.map((ex, idx) => (
                           <div key={`${ex.exerciseId}-${idx}`} className="builder-exercise-item">
-                            <div className="exercise-info">
-                              <span className="exercise-name">{ex.exerciseName}</span>
-                              <div className="exercise-config">
+                            <div className="exercise-row">
+                              <div className="exercise-info">
+                                <span className="exercise-name">{ex.exerciseName}</span>
+                                <div className="exercise-config">
                                 <input
                                   type="number"
-                                  className="mini-input"
+                                  className="mini-input sets"
                                   value={ex.targetSets}
                                   onChange={(e) => {
+                                    const newSets = parseInt(e.target.value) || 1;
                                     const updated = [...newWorkoutExercises];
-                                    updated[idx] = { ...ex, targetSets: parseInt(e.target.value) || 1 };
+                                    // Initialize per-set reps if advanced mode
+                                    let perSetReps = ex.perSetReps;
+                                    if (showWorkoutAdvancedMode) {
+                                      perSetReps = Array.from({ length: newSets }, (_, i) =>
+                                        ex.perSetReps?.[i] || { min: ex.minReps, max: ex.maxReps }
+                                      );
+                                    }
+                                    updated[idx] = { ...ex, targetSets: newSets, perSetReps };
                                     setNewWorkoutExercises(updated);
                                   }}
                                   min={1}
                                   max={20}
                                 />
-                                <span>×</span>
-                                <input
-                                  type="text"
-                                  className="mini-input reps"
-                                  value={ex.targetReps}
-                                  onChange={(e) => {
-                                    const updated = [...newWorkoutExercises];
-                                    updated[idx] = { ...ex, targetReps: e.target.value };
-                                    setNewWorkoutExercises(updated);
-                                  }}
-                                  placeholder="8-12"
-                                />
+                                <span className="config-separator">sets ×</span>
+                                {!showWorkoutAdvancedMode ? (
+                                  <>
+                                    <input
+                                      type="number"
+                                      className="mini-input reps-min"
+                                      value={ex.minReps}
+                                      onChange={(e) => {
+                                        const updated = [...newWorkoutExercises];
+                                        updated[idx] = { ...ex, minReps: parseInt(e.target.value) || 1 };
+                                        setNewWorkoutExercises(updated);
+                                      }}
+                                      min={1}
+                                      max={50}
+                                      title="Min reps"
+                                    />
+                                    <span className="config-separator">-</span>
+                                    <input
+                                      type="number"
+                                      className="mini-input reps-max"
+                                      value={ex.maxReps}
+                                      onChange={(e) => {
+                                        const updated = [...newWorkoutExercises];
+                                        updated[idx] = { ...ex, maxReps: parseInt(e.target.value) || 1 };
+                                        setNewWorkoutExercises(updated);
+                                      }}
+                                      min={1}
+                                      max={50}
+                                      title="Max reps"
+                                    />
+                                    <span className="config-label">reps</span>
+                                  </>
+                                ) : (
+                                  <span className="advanced-indicator">per-set ▼</span>
+                                )}
+                                </div>
                               </div>
+                              <button
+                                className="remove-btn"
+                                onClick={() => {
+                                  setNewWorkoutExercises(newWorkoutExercises.filter((_, i) => i !== idx));
+                                }}
+                              >
+                                ✕
+                              </button>
                             </div>
-                            <button
-                              className="remove-btn"
-                              onClick={() => {
-                                setNewWorkoutExercises(newWorkoutExercises.filter((_, i) => i !== idx));
-                              }}
-                            >
-                              ✕
-                            </button>
+
+                            {/* Per-set configuration in advanced mode */}
+                            {showWorkoutAdvancedMode && (
+                              <div className="per-set-config">
+                                {Array.from({ length: ex.targetSets }, (_, setIdx) => {
+                                  const setConfig = ex.perSetReps?.[setIdx] || { min: ex.minReps, max: ex.maxReps };
+                                  return (
+                                    <div key={setIdx} className="set-config-row">
+                                      <span className="set-label">Set {setIdx + 1}:</span>
+                                      <input
+                                        type="number"
+                                        className="mini-input reps-min"
+                                        value={setConfig.min}
+                                        onChange={(e) => {
+                                          const updated = [...newWorkoutExercises];
+                                          const perSetReps = [...(ex.perSetReps || Array.from({ length: ex.targetSets }, () => ({ min: ex.minReps, max: ex.maxReps })))];
+                                          perSetReps[setIdx] = { ...perSetReps[setIdx], min: parseInt(e.target.value) || 1 };
+                                          updated[idx] = { ...ex, perSetReps };
+                                          setNewWorkoutExercises(updated);
+                                        }}
+                                        min={1}
+                                        max={50}
+                                      />
+                                      <span>-</span>
+                                      <input
+                                        type="number"
+                                        className="mini-input reps-max"
+                                        value={setConfig.max}
+                                        onChange={(e) => {
+                                          const updated = [...newWorkoutExercises];
+                                          const perSetReps = [...(ex.perSetReps || Array.from({ length: ex.targetSets }, () => ({ min: ex.minReps, max: ex.maxReps })))];
+                                          perSetReps[setIdx] = { ...perSetReps[setIdx], max: parseInt(e.target.value) || 1 };
+                                          updated[idx] = { ...ex, perSetReps };
+                                          setNewWorkoutExercises(updated);
+                                        }}
+                                        min={1}
+                                        max={50}
+                                      />
+                                      <span className="config-label">reps</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -6596,7 +6822,13 @@ gamify.it.com/fitness`;
                 <div className="modal-actions">
                   <button
                     className="modal-btn secondary"
-                    onClick={() => setCreatingWorkoutForDay(null)}
+                    onClick={() => {
+                      setCreatingWorkoutForDay(null);
+                      setNewWorkoutName('');
+                      setNewWorkoutExercises([]);
+                      setNewWorkoutMuscleGroups([]);
+                      setShowWorkoutAdvancedMode(false);
+                    }}
                   >
                     Cancel
                   </button>
@@ -6604,7 +6836,7 @@ gamify.it.com/fitness`;
                     className="modal-btn primary"
                     disabled={!newWorkoutName.trim()}
                     onClick={() => {
-                      // Create the template
+                      // Create the template - convert minReps/maxReps to targetReps string
                       const templateId = store.createTemplate({
                         name: newWorkoutName.trim(),
                         exercises: newWorkoutExercises.map((ex, idx) => ({
@@ -6612,7 +6844,9 @@ gamify.it.com/fitness`;
                           exerciseName: ex.exerciseName,
                           order: idx,
                           targetSets: ex.targetSets,
-                          targetReps: ex.targetReps,
+                          targetReps: ex.minReps === ex.maxReps
+                            ? `${ex.minReps}`
+                            : `${ex.minReps}-${ex.maxReps}`,
                         })),
                         targetMuscleGroups: newWorkoutMuscleGroups,
                       });
@@ -6648,6 +6882,7 @@ gamify.it.com/fitness`;
                       setNewWorkoutName('');
                       setNewWorkoutExercises([]);
                       setNewWorkoutMuscleGroups([]);
+                      setShowWorkoutAdvancedMode(false);
                     }}
                   >
                     Create Workout
@@ -6686,7 +6921,8 @@ gamify.it.com/fitness`;
                             exerciseId: ex.id,
                             exerciseName: ex.name,
                             targetSets: 3,
-                            targetReps: '8-12',
+                            minReps: 8,
+                            maxReps: 12,
                           }]);
                           setAddingExerciseToNewWorkout(false);
                           setNewWorkoutExerciseSearch('');
@@ -7562,8 +7798,42 @@ gamify.it.com/fitness`;
                                   const rules = [...(store.programWizardData.progressionRules || [])];
                                   (rules[0].config as any).perExercise = e.target.checked;
                                   if (e.target.checked && !config.exerciseRanges) {
-                                    // Initialize with default ranges
-                                    (rules[0].config as any).exerciseRanges = {};
+                                    // Auto-populate from workout templates
+                                    const exerciseRanges: Record<string, { repRange: [number, number] }> = {};
+
+                                    // Get all templates used in this program
+                                    const days = store.programWizardData.weeks?.[0]?.days || [];
+                                    for (const day of days) {
+                                      if (day.templateId) {
+                                        const template = store.templates.find(t => t.id === day.templateId);
+                                        if (template) {
+                                          for (const ex of template.exercises) {
+                                            // Parse targetReps to get min/max
+                                            const repsStr = ex.targetReps || '';
+                                            let min = config.repRange[0];
+                                            let max = config.repRange[1];
+
+                                            if (repsStr.includes('-')) {
+                                              const parts = repsStr.split('-').map(s => parseInt(s.trim()));
+                                              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                                                min = parts[0];
+                                                max = parts[1];
+                                              }
+                                            } else if (repsStr) {
+                                              const num = parseInt(repsStr);
+                                              if (!isNaN(num)) {
+                                                min = num;
+                                                max = num;
+                                              }
+                                            }
+
+                                            exerciseRanges[ex.exerciseId] = { repRange: [min, max] };
+                                          }
+                                        }
+                                      }
+                                    }
+
+                                    (rules[0].config as any).exerciseRanges = exerciseRanges;
                                   }
                                   store.updateProgramWizardData({ progressionRules: rules });
                                 }}
