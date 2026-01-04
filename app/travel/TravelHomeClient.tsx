@@ -589,6 +589,7 @@ export default function TravelHomeClient({
           .travel-home {
             min-height: 100vh;
             background: var(--rpg-bg);
+            padding-top: var(--content-top, 80px);
           }
 
           /* ===== MOBILE STYLES ===== */
