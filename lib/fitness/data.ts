@@ -394,7 +394,7 @@ export const DEFAULT_COMMANDS: Command[] = [
   { id: 'workout', title: 'Start Blank Workout', subtitle: 'Begin an empty workout session', icon: '💪' },
   { id: 'choose-workout', title: 'Choose Workout', subtitle: 'Pick from your workout library', icon: '📋' },
   { id: 'templates', title: 'Workout Templates', subtitle: 'Plan and manage workout templates', icon: '📝' },
-  { id: 'programs', title: 'Programs', subtitle: 'Multi-week training programs with progression', icon: '📅' },
+  { id: 'programs', title: 'Training Programs', subtitle: 'Multi-week training programs with progression', icon: '📅' },
   { id: 'history', title: 'History', subtitle: 'View past workouts', icon: '📋' },
   { id: 'analytics', title: 'Analytics', subtitle: 'Volume, strength progress, muscle distribution', icon: '📊' },
   { id: 'exercises', title: 'Exercise Library', subtitle: 'Browse all exercises with form tips', icon: '📚' },
