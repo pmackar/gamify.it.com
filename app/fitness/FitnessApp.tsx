@@ -2994,6 +2994,21 @@ export default function FitnessApp() {
           margin-top: 4px;
         }
 
+        .hero-tap-hint {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-top: 16px;
+          opacity: 0.6;
+        }
+
+        .home-hero:hover .hero-tap-hint {
+          opacity: 1;
+        }
+
+        .home-hero:active .hero-card {
+          transform: scale(0.98);
+        }
+
         /* Section Headers */
         .section-header {
           margin-bottom: 1rem;
@@ -5900,6 +5915,23 @@ export default function FitnessApp() {
           transform: scale(0.98);
         }
 
+        .add-to-workout-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--success);
+          color: white;
+          font-size: 15px;
+          font-weight: 600;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          margin-top: 8px;
+        }
+
+        .add-to-workout-btn:active {
+          transform: scale(0.98);
+        }
+
         /* ===== CLICKABLE MUSCLE BARS ===== */
         .muscle-bar-row.clickable {
           cursor: pointer;
@@ -8298,6 +8330,28 @@ gamify.it.com/fitness`;
                     Start Workout with {exercise.name}
                   </button>
                 )}
+
+                {/* Add to Active Workout Button */}
+                {store.currentWorkout && (
+                  <button
+                    className="add-to-workout-btn"
+                    onClick={() => {
+                      const alreadyInWorkout = store.currentWorkout?.exercises.some(ex => ex.id === exercise.id);
+                      if (alreadyInWorkout) {
+                        store.showToast(`${exercise.name} already in workout`);
+                      } else {
+                        store.addExerciseToWorkout(exercise.id);
+                        store.showToast(`Added ${exercise.name}`);
+                      }
+                      setExerciseDetailId(null);
+                      store.setView('workout');
+                    }}
+                  >
+                    {store.currentWorkout?.exercises.some(ex => ex.id === exercise.id)
+                      ? `${exercise.name} Already Added`
+                      : `Add ${exercise.name} to Workout`}
+                  </button>
+                )}
               </div>
             );
           })()}
@@ -9394,7 +9448,7 @@ gamify.it.com/fitness`;
           {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
-              <div className="home-hero">
+              <div className="home-hero" onClick={() => store.setView('analytics')} style={{ cursor: 'pointer' }}>
                 <div className="hero-card">
                   <div className="home-icon">🏋️</div>
                   <h1 className="home-title">IRON QUEST</h1>
@@ -9413,6 +9467,7 @@ gamify.it.com/fitness`;
                       <div className="home-stat-label">XP</div>
                     </div>
                   </div>
+                  <div className="hero-tap-hint">Tap for Analytics</div>
                 </div>
               </div>
 
