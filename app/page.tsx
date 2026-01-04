@@ -219,14 +219,8 @@ function SplashIntro() {
   const firstLine = "Life's not a game";
   const secondLine = "but it should be!";
 
-  const handleLogin = async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
+  const handleLogin = () => {
+    window.location.href = '/login';
   };
 
   useEffect(() => { videos.forEach((src) => { const video = document.createElement('video'); video.preload = 'auto'; video.src = src; video.load(); }); }, []);
@@ -265,7 +259,7 @@ function SplashIntro() {
               className={`player-login-btn ${showLoginButton ? 'visible' : ''}`}
               onClick={handleLogin}
             >
-              Player 1: Click to Continue
+              Player 1: Start Your Adventure
             </button>
           </div>
           <div className={`scroll-hint ${introComplete ? 'visible' : ''}`}>
