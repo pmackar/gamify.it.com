@@ -625,11 +625,18 @@ export const useTodayStore = create<TodayStore>()(
       },
 
       toggleTaskComplete: (taskId: string) => {
+        console.log('[STORE DEBUG] toggleTaskComplete called with taskId:', taskId);
         const state = get();
+        console.log('[STORE DEBUG] Current tasks count:', state.tasks.length);
         const task = state.tasks.find((t) => t.id === taskId);
-        if (!task) return { xpEarned: 0, leveledUp: false, newAchievements: [] };
+        console.log('[STORE DEBUG] Found task:', task?.title, 'is_completed:', task?.is_completed);
+        if (!task) {
+          console.log('[STORE DEBUG] Task not found, returning early');
+          return { xpEarned: 0, leveledUp: false, newAchievements: [] };
+        }
 
         if (!task.is_completed) {
+          console.log('[STORE DEBUG] Task is not completed, marking as complete...');
           // Completing task
           const xpEarned = calculateTaskXP(task, state.profile.current_streak);
           const wasOnTime = task.due_date ? new Date() <= new Date(task.due_date) : null;
@@ -705,6 +712,8 @@ export const useTodayStore = create<TodayStore>()(
             daily_stats: updateDailyStats(state.daily_stats, today, xpEarned),
             pendingSync: true,
           }));
+          console.log('[STORE DEBUG] State updated via set(), task should now be completed');
+          console.log('[STORE DEBUG] Checking updated state:', get().tasks.find(t => t.id === taskId)?.is_completed);
           // Sync immediately for task completion - critical data
           syncImmediate(get);
 

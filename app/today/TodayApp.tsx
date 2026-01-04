@@ -1107,10 +1107,17 @@ export default function TodayApp() {
   };
 
   const handleToggleComplete = (taskId: string) => {
+    console.log('[DEBUG] handleToggleComplete called with taskId:', taskId);
     const task = store.tasks.find((t) => t.id === taskId);
-    if (!task) return;
+    console.log('[DEBUG] Found task:', task?.title, 'is_completed:', task?.is_completed);
+    if (!task) {
+      console.log('[DEBUG] Task not found, returning early');
+      return;
+    }
 
+    console.log('[DEBUG] Calling store.toggleTaskComplete...');
     const result = store.toggleTaskComplete(taskId);
+    console.log('[DEBUG] toggleTaskComplete result:', result);
 
     if (!task.is_completed && result.xpEarned > 0) {
       store.showToast(`+${result.xpEarned} XP earned!`, 'success');
@@ -4606,10 +4613,15 @@ export default function TodayApp() {
                       <div
                         className={`task-checkbox ${task.is_completed ? 'checked' : ''} ${isBulkSelected ? 'bulk-selected' : ''}`}
                         onClick={(e) => {
+                          console.log('[DEBUG] Checkbox clicked for task:', task.id, task.title);
+                          console.log('[DEBUG] Modifier keys:', { meta: e.metaKey, ctrl: e.ctrlKey, shift: e.shiftKey });
+                          console.log('[DEBUG] selectedTaskIds.size:', selectedTaskIds.size);
                           e.stopPropagation();
                           if (e.metaKey || e.ctrlKey || e.shiftKey || selectedTaskIds.size > 0) {
+                            console.log('[DEBUG] Calling handleTaskSelect due to modifier or selection');
                             handleTaskSelect(task.id, index, e);
                           } else {
+                            console.log('[DEBUG] Calling handleToggleComplete');
                             handleToggleComplete(task.id);
                           }
                         }}
@@ -4679,7 +4691,7 @@ export default function TodayApp() {
                       <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="mobile-action-btn complete"
-                          onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                          onClick={() => { console.log('[DEBUG] Mobile Complete button clicked for:', task.id); handleToggleComplete(task.id); setMobileActionTaskId(null); }}
                         >
                           <span className="mobile-action-btn-icon">{task.is_completed ? '↩' : '✓'}</span>
                           {task.is_completed ? 'Uncomplete' : 'Complete'}
