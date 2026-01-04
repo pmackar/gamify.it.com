@@ -3892,6 +3892,56 @@ export default function FitnessApp() {
           color: white;
         }
 
+        /* Goal Priority List */
+        .goal-priority-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .goal-priority-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          cursor: grab;
+          transition: all 0.15s ease;
+        }
+
+        .goal-priority-item:hover {
+          border-color: var(--accent);
+          background: var(--surface-hover);
+        }
+
+        .goal-priority-item:active {
+          cursor: grabbing;
+        }
+
+        .goal-priority-rank {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--accent);
+          min-width: 20px;
+        }
+
+        .goal-priority-handle {
+          color: var(--text-secondary);
+          opacity: 0.5;
+        }
+
+        .goal-priority-icon {
+          font-size: 18px;
+        }
+
+        .goal-priority-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+
         .option-btn .option-label {
           font-size: 14px;
           font-weight: 600;
@@ -7359,6 +7409,13 @@ gamify.it.com/fitness`;
                                   </button>
                                   <button
                                     className="program-action-btn"
+                                    onClick={() => store.editProgram(program.id)}
+                                    title="Edit program"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    className="program-action-btn"
                                     onClick={() => store.duplicateProgram(program.id)}
                                   >
                                     ⧉
@@ -7720,7 +7777,7 @@ gamify.it.com/fitness`;
               <div className="view-header">
                 <button className="back-btn" onClick={() => store.cancelProgramWizard()}>←</button>
                 <span className="view-title">
-                  {store.programWizardStep === 1 && 'New Program'}
+                  {store.programWizardStep === 1 && (store.editingProgramId ? 'Edit Program' : 'New Program')}
                   {store.programWizardStep === 2 && 'Week Structure'}
                   {store.programWizardStep === 3 && 'Progression'}
                   {store.programWizardStep === 4 && 'Review'}
@@ -7743,20 +7800,36 @@ gamify.it.com/fitness`;
                   </div>
 
                   <div className="form-group">
-                    <label>Goal</label>
-                    <div className="option-grid">
-                      {(['strength', 'hypertrophy', 'endurance', 'general'] as const).map(goal => (
-                        <button
+                    <label>Goal Priority (drag to reorder)</label>
+                    <div className="goal-priority-list">
+                      {(store.programWizardData.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general']).map((goal, idx) => (
+                        <div
                           key={goal}
-                          className={`option-btn ${store.programWizardData.goal === goal ? 'selected' : ''}`}
-                          onClick={() => store.updateProgramWizardData({ goal })}
+                          draggable
+                          className="goal-priority-item"
+                          onDragStart={(e) => e.dataTransfer.setData('text/plain', goal)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const draggedGoal = e.dataTransfer.getData('text/plain');
+                            if (draggedGoal !== goal) {
+                              const currentPriorities = store.programWizardData?.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general'];
+                              const filtered = currentPriorities.filter((g: string) => g !== draggedGoal);
+                              filtered.splice(idx, 0, draggedGoal);
+                              store.updateProgramWizardData({ goalPriorities: filtered, goal: filtered[0] });
+                            }
+                          }}
                         >
-                          {goal === 'strength' && '💪'}
-                          {goal === 'hypertrophy' && '🏋️'}
-                          {goal === 'endurance' && '🏃'}
-                          {goal === 'general' && '⚡'}
-                          <span>{goal.charAt(0).toUpperCase() + goal.slice(1)}</span>
-                        </button>
+                          <span className="goal-priority-rank">{idx + 1}</span>
+                          <span className="goal-priority-handle">⋮⋮</span>
+                          <span className="goal-priority-icon">
+                            {goal === 'strength' && '💪'}
+                            {goal === 'hypertrophy' && '🏋️'}
+                            {goal === 'endurance' && '🏃'}
+                            {goal === 'general' && '⚡'}
+                          </span>
+                          <span className="goal-priority-name">{goal.charAt(0).toUpperCase() + goal.slice(1)}</span>
+                        </div>
                       ))}
                     </div>
                   </div>

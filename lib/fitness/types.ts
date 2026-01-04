@@ -213,6 +213,7 @@ export interface Program {
   progressionRules: ProgressionRule[];
   durationWeeks: number;        // Total duration in weeks (or cycles for microcycle)
   goal: 'strength' | 'hypertrophy' | 'endurance' | 'general';
+  goalPriorities?: string[];    // ['strength', 'hypertrophy', ...] in priority order
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   // Periodization
   periodization?: 'linear' | 'undulating' | 'block' | 'none';

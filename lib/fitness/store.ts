@@ -180,6 +180,7 @@ interface FitnessStore extends FitnessState, SyncState {
 
   // Program Wizard
   startProgramWizard: () => void;
+  editProgram: (programId: string) => void;
   setProgramWizardStep: (step: number) => void;
   updateProgramWizardData: (data: Partial<Program>) => void;
   finishProgramWizard: () => string | null;
@@ -1827,7 +1828,26 @@ export const useFitnessStore = create<FitnessStore>()(
             weeks: [],
             progressionRules: [],
           },
-          currentView: 'program-wizard'
+          currentView: 'program-wizard',
+          editingProgramId: null
+        });
+      },
+
+      editProgram: (programId: string) => {
+        const state = get();
+        const program = state.programs.find(p => p.id === programId);
+        if (!program) {
+          get().showToast('Program not found');
+          return;
+        }
+
+        set({
+          programWizardStep: 1,
+          programWizardData: {
+            ...program
+          },
+          currentView: 'program-wizard',
+          editingProgramId: programId
         });
       },
 
@@ -1848,11 +1868,23 @@ export const useFitnessStore = create<FitnessStore>()(
         const state = get();
         if (!state.programWizardData) return null;
 
-        const id = get().createProgram(state.programWizardData as Omit<Program, 'id' | 'createdAt' | 'updatedAt'>);
+        let id: string;
+
+        if (state.editingProgramId) {
+          // Update existing program
+          get().updateProgram(state.editingProgramId, state.programWizardData);
+          id = state.editingProgramId;
+          get().showToast('Program updated!');
+        } else {
+          // Create new program
+          id = get().createProgram(state.programWizardData as Omit<Program, 'id' | 'createdAt' | 'updatedAt'>);
+          get().showToast('Program created!');
+        }
 
         set({
           programWizardStep: 0,
           programWizardData: null,
+          editingProgramId: null,
           currentView: 'programs'
         });
 
@@ -1863,6 +1895,7 @@ export const useFitnessStore = create<FitnessStore>()(
         set({
           programWizardStep: 0,
           programWizardData: null,
+          editingProgramId: null,
           currentView: 'programs'
         });
       },
