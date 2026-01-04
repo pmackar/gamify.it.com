@@ -96,6 +96,28 @@ export function XPProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Sync XP from local app data to unified profile (runs silently)
+  const syncXP = useCallback(async () => {
+    try {
+      const res = await fetch('/api/profile/sync-xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results?.totalDiff > 0) {
+          console.log(`XP synced: +${data.results.totalDiff} XP`);
+          // Refetch to get updated values
+          await fetchXP();
+        }
+      }
+    } catch (err) {
+      // Silent fail - sync is best-effort
+      console.error('XP sync error:', err);
+    }
+  }, [fetchXP]);
+
   // Initialize auth listener and fetch XP when authenticated
   useEffect(() => {
     const supabase = createClient();
@@ -103,7 +125,10 @@ export function XPProvider({ children }: { children: ReactNode }) {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchXP();
+        fetchXP().then(() => {
+          // Auto-sync after initial fetch
+          syncXP();
+        });
       } else {
         setIsLoading(false);
       }
@@ -112,7 +137,10 @@ export function XPProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        fetchXP();
+        fetchXP().then(() => {
+          // Auto-sync on sign in
+          syncXP();
+        });
       } else if (event === 'SIGNED_OUT') {
         setXP(null);
         setIsLoading(false);
@@ -120,7 +148,7 @@ export function XPProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchXP]);
+  }, [fetchXP, syncXP]);
 
   // Listen for XP update events from apps
   useEffect(() => {
