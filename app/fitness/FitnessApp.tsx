@@ -4145,6 +4145,80 @@ export default function FitnessApp() {
           text-transform: capitalize;
         }
 
+        /* Body Part Distribution */
+        .body-part-distribution {
+          margin-top: 20px;
+          padding: 16px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+        }
+
+        .distribution-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .distribution-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .distribution-total {
+          font-size: 12px;
+          color: var(--text-secondary);
+        }
+
+        .distribution-bars {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .distribution-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .distribution-label {
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          width: 65px;
+          flex-shrink: 0;
+        }
+
+        .distribution-bar-container {
+          flex: 1;
+          height: 12px;
+          background: var(--bg);
+          border-radius: 6px;
+          overflow: hidden;
+        }
+
+        .distribution-bar {
+          height: 100%;
+          border-radius: 6px;
+          transition: width 0.3s ease;
+        }
+
+        .distribution-value {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-primary);
+          min-width: 55px;
+          text-align: right;
+        }
+
+        .distribution-percent {
+          font-weight: 400;
+          color: var(--text-tertiary);
+        }
+
         /* Workout Builder Modal */
         .workout-builder-modal {
           max-width: 480px;
@@ -8139,6 +8213,95 @@ gamify.it.com/fitness`;
                         );
                       })}
                     </div>
+
+                    {/* Body Part Distribution Graph */}
+                    {(() => {
+                      // Calculate muscle group distribution
+                      const muscleCount: Record<string, number> = {};
+                      const weeks = store.programWizardData.weeks || [];
+                      const week1 = weeks[0] || { weekNumber: 1, days: [] };
+
+                      week1.days.forEach(day => {
+                        if (day.templateId && !day.isRest) {
+                          const template = store.templates.find(t => t.id === day.templateId);
+                          template?.exercises.forEach(ex => {
+                            const exercise = getExerciseById(ex.exerciseId);
+                            if (exercise?.muscle) {
+                              const muscle = exercise.muscle;
+                              // Count sets, not just exercises
+                              muscleCount[muscle] = (muscleCount[muscle] || 0) + (ex.targetSets || 1);
+                            }
+                          });
+                        }
+                      });
+
+                      const totalSets = Object.values(muscleCount).reduce((a, b) => a + b, 0);
+                      if (totalSets === 0) return null;
+
+                      // Sort by count descending
+                      const sortedMuscles = Object.entries(muscleCount)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 8); // Show top 8
+
+                      const muscleLabels: Record<string, string> = {
+                        chest: 'Chest',
+                        back: 'Back',
+                        shoulders: 'Shoulders',
+                        biceps: 'Biceps',
+                        triceps: 'Triceps',
+                        quads: 'Quads',
+                        hamstrings: 'Hams',
+                        glutes: 'Glutes',
+                        calves: 'Calves',
+                        core: 'Core',
+                        forearms: 'Forearms',
+                        traps: 'Traps',
+                      };
+
+                      const muscleColors: Record<string, string> = {
+                        chest: '#ef4444',
+                        back: '#3b82f6',
+                        shoulders: '#f59e0b',
+                        biceps: '#10b981',
+                        triceps: '#8b5cf6',
+                        quads: '#ec4899',
+                        hamstrings: '#f97316',
+                        glutes: '#06b6d4',
+                        calves: '#84cc16',
+                        core: '#6366f1',
+                        forearms: '#14b8a6',
+                        traps: '#a855f7',
+                      };
+
+                      return (
+                        <div className="body-part-distribution">
+                          <div className="distribution-header">
+                            <span className="distribution-title">Volume Distribution</span>
+                            <span className="distribution-total">{totalSets} sets/week</span>
+                          </div>
+                          <div className="distribution-bars">
+                            {sortedMuscles.map(([muscle, count]) => {
+                              const percent = Math.round((count / totalSets) * 100);
+                              return (
+                                <div key={muscle} className="distribution-row">
+                                  <span className="distribution-label">{muscleLabels[muscle] || muscle}</span>
+                                  <div className="distribution-bar-container">
+                                    <div
+                                      className="distribution-bar"
+                                      style={{
+                                        width: `${percent}%`,
+                                        backgroundColor: muscleColors[muscle] || '#6b7280'
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="distribution-value">{count} <span className="distribution-percent">({percent}%)</span></span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div className="deload-option">
                       <label>
