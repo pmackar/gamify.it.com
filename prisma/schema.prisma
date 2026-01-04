@@ -1386,3 +1386,263 @@ model ai_quest_usage {
   @@unique([user_id, month])
   @@index([user_id])
 }
+
+// ============================================
+// WEEKLY LEAGUES SYSTEM
+// ============================================
+
+enum league_tier {
+  BRONZE      // Tier 1 - Starting tier
+  SILVER      // Tier 2
+  GOLD        // Tier 3
+  PLATINUM    // Tier 4
+  DIAMOND     // Tier 5
+  OBSIDIAN    // Tier 6
+  LEGENDARY   // Tier 7 - Top tier
+}
+
+/// Weekly league instances (30 users per league)
+model leagues {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tier        league_tier @default(BRONZE)
+  week_start  DateTime    @db.Date  // Start of the week
+  week_end    DateTime    @db.Date  // End of the week (Sunday 11:59pm)
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+
+  members     league_members[]
+
+  @@index([tier])
+  @@index([week_start])
+  @@index([week_end])
+}
+
+/// User membership in a weekly league
+model league_members {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  league_id   String    @db.Uuid
+  league      leagues   @relation(fields: [league_id], references: [id], onDelete: Cascade)
+  user_id     String    @db.Uuid
+  weekly_xp   Int       @default(0)  // XP earned this week
+  rank        Int?                   // Current position in league
+  promoted    Boolean?               // True if promoted after week ends
+  demoted     Boolean?               // True if demoted after week ends
+  joined_at   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([league_id, user_id])
+  @@unique([user_id, league_id]) // For finding user's league
+  @@index([league_id])
+  @@index([user_id])
+  @@index([weekly_xp])
+}
+
+/// Historical league performance
+model league_history {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String      @db.Uuid
+  week_start      DateTime    @db.Date
+  week_end        DateTime    @db.Date
+  tier            league_tier
+  final_rank      Int
+  weekly_xp       Int
+  promoted        Boolean     @default(false)
+  demoted         Boolean     @default(false)
+  badge_earned    String?     // 'top_3', 'top_10', 'promoted', etc.
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, week_start])
+  @@index([user_id])
+  @@index([week_start])
+}
+
+/// User's overall league stats
+model league_stats {
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String      @unique @db.Uuid
+  current_tier        league_tier @default(BRONZE)
+  highest_tier        league_tier @default(BRONZE)
+  weeks_participated  Int         @default(0)
+  total_promotions    Int         @default(0)
+  total_demotions     Int         @default(0)
+  top_3_finishes      Int         @default(0)
+  first_place_wins    Int         @default(0)
+  updated_at          DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+  @@index([current_tier])
+}
+
+// ============================================
+// BATTLE PASS / SEASONS SYSTEM
+// ============================================
+
+enum season_status {
+  UPCOMING
+  ACTIVE
+  ENDED
+}
+
+/// Season definition (90 days, 50 tiers)
+model seasons {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String        // "Summer Grind", "Winter Warrior"
+  theme         String?       // Visual theme identifier
+  description   String?
+  icon          String?       // Emoji or icon code
+  starts_at     DateTime      @db.Timestamptz(6)
+  ends_at       DateTime      @db.Timestamptz(6)
+  tier_count    Int           @default(50)
+  xp_per_tier   Int           @default(1000)  // Season XP needed per tier
+  status        season_status @default(UPCOMING)
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+
+  tiers         season_tiers[]
+  challenges    season_challenges[]
+  user_progress user_season_progress[]
+
+  @@index([status])
+  @@index([starts_at])
+  @@index([ends_at])
+}
+
+/// Rewards for each tier in a season
+model season_tiers {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id       String   @db.Uuid
+  season          seasons  @relation(fields: [season_id], references: [id], onDelete: Cascade)
+  tier_number     Int      // 1-50
+  free_reward     Json     // { type: 'xp', amount: 100 } or { type: 'item', code: 'streak_shield' }
+  premium_reward  Json?    // { type: 'cosmetic', code: 'frame_gold' }
+  is_milestone    Boolean  @default(false)  // Every 5 or 10 tiers
+
+  @@unique([season_id, tier_number])
+  @@index([season_id])
+}
+
+/// User's progress in a season
+model user_season_progress {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String    @db.Uuid
+  season_id     String    @db.Uuid
+  season        seasons   @relation(fields: [season_id], references: [id], onDelete: Cascade)
+  season_xp     Int       @default(0)       // XP earned this season
+  current_tier  Int       @default(0)       // Current unlocked tier
+  has_premium   Boolean   @default(false)   // Purchased battle pass
+  claimed_free  Int[]     @default([])      // Array of claimed free tier numbers
+  claimed_premium Int[]   @default([])      // Array of claimed premium tier numbers
+  purchased_at  DateTime? @db.Timestamptz(6)  // When premium was purchased
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, season_id])
+  @@index([user_id])
+  @@index([season_id])
+}
+
+/// Cross-app challenges for bonus season XP
+model season_challenges {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id       String   @db.Uuid
+  season          seasons  @relation(fields: [season_id], references: [id], onDelete: Cascade)
+  title           String   // "Triple Crown"
+  description     String   // "Complete a workout, task, and location in same day"
+  type            String   // 'daily', 'weekly', 'season'
+  requirements    Json     // { apps: ['fitness', 'today', 'travel'], counts: [1, 1, 1] }
+  xp_reward       Int      @default(100)  // Season XP reward
+  starts_at       DateTime? @db.Timestamptz(6)  // For time-limited challenges
+  ends_at         DateTime? @db.Timestamptz(6)
+  sort_order      Int      @default(0)
+  active          Boolean  @default(true)
+
+  completions     season_challenge_completions[]
+
+  @@index([season_id])
+  @@index([type])
+  @@index([active])
+}
+
+/// Track user completion of season challenges
+model season_challenge_completions {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String            @db.Uuid
+  challenge_id    String            @db.Uuid
+  challenge       season_challenges @relation(fields: [challenge_id], references: [id], onDelete: Cascade)
+  progress        Json              @default("{}")  // Track progress toward requirements
+  completed       Boolean           @default(false)
+  completed_at    DateTime?         @db.Timestamptz(6)
+  xp_claimed      Boolean           @default(false)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, challenge_id])
+  @@index([user_id])
+  @@index([challenge_id])
+  @@index([completed])
+}
+
+// ============================================
+// PUSH NOTIFICATIONS SYSTEM
+// ============================================
+
+/// Web push subscriptions
+model push_subscriptions {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String   @db.Uuid
+  endpoint      String   @unique  // Push service endpoint
+  p256dh        String   // Public key
+  auth          String   // Auth secret
+  user_agent    String?  // Browser/device info
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  last_used     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+}
+
+/// User notification preferences
+model notification_preferences {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String   @unique @db.Uuid
+
+  // Push notification toggles
+  push_enabled          Boolean  @default(true)
+  streak_reminder_6pm   Boolean  @default(true)   // "Don't forget to stay active!"
+  streak_danger_9pm     Boolean  @default(true)   // "Streak at risk!"
+  achievement_unlock    Boolean  @default(true)   // New achievement earned
+  league_updates        Boolean  @default(true)   // Promotion/demotion, rank changes
+  daily_summary         Boolean  @default(false)  // Optional daily digest
+  friend_activity       Boolean  @default(true)   // Friend requests, kudos
+
+  // Email notification toggles
+  email_enabled         Boolean  @default(true)
+  email_weekly_digest   Boolean  @default(true)
+  email_streak_danger   Boolean  @default(true)   // Email if push not opened
+  email_promotions      Boolean  @default(false)  // Marketing emails
+
+  // Quiet hours
+  quiet_start           String?  // "22:00"
+  quiet_end             String?  // "08:00"
+  timezone              String   @default("America/Los_Angeles")
+
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+}
+
+/// Notification history (for analytics and retry logic)
+model notification_log {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @db.Uuid
+  type            String   // 'streak_reminder', 'achievement', 'league', etc.
+  channel         String   // 'push', 'email'
+  title           String
+  body            String?
+  data            Json?    // Additional payload
+  sent_at         DateTime @default(now()) @db.Timestamptz(6)
+  delivered       Boolean? // Push delivery confirmed
+  opened          Boolean  @default(false)
+  opened_at       DateTime? @db.Timestamptz(6)
+  error           String?  // If failed
+
+  @@index([user_id])
+  @@index([type])
+  @@index([sent_at])
+}

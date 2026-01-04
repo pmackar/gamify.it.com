@@ -8,6 +8,10 @@ import {
   BarChart3,
   Shield,
   ArrowLeft,
+  Trophy,
+  Sword,
+  Bell,
+  Backpack,
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +19,12 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/admin/moderation", label: "Moderation", icon: Shield },
+];
+
+const featurePreviewItems = [
+  { href: "/leagues", label: "Weekly Leagues", icon: Trophy },
+  { href: "/battle-pass", label: "Battle Pass", icon: Sword },
+  { href: "/inventory", label: "Inventory", icon: Backpack },
 ];
 
 export default async function AdminLayout({
@@ -68,7 +78,7 @@ export default async function AdminLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -82,6 +92,29 @@ export default async function AdminLayout({
               <span className="text-sm font-medium">{item.label}</span>
             </Link>
           ))}
+
+          {/* Feature Previews Section */}
+          <div className="pt-4 mt-4 border-t" style={{ borderColor: "var(--rpg-border)" }}>
+            <p
+              className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--rpg-gold)", fontFamily: "var(--font-pixel)", fontSize: "8px" }}
+            >
+              Feature Previews
+            </p>
+            {featurePreviewItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+                style={{
+                  color: "var(--rpg-text-dim)",
+                }}
+              >
+                <item.icon size={18} />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            ))}
+          </div>
         </nav>
 
         {/* Back to app */}

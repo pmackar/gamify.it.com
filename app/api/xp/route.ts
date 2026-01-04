@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSupabaseUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { rollForLoot, LootDrop, ItemRarity, getItem } from '@/lib/loot';
+import { addWeeklyXp } from '@/lib/leagues';
+import { addSeasonXp } from '@/lib/seasons';
 
 // XP required per level (each level needs 1.5x more)
 function calculateXPForLevel(level: number): number {
@@ -227,6 +229,21 @@ export async function POST(request: Request) {
         updated_at: new Date(),
       },
     });
+
+    // --- Track Weekly League XP ---
+    try {
+      await addWeeklyXp(user.id, finalXP);
+    } catch (leagueError) {
+      // Don't fail the XP award if league tracking fails
+      console.error('Failed to update league XP:', leagueError);
+    }
+
+    // --- Track Season XP ---
+    try {
+      await addSeasonXp(user.id, finalXP);
+    } catch (seasonError) {
+      console.error('Failed to update season XP:', seasonError);
+    }
 
     // --- Update App-specific XP ---
     let appProfile = await prisma.app_profiles.findUnique({
