@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { withAuth, Errors } from "@/lib/api";
 
 // Calculate level and XP progress from total XP
 function calculateLevelFromXP(totalXp: number) {
@@ -31,10 +31,8 @@ function calculateAppXPToNext(level: number): number {
   return xpNeeded;
 }
 
-export async function GET() {
+export const GET = withAuth(async (_request, user) => {
   try {
-    const user = await requireAuth();
-
     // Get stats from new schema
     const [locationsCount, achievementsCount, appProfiles] = await Promise.all([
       prisma.travel_locations.count({
@@ -85,13 +83,7 @@ export async function GET() {
       apps,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
     console.error("Error fetching profile:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch profile" },
-      { status: 500 }
-    );
+    return Errors.database("Failed to fetch profile");
   }
-}
+});

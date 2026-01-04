@@ -1,120 +1,115 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import prisma from "@/lib/db";
+import { withAuth, Errors } from "@/lib/api";
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+// Calculate level and XP progress from total XP
+function calculateLevelFromXP(totalXp: number) {
+  let level = 1;
+  let xpNeeded = 100;
+  let cumulativeXP = 0;
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  while (cumulativeXP + xpNeeded <= totalXp) {
+    cumulativeXP += xpNeeded;
+    level++;
+    xpNeeded = Math.floor(xpNeeded * 1.5);
   }
 
-  // Fetch main profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  // Fetch app profiles
-  const { data: appProfiles } = await supabase
-    .from('app_profiles')
-    .select('*')
-    .eq('user_id', user.id);
-
-  // Fetch user achievements
-  const { data: userAchievements } = await supabase
-    .from('user_achievements')
-    .select(`
-      *,
-      achievement:achievements(*)
-    `)
-    .eq('user_id', user.id)
-    .eq('is_completed', true);
-
-  // Calculate level and XP progress from total XP
-  const calculateLevelFromXP = (totalXp: number) => {
-    let level = 1;
-    let xpNeeded = 100;
-    let cumulativeXP = 0;
-
-    while (cumulativeXP + xpNeeded <= totalXp) {
-      cumulativeXP += xpNeeded;
-      level++;
-      xpNeeded = Math.floor(xpNeeded * 1.5);
-    }
-
-    return {
-      level,
-      currentLevelXP: totalXp - cumulativeXP,
-      xpToNext: xpNeeded,
-    };
+  return {
+    level,
+    currentLevelXP: totalXp - cumulativeXP,
+    xpToNext: xpNeeded,
   };
-
-  const totalXP = profile?.total_xp || 0;
-  const { level: mainLevel, currentLevelXP, xpToNext } = calculateLevelFromXP(totalXP);
-
-  // Build app data with icons and colors
-  const appData = [
-    {
-      id: 'fitness',
-      name: 'Iron Quest',
-      icon: '💪',
-      color: '#FF6B6B',
-      url: '/fitness',
-      profile: appProfiles?.find(p => p.app_id === 'fitness'),
-    },
-    {
-      id: 'travel',
-      name: 'Explorer',
-      icon: '✈️',
-      color: '#5CC9F5',
-      url: '/travel',
-      profile: appProfiles?.find(p => p.app_id === 'travel'),
-    },
-    {
-      id: 'today',
-      name: 'Day Quest',
-      icon: '✅',
-      color: '#7FD954',
-      url: '/today',
-      profile: appProfiles?.find(p => p.app_id === 'today'),
-    },
-  ];
-
-  return NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      displayName: profile?.display_name || user.user_metadata?.full_name || user.email?.split('@')[0],
-      avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url,
-      username: profile?.username,
-      bio: profile?.bio,
-    },
-    mainStats: {
-      level: mainLevel,
-      totalXP,
-      currentLevelXP,
-      xpToNext,
-      currentStreak: profile?.current_streak || 0,
-      longestStreak: profile?.longest_streak || 0,
-    },
-    apps: appData,
-    achievements: {
-      total: userAchievements?.length || 0,
-      list: userAchievements?.map(ua => ({
-        id: ua.id,
-        code: ua.achievement?.code,
-        name: ua.achievement?.name,
-        description: ua.achievement?.description,
-        icon: ua.achievement?.icon,
-        appId: ua.achievement?.app_id,
-        completedAt: ua.completed_at,
-        xpReward: ua.achievement?.xp_reward,
-        tier: ua.achievement?.tier || 1,
-        category: ua.achievement?.category || 'general',
-      })) || [],
-    },
-    memberSince: profile?.created_at || user.created_at,
-  });
 }
+
+export const GET = withAuth(async (_request, user) => {
+  try {
+    // Fetch profile data using Prisma
+    const profile = await prisma.profiles.findUnique({
+      where: { id: user.id },
+    });
+
+    // Fetch app profiles
+    const appProfiles = await prisma.app_profiles.findMany({
+      where: { user_id: user.id },
+    });
+
+    // Fetch user achievements
+    const userAchievements = await prisma.user_achievements.findMany({
+      where: { user_id: user.id, is_completed: true },
+      include: {
+        achievements: true,
+      },
+    });
+
+    const totalXP = profile?.total_xp || 0;
+    const { level: mainLevel, currentLevelXP, xpToNext } = calculateLevelFromXP(totalXP);
+
+    // Build app data with icons and colors
+    const appData = [
+      {
+        id: "fitness",
+        name: "Iron Quest",
+        icon: "💪",
+        color: "#FF6B6B",
+        url: "/fitness",
+        profile: appProfiles?.find((p) => p.app_id === "fitness"),
+      },
+      {
+        id: "travel",
+        name: "Explorer",
+        icon: "✈️",
+        color: "#5CC9F5",
+        url: "/travel",
+        profile: appProfiles?.find((p) => p.app_id === "travel"),
+      },
+      {
+        id: "today",
+        name: "Day Quest",
+        icon: "✅",
+        color: "#7FD954",
+        url: "/today",
+        profile: appProfiles?.find((p) => p.app_id === "today"),
+      },
+    ];
+
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: profile?.display_name || user.name || user.email?.split("@")[0],
+        avatarUrl: profile?.avatar_url || user.image,
+        username: profile?.username,
+        bio: profile?.bio,
+      },
+      mainStats: {
+        level: mainLevel,
+        totalXP,
+        currentLevelXP,
+        xpToNext,
+        currentStreak: profile?.current_streak || 0,
+        longestStreak: profile?.longest_streak || 0,
+      },
+      apps: appData,
+      achievements: {
+        total: userAchievements?.length || 0,
+        list:
+          userAchievements?.map((ua) => ({
+            id: ua.id,
+            code: ua.achievements?.code,
+            name: ua.achievements?.name,
+            description: ua.achievements?.description,
+            icon: ua.achievements?.icon,
+            appId: ua.achievements?.app_id,
+            completedAt: ua.completed_at,
+            xpReward: ua.achievements?.xp_reward,
+            tier: ua.achievements?.tier || 1,
+            category: ua.achievements?.category || "general",
+          })) || [],
+      },
+      memberSince: profile?.created_at || user.createdAt,
+    });
+  } catch (error) {
+    console.error("Error fetching account:", error);
+    return Errors.database("Failed to fetch account");
+  }
+});

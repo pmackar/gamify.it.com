@@ -1,36 +1,31 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
-import prisma from '@/lib/db';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { withAuth, Errors } from "@/lib/api";
 
 /**
  * GET /api/loot/inventory
  *
  * Get user's inventory
  */
-export async function GET() {
+export const GET = withAuth(async (_request, user) => {
   try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const inventory = await prisma.user_inventory.findMany({
       where: { user_id: user.id },
       include: {
         item: true,
       },
       orderBy: [
-        { item: { rarity: 'desc' } },
-        { acquired_at: 'desc' },
+        { item: { rarity: "desc" } },
+        { acquired_at: "desc" },
       ],
     });
 
     // Group items by type
     const grouped = {
-      consumables: inventory.filter((i) => i.item.type === 'CONSUMABLE'),
-      cosmetics: inventory.filter((i) => i.item.type === 'COSMETIC'),
-      pets: inventory.filter((i) => i.item.type === 'PET'),
-      currency: inventory.filter((i) => i.item.type === 'CURRENCY'),
+      consumables: inventory.filter((i) => i.item.type === "CONSUMABLE"),
+      cosmetics: inventory.filter((i) => i.item.type === "COSMETIC"),
+      pets: inventory.filter((i) => i.item.type === "PET"),
+      currency: inventory.filter((i) => i.item.type === "CURRENCY"),
     };
 
     // Calculate totals
@@ -38,10 +33,10 @@ export async function GET() {
       items: inventory.length,
       uniqueItems: new Set(inventory.map((i) => i.item.code)).size,
       byRarity: {
-        COMMON: inventory.filter((i) => i.item.rarity === 'COMMON').length,
-        RARE: inventory.filter((i) => i.item.rarity === 'RARE').length,
-        EPIC: inventory.filter((i) => i.item.rarity === 'EPIC').length,
-        LEGENDARY: inventory.filter((i) => i.item.rarity === 'LEGENDARY').length,
+        COMMON: inventory.filter((i) => i.item.rarity === "COMMON").length,
+        RARE: inventory.filter((i) => i.item.rarity === "RARE").length,
+        EPIC: inventory.filter((i) => i.item.rarity === "EPIC").length,
+        LEGENDARY: inventory.filter((i) => i.item.rarity === "LEGENDARY").length,
       },
     };
 
@@ -74,7 +69,7 @@ export async function GET() {
       totals,
     });
   } catch (error) {
-    console.error('Inventory fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Inventory fetch error:", error);
+    return Errors.database("Failed to fetch inventory");
   }
-}
+});

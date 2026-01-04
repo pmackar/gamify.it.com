@@ -1,100 +1,91 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser, getUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import prisma from "@/lib/db";
+import { withAuth, validateBody, validateQuery, Errors } from "@/lib/api";
 
-export async function GET(req: NextRequest) {
-  try {
-    // Use lightweight auth for read-only endpoint
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+// Query params schema for GET
+const neighborhoodsQuerySchema = z.object({
+  cityId: z.string().uuid().optional(),
+});
 
-    const { searchParams } = new URL(req.url);
-    const cityId = searchParams.get("cityId");
+// Body schema for POST
+const createNeighborhoodSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  cityId: z.string().uuid(),
+  description: z.string().max(2000).optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+});
 
-    // Note: Not filtering by user_id (personal app)
-    const where: { city_id?: string } = {};
-    if (cityId) {
-      where.city_id = cityId;
-    }
+// GET /api/neighborhoods
+export const GET = withAuth(async (request, user) => {
+  const params = validateQuery(request, neighborhoodsQuerySchema);
+  if (params instanceof NextResponse) return params;
 
-    const neighborhoods = await prisma.travel_neighborhoods.findMany({
-      where,
-      include: {
-        city: {
-          select: { id: true, name: true, country: true },
-        },
-        locations: {
-          select: { id: true },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
+  const { cityId } = params;
 
-    return NextResponse.json(
-      neighborhoods.map((n) => ({
-        id: n.id,
-        name: n.name,
-        description: n.description,
-        latitude: n.latitude,
-        longitude: n.longitude,
-        cityId: n.city_id,
-        city: n.city,
-        locationCount: n.locations.length,
-      }))
-    );
-  } catch (error) {
-    console.error("Error fetching neighborhoods:", error);
-    return NextResponse.json({ error: "Failed to fetch neighborhoods" }, { status: 500 });
+  const where: { user_id: string; city_id?: string } = { user_id: user.id };
+  if (cityId) {
+    where.city_id = cityId;
   }
-}
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { name, description, cityId, latitude, longitude } = body;
-
-    if (!name || !cityId) {
-      return NextResponse.json(
-        { error: "Name and cityId are required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify user owns the city
-    const city = await prisma.travel_cities.findFirst({
-      where: { id: cityId, user_id: user.id },
-    });
-
-    if (!city) {
-      return NextResponse.json(
-        { error: "City not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if neighborhood already exists
-    const existing = await prisma.travel_neighborhoods.findFirst({
-      where: {
-        user_id: user.id,
-        city_id: cityId,
-        name,
+  const neighborhoods = await prisma.travel_neighborhoods.findMany({
+    where,
+    include: {
+      city: {
+        select: { id: true, name: true, country: true },
       },
-    });
+      locations: {
+        select: { id: true },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
 
-    if (existing) {
-      return NextResponse.json(
-        { error: "Neighborhood already exists in this city" },
-        { status: 409 }
-      );
-    }
+  return NextResponse.json(
+    neighborhoods.map((n) => ({
+      id: n.id,
+      name: n.name,
+      description: n.description,
+      latitude: n.latitude,
+      longitude: n.longitude,
+      cityId: n.city_id,
+      city: n.city,
+      locationCount: n.locations.length,
+    }))
+  );
+});
 
+// POST /api/neighborhoods
+export const POST = withAuth(async (request, user) => {
+  const body = await validateBody(request, createNeighborhoodSchema);
+  if (body instanceof NextResponse) return body;
+
+  const { name, description, cityId, latitude, longitude } = body;
+
+  // Verify user owns the city
+  const city = await prisma.travel_cities.findFirst({
+    where: { id: cityId, user_id: user.id },
+  });
+
+  if (!city) {
+    return Errors.notFound("City");
+  }
+
+  // Check if neighborhood already exists
+  const existing = await prisma.travel_neighborhoods.findFirst({
+    where: {
+      user_id: user.id,
+      city_id: cityId,
+      name,
+    },
+  });
+
+  if (existing) {
+    return Errors.conflict("Neighborhood already exists in this city");
+  }
+
+  try {
     const neighborhood = await prisma.travel_neighborhoods.create({
       data: {
         user_id: user.id,
@@ -116,6 +107,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating neighborhood:", error);
-    return NextResponse.json({ error: "Failed to create neighborhood" }, { status: 500 });
+    return Errors.database("Failed to create neighborhood");
   }
-}
+});

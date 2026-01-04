@@ -1,14 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/db';
+import { withAuth, validateBody, Errors } from '@/lib/api';
+
+// Schema for today sync data - accepts any JSON object
+const syncSchema = z.object({
+  data: z.record(z.string(), z.unknown()),
+});
 
 // GET - Fetch user's synced state
-export async function GET() {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withAuth(async (_request, user) => {
   const data = await prisma.gamify_today_data.findUnique({
     where: { user_id: user.id },
   });
@@ -21,35 +23,27 @@ export async function GET() {
     data: data.data,
     updated_at: data.updated_at?.toISOString() || null,
   });
-}
+});
 
 // POST - Save user's state
-export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const POST = withAuth(async (request, user) => {
+  const body = await validateBody(request, syncSchema);
+  if (body instanceof NextResponse) return body;
+
+  const now = new Date();
 
   try {
-    const body = await request.json();
-    const { data } = body;
+    const jsonData = body.data as Prisma.InputJsonValue;
 
-    if (!data) {
-      return NextResponse.json({ error: 'Missing data' }, { status: 400 });
-    }
-
-    const now = new Date();
-
-    // Upsert the data
     await prisma.gamify_today_data.upsert({
       where: { user_id: user.id },
       update: {
-        data: data,
+        data: jsonData,
         updated_at: now,
       },
       create: {
         user_id: user.id,
-        data: data,
+        data: jsonData,
         updated_at: now,
       },
     });
@@ -60,6 +54,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Today sync error:', error);
-    return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
+    return Errors.database('Failed to sync today data');
   }
-}
+});

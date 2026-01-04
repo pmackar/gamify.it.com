@@ -1,16 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import prisma from "@/lib/db";
+import { withAuth, validateBody, validateQuery, Errors, SelectFields } from "@/lib/api";
+
+// Query schema for GET
+const accountabilityQuerySchema = z.object({
+  status: z.enum(["pending", "active", "all"]).optional(),
+});
+
+// Body schema for POST
+const createPartnershipSchema = z.object({
+  partnerId: z.string().uuid(),
+  message: z.string().max(500).optional().nullable(),
+});
 
 // GET /api/accountability - List user's accountability partnerships
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withAuth(async (request, user) => {
+  const params = validateQuery(request, accountabilityQuerySchema);
+  if (params instanceof NextResponse) return params;
 
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status"); // 'pending', 'active', 'all'
+  const { status } = params;
 
   const where: Record<string, unknown> = {
     OR: [{ requester_id: user.id }, { partner_id: user.id }],
@@ -28,20 +37,10 @@ export async function GET(request: NextRequest) {
     where,
     include: {
       requester: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
-          avatar_url: true,
-        },
+        select: SelectFields.userPublic,
       },
       partner: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
-          avatar_url: true,
-        },
+        select: SelectFields.userPublic,
       },
       goals: {
         where: { active: true },
@@ -129,33 +128,20 @@ export async function GET(request: NextRequest) {
       };
     }),
   });
-}
+});
 
 // POST /api/accountability - Request a new accountability partnership
-export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const POST = withAuth(async (request, user) => {
+  const body = await validateBody(request, createPartnershipSchema);
+  if (body instanceof NextResponse) return body;
+
+  const { partnerId, message } = body;
+
+  if (partnerId === user.id) {
+    return Errors.invalidInput("Cannot partner with yourself");
   }
 
   try {
-    const body = await request.json();
-    const { partnerId, message } = body;
-
-    if (!partnerId) {
-      return NextResponse.json(
-        { error: "Partner ID is required" },
-        { status: 400 }
-      );
-    }
-
-    if (partnerId === user.id) {
-      return NextResponse.json(
-        { error: "Cannot partner with yourself" },
-        { status: 400 }
-      );
-    }
-
     // Check if already have a partnership
     const existing = await prisma.accountability_partnerships.findFirst({
       where: {
@@ -168,10 +154,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing) {
-      return NextResponse.json(
-        { error: "Partnership already exists" },
-        { status: 400 }
-      );
+      return Errors.conflict("Partnership already exists");
     }
 
     // Check if users are friends
@@ -186,10 +169,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!friendship) {
-      return NextResponse.json(
-        { error: "Must be friends to start a partnership" },
-        { status: 400 }
-      );
+      return Errors.invalidInput("Must be friends to start a partnership");
     }
 
     // Create partnership
@@ -216,7 +196,7 @@ export async function POST(request: NextRequest) {
       data: {
         user_id: partnerId,
         actor_id: user.id,
-        type: "FRIEND_REQUEST_RECEIVED", // Reusing for partnership requests
+        type: "FRIEND_REQUEST_RECEIVED",
         entity_type: "accountability_partnership",
         entity_id: partnership.id,
         metadata: {
@@ -239,9 +219,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating partnership:", error);
-    return NextResponse.json(
-      { error: "Failed to create partnership" },
-      { status: 500 }
-    );
+    return Errors.database("Failed to create partnership");
   }
-}
+});

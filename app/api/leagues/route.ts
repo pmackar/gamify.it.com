@@ -1,19 +1,14 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
-import { getUserLeagueStatus, joinLeague, getLeagueStandings, LEAGUE_TIERS } from '@/lib/leagues';
+import { NextResponse } from "next/server";
+import { withAuth, Errors } from "@/lib/api";
+import { getUserLeagueStatus, joinLeague, getLeagueStandings, LEAGUE_TIERS } from "@/lib/leagues";
 
 /**
  * GET /api/leagues
  *
  * Get user's current league status and standings
  */
-export async function GET() {
+export const GET = withAuth(async (_request, user) => {
   try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const status = await getUserLeagueStatus(user.id);
 
     if (!status) {
@@ -35,23 +30,18 @@ export async function GET() {
       tiers: LEAGUE_TIERS,
     });
   } catch (error) {
-    console.error('Get leagues error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Get leagues error:", error);
+    return Errors.database("Failed to fetch league status");
   }
-}
+});
 
 /**
  * POST /api/leagues
  *
  * Join or re-join a league for the current week
  */
-export async function POST() {
+export const POST = withAuth(async (_request, user) => {
   try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const result = await joinLeague(user.id);
     const status = await getUserLeagueStatus(user.id);
     const standings = await getLeagueStandings(result.leagueId);
@@ -65,7 +55,7 @@ export async function POST() {
       standings,
     });
   } catch (error) {
-    console.error('Join league error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Join league error:", error);
+    return Errors.database("Failed to join league");
   }
-}
+});

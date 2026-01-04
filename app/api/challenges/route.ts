@@ -1,17 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import prisma from "@/lib/db";
+import { withAuth, validateBody, validateQuery, Errors, SelectFields } from "@/lib/api";
+
+// Query schema for GET
+const challengesQuerySchema = z.object({
+  status: z.enum(["active", "completed", "all"]).optional(),
+  app: z.enum(["fitness", "travel", "today"]).optional(),
+});
+
+// Challenge types matching the Prisma enum
+const challengeTypes = [
+  "FITNESS_WORKOUTS",
+  "FITNESS_VOLUME",
+  "FITNESS_XP",
+  "TRAVEL_LOCATIONS",
+  "TRAVEL_CITIES",
+  "TODAY_HABITS",
+  "TODAY_STREAK",
+  "CUSTOM",
+] as const;
+
+// Body schema for POST
+const createChallengeSchema = z.object({
+  title: z.string().trim().min(1).max(100),
+  description: z.string().max(500).optional().nullable(),
+  type: z.enum(challengeTypes),
+  appId: z.enum(["fitness", "travel", "today"]),
+  metric: z.string().optional().nullable(),
+  target: z.number().int().positive().optional().nullable(),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  xpReward: z.number().int().min(0).max(1000).default(100),
+  icon: z.string().optional().nullable(),
+  inviteUserIds: z.array(z.string().uuid()).optional(),
+});
 
 // GET /api/challenges - List challenges (user's + friends')
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withAuth(async (request, user) => {
+  const params = validateQuery(request, challengesQuerySchema);
+  if (params instanceof NextResponse) return params;
 
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status"); // 'active', 'completed', 'all'
-  const app = searchParams.get("app"); // 'fitness', 'travel', 'today'
+  const { status, app } = params;
 
   // Get user's friends
   const friendships = await prisma.friendships.findMany({
@@ -56,22 +86,12 @@ export async function GET(request: NextRequest) {
     where,
     include: {
       creator: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
-          avatar_url: true,
-        },
+        select: SelectFields.userPublic,
       },
       participants: {
         include: {
           user: {
-            select: {
-              id: true,
-              username: true,
-              display_name: true,
-              avatar_url: true,
-            },
+            select: SelectFields.userPublic,
           },
         },
         orderBy: { score: "desc" },
@@ -124,46 +144,33 @@ export async function GET(request: NextRequest) {
       ),
     })),
   });
-}
+});
 
 // POST /api/challenges - Create a new challenge
-export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withAuth(async (request, user) => {
+  const body = await validateBody(request, createChallengeSchema);
+  if (body instanceof NextResponse) return body;
+
+  const {
+    title,
+    description,
+    type,
+    appId,
+    metric,
+    target,
+    startDate,
+    endDate,
+    xpReward,
+    icon,
+    inviteUserIds,
+  } = body;
 
   try {
-    const body = await request.json();
-    const {
-      title,
-      description,
-      type,
-      appId,
-      metric,
-      target,
-      startDate,
-      endDate,
-      xpReward,
-      icon,
-      inviteUserIds,
-    } = body;
-
-    if (!title || !type || !appId || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     if (end <= start) {
-      return NextResponse.json(
-        { error: "End date must be after start date" },
-        { status: 400 }
-      );
+      return Errors.invalidInput("End date must be after start date");
     }
 
     // Create challenge
@@ -179,7 +186,7 @@ export async function POST(request: NextRequest) {
         start_date: start,
         end_date: end,
         status: start <= new Date() ? "ACTIVE" : "DRAFT",
-        xp_reward: xpReward || 100,
+        xp_reward: xpReward,
         icon,
         participants: {
           create: {
@@ -191,22 +198,12 @@ export async function POST(request: NextRequest) {
       },
       include: {
         creator: {
-          select: {
-            id: true,
-            username: true,
-            display_name: true,
-            avatar_url: true,
-          },
+          select: SelectFields.userPublic,
         },
         participants: {
           include: {
             user: {
-              select: {
-                id: true,
-                username: true,
-                display_name: true,
-                avatar_url: true,
-              },
+              select: SelectFields.userPublic,
             },
           },
         },
@@ -214,7 +211,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Invite friends if specified
-    if (inviteUserIds && Array.isArray(inviteUserIds) && inviteUserIds.length > 0) {
+    if (inviteUserIds && inviteUserIds.length > 0) {
       await prisma.challenge_participants.createMany({
         data: inviteUserIds.map((userId: string) => ({
           challenge_id: challenge.id,
@@ -229,7 +226,7 @@ export async function POST(request: NextRequest) {
         data: inviteUserIds.map((userId: string) => ({
           user_id: userId,
           actor_id: user.id,
-          type: "PARTY_INVITE_RECEIVED", // Reusing for challenge invites
+          type: "PARTY_INVITE_RECEIVED",
           entity_type: "challenge",
           entity_id: challenge.id,
           metadata: {
@@ -255,9 +252,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating challenge:", error);
-    return NextResponse.json(
-      { error: "Failed to create challenge" },
-      { status: 500 }
-    );
+    return Errors.database("Failed to create challenge");
   }
-}
+});

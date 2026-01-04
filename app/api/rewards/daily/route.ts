@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
-import prisma from '@/lib/db';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { withAuth, Errors } from "@/lib/api";
 
 // Daily reward structure (7-day cycle)
 const DAILY_REWARDS = [
-  { day: 1, xp: 25, bonusItems: [] },
-  { day: 2, xp: 50, bonusItems: [] },
-  { day: 3, xp: 75, bonusItems: [], randomCosmeticChance: 0.2 },
-  { day: 4, xp: 100, bonusItems: [] },
-  { day: 5, xp: 150, bonusItems: ['streak_shield'] },
-  { day: 6, xp: 200, bonusItems: [] },
-  { day: 7, xp: 300, bonusItems: ['rare_loot_box'], guaranteedRareDrop: true },
+  { day: 1, xp: 25, bonusItems: [] as string[] },
+  { day: 2, xp: 50, bonusItems: [] as string[] },
+  { day: 3, xp: 75, bonusItems: [] as string[], randomCosmeticChance: 0.2 },
+  { day: 4, xp: 100, bonusItems: [] as string[] },
+  { day: 5, xp: 150, bonusItems: ["streak_shield"] },
+  { day: 6, xp: 200, bonusItems: [] as string[] },
+  { day: 7, xp: 300, bonusItems: ["rare_loot_box"], guaranteedRareDrop: true },
 ];
 
 // Get today's date at midnight (for comparison)
@@ -29,13 +29,8 @@ function getYesterday(): Date {
 }
 
 // GET - Check daily reward status
-export async function GET() {
+export const GET = withAuth(async (_request, user) => {
   try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const profile = await prisma.profiles.findUnique({
       where: { id: user.id },
       select: {
@@ -46,7 +41,7 @@ export async function GET() {
     });
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return Errors.notFound("Profile");
     }
 
     const today = getToday();
@@ -99,25 +94,20 @@ export async function GET() {
       lastClaimDate: lastClaim?.toISOString() || null,
     });
   } catch (error) {
-    console.error('Daily rewards GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Daily rewards GET error:", error);
+    return Errors.database("Failed to fetch daily rewards");
   }
-}
+});
 
 // POST - Claim daily reward
-export async function POST() {
+export const POST = withAuth(async (_request, user) => {
   try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const profile = await prisma.profiles.findUnique({
       where: { id: user.id },
     });
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return Errors.notFound("Profile");
     }
 
     const today = getToday();
@@ -129,10 +119,7 @@ export async function POST() {
     if (lastClaim) {
       lastClaim.setHours(0, 0, 0, 0);
       if (lastClaim.getTime() === today.getTime()) {
-        return NextResponse.json(
-          { error: 'Already claimed today', claimedToday: true },
-          { status: 400 }
-        );
+        return Errors.conflict("Already claimed today");
       }
     }
 
@@ -157,12 +144,12 @@ export async function POST() {
     const awardedItems: string[] = [...reward.bonusItems];
 
     // Random cosmetic chance on day 3
-    if (reward.randomCosmeticChance && Math.random() < reward.randomCosmeticChance) {
-      awardedItems.push('random_cosmetic');
+    if ("randomCosmeticChance" in reward && reward.randomCosmeticChance && Math.random() < reward.randomCosmeticChance) {
+      awardedItems.push("random_cosmetic");
     }
 
     // Update profile with new streak and claim date
-    const newStreakShields = reward.bonusItems.includes('streak_shield')
+    const newStreakShields = reward.bonusItems.includes("streak_shield")
       ? Math.min((profile.streak_shields || 0) + 1, 3) // Max 3 shields
       : profile.streak_shields || 0;
 
@@ -210,13 +197,13 @@ export async function POST() {
       weekView,
       message:
         rewardDay === 7
-          ? '🎉 Week complete! You earned a rare loot box!'
+          ? "🎉 Week complete! You earned a rare loot box!"
           : rewardDay === 5
-          ? '🛡️ You earned a Streak Shield!'
+          ? "🛡️ You earned a Streak Shield!"
           : `Day ${rewardDay} complete! +${reward.xp} XP`,
     });
   } catch (error) {
-    console.error('Daily rewards POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Daily rewards POST error:", error);
+    return Errors.database("Failed to claim daily reward");
   }
-}
+});
