@@ -100,6 +100,7 @@ export default function FitnessApp() {
   const [analyticsShowAllExercises, setAnalyticsShowAllExercises] = useState(false);
   const [analyticsCustomDateStart, setAnalyticsCustomDateStart] = useState<string>('');
   const [analyticsCustomDateEnd, setAnalyticsCustomDateEnd] = useState<string>('');
+  const [showEditPicker, setShowEditPicker] = useState<'exercise' | 'template' | 'program' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -463,6 +464,30 @@ export default function FitnessApp() {
     if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[12] });
     if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[13] });
 
+    // Edit commands
+    if ('edit'.startsWith(q) || 'modify'.startsWith(q) || 'change'.startsWith(q)) {
+      if (store.customExercises.length > 0) {
+        results.push({ type: 'edit-menu', id: 'edit-exercise', title: 'Edit Custom Exercise', subtitle: `${store.customExercises.length} custom exercises`, icon: '✏️' });
+      }
+      if (store.templates.length > 0) {
+        results.push({ type: 'edit-menu', id: 'edit-template', title: 'Edit Template', subtitle: `${store.templates.length} templates`, icon: '📝' });
+      }
+      if (store.programs.length > 0) {
+        results.push({ type: 'edit-menu', id: 'edit-program', title: 'Edit Program', subtitle: `${store.programs.length} programs`, icon: '📅' });
+      }
+    }
+
+    // Show custom exercises when in edit exercise mode
+    if (showEditPicker === 'exercise') {
+      for (const ex of store.customExercises) {
+        if (!q || ex.name.toLowerCase().includes(q)) {
+          const tierLabel = ex.tier === 1 ? 'T1' : ex.tier === 2 ? 'T2' : 'T3';
+          results.push({ type: 'edit-custom-exercise', id: ex.id, title: ex.name, subtitle: `${ex.muscle} • ${tierLabel}`, icon: '✏️' });
+        }
+      }
+      return results.slice(0, 10);
+    }
+
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
         results.push({ type: 'template', id: template.id, title: template.name, subtitle: `${template.exercises.length} exercises`, icon: '📝' });
@@ -478,7 +503,7 @@ export default function FitnessApp() {
     }
 
     return results.slice(0, 8);
-  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, addingGoal, searchingExercises]);
+  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, store.programs, addingGoal, searchingExercises, showEditPicker]);
 
   const suggestions = getSuggestions();
 
@@ -534,6 +559,23 @@ export default function FitnessApp() {
       case 'cancel-workout': if (confirm('Discard this workout?')) store.cancelWorkout(); break;
       case 'resume': store.setView('workout'); break;
       case 'history': store.setView('history'); break;
+      case 'edit-menu':
+        if (suggestion.id === 'edit-exercise') {
+          setShowEditPicker('exercise');
+          setQuery('');
+        } else if (suggestion.id === 'edit-template') {
+          store.setView('templates');
+        } else if (suggestion.id === 'edit-program') {
+          store.setView('programs');
+        }
+        break;
+      case 'edit-custom-exercise':
+        const customEx = store.customExercises.find(e => e.id === suggestion.id);
+        if (customEx) {
+          setEditingCustomExercise({ ...customEx, tier: customEx.tier || 3 });
+        }
+        setShowEditPicker(null);
+        break;
       case 'add-campaign-goal':
         if (selectedCampaignId) {
           const exercise = getExerciseById(suggestion.id);
@@ -5889,7 +5931,55 @@ export default function FitnessApp() {
           padding: 4px 8px;
           border-radius: 4px;
           text-transform: capitalize;
+        }
+
+        .exercise-info-card .tier-badge {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+
+        .exercise-info-card .tier-1 {
+          background: rgba(255, 215, 0, 0.2);
+          color: #FFD700;
+          border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .exercise-info-card .tier-2 {
+          background: rgba(95, 191, 138, 0.2);
+          color: #5fbf8a;
+          border: 1px solid rgba(95, 191, 138, 0.3);
+        }
+
+        .exercise-info-card .tier-3 {
+          background: rgba(107, 114, 128, 0.2);
+          color: #9ca3af;
+          border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
+        .custom-badge {
+          background: rgba(139, 92, 246, 0.2);
+          color: #a78bfa;
+          font-size: 10px;
+          font-weight: 500;
+          padding: 3px 6px;
+          border-radius: 4px;
           margin-left: auto;
+        }
+
+        .edit-exercise-btn {
+          background: transparent;
+          border: none;
+          font-size: 16px;
+          padding: 4px 8px;
+          cursor: pointer;
+          opacity: 0.7;
+          transition: opacity 0.2s;
+        }
+
+        .edit-exercise-btn:hover {
+          opacity: 1;
         }
 
         .secondary-muscles {
@@ -8513,7 +8603,22 @@ gamify.it.com/fitness`;
 
           {/* Exercise Detail View */}
           {store.currentView === 'exercise-detail' && exerciseDetailId && (() => {
-            const exercise = EXERCISES.find(e => e.id === exerciseDetailId);
+            // Check both built-in and custom exercises
+            const builtInExercise = EXERCISES.find(e => e.id === exerciseDetailId);
+            const customExercise = store.customExercises.find(e => e.id === exerciseDetailId);
+            const isCustom = !builtInExercise && !!customExercise;
+
+            // Create unified exercise object
+            const exercise = builtInExercise || (customExercise ? {
+              id: customExercise.id,
+              name: customExercise.name,
+              muscle: customExercise.muscle,
+              equipment: 'custom',
+              secondaryMuscles: [],
+              formTips: [],
+              commonMistakes: [],
+            } : null);
+
             if (!exercise) return null;
 
             // Get user's history with this exercise
@@ -8541,6 +8646,9 @@ gamify.it.com/fitness`;
             const lastWorkout = exerciseWorkouts[exerciseWorkouts.length - 1];
             const lastWorkoutDate = lastWorkout ? new Date(lastWorkout.startTime).toLocaleDateString() : null;
 
+            // Get tier for this exercise
+            const exerciseTier = getExerciseTier(exerciseDetailId, store.customExercises);
+
             return (
               <div className="view-content exercise-detail-view">
                 <div className="view-header">
@@ -8555,6 +8663,18 @@ gamify.it.com/fitness`;
                     }
                   }}>←</button>
                   <span className="view-title">{exercise.name}</span>
+                  {isCustom && (
+                    <button
+                      className="edit-exercise-btn"
+                      onClick={() => {
+                        if (customExercise) {
+                          setEditingCustomExercise({ ...customExercise, tier: customExercise.tier || 3 });
+                        }
+                      }}
+                    >
+                      ✏️
+                    </button>
+                  )}
                 </div>
 
                 {/* Exercise Info Card */}
@@ -8565,6 +8685,10 @@ gamify.it.com/fitness`;
                     </span>
                     <span className="muscle-name">{exercise.muscle.charAt(0).toUpperCase() + exercise.muscle.slice(1)}</span>
                     <span className="equipment-badge">{exercise.equipment}</span>
+                    <span className={`tier-badge tier-${exerciseTier}`}>
+                      T{exerciseTier}
+                    </span>
+                    {isCustom && <span className="custom-badge">Custom</span>}
                   </div>
 
                   {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
@@ -10767,17 +10891,22 @@ gamify.it.com/fitness`;
                           key={exercise.id}
                           className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
                           onClick={() => {
-                            if (!inWorkout) {
-                              // If no current workout, start one with this exercise
-                              if (store.currentWorkout) {
+                            if (store.currentWorkout) {
+                              // In active workout, add exercise
+                              if (!inWorkout) {
                                 store.addExerciseToWorkout(exercise.id);
-                              } else {
-                                store.startWorkoutWithExercise(exercise.id);
                               }
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                              setPickerSearchQuery('');
+                            } else {
+                              // Not in workout - go to exercise detail page
+                              setExerciseDetailId(exercise.id);
+                              setExerciseDetailReturnView('home');
+                              store.setView('exercise-detail');
+                              setShowExercisePicker(false);
+                              setPickerSearchQuery('');
                             }
-                            setShowExercisePicker(false);
-                            setSelectedCategory(null);
-                            setPickerSearchQuery('');
                           }}
                         >
                           <div className="exercise-item-icon">{inWorkout ? '✓' : categoryIcon}</div>
@@ -10840,17 +10969,23 @@ gamify.it.com/fitness`;
                           key={exercise.id}
                           className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
                           onClick={() => {
-                            if (!inWorkout) {
-                              // If no current workout, start one with this exercise
-                              if (store.currentWorkout) {
+                            if (store.currentWorkout) {
+                              // In active workout, add exercise
+                              if (!inWorkout) {
                                 store.addExerciseToWorkout(exercise.id);
-                              } else {
-                                store.startWorkoutWithExercise(exercise.id);
                               }
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                              setPickerSearchQuery('');
+                            } else {
+                              // Not in workout - go to exercise detail page
+                              setExerciseDetailId(exercise.id);
+                              setExerciseDetailReturnView('home');
+                              store.setView('exercise-detail');
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                              setPickerSearchQuery('');
                             }
-                            setShowExercisePicker(false);
-                            setSelectedCategory(null);
-                            setPickerSearchQuery('');
                           }}
                         >
                           <div className="exercise-item-icon">
@@ -10861,21 +10996,6 @@ gamify.it.com/fitness`;
                             <div className="exercise-item-equipment">{exercise.equipment}</div>
                           </div>
                           {inWorkout && <div className="exercise-item-check">Added</div>}
-                          <button
-                            className="exercise-info-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExerciseDetailReturnView(store.currentView);
-                              setExerciseDetailId(exercise.id);
-                              store.setView('exercise-detail');
-                              setShowExercisePicker(false);
-                              setSelectedCategory(null);
-                              setPickerSearchQuery('');
-                            }}
-                            title="View exercise details"
-                          >
-                            ℹ
-                          </button>
                         </div>
                       );
                     })}
