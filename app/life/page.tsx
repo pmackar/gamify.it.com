@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -80,6 +80,16 @@ export default function LifeQuestsLanding() {
   const [activeStage, setActiveStage] = useState(0);
   const fullText = "Turn any goal into an epic quest.";
 
+  // Memoize particle positions so they don't jump on re-render
+  const particles = useMemo(() =>
+    [...Array(20)].map(() => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 5,
+      duration: 3 + Math.random() * 4,
+    })),
+  []);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data }) => {
@@ -157,16 +167,16 @@ export default function LifeQuestsLanding() {
           />
         </div>
         {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
+        {particles.map((p, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 rounded-full animate-float"
             style={{
               background: "var(--rpg-gold)",
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
+              left: `${p.left}%`,
+              top: `${p.top}%`,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.duration}s`,
             }}
           />
         ))}

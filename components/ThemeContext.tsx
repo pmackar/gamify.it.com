@@ -21,7 +21,7 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'dark';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && ['dark', 'light', 'terminal', 'mario', 'system'].includes(stored)) {
@@ -30,7 +30,7 @@ function getStoredTheme(): Theme {
   } catch (e) {
     // localStorage not available
   }
-  return 'system';
+  return 'dark';
 }
 
 function resolveTheme(theme: Theme): ResolvedTheme {
@@ -41,7 +41,7 @@ function resolveTheme(theme: Theme): ResolvedTheme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
+  const [theme, setThemeState] = useState<Theme>('dark');
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('dark');
   const [mounted, setMounted] = useState(false);
 

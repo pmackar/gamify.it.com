@@ -2136,7 +2136,6 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                 </button>
                 {showLoginDropdown && (
                   <div className="nav-login-dropdown">
-                    <ThemeSwitcher />
                     {magicLinkSent ? (
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>✉️</div>

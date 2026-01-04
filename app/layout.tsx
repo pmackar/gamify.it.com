@@ -19,7 +19,7 @@ const themeScript = `
 (function() {
   try {
     var stored = localStorage.getItem('gamify_theme');
-    var theme = stored || 'system';
+    var theme = stored || 'dark';
     if (theme === 'system') {
       theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     }

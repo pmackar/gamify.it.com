@@ -310,36 +310,224 @@ function SplashIntro() {
           </div>
         </section>
 
+        {/* Core Features Section */}
         <section className="retro-section section-visible">
           <div className="section-header">
-            <p className="section-label">// HOW IT WORKS</p>
-            <h2 className="section-title shimmer-text">Level Up Your Life</h2>
+            <p className="section-label">// CORE FEATURES</p>
+            <h2 className="section-title shimmer-text">Your Adventure Toolkit</h2>
+            <p className="section-subtitle">Everything you need to turn life into the ultimate RPG</p>
           </div>
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">&#x2694;&#xFE0F;</div>
-              <h3 className="feature-title">DEFINE YOUR QUESTS</h3>
-              <p className="feature-desc">Want to run a marathon? Learn a language? Try every hotdog brand? Your goals become epic quests.</p>
+          <div className="core-features-grid">
+            <div className="core-feature-card">
+              <div className="core-feature-icon">&#x1F5FA;&#xFE0F;</div>
+              <h3 className="core-feature-title">QUESTS</h3>
+              <p className="core-feature-desc">Create epic multi-step adventures. Travel quests to visit every national park. Fitness quests to hit PRs. Life quests to learn new skills.</p>
+              <div className="core-feature-tag">Available Now</div>
             </div>
-            <div className="feature-card">
-              <div className="feature-icon">&#x2728;</div>
-              <h3 className="feature-title">EARN EXPERIENCE</h3>
-              <p className="feature-desc">Complete objectives to earn XP. Watch your character grow stronger with every accomplishment.</p>
+            <div className="core-feature-card">
+              <div className="core-feature-icon">&#x1F9ED;</div>
+              <h3 className="core-feature-title">HERO&apos;S JOURNEY</h3>
+              <p className="core-feature-desc">Your life goals follow the classic narrative arc. From the Call to Adventure through trials and transformation to the Ultimate Reward.</p>
+              <div className="core-feature-tag">Life Quests</div>
             </div>
-            <div className="feature-card">
-              <div className="feature-icon">&#x1F3C6;</div>
-              <h3 className="feature-title">UNLOCK ACHIEVEMENTS</h3>
-              <p className="feature-desc">Collect badges and trophies. Share your progress and compete with friends.</p>
+            <div className="core-feature-card">
+              <div className="core-feature-icon">&#x1F331;</div>
+              <h3 className="core-feature-title">SEASONS</h3>
+              <p className="core-feature-desc">12-week seasons with unique themes and challenges. Compete on leaderboards, earn seasonal rewards, and start fresh each cycle.</p>
+              <div className="core-feature-tag coming">Coming Soon</div>
+            </div>
+            <div className="core-feature-card">
+              <div className="core-feature-icon">&#x1F91D;</div>
+              <h3 className="core-feature-title">FRIENDS & PARTIES</h3>
+              <p className="core-feature-desc">Add friends, form quest parties, and tackle challenges together. See who visited that restaurant first. Compete on fitness leaderboards.</p>
+              <div className="core-feature-tag">Available Now</div>
+            </div>
+            <div className="core-feature-card">
+              <div className="core-feature-icon">&#x1F3C5;</div>
+              <h3 className="core-feature-title">ACHIEVEMENTS</h3>
+              <p className="core-feature-desc">Unlock badges from Common to Legendary tier. First Steps, Century Club, Globe Trotter, Iron Champion — hundreds to collect.</p>
+              <div className="core-feature-tag">Available Now</div>
+            </div>
+            <div className="core-feature-card">
+              <div className="core-feature-icon">&#x2728;</div>
+              <h3 className="core-feature-title">UNIFIED XP</h3>
+              <p className="core-feature-desc">Every app feeds into one global level. Hit the gym, check off tasks, explore new places — all XP counts toward your character.</p>
+              <div className="core-feature-tag">Available Now</div>
             </div>
           </div>
         </section>
 
+        {/* How It Works Section */}
+        <section className="retro-section section-visible how-it-works-section">
+          <div className="section-header">
+            <p className="section-label">// HOW IT WORKS</p>
+            <h2 className="section-title shimmer-text">Level Up Your Life</h2>
+          </div>
+          <div className="how-it-works-flow">
+            <div className="flow-step">
+              <div className="flow-number">1</div>
+              <div className="flow-content">
+                <h3 className="flow-title">PICK YOUR GAMES</h3>
+                <p className="flow-desc">Choose which aspects of life to gamify — fitness, daily tasks, travel, or all of them.</p>
+              </div>
+            </div>
+            <div className="flow-connector">&#x2192;</div>
+            <div className="flow-step">
+              <div className="flow-number">2</div>
+              <div className="flow-content">
+                <h3 className="flow-title">COMPLETE ACTIONS</h3>
+                <p className="flow-desc">Log workouts, check off tasks, visit new places. Every action earns XP.</p>
+              </div>
+            </div>
+            <div className="flow-connector">&#x2192;</div>
+            <div className="flow-step">
+              <div className="flow-number">3</div>
+              <div className="flow-content">
+                <h3 className="flow-title">WATCH YOURSELF GROW</h3>
+                <p className="flow-desc">Level up, unlock achievements, climb leaderboards, and become the hero of your own story.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* XP Ecosystem Section */}
+        <section className="retro-section section-visible">
+          <div className="section-header">
+            <p className="section-label">// THE ECOSYSTEM</p>
+            <h2 className="section-title shimmer-text">One Character, Many Worlds</h2>
+            <p className="section-subtitle">All your progress connects to a single profile</p>
+          </div>
+          <div className="ecosystem-visual-large">
+            <div className="eco-apps-row">
+              <div className="eco-app-bubble fitness">
+                <span className="eco-app-icon">&#x1F4AA;</span>
+                <span className="eco-app-name">Iron Quest</span>
+                <span className="eco-app-xp">+50 XP/workout</span>
+              </div>
+              <div className="eco-app-bubble today">
+                <span className="eco-app-icon">&#x2705;</span>
+                <span className="eco-app-name">Day Quest</span>
+                <span className="eco-app-xp">+10 XP/task</span>
+              </div>
+              <div className="eco-app-bubble travel">
+                <span className="eco-app-icon">&#x2708;&#xFE0F;</span>
+                <span className="eco-app-name">Explorer</span>
+                <span className="eco-app-xp">+25 XP/location</span>
+              </div>
+            </div>
+            <div className="eco-flow-lines">
+              <div className="eco-line left"></div>
+              <div className="eco-line center"></div>
+              <div className="eco-line right"></div>
+            </div>
+            <div className="eco-profile-hub">
+              <div className="eco-hub-badge">
+                <span className="eco-hub-lvl">LVL</span>
+                <span className="eco-hub-num">42</span>
+              </div>
+              <div className="eco-hub-info">
+                <span className="eco-hub-name">YOUR PROFILE</span>
+                <span className="eco-hub-total">125,000 Total XP</span>
+              </div>
+            </div>
+            <div className="eco-multipliers">
+              <div className="eco-multiplier">
+                <span className="eco-mult-icon">&#x1F525;</span>
+                <span className="eco-mult-text">30-day streak = 2x XP</span>
+              </div>
+              <div className="eco-multiplier">
+                <span className="eco-mult-icon">&#x1F389;</span>
+                <span className="eco-mult-text">Seasonal events = Bonus XP</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Roadmap Section */}
+        <section className="retro-section section-visible roadmap-section">
+          <div className="section-header">
+            <p className="section-label">// ROADMAP</p>
+            <h2 className="section-title shimmer-text">What&apos;s Coming Next</h2>
+            <p className="section-subtitle">We&apos;re building the ultimate life RPG — here&apos;s what&apos;s ahead</p>
+          </div>
+          <div className="roadmap-timeline">
+            <div className="roadmap-phase current">
+              <div className="phase-marker">
+                <div className="phase-dot active"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">NOW</div>
+                <h3 className="phase-title">Foundation</h3>
+                <ul className="phase-items">
+                  <li className="phase-item done">&#x2713; Iron Quest (Fitness Tracking)</li>
+                  <li className="phase-item done">&#x2713; Day Quest (Daily Tasks)</li>
+                  <li className="phase-item done">&#x2713; Explorer (Travel Logging)</li>
+                  <li className="phase-item done">&#x2713; Friends & Social Features</li>
+                  <li className="phase-item done">&#x2713; Travel Quests System</li>
+                  <li className="phase-item done">&#x2713; Achievements & Badges</li>
+                </ul>
+              </div>
+            </div>
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">PHASE 1</div>
+                <h3 className="phase-title">Social & Competitive</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">Seasons with Leaderboards</li>
+                  <li className="phase-item">Party Quests (Group Challenges)</li>
+                  <li className="phase-item">Activity Feed & Notifications</li>
+                  <li className="phase-item">Friend Suggestions</li>
+                </ul>
+              </div>
+            </div>
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">PHASE 2</div>
+                <h3 className="phase-title">Life Quests & AI</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">Life Quests (Hero&apos;s Journey)</li>
+                  <li className="phase-item">AI Quest Generation</li>
+                  <li className="phase-item">Habit Tracking Integration</li>
+                  <li className="phase-item">Personal Coaching Insights</li>
+                </ul>
+              </div>
+            </div>
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">FUTURE</div>
+                <h3 className="phase-title">The Full RPG</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">Character Customization</li>
+                  <li className="phase-item">Skill Trees & Specializations</li>
+                  <li className="phase-item">Guild System</li>
+                  <li className="phase-item">Virtual Rewards & Loot</li>
+                  <li className="phase-item">API for Third-Party Apps</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
         <section className="retro-section section-visible">
           <div className="about-content">
-            <p className="section-label">// ABOUT</p>
+            <p className="section-label">// THE PHILOSOPHY</p>
             <h2 className="section-title shimmer-text" style={{ marginBottom: '2rem' }}>Why Gamify?</h2>
             <p className="about-text">We believe <span className="about-highlight">life should feel like an adventure</span>. Our suite of apps transforms mundane tasks into epic quests, boring routines into rewarding challenges, and everyday accomplishments into <span className="about-highlight">legendary achievements</span>.</p>
             <p className="about-text">Whether you&apos;re hitting the gym, checking off your to-do list, or exploring new places — every action earns XP that contributes to your <span className="about-highlight">unified profile</span>.</p>
+            <p className="about-text">Built by people who love <span className="about-highlight">RPGs, productivity systems, and the science of motivation</span>. We&apos;re on a mission to make self-improvement actually fun.</p>
           </div>
         </section>
 
@@ -894,6 +1082,71 @@ export default function LandingPage() {
         .total-xp-display { display: inline-flex; align-items: center; gap: 0.75rem; background: linear-gradient(180deg, var(--theme-bg-tertiary) 0%, var(--theme-bg-card) 100%); border: 2px solid var(--theme-border-light); border-radius: 12px; padding: 1rem 1.75rem; margin-top: 1.25rem; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
         .total-xp-label { font-size: 0.4rem; color: var(--theme-text-muted); }
         .total-xp-value { font-size: 0.8rem; color: var(--theme-gold); }
+
+        /* Core Features Grid */
+        .core-features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+        .core-feature-card { background: linear-gradient(180deg, var(--theme-bg-card) 0%, var(--theme-bg-elevated) 100%); border: 1px solid var(--theme-border); border-radius: 16px; padding: 1.75rem; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .core-feature-card:hover { border-color: var(--theme-gold); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.2), 0 0 20px var(--theme-gold-glow); }
+        .core-feature-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+        .core-feature-title { font-size: 0.65rem; color: var(--theme-gold); margin-bottom: 0.75rem; font-family: 'Press Start 2P', monospace; }
+        .core-feature-desc { font-size: 0.45rem; color: var(--theme-text-secondary); line-height: 2; font-family: 'Press Start 2P', monospace; margin-bottom: 1rem; }
+        .core-feature-tag { display: inline-block; font-size: 0.35rem; padding: 0.3rem 0.6rem; background: rgba(95,191,138,0.2); border: 1px solid var(--app-travel); border-radius: 4px; color: var(--app-travel); font-family: 'Press Start 2P', monospace; }
+        .core-feature-tag.coming { background: rgba(168,85,247,0.2); border-color: var(--app-life); color: var(--app-life); }
+
+        /* How It Works Flow */
+        .how-it-works-section { background: linear-gradient(180deg, transparent 0%, rgba(255,215,0,0.02) 50%, transparent 100%); }
+        .how-it-works-flow { display: flex; align-items: flex-start; justify-content: center; gap: 1rem; flex-wrap: wrap; max-width: 1000px; margin: 0 auto; }
+        .flow-step { background: var(--theme-bg-card); border: 2px solid var(--theme-border); border-radius: 16px; padding: 1.5rem; text-align: center; flex: 1; min-width: 220px; max-width: 280px; transition: all 0.3s ease; }
+        .flow-step:hover { border-color: var(--theme-gold); box-shadow: 0 0 25px var(--theme-gold-glow); }
+        .flow-number { width: 48px; height: 48px; background: linear-gradient(180deg, var(--theme-gold) 0%, #E6A000 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #1a1a1a; font-family: 'Press Start 2P', monospace; margin: 0 auto 1rem; box-shadow: 0 3px 0 #996600; }
+        .flow-content { }
+        .flow-title { font-size: 0.55rem; color: var(--theme-text-primary); margin-bottom: 0.75rem; font-family: 'Press Start 2P', monospace; }
+        .flow-desc { font-size: 0.45rem; color: var(--theme-text-muted); line-height: 1.9; font-family: 'Press Start 2P', monospace; }
+        .flow-connector { font-size: 1.5rem; color: var(--theme-gold); align-self: center; padding-top: 1rem; }
+        @media (max-width: 768px) { .flow-connector { display: none; } .how-it-works-flow { flex-direction: column; align-items: center; } .flow-step { max-width: 100%; } }
+
+        /* Ecosystem Visual */
+        .ecosystem-visual-large { max-width: 700px; margin: 0 auto; text-align: center; }
+        .eco-apps-row { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+        .eco-app-bubble { background: var(--theme-bg-card); border: 2px solid var(--theme-border); border-radius: 16px; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.3s ease; min-width: 140px; }
+        .eco-app-bubble:hover { transform: translateY(-4px); }
+        .eco-app-bubble.fitness { border-color: var(--app-fitness); } .eco-app-bubble.fitness:hover { box-shadow: 0 0 20px var(--app-fitness-glow); }
+        .eco-app-bubble.today { border-color: var(--app-today); } .eco-app-bubble.today:hover { box-shadow: 0 0 20px var(--app-today-glow); }
+        .eco-app-bubble.travel { border-color: var(--app-travel); } .eco-app-bubble.travel:hover { box-shadow: 0 0 20px var(--app-travel-glow); }
+        .eco-app-icon { font-size: 1.75rem; }
+        .eco-app-name { font-size: 0.45rem; color: var(--theme-text-primary); font-family: 'Press Start 2P', monospace; }
+        .eco-app-xp { font-size: 0.35rem; color: var(--theme-text-muted); font-family: 'Press Start 2P', monospace; }
+        .eco-flow-lines { display: flex; justify-content: center; gap: 4rem; margin-bottom: 1rem; }
+        .eco-line { width: 2px; height: 40px; background: linear-gradient(180deg, var(--theme-border-light), var(--theme-gold)); }
+        .eco-profile-hub { display: flex; align-items: center; justify-content: center; gap: 1.25rem; background: linear-gradient(180deg, var(--theme-bg-tertiary) 0%, var(--theme-bg-card) 100%); border: 2px solid var(--theme-gold); border-radius: 16px; padding: 1.25rem 2rem; margin: 0 auto 1.5rem; max-width: 320px; box-shadow: 0 0 30px var(--theme-gold-glow); }
+        .eco-hub-badge { width: 60px; height: 60px; background: linear-gradient(180deg, var(--theme-gold) 0%, #E6A000 100%); border: 2px solid #CC8800; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 3px 0 #996600; }
+        .eco-hub-lvl { font-size: 0.35rem; color: #1a1a1a; font-family: 'Press Start 2P', monospace; }
+        .eco-hub-num { font-size: 1rem; color: #1a1a1a; font-family: 'Press Start 2P', monospace; }
+        .eco-hub-info { text-align: left; }
+        .eco-hub-name { display: block; font-size: 0.4rem; color: var(--theme-text-muted); font-family: 'Press Start 2P', monospace; margin-bottom: 0.25rem; }
+        .eco-hub-total { display: block; font-size: 0.55rem; color: var(--theme-gold); font-family: 'Press Start 2P', monospace; }
+        .eco-multipliers { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+        .eco-multiplier { display: flex; align-items: center; gap: 0.5rem; background: var(--theme-bg-card); border: 1px solid var(--theme-border); border-radius: 8px; padding: 0.6rem 1rem; }
+        .eco-mult-icon { font-size: 1rem; }
+        .eco-mult-text { font-size: 0.4rem; color: var(--theme-text-secondary); font-family: 'Press Start 2P', monospace; }
+
+        /* Roadmap Timeline */
+        .roadmap-section { }
+        .roadmap-timeline { max-width: 700px; margin: 0 auto; }
+        .roadmap-phase { display: flex; gap: 1.5rem; margin-bottom: 0; }
+        .phase-marker { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; }
+        .phase-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--theme-bg-elevated); border: 2px solid var(--theme-border); transition: all 0.3s ease; }
+        .phase-dot.active { background: var(--theme-gold); border-color: var(--theme-gold); box-shadow: 0 0 15px var(--theme-gold-glow); }
+        .phase-line { width: 2px; flex: 1; background: linear-gradient(180deg, var(--theme-border), var(--theme-border-light)); margin-top: 0.5rem; }
+        .phase-content { flex: 1; padding-bottom: 2.5rem; }
+        .phase-label { font-size: 0.4rem; color: var(--theme-gold); font-family: 'Press Start 2P', monospace; margin-bottom: 0.5rem; letter-spacing: 0.1em; }
+        .phase-title { font-size: 0.65rem; color: var(--theme-text-primary); font-family: 'Press Start 2P', monospace; margin-bottom: 1rem; }
+        .phase-items { list-style: none; padding: 0; margin: 0; }
+        .phase-item { font-size: 0.45rem; color: var(--theme-text-muted); font-family: 'Press Start 2P', monospace; line-height: 2.2; padding-left: 0.5rem; }
+        .phase-item.done { color: var(--app-travel); }
+        .roadmap-phase.current .phase-content { }
+        .roadmap-phase:hover .phase-dot:not(.active) { border-color: var(--theme-gold); background: rgba(255,215,0,0.2); }
+
         .retro-footer { padding: 4rem 2rem; text-align: center; border-top: 1px solid var(--theme-border); background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.1) 100%); }
         .footer-tagline { font-size: 0.5rem; margin-bottom: 1.25rem; }
         .footer-text { font-size: 0.38rem; color: var(--theme-text-muted); font-family: 'Press Start 2P', monospace; }
