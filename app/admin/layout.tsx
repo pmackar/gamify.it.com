@@ -12,11 +12,13 @@ import {
   Sword,
   Bell,
   Backpack,
+  Key,
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/roles", label: "Roles & Permissions", icon: Key },
   { href: "/admin/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/admin/moderation", label: "Moderation", icon: Shield },
 ];

@@ -3,6 +3,9 @@ import { getAuthUser } from "@/lib/auth";
 import { requireAdmin } from "@/lib/permissions-server";
 import prisma from "@/lib/db";
 
+type SortField = "email" | "main_level" | "total_xp" | "current_streak" | "last_activity_date" | "created_at";
+type SortDirection = "asc" | "desc";
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -17,6 +20,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const search = searchParams.get("search") || "";
     const role = searchParams.get("role") || "all";
+    const sortBy = (searchParams.get("sortBy") || "created_at") as SortField;
+    const sortDir = (searchParams.get("sortDir") || "desc") as SortDirection;
 
     const skip = (page - 1) * limit;
 
@@ -30,6 +35,11 @@ export async function GET(request: NextRequest) {
         { display_name: { contains: search, mode: "insensitive" } },
       ];
     }
+
+    // Build orderBy clause
+    const validSortFields: SortField[] = ["email", "main_level", "total_xp", "current_streak", "last_activity_date", "created_at"];
+    const orderByField = validSortFields.includes(sortBy) ? sortBy : "created_at";
+    const orderBy = { [orderByField]: sortDir };
 
     // Get total count
     const total = await prisma.profiles.count({ where });
@@ -52,7 +62,7 @@ export async function GET(request: NextRequest) {
           select: { role: true },
         },
       },
-      orderBy: { created_at: "desc" },
+      orderBy,
       skip,
       take: limit,
     });
@@ -68,7 +78,7 @@ export async function GET(request: NextRequest) {
       main_level: u.main_level,
       current_streak: u.current_streak,
       last_activity_date: u.last_activity_date?.toISOString() || null,
-      created_at: u.created_at.toISOString(),
+      created_at: u.created_at?.toISOString() || null,
       role: u.user_role?.role || null,
     }));
 
@@ -92,6 +102,64 @@ export async function GET(request: NextRequest) {
     console.error("Admin users error:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/users
+ *
+ * Update a user's role
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const currentUser = await getAuthUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await requireAdmin(currentUser.id);
+
+    const body = await request.json();
+    const { userId, role } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    }
+
+    if (!role || !["USER", "ADMIN"].includes(role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
+    // Prevent self-demotion
+    if (userId === currentUser.id && role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Cannot remove your own admin role" },
+        { status: 400 }
+      );
+    }
+
+    // Upsert the user role
+    await prisma.user_roles.upsert({
+      where: { user_id: userId },
+      update: { role },
+      create: {
+        user_id: userId,
+        role,
+        granted_by: currentUser.id,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      userId,
+      role,
+    });
+  } catch (error) {
+    console.error("Update user role error:", error);
+    return NextResponse.json(
+      { error: "Failed to update user role" },
       { status: 500 }
     );
   }

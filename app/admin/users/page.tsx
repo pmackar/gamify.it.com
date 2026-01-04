@@ -10,6 +10,12 @@ import {
   Crown,
   Flame,
   ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 
 interface User {
@@ -33,6 +39,9 @@ interface Pagination {
   totalPages: number;
 }
 
+type SortField = "email" | "main_level" | "total_xp" | "current_streak" | "last_activity_date" | "created_at";
+type SortDirection = "asc" | "desc";
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -44,10 +53,14 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
+  const [sortBy, setSortBy] = useState<SortField>("created_at");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
-  }, [pagination.page, roleFilter]);
+  }, [pagination.page, roleFilter, sortBy, sortDir]);
 
   async function fetchUsers() {
     setLoading(true);
@@ -55,6 +68,8 @@ export default function UsersPage() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
+        sortBy,
+        sortDir,
         ...(search && { search }),
         ...(roleFilter !== "all" && { role: roleFilter }),
       });
@@ -78,6 +93,42 @@ export default function UsersPage() {
     fetchUsers();
   }
 
+  function handleSort(field: SortField) {
+    if (sortBy === field) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortDir("desc");
+    }
+  }
+
+  async function updateUserRole(userId: string, newRole: "USER" | "ADMIN") {
+    setSavingRole(userId);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+
+      if (res.ok) {
+        // Update local state
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        );
+        setEditingRole(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to update role");
+      }
+    } catch (error) {
+      console.error("Failed to update role:", error);
+      alert("Failed to update role");
+    } finally {
+      setSavingRole(null);
+    }
+  }
+
   function formatDate(dateStr: string | null) {
     if (!dateStr) return "Never";
     return new Date(dateStr).toLocaleDateString();
@@ -96,6 +147,13 @@ export default function UsersPage() {
     if (diffDays < 7) return `${diffDays}d ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
     return formatDate(dateStr);
+  }
+
+  function SortIcon({ field }: { field: SortField }) {
+    if (sortBy !== field) {
+      return <ArrowUpDown size={14} className="opacity-30" />;
+    }
+    return sortDir === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
   }
 
   return (
@@ -191,10 +249,14 @@ export default function UsersPage() {
             <thead>
               <tr style={{ borderBottom: "1px solid var(--rpg-border)" }}>
                 <th
-                  className="text-left p-4 text-xs font-medium"
+                  className="text-left p-4 text-xs font-medium cursor-pointer hover:bg-white/5 select-none"
                   style={{ color: "var(--rpg-muted)" }}
+                  onClick={() => handleSort("email")}
                 >
-                  User
+                  <span className="flex items-center gap-2">
+                    User
+                    <SortIcon field="email" />
+                  </span>
                 </th>
                 <th
                   className="text-left p-4 text-xs font-medium"
@@ -203,28 +265,44 @@ export default function UsersPage() {
                   Role
                 </th>
                 <th
-                  className="text-left p-4 text-xs font-medium"
+                  className="text-left p-4 text-xs font-medium cursor-pointer hover:bg-white/5 select-none"
                   style={{ color: "var(--rpg-muted)" }}
+                  onClick={() => handleSort("main_level")}
                 >
-                  Level / XP
+                  <span className="flex items-center gap-2">
+                    Level / XP
+                    <SortIcon field="main_level" />
+                  </span>
                 </th>
                 <th
-                  className="text-left p-4 text-xs font-medium"
+                  className="text-left p-4 text-xs font-medium cursor-pointer hover:bg-white/5 select-none"
                   style={{ color: "var(--rpg-muted)" }}
+                  onClick={() => handleSort("current_streak")}
                 >
-                  Streak
+                  <span className="flex items-center gap-2">
+                    Streak
+                    <SortIcon field="current_streak" />
+                  </span>
                 </th>
                 <th
-                  className="text-left p-4 text-xs font-medium"
+                  className="text-left p-4 text-xs font-medium cursor-pointer hover:bg-white/5 select-none"
                   style={{ color: "var(--rpg-muted)" }}
+                  onClick={() => handleSort("last_activity_date")}
                 >
-                  Last Active
+                  <span className="flex items-center gap-2">
+                    Last Active
+                    <SortIcon field="last_activity_date" />
+                  </span>
                 </th>
                 <th
-                  className="text-left p-4 text-xs font-medium"
+                  className="text-left p-4 text-xs font-medium cursor-pointer hover:bg-white/5 select-none"
                   style={{ color: "var(--rpg-muted)" }}
+                  onClick={() => handleSort("created_at")}
                 >
-                  Joined
+                  <span className="flex items-center gap-2">
+                    Joined
+                    <SortIcon field="created_at" />
+                  </span>
                 </th>
                 <th className="p-4"></th>
               </tr>
@@ -269,25 +347,63 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    {user.role === "ADMIN" ? (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium"
-                        style={{
-                          background: "rgba(255, 215, 0, 0.2)",
-                          color: "#FFD700",
-                        }}
-                      >
-                        <Crown size={12} />
-                        Admin
-                      </span>
+                    {editingRole === user.id ? (
+                      <div className="flex items-center gap-2">
+                        <select
+                          defaultValue={user.role || "USER"}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{
+                            background: "var(--rpg-darker)",
+                            border: "1px solid var(--rpg-border)",
+                            color: "var(--rpg-text)",
+                          }}
+                          onChange={(e) => {
+                            const newRole = e.target.value as "USER" | "ADMIN";
+                            updateUserRole(user.id, newRole);
+                          }}
+                          disabled={savingRole === user.id}
+                        >
+                          <option value="USER">User</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                        {savingRole === user.id ? (
+                          <Loader2 size={14} className="animate-spin" style={{ color: "var(--rpg-muted)" }} />
+                        ) : (
+                          <button
+                            onClick={() => setEditingRole(null)}
+                            className="p-1 rounded hover:bg-white/10"
+                            style={{ color: "var(--rpg-muted)" }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
                     ) : (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                        style={{ color: "var(--rpg-muted)" }}
+                      <button
+                        onClick={() => setEditingRole(user.id)}
+                        className="group flex items-center gap-1"
                       >
-                        <Shield size={12} />
-                        User
-                      </span>
+                        {user.role === "ADMIN" ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium group-hover:ring-2 ring-yellow-500/30"
+                            style={{
+                              background: "rgba(255, 215, 0, 0.2)",
+                              color: "#FFD700",
+                            }}
+                          >
+                            <Crown size={12} />
+                            Admin
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs group-hover:ring-2 ring-white/20"
+                            style={{ color: "var(--rpg-muted)" }}
+                          >
+                            <Shield size={12} />
+                            User
+                          </span>
+                        )}
+                      </button>
                     )}
                   </td>
                   <td className="p-4">
@@ -321,9 +437,10 @@ export default function UsersPage() {
                   </td>
                   <td className="p-4">
                     <Link
-                      href={`/admin/users/${user.id}`}
+                      href={`/users/${user.id}`}
                       className="p-2 rounded hover:bg-white/10 inline-flex"
                       style={{ color: "var(--rpg-teal)" }}
+                      target="_blank"
                     >
                       <ExternalLink size={16} />
                     </Link>
