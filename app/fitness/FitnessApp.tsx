@@ -6955,6 +6955,7 @@ gamify.it.com/fitness`;
                 workout.exercises.forEach(ex => store.addExerciseToWorkout(ex.id));
               }}
               onDelete={(workoutId) => store.deleteWorkout(workoutId)}
+              onUpdateTimes={(workoutId, startTime, endTime) => store.updateWorkoutTimes(workoutId, startTime, endTime)}
             />
           )}
 
@@ -12019,18 +12020,44 @@ function WorkoutDetailView({
   records,
   onBack,
   onRepeat,
-  onDelete
+  onDelete,
+  onUpdateTimes
 }: {
   workout: Workout;
   records: Record<string, number>;
   onBack: () => void;
   onRepeat: (workout: Workout) => void;
   onDelete: (workoutId: string) => void;
+  onUpdateTimes: (workoutId: string, startTime: string, endTime: string) => void;
 }) {
+  const [editingTimes, setEditingTimes] = useState(false);
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
+
   if (!workout) return null;
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const formatDuration = (seconds?: number) => seconds ? `${Math.floor(seconds / 60)} min` : '--';
+  const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  // Convert ISO to datetime-local format for input
+  const toDateTimeLocal = (isoString: string) => {
+    const date = new Date(isoString);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  };
+
+  const handleEditTimes = () => {
+    setEditStartTime(toDateTimeLocal(workout.startTime));
+    setEditEndTime(workout.endTime ? toDateTimeLocal(workout.endTime) : toDateTimeLocal(workout.startTime));
+    setEditingTimes(true);
+  };
+
+  const handleSaveTimes = () => {
+    const startISO = new Date(editStartTime).toISOString();
+    const endISO = new Date(editEndTime).toISOString();
+    onUpdateTimes(workout.id, startISO, endISO);
+    setEditingTimes(false);
+  };
 
   return (
     <div className="view-content">
@@ -12038,6 +12065,115 @@ function WorkoutDetailView({
         <button className="back-btn" onClick={onBack}>←</button>
         <span className="view-title">{formatDate(workout.startTime)}</span>
       </div>
+
+      {/* Time editing section */}
+      {editingTimes ? (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--accent)',
+          borderRadius: '16px',
+          padding: '16px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Edit Workout Times</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Start Time</span>
+              <input
+                type="datetime-local"
+                value={editStartTime}
+                onChange={(e) => setEditStartTime(e.target.value)}
+                style={{
+                  padding: '10px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px'
+                }}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>End Time</span>
+              <input
+                type="datetime-local"
+                value={editEndTime}
+                onChange={(e) => setEditEndTime(e.target.value)}
+                style={{
+                  padding: '10px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px'
+                }}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                onClick={() => setEditingTimes(false)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTimes}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: 'var(--accent)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#000',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          borderRadius: '16px',
+          padding: '12px 16px',
+          marginBottom: '12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            {formatTime(workout.startTime)} – {workout.endTime ? formatTime(workout.endTime) : '--'}
+          </div>
+          <button
+            onClick={handleEditTimes}
+            style={{
+              padding: '6px 12px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            Edit Times
+          </button>
+        </div>
+      )}
 
       <div style={{
         background: 'var(--bg-card)',

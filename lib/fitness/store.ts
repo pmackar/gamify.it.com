@@ -68,6 +68,7 @@ interface FitnessStore extends FitnessState, SyncState {
   workoutSeconds: number;
   workoutStartTime: number | null; // Timestamp when workout started
   workoutPRsHit: number;
+  lastActivityTime: number | null;  // Timestamp of last set logged
 
   // Rest timer state
   restTimerSeconds: number;  // Countdown seconds (0 = not running)
@@ -112,6 +113,7 @@ interface FitnessStore extends FitnessState, SyncState {
   linkSuperset: (exerciseIndex: number) => void;  // Link exercise to previous exercise's superset
   unlinkSuperset: (exerciseIndex: number) => void;  // Remove exercise from superset
   finishWorkout: () => Promise<void>;
+  autoCompleteWorkout: (endTimeISO: string) => Promise<void>;
   cancelWorkout: () => void;
 
   // Workout timer
@@ -215,6 +217,7 @@ interface FitnessStore extends FitnessState, SyncState {
   importWorkouts: (workouts: Workout[]) => Promise<void>;
   eraseAllData: () => void;
   deleteWorkout: (workoutId: string) => void;
+  updateWorkoutTimes: (workoutId: string, startTime: string, endTime: string) => void;
 
   // Sync
   syncToServer: () => Promise<void>;
@@ -257,6 +260,7 @@ export const useFitnessStore = create<FitnessStore>()(
       workoutSeconds: 0,
       workoutStartTime: null,
       workoutPRsHit: 0,
+      lastActivityTime: null,
 
       // Rest timer state
       restTimerSeconds: 0,
@@ -288,11 +292,38 @@ export const useFitnessStore = create<FitnessStore>()(
           if (activeWorkout) {
             const parsed = JSON.parse(activeWorkout);
             const startTime = parsed.startTime || Date.now();
+            const lastActivity = parsed.lastActivityTime || startTime;
             const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            const inactivityMs = Date.now() - lastActivity;
+            const INACTIVITY_THRESHOLD_MS = 120 * 60 * 1000; // 120 minutes
+
+            // Check if workout has any logged sets
+            const hasLoggedSets = parsed.workout?.exercises?.some(
+              (ex: { sets?: unknown[] }) => ex.sets && ex.sets.length > 0
+            );
+
+            // Auto-complete if inactive for 120+ minutes AND has logged sets
+            if (hasLoggedSets && inactivityMs >= INACTIVITY_THRESHOLD_MS) {
+              // Use last activity time as end time
+              const endTimeISO = new Date(lastActivity).toISOString();
+              set({
+                currentWorkout: parsed.workout,
+                currentExerciseIndex: parsed.exerciseIndex || 0,
+                workoutStartTime: startTime,
+                lastActivityTime: lastActivity,
+                workoutSeconds: Math.floor((lastActivity - startTime) / 1000),
+              });
+              // Auto-complete the workout
+              get().autoCompleteWorkout(endTimeISO);
+              get().showToast('Workout auto-saved due to inactivity');
+              return;
+            }
+
             set({
               currentWorkout: parsed.workout,
               currentExerciseIndex: parsed.exerciseIndex || 0,
               workoutStartTime: startTime,
+              lastActivityTime: lastActivity,
               workoutSeconds: elapsedSeconds,
               currentView: 'workout'
             });
@@ -308,7 +339,8 @@ export const useFitnessStore = create<FitnessStore>()(
           localStorage.setItem(ACTIVE_WORKOUT_KEY, JSON.stringify({
             workout: state.currentWorkout,
             exerciseIndex: state.currentExerciseIndex,
-            startTime: state.workoutStartTime
+            startTime: state.workoutStartTime,
+            lastActivityTime: state.lastActivityTime
           }));
         }
       },
@@ -648,6 +680,8 @@ export const useFitnessStore = create<FitnessStore>()(
           }
         }
 
+        // Update last activity time for auto-complete tracking
+        set({ lastActivityTime: Date.now() });
         get().saveState();
         get().updateCampaignProgress();
       },
@@ -876,6 +910,7 @@ export const useFitnessStore = create<FitnessStore>()(
           workoutSeconds: 0,
           workoutStartTime: null,
           workoutPRsHit: 0,
+          lastActivityTime: null,
           currentView: 'home',
           pendingSync: true
         }));
@@ -930,6 +965,75 @@ export const useFitnessStore = create<FitnessStore>()(
         dispatchXPUpdate();
       },
 
+      autoCompleteWorkout: async (endTimeISO: string) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        const endTimeMs = new Date(endTimeISO).getTime();
+        // Calculate duration from start time to provided end time
+        const duration = state.workoutStartTime
+          ? Math.floor((endTimeMs - state.workoutStartTime) / 1000)
+          : state.workoutSeconds;
+
+        const completedWorkout: Workout = {
+          ...state.currentWorkout,
+          endTime: endTimeISO,
+          duration
+        };
+
+        // Calculate total volume for this workout
+        const workoutVolume = completedWorkout.exercises.reduce((total, ex) => {
+          return total + ex.sets.reduce((setTotal, s) => setTotal + (s.weight * s.reps), 0);
+        }, 0);
+
+        const newTotalWorkouts = state.profile.totalWorkouts + 1;
+        const newTotalVolume = state.profile.totalVolume + workoutVolume;
+
+        set((state) => ({
+          workouts: [completedWorkout, ...state.workouts],
+          profile: {
+            ...state.profile,
+            totalWorkouts: newTotalWorkouts,
+            totalVolume: newTotalVolume
+          },
+          currentWorkout: null,
+          currentExerciseIndex: 0,
+          workoutSeconds: 0,
+          workoutStartTime: null,
+          workoutPRsHit: 0,
+          lastActivityTime: null,
+          currentView: 'home',
+          pendingSync: true
+        }));
+
+        localStorage.removeItem(ACTIVE_WORKOUT_KEY);
+        queueSync(get);
+
+        // Call unified XP API (silent - don't show full completion toast for auto-complete)
+        try {
+          await fetch('/api/xp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              appId: 'fitness',
+              action: 'workout_complete',
+              xpAmount: completedWorkout.totalXP,
+              metadata: {
+                workoutCount: newTotalWorkouts,
+                totalVolume: newTotalVolume,
+                totalSets: completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0),
+                prsHit: state.workoutPRsHit,
+                autoCompleted: true,
+              }
+            })
+          });
+        } catch {
+          // Silent fail for auto-complete
+        }
+
+        dispatchXPUpdate();
+      },
+
       cancelWorkout: () => {
         set({
           currentWorkout: null,
@@ -937,6 +1041,7 @@ export const useFitnessStore = create<FitnessStore>()(
           workoutSeconds: 0,
           workoutStartTime: null,
           workoutPRsHit: 0,
+          lastActivityTime: null,
           currentView: 'home'
         });
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
@@ -2329,6 +2434,23 @@ export const useFitnessStore = create<FitnessStore>()(
         }));
         queueSync(get);
         get().showToast('Workout deleted');
+      },
+
+      updateWorkoutTimes: (workoutId: string, startTime: string, endTime: string) => {
+        const startMs = new Date(startTime).getTime();
+        const endMs = new Date(endTime).getTime();
+        const duration = Math.floor((endMs - startMs) / 1000);
+
+        set((state) => ({
+          workouts: state.workouts.map(w =>
+            w.id === workoutId
+              ? { ...w, startTime, endTime, duration }
+              : w
+          ),
+          pendingSync: true
+        }));
+        queueSync(get);
+        get().showToast('Workout times updated');
       },
 
       syncToServer: async () => {
