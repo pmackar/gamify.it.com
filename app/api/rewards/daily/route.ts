@@ -13,19 +13,25 @@ const DAILY_REWARDS = [
   { day: 7, xp: 300, bonusItems: ["rare_loot_box"], guaranteedRareDrop: true },
 ];
 
-// Get today's date at midnight (for comparison)
-function getToday(): Date {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
+// Get today's date at midnight UTC (for consistent comparison)
+function getTodayUTC(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-// Get yesterday's date at midnight
-function getYesterday(): Date {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
-  return yesterday;
+// Get yesterday's date at midnight UTC
+function getYesterdayUTC(): Date {
+  const today = getTodayUTC();
+  return new Date(today.getTime() - 24 * 60 * 60 * 1000);
+}
+
+// Check if a date is the same calendar day (UTC)
+function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getUTCFullYear() === date2.getUTCFullYear() &&
+    date1.getUTCMonth() === date2.getUTCMonth() &&
+    date1.getUTCDate() === date2.getUTCDate()
+  );
 }
 
 // GET - Check daily reward status
@@ -44,16 +50,16 @@ export const GET = withAuth(async (_request, user) => {
       return Errors.notFound("Profile");
     }
 
-    const today = getToday();
+    const today = getTodayUTC();
+    const yesterday = getYesterdayUTC();
     const lastClaim = profile.last_login_claim
       ? new Date(profile.last_login_claim)
       : null;
 
-    // Check if already claimed today
+    // Check if already claimed today (compare UTC dates)
     let claimedToday = false;
     if (lastClaim) {
-      lastClaim.setHours(0, 0, 0, 0);
-      claimedToday = lastClaim.getTime() === today.getTime();
+      claimedToday = isSameDay(lastClaim, today);
     }
 
     // Calculate current streak position
@@ -62,8 +68,7 @@ export const GET = withAuth(async (_request, user) => {
     // If claimed yesterday, they're continuing the streak
     // If not claimed yesterday, streak resets
     if (!claimedToday && lastClaim) {
-      const yesterday = getYesterday();
-      if (lastClaim.getTime() < yesterday.getTime()) {
+      if (!isSameDay(lastClaim, yesterday) && lastClaim < yesterday) {
         // Missed a day, streak resets
         currentStreakDay = 0;
       }
@@ -110,27 +115,40 @@ export const POST = withAuth(async (_request, user) => {
       return Errors.notFound("Profile");
     }
 
-    const today = getToday();
+    const today = getTodayUTC();
+    const yesterday = getYesterdayUTC();
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
     const lastClaim = profile.last_login_claim
       ? new Date(profile.last_login_claim)
       : null;
 
-    // Check if already claimed today
-    if (lastClaim) {
-      lastClaim.setHours(0, 0, 0, 0);
-      if (lastClaim.getTime() === today.getTime()) {
-        return Errors.conflict("Already claimed today");
-      }
+    // Check if already claimed today using profile field
+    if (lastClaim && isSameDay(lastClaim, today)) {
+      return Errors.conflict("Already claimed today");
+    }
+
+    // Double-check against daily_login_claims table to prevent race conditions
+    const existingClaim = await prisma.daily_login_claims.findFirst({
+      where: {
+        user_id: user.id,
+        claim_date: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+    });
+
+    if (existingClaim) {
+      return Errors.conflict("Already claimed today");
     }
 
     // Calculate new streak
     let newStreak = 1;
     if (lastClaim) {
-      const yesterday = getYesterday();
-      if (lastClaim.getTime() === yesterday.getTime()) {
+      if (isSameDay(lastClaim, yesterday)) {
         // Continuing streak
         newStreak = (profile.login_streak || 0) + 1;
-      } else if (lastClaim.getTime() < yesterday.getTime()) {
+      } else if (lastClaim < yesterday) {
         // Missed a day, streak resets
         newStreak = 1;
       }
