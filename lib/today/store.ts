@@ -293,13 +293,65 @@ function isTaskVisible(task: Task): boolean {
   return new Date(task.start_date) <= today;
 }
 
-// Queue sync helper
+// Queue sync helper - for updates (debounced)
 const queueSync = (get: () => TodayStore) => {
   get().pendingSync; // Access to ensure we can set it
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(() => {
     get().syncToServer();
   }, 500);
+};
+
+// Immediate sync helper - for critical operations like task creation
+const syncImmediate = (get: () => TodayStore) => {
+  // Clear any pending debounced sync
+  if (syncTimeout) clearTimeout(syncTimeout);
+  // Sync immediately (fire and forget - don't block UI)
+  Promise.resolve(get().syncToServer()).catch((err: Error) => {
+    console.error('Sync failed:', err);
+  });
+};
+
+// Get sync payload for sendBeacon
+export const getSyncPayload = (): string | null => {
+  const state = useTodayStore.getState();
+  if (!state.pendingSync) return null;
+
+  return JSON.stringify({
+    data: {
+      profile: state.profile,
+      tasks: state.tasks,
+      projects: state.projects,
+      categories: state.categories,
+      daily_stats: state.daily_stats,
+      personal_records: state.personal_records,
+    },
+  });
+};
+
+// Sync using sendBeacon - guaranteed delivery even during page unload
+export const syncViaSendBeacon = (): boolean => {
+  const payload = getSyncPayload();
+  if (!payload) return false;
+
+  try {
+    // sendBeacon with proper content-type
+    const blob = new Blob([payload], { type: 'application/json' });
+    const sent = navigator.sendBeacon('/api/today/sync', blob);
+
+    if (sent) {
+      // Mark as synced (optimistically)
+      useTodayStore.setState({
+        pendingSync: false,
+        lastSyncedAt: new Date().toISOString(),
+      });
+    }
+
+    return sent;
+  } catch (e) {
+    console.error('sendBeacon failed:', e);
+    return false;
+  }
 };
 
 export const useTodayStore = create<TodayStore>()(
@@ -382,8 +434,9 @@ export const useTodayStore = create<TodayStore>()(
           const serverData = await res.json();
           if (!serverData || !serverData.data) return;
 
-          const localLastSynced = get().lastSyncedAt;
-          const hasPendingChanges = get().pendingSync;
+          const localState = get();
+          const localLastSynced = localState.lastSyncedAt;
+          const hasPendingChanges = localState.pendingSync;
           const serverUpdatedAt = serverData.updated_at;
 
           // Determine if server data is newer
@@ -406,22 +459,72 @@ export const useTodayStore = create<TodayStore>()(
               syncStatus: 'idle',
             });
           } else if (serverIsNewer && hasPendingChanges) {
-            // Server is newer BUT we have pending changes - sync local first, then pull
-            // This ensures we don't lose local changes
-            await get().syncToServer();
-            // After pushing local changes, fetch again to get merged state
-            const refreshRes = await fetch('/api/today/sync');
-            if (refreshRes.ok) {
-              const refreshedData = await refreshRes.json();
-              if (refreshedData?.data) {
-                set({
-                  ...refreshedData.data,
-                  lastSyncedAt: refreshedData.updated_at,
-                  pendingSync: false,
-                  syncStatus: 'idle',
-                });
+            // Both have changes - merge by ID, keeping newer items
+            const serverTasks: Task[] = serverData.data.tasks || [];
+            const localTasks: Task[] = localState.tasks || [];
+            const serverProjects: Project[] = serverData.data.projects || [];
+            const localProjects: Project[] = localState.projects || [];
+            const serverCategories: Category[] = serverData.data.categories || [];
+            const localCategories: Category[] = localState.categories || [];
+
+            // Merge tasks by ID - keep newer version based on updated_at
+            const taskMap = new Map<string, Task>();
+            for (const task of serverTasks) {
+              taskMap.set(task.id, task);
+            }
+            for (const task of localTasks) {
+              const existing = taskMap.get(task.id);
+              if (!existing || new Date(task.updated_at) > new Date(existing.updated_at)) {
+                taskMap.set(task.id, task);
               }
             }
+            const mergedTasks = Array.from(taskMap.values());
+
+            // Merge projects by ID
+            const projectMap = new Map<string, Project>();
+            for (const project of serverProjects) {
+              projectMap.set(project.id, project);
+            }
+            for (const project of localProjects) {
+              const existing = projectMap.get(project.id);
+              if (!existing || new Date(project.updated_at) > new Date(existing.updated_at)) {
+                projectMap.set(project.id, project);
+              }
+            }
+            const mergedProjects = Array.from(projectMap.values());
+
+            // Merge categories by ID
+            const categoryMap = new Map<string, Category>();
+            for (const cat of serverCategories) {
+              categoryMap.set(cat.id, cat);
+            }
+            for (const cat of localCategories) {
+              categoryMap.set(cat.id, cat); // Local categories win (no updated_at)
+            }
+            const mergedCategories = Array.from(categoryMap.values());
+
+            // Use local profile if it has more XP/tasks completed
+            const localProfile = localState.profile;
+            const serverProfile = serverData.data.profile || defaultProfile;
+            const mergedProfile = (localProfile.total_tasks_completed >= serverProfile.total_tasks_completed)
+              ? localProfile
+              : serverProfile;
+
+            // Update state with merged data
+            set({
+              tasks: mergedTasks,
+              projects: mergedProjects,
+              categories: mergedCategories,
+              profile: mergedProfile,
+              daily_stats: serverData.data.daily_stats || localState.daily_stats,
+              personal_records: serverData.data.personal_records || localState.personal_records,
+              lastSyncedAt: new Date().toISOString(),
+              pendingSync: true, // Mark as pending to push merged data
+              syncStatus: 'idle',
+            });
+
+            // Push merged data to server
+            await get().syncToServer();
           }
           // Otherwise: local is newer and no pending changes - keep local
         } catch (error) {
@@ -494,7 +597,8 @@ export const useTodayStore = create<TodayStore>()(
           tasks: [...state.tasks, task],
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for task creation - critical data must not be lost
+        syncImmediate(get);
 
         return task;
       },
@@ -516,7 +620,8 @@ export const useTodayStore = create<TodayStore>()(
           tasks: state.tasks.filter((t) => t.id !== taskId),
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for task deletion - critical data must not be lost
+        syncImmediate(get);
       },
 
       toggleTaskComplete: (taskId: string) => {
@@ -600,7 +705,8 @@ export const useTodayStore = create<TodayStore>()(
             daily_stats: updateDailyStats(state.daily_stats, today, xpEarned),
             pendingSync: true,
           }));
-          queueSync(get);
+          // Sync immediately for task completion - critical data
+          syncImmediate(get);
 
           // Add XP locally
           const leveledUp = get().addXP(xpEarned);
@@ -743,7 +849,8 @@ export const useTodayStore = create<TodayStore>()(
               pendingSync: true,
             };
           });
-          queueSync(get);
+          // Sync immediately for task uncomplete - critical data
+          syncImmediate(get);
 
           // Revoke XP from global profile (async, don't block)
           if (revokedXP > 0) {
@@ -825,7 +932,8 @@ export const useTodayStore = create<TodayStore>()(
           tasks: [...state.tasks, task],
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for subtask creation - critical data
+        syncImmediate(get);
 
         return task;
       },
@@ -883,7 +991,8 @@ export const useTodayStore = create<TodayStore>()(
           projects: [...state.projects, project],
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for project creation - critical data
+        syncImmediate(get);
 
         return project;
       },
@@ -910,7 +1019,8 @@ export const useTodayStore = create<TodayStore>()(
           ),
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for project deletion - critical data
+        syncImmediate(get);
 
         // If viewing this project, go to inbox
         if (get().currentView === `project-${projectId}`) {
@@ -932,7 +1042,8 @@ export const useTodayStore = create<TodayStore>()(
           categories: [...state.categories, category],
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for category creation - critical data
+        syncImmediate(get);
 
         return category;
       },
@@ -957,7 +1068,8 @@ export const useTodayStore = create<TodayStore>()(
           ),
           pendingSync: true,
         }));
-        queueSync(get);
+        // Sync immediately for category deletion - critical data
+        syncImmediate(get);
 
         // If viewing this category, go to inbox
         if (get().currentView === `category-${categoryId}`) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useTodayStore } from '@/lib/today/store';
+import { useTodayStore, syncViaSendBeacon } from '@/lib/today/store';
 import { Task, Project, Category, ViewType, RecurrenceRule, RecurrenceFrequency } from '@/lib/today/types';
 import {
   calculateXPPreview,
@@ -251,12 +251,15 @@ export default function TodayApp() {
         // Fetch from server when tab becomes visible
         store.fetchFromServer();
       } else if (document.visibilityState === 'hidden') {
-        // Push any pending changes when leaving
-        const state = useTodayStore.getState();
-        if (state.pendingSync) {
-          store.syncToServer();
-        }
+        // Use sendBeacon for guaranteed delivery when page is hidden/closing
+        // sendBeacon is designed to complete even during page unload
+        syncViaSendBeacon();
       }
+    };
+
+    // Additional safety net: beforeunload event
+    const handleBeforeUnload = () => {
+      syncViaSendBeacon();
     };
 
     // Start periodic sync when visible
@@ -288,6 +291,8 @@ export default function TodayApp() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('visibilitychange', handleVisibilityForPolling);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload); // iOS Safari support
 
     // Start polling if currently visible
     if (document.visibilityState === 'visible') {
@@ -297,6 +302,8 @@ export default function TodayApp() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('visibilitychange', handleVisibilityForPolling);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
       stopPeriodicSync();
     };
   }, [mounted, store]);
@@ -2692,6 +2699,101 @@ export default function TodayApp() {
           margin: 6px 0;
         }
 
+        /* Action menu - drawer style (works on both mobile and desktop) */
+        .mobile-action-menu {
+          width: 100%;
+          display: flex;
+          gap: 10px;
+          padding: 0;
+          margin-top: 0;
+          overflow: hidden;
+          max-height: 0;
+          opacity: 0;
+          pointer-events: none;
+          transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out, margin 0.25s ease-out;
+        }
+
+        /* Drawer OPEN state */
+        .task-card.action-menu-open .mobile-action-menu {
+          max-height: 60px;
+          opacity: 1;
+          padding-top: 12px;
+          margin-top: 0;
+          pointer-events: auto;
+        }
+
+        .mobile-action-btn {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 16px;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.15s ease, background 0.15s ease, opacity 0.2s ease;
+          -webkit-tap-highlight-color: transparent;
+          transform: translateY(10px);
+          opacity: 0;
+        }
+
+        /* Buttons animate in when drawer opens */
+        .task-card.action-menu-open .mobile-action-btn {
+          transform: translateY(0);
+          opacity: 1;
+        }
+
+        .task-card.action-menu-open .mobile-action-btn.complete {
+          transition-delay: 0.05s;
+        }
+
+        .task-card.action-menu-open .mobile-action-btn.edit {
+          transition-delay: 0.1s;
+        }
+
+        .mobile-action-btn.complete {
+          background: var(--success);
+          color: white;
+        }
+
+        .mobile-action-btn.complete:hover {
+          background: var(--success-dark, #2d8f4e);
+        }
+
+        .mobile-action-btn.complete:active {
+          transform: scale(0.96);
+        }
+
+        .mobile-action-btn.edit {
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+          border: 1px solid var(--border);
+        }
+
+        .mobile-action-btn.edit:hover {
+          background: var(--bg-secondary);
+        }
+
+        .mobile-action-btn.edit:active {
+          transform: scale(0.96);
+        }
+
+        .mobile-action-btn-icon {
+          font-size: 16px;
+        }
+
+        /* Task card with action menu open - FLOAT effect */
+        .task-card.action-menu-open {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+          border-color: var(--accent);
+          z-index: 10;
+          position: relative;
+        }
+
         /* Floating quick add - gamify-today style */
         .quick-add-container {
           position: fixed;
@@ -3702,6 +3804,7 @@ export default function TodayApp() {
             overflow: hidden;
             max-height: 0;
             opacity: 0;
+            pointer-events: none;
             transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out, margin 0.25s ease-out;
           }
 
@@ -3711,6 +3814,7 @@ export default function TodayApp() {
             opacity: 1;
             padding-top: 12px;
             margin-top: 0;
+            pointer-events: auto;
           }
 
           .mobile-action-btn {
@@ -4365,25 +4469,23 @@ export default function TodayApp() {
                               </div>
                             )}
                           </div>
-                          {/* Mobile action menu - always rendered for CSS animation */}
-                          {isMobile && (
-                            <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                className="mobile-action-btn complete"
-                                onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
-                              >
-                                <span className="mobile-action-btn-icon">✓</span>
-                                Complete
-                              </button>
-                              <button
-                                className="mobile-action-btn edit"
-                                onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
-                              >
-                                <span className="mobile-action-btn-icon">✏️</span>
-                                Edit
-                              </button>
-                            </div>
-                          )}
+                          {/* Action menu - shown on click */}
+                          <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="mobile-action-btn complete"
+                              onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                            >
+                              <span className="mobile-action-btn-icon">✓</span>
+                              Complete
+                            </button>
+                            <button
+                              className="mobile-action-btn edit"
+                              onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
+                            >
+                              <span className="mobile-action-btn-icon">✏️</span>
+                              Edit
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -4449,25 +4551,23 @@ export default function TodayApp() {
                               </div>
                             )}
                           </div>
-                          {/* Mobile action menu - always rendered for CSS animation */}
-                          {isMobile && (
-                            <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                className="mobile-action-btn complete"
-                                onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
-                              >
-                                <span className="mobile-action-btn-icon">✓</span>
-                                Complete
-                              </button>
-                              <button
-                                className="mobile-action-btn edit"
-                                onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
-                              >
-                                <span className="mobile-action-btn-icon">✏️</span>
-                                Edit
-                              </button>
-                            </div>
-                          )}
+                          {/* Action menu - shown on click */}
+                          <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="mobile-action-btn complete"
+                              onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                            >
+                              <span className="mobile-action-btn-icon">✓</span>
+                              Complete
+                            </button>
+                            <button
+                              className="mobile-action-btn edit"
+                              onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
+                            >
+                              <span className="mobile-action-btn-icon">✏️</span>
+                              Edit
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -4575,25 +4675,23 @@ export default function TodayApp() {
                           </div>
                         )}
                       </div>
-                      {/* Mobile action menu - always rendered for CSS animation */}
-                      {isMobile && (
-                        <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            className="mobile-action-btn complete"
-                            onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
-                          >
-                            <span className="mobile-action-btn-icon">{task.is_completed ? '↩' : '✓'}</span>
-                            {task.is_completed ? 'Uncomplete' : 'Complete'}
-                          </button>
-                          <button
-                            className="mobile-action-btn edit"
-                            onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
-                          >
-                            <span className="mobile-action-btn-icon">✏️</span>
-                            Edit
-                          </button>
-                        </div>
-                      )}
+                      {/* Action menu - shown on click */}
+                      <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="mobile-action-btn complete"
+                          onClick={() => { handleToggleComplete(task.id); setMobileActionTaskId(null); }}
+                        >
+                          <span className="mobile-action-btn-icon">{task.is_completed ? '↩' : '✓'}</span>
+                          {task.is_completed ? 'Uncomplete' : 'Complete'}
+                        </button>
+                        <button
+                          className="mobile-action-btn edit"
+                          onClick={() => { openTaskModal(task); setMobileActionTaskId(null); }}
+                        >
+                          <span className="mobile-action-btn-icon">✏️</span>
+                          Edit
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
