@@ -301,7 +301,7 @@ export default function TravelHomeClient({
             >
               Explore
             </h2>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 { icon: "🗺️", label: "Map", href: "/travel/map", bg: "rgba(6, 182, 212, 0.15)", border: "rgba(6, 182, 212, 0.5)" },
                 { icon: "📍", label: "Locations", href: "/travel/locations", bg: "rgba(95, 191, 138, 0.15)", border: "rgba(95, 191, 138, 0.5)" },
@@ -314,24 +314,23 @@ export default function TravelHomeClient({
                   key={item.label}
                   href={item.href}
                   style={{
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    gap: 10,
-                    padding: "12px 18px",
-                    borderRadius: 50,
+                    gap: 12,
+                    padding: "14px 20px",
+                    borderRadius: 16,
                     background: item.bg,
                     border: `2px solid ${item.border}`,
                     boxShadow: "0 3px 0 rgba(0, 0, 0, 0.4)",
-                    fontSize: 8,
+                    fontSize: 9,
                     fontFamily: "'Press Start 2P', monospace",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                     color: "var(--rpg-text)",
                     textDecoration: "none",
-                    transition: "transform 0.15s, box-shadow 0.15s",
                   }}
                 >
-                  <span style={{ fontSize: 18 }}>{item.icon}</span>
+                  <span style={{ fontSize: 20 }}>{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               ))}
