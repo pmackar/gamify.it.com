@@ -92,41 +92,39 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
           <span className="action-icon">⚔️</span>
           <span>New Quest</span>
         </Link>
-        <div className="sidebar-nav-shortcuts">
-          <Link href="/travel/cities" className="nav-shortcut">
-            <span className="nav-shortcut-icon">🏰</span>
-            <span>Cities</span>
-          </Link>
-          <Link href="/travel/locations" className="nav-shortcut">
-            <span className="nav-shortcut-icon">📍</span>
-            <span>Locations</span>
-          </Link>
-          <Link href="/travel/quests" className="nav-shortcut">
-            <span className="nav-shortcut-icon">📜</span>
-            <span>Quests</span>
-          </Link>
-        </div>
       </div>
 
-      {/* Navigation - grows to fill space */}
-      <nav className="sidebar-nav">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href ||
-            (item.href !== "/travel" && pathname?.startsWith(item.href));
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`nav-item ${isActive ? "nav-item-active" : ""}`}
-            >
-              <span className="nav-label">{item.label}</span>
-              {item.count !== undefined && (
-                <span className="nav-count">{item.count}</span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Explore Menu */}
+      <div className="sidebar-explore">
+        <h3 className="explore-title">Explore</h3>
+        <div className="explore-items">
+          {[
+            { icon: "🗺️", label: "Map", href: "/travel/map", bg: "rgba(6, 182, 212, 0.15)", border: "rgba(6, 182, 212, 0.5)" },
+            { icon: "📍", label: "Locations", href: "/travel/locations", bg: "rgba(95, 191, 138, 0.15)", border: "rgba(95, 191, 138, 0.5)" },
+            { icon: "🏰", label: "Cities", href: "/travel/cities", bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.5)" },
+            { icon: "📜", label: "Quests", href: "/travel/quests", bg: "rgba(249, 115, 22, 0.15)", border: "rgba(249, 115, 22, 0.5)" },
+            { icon: "❤️", label: "Hotlist", href: "/travel/hotlist", bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.5)" },
+            { icon: "🏆", label: "Badges", href: "/travel/achievements", bg: "rgba(255, 215, 0, 0.15)", border: "rgba(255, 215, 0, 0.5)" },
+          ].map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== "/travel" && pathname?.startsWith(item.href));
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`explore-item ${isActive ? "explore-item-active" : ""}`}
+                style={{
+                  background: item.bg,
+                  borderColor: item.border,
+                }}
+              >
+                <span className="explore-icon">{item.icon}</span>
+                <span className="explore-label">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Footer Stats - anchored to bottom */}
       <div className="sidebar-footer">
@@ -372,98 +370,66 @@ export default function TravelSidebar({ user, stats }: TravelSidebarProps) {
           font-family: var(--font-pixel);
         }
 
-        .sidebar-nav-shortcuts {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 8px;
-        }
-
-        .nav-shortcut {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 8px 14px;
-          border-radius: 50px;
-          font-size: 7px;
-          font-weight: 500;
-          color: var(--rpg-text);
-          background: var(--rpg-card);
-          border: 2px solid var(--rpg-border);
-          transition: all 0.15s ease;
-          font-family: var(--font-pixel);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
-        }
-
-        .nav-shortcut:active {
-          transform: translateY(2px);
-          box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
-        }
-
-        .nav-shortcut-icon {
-          font-size: 14px;
-          flex-shrink: 0;
-        }
-
-        .nav-shortcut:hover {
-          background: rgba(95, 191, 138, 0.1);
-          color: var(--rpg-text);
-          border-color: var(--rpg-teal);
-          box-shadow: 0 2px 8px var(--rpg-teal-glow);
-        }
-
-        /* Navigation */
-        .sidebar-nav {
+        /* Explore Menu */
+        .sidebar-explore {
+          padding: 0 16px 16px;
           flex: 1;
-          padding: 0 12px;
           overflow-y: auto;
+        }
+
+        .explore-title {
+          font-size: 10px;
+          font-family: var(--font-pixel);
+          color: var(--rpg-text);
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .explore-items {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 8px;
         }
 
-        .nav-item {
+        .explore-item {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 14px;
-          border-radius: 8px;
-          color: var(--rpg-muted);
-          font-size: 10px;
-          font-weight: 500;
-          transition: all 0.15s ease;
-          font-family: var(--font-title);
-        }
-
-        .nav-item:hover {
-          background: rgba(255, 255, 255, 0.05);
+          padding: 12px 20px;
+          border-radius: 50px;
+          border: 2px solid;
+          box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+          font-size: 9px;
+          font-family: var(--font-pixel);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
           color: var(--rpg-text);
+          text-decoration: none;
+          transition: all 0.15s ease;
         }
 
-        .nav-item-active {
-          background: rgba(95, 191, 138, 0.1);
-          color: var(--rpg-teal);
+        .explore-item:active {
+          transform: translateY(3px);
+          box-shadow: 0 0 0 rgba(0, 0, 0, 0.4);
         }
 
-        .nav-label {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+        .explore-item:hover {
+          filter: brightness(1.1);
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
         }
 
-        .nav-count {
-          font-size: 8px;
-          padding: 2px 6px;
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 10px;
-          color: var(--rpg-muted);
+        .explore-item-active {
+          box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .explore-icon {
+          font-size: 18px;
           flex-shrink: 0;
-          font-family: var(--font-title);
+        }
+
+        .explore-label {
+          flex: 1;
         }
 
         /* Footer - anchored to bottom */
