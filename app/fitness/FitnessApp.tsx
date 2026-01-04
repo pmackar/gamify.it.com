@@ -9060,29 +9060,44 @@ gamify.it.com/fitness`;
         {showOnboarding && (() => {
           const steps = [
             {
-              icon: '💪',
+              icon: '⚔️',
               title: 'Welcome to Iron Quest!',
-              content: 'Turn your workouts into an adventure. Track exercises, earn XP, and level up as you get stronger.',
+              content: 'Turn your workouts into an RPG adventure. Track exercises, earn XP, level up, and conquer your fitness goals.',
             },
             {
               icon: '⭐',
               title: 'Earn XP Every Set',
-              content: 'Every set you log earns XP based on weight and reps. Hit personal records for bonus XP and unlock achievements!',
+              content: 'Every set earns XP based on weight × reps. Hit personal records for bonus XP and unlock achievements along the way!',
+            },
+            {
+              icon: '📋',
+              title: 'Programs & Templates',
+              content: 'Create workout templates for quick logging. Build multi-week programs with progression rules to automate your training.',
+            },
+            {
+              icon: '🎯',
+              title: 'Campaigns & Goals',
+              content: 'Set strength goals with target dates. Track your progress toward hitting new PRs and stay motivated.',
             },
             {
               icon: '📊',
-              title: 'Track Your Progress',
-              content: 'View progress charts for each exercise, see your estimated 1RM, and track volume over time.',
+              title: 'Analytics & Progress',
+              content: 'View progress charts, estimated 1RM, volume trends, and muscle distribution. Tap any exercise for detailed history.',
+            },
+            {
+              icon: '👥',
+              title: 'Train With Friends',
+              content: 'Connect with friends, compare on leaderboards, and see their recent workouts. Accountability makes gains!',
             },
             {
               icon: '🔥',
               title: 'Pro Tips',
-              content: 'Mark warmup sets (no XP). Add notes to exercises. Link exercises into supersets. Use the plate calculator for loading.',
+              content: 'Use the rest timer between sets. Mark warmups (no XP). Add notes to exercises. Try the plate calculator!',
             },
             {
               icon: '🚀',
               title: 'Ready to Lift?',
-              content: 'Search for an exercise below to start your first workout. Let\'s get after it!',
+              content: 'Type an exercise name below to start your first workout. Your quest begins now!',
             },
           ];
 

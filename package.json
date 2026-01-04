@@ -11,6 +11,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@auth/prisma-adapter": "^2.11.1",
     "@clerk/nextjs": "^6.36.5",
     "@prisma/client": "6.19.1",
