@@ -616,15 +616,15 @@ export default function FitnessApp() {
       // Update existing set
       store.updateSet(editingSetIndex, setWeight, setReps, setRpe || undefined, setIsWarmup);
       setEditingSetIndex(null);
+      setShowSetPanel(false);
     } else {
-      // Log new set
+      // Log new set - keep panel open for quick successive set logging
       store.logSet(setWeight, setReps, setRpe || undefined, setIsWarmup);
       // Start rest timer after logging a working set
       if (!setIsWarmup) {
         store.startRestTimer();
       }
     }
-    setShowSetPanel(false);
   };
 
   // Repeat last set helper
@@ -1787,6 +1787,49 @@ export default function FitnessApp() {
         }
         .chart-btn:hover {
           opacity: 1;
+        }
+
+        /* Minimize Button */
+        .minimize-btn {
+          background: none;
+          border: none;
+          padding: 4px 8px;
+          cursor: pointer;
+          font-size: 14px;
+          opacity: 0.7;
+          transition: opacity 0.15s;
+          color: var(--text-secondary);
+        }
+        .minimize-btn:hover {
+          opacity: 1;
+        }
+
+        /* Set Actions Buttons Container */
+        .set-actions-buttons {
+          display: flex;
+          gap: 8px;
+          flex: 1;
+        }
+
+        /* Next Exercise Button */
+        .next-exercise-btn {
+          padding: 14px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .next-exercise-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+        .next-exercise-btn:active {
+          transform: scale(0.98);
         }
 
         /* Chart Modal */
@@ -9548,7 +9591,7 @@ gamify.it.com/fitness`;
                     📈
                   </button>
                   {exerciseNote && <span className="note-indicator" title="Has note">📝</span>}
-                  <button className="close-btn" onClick={() => setShowSetPanel(false)}>×</button>
+                  <button className="minimize-btn" onClick={() => setShowSetPanel(false)} title="Minimize">▼</button>
                 </div>
               </div>
 
@@ -9679,19 +9722,30 @@ gamify.it.com/fitness`;
                   <span className="warmup-check-box" />
                   <span className="warmup-label">Warmup</span>
                 </label>
-                <button className="log-set-btn" onClick={handleLogSet}>
-                  {editingSetIndex !== null ? 'Save Changes' : 'Log Set'}
-                </button>
+                <div className="set-actions-buttons">
+                  <button className="log-set-btn" onClick={handleLogSet}>
+                    {editingSetIndex !== null ? 'Save Changes' : 'Log Set'}
+                  </button>
+                  {editingSetIndex === null && store.currentWorkout && store.currentExerciseIndex < store.currentWorkout.exercises.length - 1 && (
+                    <button
+                      className="next-exercise-btn"
+                      onClick={() => {
+                        store.selectExercise(store.currentExerciseIndex + 1);
+                        setShowSetPanel(false);
+                      }}
+                      title="Go to next exercise"
+                    >
+                      Next →
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Repeat Last Set Button */}
               {editingSetIndex === null && currentEx && currentEx.sets.length > 0 && (
                 <button
                   className="repeat-set-btn"
-                  onClick={() => {
-                    handleRepeatLastSet();
-                    setShowSetPanel(false);
-                  }}
+                  onClick={handleRepeatLastSet}
                 >
                   ↩ Repeat Last ({currentEx.sets[currentEx.sets.length - 1].weight}×{currentEx.sets[currentEx.sets.length - 1].reps})
                 </button>
