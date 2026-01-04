@@ -20,6 +20,7 @@ import {
   Users,
   Star,
   Crown,
+  Lock,
 } from "lucide-react";
 
 const QUEST_TYPES = [
@@ -73,6 +74,7 @@ const JOURNEY_STAGES = [
 export default function LifeQuestsLanding() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [hasBetaAccess, setHasBetaAccess] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
   const [activeStage, setActiveStage] = useState(0);
@@ -80,8 +82,21 @@ export default function LifeQuestsLanding() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user);
+      if (data.user) {
+        // Check for life_beta_access feature flag
+        const { data: subscription } = await supabase
+          .from("user_subscriptions")
+          .select("features")
+          .eq("user_id", data.user.id)
+          .eq("app_id", "life")
+          .single();
+
+        if (subscription?.features?.includes("life_beta_access")) {
+          setHasBetaAccess(true);
+        }
+      }
     });
   }, []);
 
@@ -113,6 +128,9 @@ export default function LifeQuestsLanding() {
   }, []);
 
   const handleStart = () => {
+    if (!hasBetaAccess) {
+      return; // Coming soon - no action
+    }
     if (user) {
       router.push("/life/quests");
     } else {
@@ -198,22 +216,39 @@ export default function LifeQuestsLanding() {
           </p>
 
           {/* CTA */}
-          <button
-            onClick={handleStart}
-            className="group relative inline-flex items-center gap-3 px-8 py-4 text-lg font-bold rounded-lg transition-all duration-300 hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, var(--rpg-teal), var(--rpg-purple))",
-              color: "#000",
-              boxShadow: "0 0 30px rgba(95, 191, 138, 0.4), 0 4px 0 rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            <Zap className="w-5 h-5" />
-            Begin Your Journey
-            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          {hasBetaAccess ? (
+            <button
+              onClick={handleStart}
+              className="group relative inline-flex items-center gap-3 px-8 py-4 text-lg font-bold rounded-lg transition-all duration-300 hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, var(--rpg-teal), var(--rpg-purple))",
+                color: "#000",
+                boxShadow: "0 0 30px rgba(95, 191, 138, 0.4), 0 4px 0 rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              <Zap className="w-5 h-5" />
+              Begin Your Journey
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          ) : (
+            <div
+              className="inline-flex items-center gap-3 px-8 py-4 text-lg font-bold rounded-lg cursor-not-allowed"
+              style={{
+                background: "linear-gradient(135deg, rgba(100, 100, 100, 0.5), rgba(80, 80, 80, 0.5))",
+                color: "var(--rpg-muted)",
+                boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
+                border: "2px solid var(--rpg-border)",
+              }}
+            >
+              <Lock className="w-5 h-5" />
+              Coming Soon
+            </div>
+          )}
 
           <p className="mt-4 text-sm" style={{ color: "var(--rpg-muted)" }}>
-            Free tier includes 3 AI-generated quests per month
+            {hasBetaAccess
+              ? "Free tier includes 3 AI-generated quests per month"
+              : "Life Quests is currently in private beta"}
           </p>
         </div>
       </section>
@@ -523,21 +558,38 @@ export default function LifeQuestsLanding() {
               textShadow: "0 0 30px rgba(255, 255, 255, 0.3)",
             }}
           >
-            Ready to become the hero of your own story?
+            {hasBetaAccess
+              ? "Ready to become the hero of your own story?"
+              : "Life Quests is coming soon"}
           </h2>
-          <button
-            onClick={handleStart}
-            className="group relative inline-flex items-center gap-3 px-10 py-5 text-xl font-bold rounded-lg transition-all duration-300 hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, var(--rpg-gold), var(--rpg-purple))",
-              color: "#000",
-              boxShadow: "0 0 40px rgba(251, 191, 36, 0.4), 0 4px 0 rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            <Crown className="w-6 h-6" />
-            Start Your First Quest
-            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-          </button>
+          {hasBetaAccess ? (
+            <button
+              onClick={handleStart}
+              className="group relative inline-flex items-center gap-3 px-10 py-5 text-xl font-bold rounded-lg transition-all duration-300 hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, var(--rpg-gold), var(--rpg-purple))",
+                color: "#000",
+                boxShadow: "0 0 40px rgba(251, 191, 36, 0.4), 0 4px 0 rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              <Crown className="w-6 h-6" />
+              Start Your First Quest
+              <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            </button>
+          ) : (
+            <div
+              className="inline-flex items-center gap-3 px-10 py-5 text-xl font-bold rounded-lg cursor-not-allowed"
+              style={{
+                background: "linear-gradient(135deg, rgba(100, 100, 100, 0.5), rgba(80, 80, 80, 0.5))",
+                color: "var(--rpg-muted)",
+                boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
+                border: "2px solid var(--rpg-border)",
+              }}
+            >
+              <Lock className="w-6 h-6" />
+              Coming Soon
+            </div>
+          )}
         </div>
       </section>
 
