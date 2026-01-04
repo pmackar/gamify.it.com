@@ -214,6 +214,7 @@ export interface Program {
   durationWeeks: number;        // Total duration in weeks (or cycles for microcycle)
   goal: 'strength' | 'hypertrophy' | 'endurance' | 'general';
   goalPriorities?: string[];    // ['strength', 'hypertrophy', ...] in priority order
+  excludedGoals?: string[];     // Goals excluded from priority list
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   // Periodization
   periodization?: 'linear' | 'undulating' | 'block' | 'none';

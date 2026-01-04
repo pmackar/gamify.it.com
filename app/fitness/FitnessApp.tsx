@@ -8279,12 +8279,12 @@ gamify.it.com/fitness`;
                 )}
 
                 {/* Start Workout Button */}
-                {!store.activeWorkout && (
+                {!store.currentWorkout && (
                   <button
                     className="start-exercise-btn"
                     onClick={() => {
                       store.startWorkout();
-                      store.addExercise(exercise.id, exercise.name);
+                      store.addExerciseToWorkout(exercise.id);
                       setExerciseDetailId(null);
                     }}
                   >
@@ -8341,7 +8341,7 @@ gamify.it.com/fitness`;
                               const currentPriorities = store.programWizardData?.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general'];
                               const filtered = currentPriorities.filter((g: string) => g !== draggedGoal);
                               filtered.splice(idx, 0, draggedGoal);
-                              store.updateProgramWizardData({ goalPriorities: filtered, goal: filtered[0] });
+                              store.updateProgramWizardData({ goalPriorities: filtered, goal: filtered[0] as Program['goal'] });
                             }
                           }}
                         >
@@ -8364,7 +8364,7 @@ gamify.it.com/fitness`;
                               store.updateProgramWizardData({
                                 goalPriorities: newPriorities,
                                 excludedGoals: [...currentExcluded, goal],
-                                goal: newPriorities[0] || 'general'
+                                goal: (newPriorities[0] || 'general') as Program['goal']
                               });
                             }}
                             title="Exclude from priorities"
@@ -8387,7 +8387,7 @@ gamify.it.com/fitness`;
                                 store.updateProgramWizardData({
                                   goalPriorities: [...currentPriorities, goal],
                                   excludedGoals: currentExcluded.filter((g: string) => g !== goal),
-                                  goal: currentPriorities[0] || goal
+                                  goal: (currentPriorities[0] || goal) as Program['goal']
                                 });
                               }}
                               title="Click to re-add"
