@@ -81,6 +81,7 @@ export default function FitnessApp() {
   const [searchingExercises, setSearchingExercises] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [programsTab, setProgramsTab] = useState<'my' | 'library'>('my');
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
@@ -403,12 +404,13 @@ export default function FitnessApp() {
         });
       }
 
-      if (matchingExercises.length === 0 && q.length > 1 && !/^\d/.test(query)) {
+      // Always show "Create custom exercise" option at the bottom when searching
+      if (q.length > 1 && !/^\d/.test(query)) {
         results.push({
           type: 'new-exercise',
           id: query,
-          title: `New: "${query}"`,
-          subtitle: 'Create custom exercise',
+          title: `Create: "${query}"`,
+          subtitle: 'Add custom exercise',
           icon: '✨'
         });
       }
@@ -2963,6 +2965,29 @@ export default function FitnessApp() {
           color: var(--text-primary);
         }
 
+        .exercise-picker-search {
+          padding: 0 16px 16px;
+        }
+
+        .exercise-picker-search .exercise-search-input {
+          width: 100%;
+          padding: 12px 16px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          background: var(--bg-card);
+          color: var(--text-primary);
+          font-size: 16px;
+        }
+
+        .exercise-picker-search .exercise-search-input::placeholder {
+          color: var(--text-muted);
+        }
+
+        .exercise-picker-search .exercise-search-input:focus {
+          outline: none;
+          border-color: var(--theme-primary);
+        }
+
         .exercise-picker-content {
           flex: 1;
           overflow-y: auto;
@@ -3098,6 +3123,24 @@ export default function FitnessApp() {
           background: var(--accent);
           color: white;
           border-color: var(--accent);
+        }
+
+        .exercise-item.create-custom,
+        .exercise-option.create-custom {
+          border-top: 1px dashed var(--border);
+          margin-top: 8px;
+          padding-top: 16px;
+        }
+
+        .exercise-item.create-custom .exercise-item-icon,
+        .exercise-option.create-custom .exercise-name {
+          color: var(--theme-primary);
+        }
+
+        .exercise-item.create-custom:hover,
+        .exercise-option.create-custom:hover {
+          background: var(--theme-primary-alpha);
+          border-color: var(--theme-primary);
         }
 
         /* Toast */
@@ -7105,7 +7148,7 @@ gamify.it.com/fitness`;
                   autoFocus
                 />
                 <div className="exercise-list">
-                  {EXERCISES
+                  {[...EXERCISES, ...store.customExercises]
                     .filter(ex =>
                       ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()) ||
                       ex.muscle.toLowerCase().includes(exerciseSearchQuery.toLowerCase())
@@ -7138,6 +7181,42 @@ gamify.it.com/fitness`;
                       </button>
                     ))
                   }
+                  {/* Create custom exercise option */}
+                  {exerciseSearchQuery.length > 1 && (
+                    <button
+                      className="exercise-option create-custom"
+                      onClick={() => {
+                        const name = exerciseSearchQuery.trim();
+                        const id = name.toLowerCase().replace(/\s+/g, '_');
+                        const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+
+                        // Add to custom exercises if not exists
+                        if (!store.customExercises.find(e => e.id === id)) {
+                          store.addCustomExercise(name);
+                        }
+
+                        // Add to template
+                        const template = store.getTemplateById(store.editingTemplateId!);
+                        if (template) {
+                          const newExercise: TemplateExercise = {
+                            exerciseId: id,
+                            exerciseName: formattedName,
+                            order: template.exercises.length,
+                            targetSets: 3,
+                            targetReps: '8-12',
+                          };
+                          store.updateTemplate(template.id, {
+                            exercises: [...template.exercises, newExercise]
+                          });
+                        }
+                        setAddingExerciseToTemplate(false);
+                        setExerciseSearchQuery('');
+                      }}
+                    >
+                      <span className="exercise-name">✨ Create: &quot;{exerciseSearchQuery}&quot;</span>
+                      <span className="exercise-muscle">Add custom exercise</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -7567,6 +7646,36 @@ gamify.it.com/fitness`;
                       </button>
                     ))
                   }
+                  {/* Create custom exercise option */}
+                  {newWorkoutExerciseSearch.length > 1 && (
+                    <button
+                      className="exercise-option create-custom"
+                      onClick={() => {
+                        const name = newWorkoutExerciseSearch.trim();
+                        const id = name.toLowerCase().replace(/\s+/g, '_');
+                        const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+
+                        // Add to custom exercises if not exists
+                        if (!store.customExercises.find(e => e.id === id)) {
+                          store.addCustomExercise(name);
+                        }
+
+                        // Add to new workout exercises
+                        setNewWorkoutExercises([...newWorkoutExercises, {
+                          exerciseId: id,
+                          exerciseName: formattedName,
+                          targetSets: 3,
+                          minReps: 8,
+                          maxReps: 12,
+                        }]);
+                        setAddingExerciseToNewWorkout(false);
+                        setNewWorkoutExerciseSearch('');
+                      }}
+                    >
+                      <span className="exercise-name">✨ Create: &quot;{newWorkoutExerciseSearch}&quot;</span>
+                      <span className="exercise-muscle">Add custom exercise</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -10046,21 +10155,92 @@ gamify.it.com/fitness`;
                 onClick={() => {
                   if (selectedCategory) {
                     setSelectedCategory(null);
+                  } else if (pickerSearchQuery) {
+                    setPickerSearchQuery('');
                   } else {
                     setShowExercisePicker(false);
+                    setPickerSearchQuery('');
                   }
                 }}
               >
-                {selectedCategory ? '←' : '×'}
+                {selectedCategory || pickerSearchQuery ? '←' : '×'}
               </button>
               <div className="exercise-picker-title">
                 {selectedCategory
                   ? MUSCLE_CATEGORIES.find(c => c.id === selectedCategory)?.name
-                  : 'Add Exercise'}
+                  : pickerSearchQuery
+                    ? 'Search Results'
+                    : 'Add Exercise'}
               </div>
             </div>
+            {/* Search bar */}
+            <div className="exercise-picker-search">
+              <input
+                type="text"
+                className="exercise-search-input"
+                placeholder="Search exercises or create custom..."
+                value={pickerSearchQuery}
+                onChange={(e) => {
+                  setPickerSearchQuery(e.target.value);
+                  setSelectedCategory(null);
+                }}
+              />
+            </div>
             <div className="exercise-picker-content">
-              {!selectedCategory ? (
+              {pickerSearchQuery ? (
+                /* Search results mode */
+                <div className="exercise-list">
+                  {[...EXERCISES, ...store.customExercises]
+                    .filter(ex =>
+                      ex.name.toLowerCase().includes(pickerSearchQuery.toLowerCase()) ||
+                      ex.muscle.toLowerCase().includes(pickerSearchQuery.toLowerCase())
+                    )
+                    .slice(0, 20)
+                    .map((exercise) => {
+                      const inWorkout = store.currentWorkout?.exercises.some(e => e.id === exercise.id);
+                      const categoryIcon = MUSCLE_CATEGORIES.find(c => c.id === exercise.muscle)?.icon || '🏋️';
+                      return (
+                        <div
+                          key={exercise.id}
+                          className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
+                          onClick={() => {
+                            if (!inWorkout) {
+                              store.addExerciseToWorkout(exercise.id);
+                            }
+                            setShowExercisePicker(false);
+                            setSelectedCategory(null);
+                            setPickerSearchQuery('');
+                          }}
+                        >
+                          <div className="exercise-item-icon">{inWorkout ? '✓' : categoryIcon}</div>
+                          <div className="exercise-item-info">
+                            <div className="exercise-item-name">{exercise.name}</div>
+                            <div className="exercise-item-equipment">{exercise.muscle}</div>
+                          </div>
+                          {inWorkout && <div className="exercise-item-check">Added</div>}
+                        </div>
+                      );
+                    })}
+                  {/* Create custom exercise option */}
+                  {pickerSearchQuery.length > 1 && (
+                    <div
+                      className="exercise-item create-custom"
+                      onClick={() => {
+                        store.addCustomExercise(pickerSearchQuery.trim());
+                        setShowExercisePicker(false);
+                        setSelectedCategory(null);
+                        setPickerSearchQuery('');
+                      }}
+                    >
+                      <div className="exercise-item-icon">✨</div>
+                      <div className="exercise-item-info">
+                        <div className="exercise-item-name">Create: &quot;{pickerSearchQuery}&quot;</div>
+                        <div className="exercise-item-equipment">Add custom exercise</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : !selectedCategory ? (
                 <div className="category-grid">
                   {MUSCLE_CATEGORIES.map((category) => {
                     const count = [...EXERCISES, ...store.customExercises].filter(
@@ -10095,6 +10275,7 @@ gamify.it.com/fitness`;
                             }
                             setShowExercisePicker(false);
                             setSelectedCategory(null);
+                            setPickerSearchQuery('');
                           }}
                         >
                           <div className="exercise-item-icon">
@@ -10113,6 +10294,7 @@ gamify.it.com/fitness`;
                               store.setView('exercise-detail');
                               setShowExercisePicker(false);
                               setSelectedCategory(null);
+                              setPickerSearchQuery('');
                             }}
                             title="View exercise details"
                           >
