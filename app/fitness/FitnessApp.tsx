@@ -3940,6 +3940,71 @@ export default function FitnessApp() {
           font-size: 14px;
           font-weight: 500;
           color: var(--text-primary);
+          flex: 1;
+        }
+
+        .goal-exclude-btn {
+          background: none;
+          border: none;
+          color: var(--text-tertiary);
+          font-size: 14px;
+          padding: 4px 8px;
+          cursor: pointer;
+          opacity: 0.5;
+          transition: all 0.15s ease;
+          border-radius: 4px;
+        }
+
+        .goal-exclude-btn:hover {
+          opacity: 1;
+          color: #ef4444;
+          background: rgba(239, 68, 68, 0.1);
+        }
+
+        .excluded-goals-section {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          padding-top: 8px;
+          border-top: 1px dashed var(--border);
+          margin-top: 8px;
+        }
+
+        .excluded-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          font-style: italic;
+        }
+
+        .goal-priority-item.excluded {
+          opacity: 0.5;
+          background: transparent;
+          border-style: dashed;
+          cursor: pointer;
+          padding: 8px 12px;
+        }
+
+        .goal-priority-item.excluded .goal-priority-name {
+          text-decoration: line-through;
+          color: var(--text-tertiary);
+        }
+
+        .goal-priority-item.excluded:hover {
+          opacity: 0.8;
+          border-color: var(--success);
+        }
+
+        .goal-readd-hint {
+          font-size: 11px;
+          color: var(--success);
+          margin-left: auto;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+
+        .goal-priority-item.excluded:hover .goal-readd-hint {
+          opacity: 1;
         }
 
         .option-btn .option-label {
@@ -7800,8 +7865,9 @@ gamify.it.com/fitness`;
                   </div>
 
                   <div className="form-group">
-                    <label>Goal Priority (drag to reorder)</label>
+                    <label>Goal Priority (drag to reorder, ✕ to exclude)</label>
                     <div className="goal-priority-list">
+                      {/* Active priorities */}
                       {(store.programWizardData.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general']).map((goal, idx) => (
                         <div
                           key={goal}
@@ -7829,8 +7895,56 @@ gamify.it.com/fitness`;
                             {goal === 'general' && '⚡'}
                           </span>
                           <span className="goal-priority-name">{goal.charAt(0).toUpperCase() + goal.slice(1)}</span>
+                          <button
+                            className="goal-exclude-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentPriorities = store.programWizardData?.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general'];
+                              const currentExcluded = store.programWizardData?.excludedGoals || [];
+                              const newPriorities = currentPriorities.filter((g: string) => g !== goal);
+                              store.updateProgramWizardData({
+                                goalPriorities: newPriorities,
+                                excludedGoals: [...currentExcluded, goal],
+                                goal: newPriorities[0] || 'general'
+                              });
+                            }}
+                            title="Exclude from priorities"
+                          >
+                            ✕
+                          </button>
                         </div>
                       ))}
+                      {/* Excluded goals */}
+                      {(store.programWizardData.excludedGoals || []).length > 0 && (
+                        <div className="excluded-goals-section">
+                          <span className="excluded-label">Excluded:</span>
+                          {(store.programWizardData.excludedGoals || []).map((goal: string) => (
+                            <button
+                              key={goal}
+                              className="goal-priority-item excluded"
+                              onClick={() => {
+                                const currentPriorities = store.programWizardData?.goalPriorities || [];
+                                const currentExcluded = store.programWizardData?.excludedGoals || [];
+                                store.updateProgramWizardData({
+                                  goalPriorities: [...currentPriorities, goal],
+                                  excludedGoals: currentExcluded.filter((g: string) => g !== goal),
+                                  goal: currentPriorities[0] || goal
+                                });
+                              }}
+                              title="Click to re-add"
+                            >
+                              <span className="goal-priority-icon">
+                                {goal === 'strength' && '💪'}
+                                {goal === 'hypertrophy' && '🏋️'}
+                                {goal === 'endurance' && '🏃'}
+                                {goal === 'general' && '⚡'}
+                              </span>
+                              <span className="goal-priority-name">{goal.charAt(0).toUpperCase() + goal.slice(1)}</span>
+                              <span className="goal-readd-hint">+ Add</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
