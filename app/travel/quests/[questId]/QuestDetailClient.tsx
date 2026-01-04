@@ -16,6 +16,7 @@ import {
   Pencil,
   X,
   UserPlus,
+  Heart,
 } from "lucide-react";
 import TravelApp from "../../TravelApp";
 import StarRating from "@/components/ui/StarRating";
@@ -45,6 +46,12 @@ interface QuestItem {
     displayName: string | null;
     avatarUrl: string | null;
   } | null;
+  hotlistedBy: Array<{
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  }>;
 }
 
 interface Quest {
@@ -626,8 +633,23 @@ export default function QuestDetailClient({ quest, userId }: QuestDetailClientPr
                         .filter(Boolean)
                         .join(" > ")}
                     </p>
-                    {/* Added by / Completed by badges */}
+                    {/* Hotlisted by / Added by / Completed by badges */}
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {item.hotlistedBy.length > 0 && (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                          style={{
+                            background: "rgba(255, 107, 107, 0.15)",
+                            color: "#ff6b6b",
+                          }}
+                          title={item.hotlistedBy.map((u) => u.displayName || u.username).join(", ")}
+                        >
+                          <Heart size={10} style={{ fill: "#ff6b6b" }} />
+                          {item.hotlistedBy.length === 1
+                            ? item.hotlistedBy[0].displayName || item.hotlistedBy[0].username
+                            : `${item.hotlistedBy.length} hotlisted`}
+                        </span>
+                      )}
                       {item.addedBy && (
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded"

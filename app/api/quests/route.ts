@@ -184,10 +184,16 @@ export async function POST(request: NextRequest) {
       locationFilter.city_id = { in: cityIds };
     }
 
-    // Get user's hotlisted locations in target area
+    // Get all party member IDs (owner + invited users)
+    const partyMemberIds = [user.id];
+    if (inviteUserIds && inviteUserIds.length > 0) {
+      partyMemberIds.push(...inviteUserIds);
+    }
+
+    // Get hotlisted locations from ALL party members in target area
     const hotlistItems = await prisma.travel_user_location_data.findMany({
       where: {
-        user_id: user.id,
+        user_id: { in: partyMemberIds },
         hotlist: true,
         location: locationFilter,
       },
@@ -195,20 +201,51 @@ export async function POST(request: NextRequest) {
         location: {
           select: { id: true, name: true, type: true },
         },
+        user: {
+          select: { id: true },
+        },
       },
       orderBy: { updated_at: "desc" },
     });
 
-    if (hotlistItems.length > 0) {
+    // Group by location and count how many people hotlisted each
+    const locationHotlistMap = new Map<string, { locationId: string; hotlistedBy: string[]; isOwnerHotlist: boolean }>();
+    for (const item of hotlistItems) {
+      if (!locationHotlistMap.has(item.location_id)) {
+        locationHotlistMap.set(item.location_id, {
+          locationId: item.location_id,
+          hotlistedBy: [],
+          isOwnerHotlist: false,
+        });
+      }
+      const entry = locationHotlistMap.get(item.location_id)!;
+      entry.hotlistedBy.push(item.user.id);
+      if (item.user.id === user.id) {
+        entry.isOwnerHotlist = true;
+      }
+    }
+
+    // Sort: owner's hotlist first, then by count (most wanted first)
+    const sortedLocations = Array.from(locationHotlistMap.values())
+      .sort((a, b) => {
+        // Owner's hotlist items first
+        if (a.isOwnerHotlist !== b.isOwnerHotlist) {
+          return a.isOwnerHotlist ? -1 : 1;
+        }
+        // Then by count descending
+        return b.hotlistedBy.length - a.hotlistedBy.length;
+      });
+
+    if (sortedLocations.length > 0) {
       await prisma.travel_quest_items.createMany({
-        data: hotlistItems.map((item, index) => ({
+        data: sortedLocations.map((item, index) => ({
           quest_id: quest.id,
-          location_id: item.location_id,
+          location_id: item.locationId,
           added_by_id: user.id,
           sort_order: index,
         })),
       });
-      itemsCreated = hotlistItems.length;
+      itemsCreated = sortedLocations.length;
     }
   }
 

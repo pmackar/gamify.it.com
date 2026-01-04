@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Users, Check, Loader2, Lightbulb, Search, X, MapPin } from "lucide-react";
+import { ArrowLeft, Plus, Users, Check, Loader2, Lightbulb, Search, X, MapPin, Heart, Globe, Building2 } from "lucide-react";
 import TravelApp from "../../../TravelApp";
 
 interface Suggestion {
@@ -33,6 +33,8 @@ interface Suggestion {
   isInQuest: boolean;
 }
 
+type ScopeType = "hotlist" | "neighborhood" | "city" | "all";
+
 interface SuggestionsClientProps {
   questId: string;
 }
@@ -58,28 +60,77 @@ export default function SuggestionsClient({ questId }: SuggestionsClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [addingLocation, setAddingLocation] = useState<string | null>(null);
 
-  // Filter state
+  // Scope and search state
+  const [scope, setScope] = useState<ScopeType>("hotlist");
+  const [apiSearch, setApiSearch] = useState("");
+  const [questCities, setQuestCities] = useState<Array<{ id: string; name: string; country: string }>>([]);
+  const [questNeighborhoods, setQuestNeighborhoods] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Filter state (client-side filtering of results)
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchSuggestions();
-  }, [questId]);
+  // Determine initial scope based on quest data
+  const determineInitialScope = useCallback((neighborhoods: Array<{ id: string; name: string }>) => {
+    // Start with most granular: neighborhood if available
+    if (neighborhoods.length > 0) {
+      return "neighborhood";
+    }
+    return "hotlist";
+  }, []);
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async (fetchScope: ScopeType, search?: string) => {
+    setLoading(true);
     try {
-      const response = await fetch(`/api/quests/${questId}/suggestions`);
+      const params = new URLSearchParams({ scope: fetchScope });
+      if (search) {
+        params.set("search", search);
+      }
+      const response = await fetch(`/api/quests/${questId}/suggestions?${params}`);
       if (!response.ok) {
         throw new Error("Failed to fetch suggestions");
       }
       const data = await response.json();
       setSuggestions(data.suggestions || []);
+      setQuestCities(data.questCities || []);
+      setQuestNeighborhoods(data.questNeighborhoods || []);
+
+      // Set initial scope based on quest data (only on first load)
+      if (scope === "hotlist" && data.questNeighborhoods?.length > 0) {
+        const initialScope = determineInitialScope(data.questNeighborhoods);
+        if (initialScope !== "hotlist") {
+          setScope(initialScope);
+          // Refetch with correct scope
+          const newParams = new URLSearchParams({ scope: initialScope });
+          const newResponse = await fetch(`/api/quests/${questId}/suggestions?${newParams}`);
+          if (newResponse.ok) {
+            const newData = await newResponse.json();
+            setSuggestions(newData.suggestions || []);
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
+  }, [questId, scope, determineInitialScope]);
+
+  useEffect(() => {
+    fetchSuggestions(scope, apiSearch);
+  }, [questId]);
+
+  // Refetch when scope changes
+  const handleScopeChange = (newScope: ScopeType) => {
+    setScope(newScope);
+    fetchSuggestions(newScope, apiSearch);
+  };
+
+  // Handle API search (debounced)
+  const handleApiSearch = (search: string) => {
+    setApiSearch(search);
+    fetchSuggestions(scope, search);
   };
 
   // Get unique types and cities for filters
@@ -194,11 +245,82 @@ export default function SuggestionsClient({ questId }: SuggestionsClientProps) {
               style={{ color: "var(--rpg-text)", textShadow: "0 0 10px rgba(255, 255, 255, 0.3)" }}
             >
               <Lightbulb size={24} style={{ color: "var(--rpg-gold)" }} />
-              Party Suggestions
+              Add Locations
             </h1>
             <p className="text-sm" style={{ color: "var(--rpg-muted)" }}>
-              Hotlisted locations from you and your party
+              Search and add locations to your quest
             </p>
+          </div>
+        </div>
+
+        {/* Scope Toggle */}
+        <div
+          className="rounded-lg p-3 mb-4"
+          style={{
+            background: "var(--rpg-card)",
+            border: "2px solid var(--rpg-border)",
+          }}
+        >
+          <p className="text-xs mb-2" style={{ color: "var(--rpg-muted)" }}>
+            Browse locations:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleScopeChange("hotlist")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all"
+              style={{
+                background: scope === "hotlist" ? "rgba(255, 107, 107, 0.2)" : "var(--rpg-darker)",
+                border: scope === "hotlist" ? "2px solid #ff6b6b" : "2px solid var(--rpg-border)",
+                color: scope === "hotlist" ? "#ff6b6b" : "var(--rpg-muted)",
+              }}
+            >
+              <Heart size={14} style={{ fill: scope === "hotlist" ? "#ff6b6b" : "none" }} />
+              Party Hotlist
+            </button>
+            {questNeighborhoods.length > 0 && (
+              <button
+                onClick={() => handleScopeChange("neighborhood")}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all"
+                style={{
+                  background: scope === "neighborhood" ? "rgba(95, 191, 138, 0.2)" : "var(--rpg-darker)",
+                  border: scope === "neighborhood" ? "2px solid var(--rpg-teal)" : "2px solid var(--rpg-border)",
+                  color: scope === "neighborhood" ? "var(--rpg-teal)" : "var(--rpg-muted)",
+                }}
+              >
+                <MapPin size={14} />
+                {questNeighborhoods.length === 1
+                  ? questNeighborhoods[0].name
+                  : `${questNeighborhoods.length} Neighborhoods`}
+              </button>
+            )}
+            {questCities.length > 0 && (
+              <button
+                onClick={() => handleScopeChange("city")}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all"
+                style={{
+                  background: scope === "city" ? "rgba(99, 102, 241, 0.2)" : "var(--rpg-darker)",
+                  border: scope === "city" ? "2px solid var(--rpg-purple)" : "2px solid var(--rpg-border)",
+                  color: scope === "city" ? "var(--rpg-purple)" : "var(--rpg-muted)",
+                }}
+              >
+                <Building2 size={14} />
+                {questCities.length === 1
+                  ? questCities[0].name
+                  : `${questCities.length} Cities`}
+              </button>
+            )}
+            <button
+              onClick={() => handleScopeChange("all")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all"
+              style={{
+                background: scope === "all" ? "rgba(255, 215, 0, 0.2)" : "var(--rpg-darker)",
+                border: scope === "all" ? "2px solid var(--rpg-gold)" : "2px solid var(--rpg-border)",
+                color: scope === "all" ? "var(--rpg-gold)" : "var(--rpg-muted)",
+              }}
+            >
+              <Globe size={14} />
+              All Locations
+            </button>
           </div>
         </div>
 
@@ -227,11 +349,26 @@ export default function SuggestionsClient({ questId }: SuggestionsClientProps) {
           >
             <Lightbulb size={48} className="mx-auto mb-4" style={{ color: "var(--rpg-muted)" }} />
             <h2 className="text-lg mb-2" style={{ color: "var(--rpg-text)" }}>
-              No suggestions yet
+              {scope === "hotlist"
+                ? "No hotlisted locations"
+                : `No locations found`}
             </h2>
-            <p className="text-sm" style={{ color: "var(--rpg-muted)" }}>
-              Add locations to your hotlist in the quest cities to see them here
+            <p className="text-sm mb-4" style={{ color: "var(--rpg-muted)" }}>
+              {scope === "hotlist"
+                ? "Add locations to your hotlist to see them here, or expand your search scope"
+                : "Try searching or switching to a different scope"}
             </p>
+            <Link
+              href={`/travel/locations/new?addToQuest=${questId}`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+              style={{
+                background: "var(--rpg-teal)",
+                color: "white",
+              }}
+            >
+              <Plus size={16} />
+              Create New Location
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">

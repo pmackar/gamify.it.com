@@ -75,6 +75,66 @@ async function getQuest(questId: string, userId: string) {
 
   if (!isOwner && !isPartyMember) return null;
 
+  // Get party member IDs (including owner)
+  const partyMemberIds = quest.party
+    ? quest.party.members.filter((m) => m.status === "ACCEPTED").map((m) => m.user_id)
+    : [];
+  if (!partyMemberIds.includes(quest.user_id)) {
+    partyMemberIds.push(quest.user_id);
+  }
+
+  // Get location IDs from quest items
+  const locationIds = quest.items.map((item) => item.location_id);
+
+  // Fetch hotlist data for all locations from party members
+  const hotlistData = locationIds.length > 0
+    ? await prisma.travel_user_location_data.findMany({
+        where: {
+          location_id: { in: locationIds },
+          user_id: { in: partyMemberIds },
+          hotlist: true,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              display_name: true,
+              avatar_url: true,
+            },
+          },
+        },
+      })
+    : [];
+
+  // Create a map of location ID to hotlist users
+  const hotlistByLocation = new Map<string, Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>>();
+  for (const data of hotlistData) {
+    if (!hotlistByLocation.has(data.location_id)) {
+      hotlistByLocation.set(data.location_id, []);
+    }
+    hotlistByLocation.get(data.location_id)!.push({
+      id: data.user.id,
+      username: data.user.username,
+      displayName: data.user.display_name,
+      avatarUrl: data.user.avatar_url,
+    });
+  }
+
+  // Build items with hotlist info and sort by hotlist count
+  const itemsWithHotlist = quest.items.map((item) => ({
+    item,
+    hotlistedBy: hotlistByLocation.get(item.location_id) || [],
+  }));
+
+  // Sort: most hotlisted first, then by original sort order
+  itemsWithHotlist.sort((a, b) => {
+    if (b.hotlistedBy.length !== a.hotlistedBy.length) {
+      return b.hotlistedBy.length - a.hotlistedBy.length;
+    }
+    return a.item.sort_order - b.item.sort_order;
+  });
+
   return {
     id: quest.id,
     name: quest.name,
@@ -94,7 +154,7 @@ async function getQuest(questId: string, userId: string) {
       id: qn.neighborhood.id,
       name: qn.neighborhood.name,
     })),
-    items: quest.items.map((item) => ({
+    items: itemsWithHotlist.map(({ item, hotlistedBy }) => ({
       id: item.id,
       completed: item.completed,
       completedAt: item.completed_at?.toISOString() || null,
@@ -123,6 +183,7 @@ async function getQuest(questId: string, userId: string) {
             avatarUrl: item.completed_by.avatar_url,
           }
         : null,
+      hotlistedBy,
     })),
     party: quest.party
       ? {
