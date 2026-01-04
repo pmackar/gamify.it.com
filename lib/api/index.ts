@@ -8,6 +8,7 @@
 export * from "./errors";
 export * from "./withAuth";
 export * from "./validation";
+export * from "./rateLimit";
 
 /**
  * Common field selections for Prisma queries
