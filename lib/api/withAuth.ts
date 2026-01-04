@@ -3,21 +3,30 @@ import { getAuthUser, AuthUser } from "@/lib/auth";
 import { Errors, ApiErrorResponse } from "./errors";
 
 /**
- * Handler function type that receives the authenticated user
+ * Handler function type that receives the authenticated user.
+ * Handler can return any NextResponse type (including error responses from validation).
  */
-type AuthenticatedHandler<T> = (
+type AuthenticatedHandler = (
   request: NextRequest,
   user: AuthUser
-) => Promise<NextResponse<T>>;
+) => Promise<NextResponse>;
 
 /**
  * Handler function type for routes with params
  */
-type AuthenticatedHandlerWithParams<T, P> = (
+type AuthenticatedHandlerWithParams<P> = (
   request: NextRequest,
   user: AuthUser,
   params: P
-) => Promise<NextResponse<T>>;
+) => Promise<NextResponse>;
+
+/**
+ * Handler function type for optional auth
+ */
+type OptionalAuthHandler = (
+  request: NextRequest,
+  user: AuthUser | null
+) => Promise<NextResponse>;
 
 /**
  * Wrap an API route handler with authentication check.
@@ -39,9 +48,9 @@ type AuthenticatedHandlerWithParams<T, P> = (
  *   return NextResponse.json({ data: "..." });
  * });
  */
-export function withAuth<T>(
-  handler: AuthenticatedHandler<T>
-): (request: NextRequest) => Promise<NextResponse<T | ApiErrorResponse>> {
+export function withAuth(
+  handler: AuthenticatedHandler
+): (request: NextRequest) => Promise<NextResponse<ApiErrorResponse> | NextResponse> {
   return async (request: NextRequest) => {
     try {
       const user = await getAuthUser();
@@ -61,7 +70,7 @@ export function withAuth<T>(
  * Use for dynamic routes like [id] or [questId].
  *
  * @example
- * export const GET = withAuthParams<ResponseType, { id: string }>(
+ * export const GET = withAuthParams<{ id: string }>(
  *   async (request, user, { id }) => {
  *     const item = await prisma.items.findFirst({
  *       where: { id, user_id: user.id }
@@ -70,12 +79,12 @@ export function withAuth<T>(
  *   }
  * );
  */
-export function withAuthParams<T, P extends Record<string, string>>(
-  handler: AuthenticatedHandlerWithParams<T, P>
+export function withAuthParams<P extends Record<string, string>>(
+  handler: AuthenticatedHandlerWithParams<P>
 ): (
   request: NextRequest,
   context: { params: Promise<P> }
-) => Promise<NextResponse<T | ApiErrorResponse>> {
+) => Promise<NextResponse<ApiErrorResponse> | NextResponse> {
   return async (request: NextRequest, context: { params: Promise<P> }) => {
     try {
       const user = await getAuthUser();
@@ -104,12 +113,9 @@ export function withAuthParams<T, P extends Record<string, string>>(
  *   }
  * });
  */
-export function withOptionalAuth<T>(
-  handler: (
-    request: NextRequest,
-    user: AuthUser | null
-  ) => Promise<NextResponse<T>>
-): (request: NextRequest) => Promise<NextResponse<T | ApiErrorResponse>> {
+export function withOptionalAuth(
+  handler: OptionalAuthHandler
+): (request: NextRequest) => Promise<NextResponse<ApiErrorResponse> | NextResponse> {
   return async (request: NextRequest) => {
     try {
       const user = await getAuthUser();

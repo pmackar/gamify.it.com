@@ -1,15 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
+import { withOptionalAuth, Errors } from "@/lib/api";
 
 // GET /api/users/[id] - Get public profile of a user
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const { id: userId } = await params;
-  const currentUser = await getAuthUser();
+export const GET = withOptionalAuth(async (request, currentUser) => {
+  // Extract user ID from URL
+  const url = new URL(request.url);
+  const pathParts = url.pathname.split("/");
+  const userId = pathParts[pathParts.length - 1];
+
+  if (!userId) {
+    return Errors.invalidInput("User ID is required");
+  }
 
   // Get the user's profile
   const profile = await prisma.profiles.findUnique({
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   });
 
   if (!profile) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return Errors.notFound("User");
   }
 
   // Check if current user is friends with this user
@@ -158,4 +160,4 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     friendshipId,
     isCurrentUser: currentUser?.id === userId,
   });
-}
+});

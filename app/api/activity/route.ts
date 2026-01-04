@@ -1,20 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import prisma from "@/lib/db";
+import { withAuth, validateBody, validateQuery, Errors } from "@/lib/api";
+
+// Query params schema for GET
+const activityQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  cursor: z.string().uuid().optional(),
+  unread: z.enum(["true", "false"]).optional(),
+});
+
+// Body schema for POST
+const activityActionSchema = z.object({
+  action: z.enum(["read-all"]),
+});
 
 // GET /api/activity - Get user's activity feed / notifications
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request, user) => {
+  const params = validateQuery(request, activityQuerySchema);
+  if (params instanceof NextResponse) return params;
+
+  const { limit, cursor, unread } = params;
+  const unreadOnly = unread === "true";
+
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
-    const cursor = searchParams.get("cursor");
-    const unreadOnly = searchParams.get("unread") === "true";
-
     const where = {
       user_id: user.id,
       ...(unreadOnly && { read: false }),
@@ -47,7 +56,6 @@ export async function GET(request: NextRequest) {
     const hasMore = activities.length > limit;
     const items = hasMore ? activities.slice(0, -1) : activities;
 
-    // Get unread count
     const unreadCount = await prisma.activity_feed.count({
       where: { user_id: user.id, read: false },
     });
@@ -84,19 +92,15 @@ export async function GET(request: NextRequest) {
       unreadCount: 0,
     });
   }
-}
+});
 
 // POST /api/activity - Mark all as read
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request, user) => {
+  const body = await validateBody(request, activityActionSchema);
+  if (body instanceof NextResponse) return body;
+
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { action } = await request.json();
-
-    if (action === "read-all") {
+    if (body.action === "read-all") {
       await prisma.activity_feed.updateMany({
         where: { user_id: user.id, read: false },
         data: { read: true },
@@ -104,12 +108,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    return Errors.invalidInput("Invalid action");
   } catch (error) {
     console.error("Error updating activity feed:", error);
-    return NextResponse.json(
-      { error: "Failed to update activity feed", code: "ACTIVITY_UPDATE_FAILED" },
-      { status: 500 }
-    );
+    return Errors.database("Failed to update activity feed");
   }
-}
+});

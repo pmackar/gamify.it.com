@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import prisma from "@/lib/db";
+import { withAuth, validateQuery } from "@/lib/api";
 
 interface Workout {
   id: string;
@@ -33,16 +34,18 @@ interface FitnessData {
   records?: Record<string, number>;
 }
 
-// GET /api/fitness/leaderboard - Get friends fitness leaderboard
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+// Query params schema
+const leaderboardQuerySchema = z.object({
+  type: z.enum(["workouts", "xp", "volume", "prs"]).default("workouts"),
+  period: z.enum(["week", "month", "all"]).default("week"),
+});
 
-  const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type") || "workouts"; // workouts, xp, volume, prs
-  const period = searchParams.get("period") || "week"; // week, month, all
+// GET /api/fitness/leaderboard - Get friends fitness leaderboard
+export const GET = withAuth(async (request, user) => {
+  const params = validateQuery(request, leaderboardQuerySchema);
+  if (params instanceof NextResponse) return params;
+
+  const { type, period } = params;
 
   // Get user's friends
   const friendships = await prisma.friendships.findMany({
@@ -187,4 +190,4 @@ export async function GET(request: NextRequest) {
     period,
     totalFriends: friendIds.length,
   });
-}
+});
