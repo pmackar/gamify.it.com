@@ -101,16 +101,6 @@ export default function AppLandingPage({
     <div className="landing-wrapper">
       <PixelParticles accentColor={color} />
 
-      {/* Navigation */}
-      <nav className="landing-nav">
-        <Link href="/" className="nav-logo">
-          <span className="logo-text">G</span>
-        </Link>
-        <button onClick={handleLogin} className="nav-login-btn">
-          Sign In
-        </button>
-      </nav>
-
       <div className="landing-content">
         {/* Hero Section */}
         <section className="hero-section">
@@ -234,53 +224,6 @@ export default function AppLandingPage({
           z-index: 1000;
         }
 
-        /* Navigation */
-        .landing-nav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 100;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem 2rem;
-          background: rgba(10, 10, 10, 0.8);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border-bottom: 1px solid var(--theme-border);
-        }
-
-        .nav-logo {
-          text-decoration: none;
-        }
-
-        .logo-text {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 1.5rem;
-          background: linear-gradient(135deg, #ff6b6b, #ffd700, #5fbf8a);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .nav-login-btn {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 0.45rem;
-          padding: 0.6rem 1.2rem;
-          background: transparent;
-          border: 1px solid var(--theme-gold);
-          border-radius: 8px;
-          color: var(--theme-gold);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .nav-login-btn:hover {
-          background: var(--theme-gold);
-          color: #1a1a1a;
-        }
-
         /* Content */
         .landing-content {
           position: relative;
@@ -297,7 +240,7 @@ export default function AppLandingPage({
           align-items: center;
           justify-content: center;
           text-align: center;
-          padding: 6rem 2rem 4rem;
+          padding: calc(var(--content-top, 80px) + 2rem) 2rem 4rem;
         }
 
         .hero-icon {
@@ -658,12 +601,8 @@ export default function AppLandingPage({
 
         /* Responsive */
         @media (max-width: 768px) {
-          .landing-nav {
-            padding: 0.75rem 1rem;
-          }
-
           .hero-section {
-            padding: 5rem 1rem 3rem;
+            padding: calc(var(--content-top, 80px) + 1rem) 1rem 3rem;
           }
 
           .hero-icon {
