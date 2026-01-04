@@ -6,7 +6,18 @@ import { getMainLevelFromXP, getAppLevelXPRequired } from "@/lib/levels";
 export const GET = withAuth(async (_request, user) => {
   try {
     // Get stats from new schema
-    const [locationsCount, achievementsCount, appProfiles] = await Promise.all([
+    const [profile, locationsCount, achievementsCount, appProfiles] = await Promise.all([
+      prisma.profiles.findUnique({
+        where: { id: user.id },
+        select: {
+          display_name: true,
+          avatar_url: true,
+          total_xp: true,
+          main_level: true,
+          current_streak: true,
+          longest_streak: true,
+        },
+      }),
       prisma.travel_locations.count({
         where: { user_id: user.id },
       }),
@@ -18,7 +29,7 @@ export const GET = withAuth(async (_request, user) => {
       }),
     ]);
 
-    const totalXp = user.totalXP || 0;
+    const totalXp = profile?.total_xp || 0;
     // Calculate main level from total XP (uses steeper 2x curve from 250)
     const mainLevelInfo = getMainLevelFromXP(totalXp);
 
@@ -37,15 +48,15 @@ export const GET = withAuth(async (_request, user) => {
 
     return NextResponse.json({
       character: {
-        name: user.name || "Traveler",
+        name: profile?.display_name || "Traveler",
         email: user.email,
-        avatar: user.image,
+        avatar: profile?.avatar_url,
         level: mainLevelInfo.level,
         xp: totalXp,
         xpInCurrentLevel: mainLevelInfo.xpInLevel,
         xpToNextLevel: mainLevelInfo.xpToNext,
-        currentStreak: user.currentStreak || 0,
-        longestStreak: user.longestStreak || 0,
+        currentStreak: profile?.current_streak || 0,
+        longestStreak: profile?.longest_streak || 0,
       },
       stats: {
         locations: locationsCount,

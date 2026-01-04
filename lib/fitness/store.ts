@@ -169,7 +169,9 @@ interface FitnessStore extends FitnessState, SyncState {
   stopProgram: () => void;
   advanceProgramDay: () => void;
   getTodaysWorkout: () => { program: Program; week: ProgramWeek; day: ProgramDay; template: WorkoutTemplate | null } | null;
+  getUpcomingWorkouts: (limit?: number) => { weekNumber: number; dayNumber: number; dayName: string; workoutName: string; isRest: boolean; isToday: boolean; template: WorkoutTemplate | null }[];
   startProgramWorkout: () => void;
+  startProgramWorkoutForDay: (weekNumber: number, dayNumber: number) => void;
   calculateSuggestedWeight: (exerciseId: string) => number | null;
   updateExerciseProgress: (exerciseId: string, weight: number, reps: number, rpe?: number) => void;
 
@@ -1500,6 +1502,48 @@ export const useFitnessStore = create<FitnessStore>()(
         return { program, week, day, template };
       },
 
+      getUpcomingWorkouts: (limit = 21) => {
+        const state = get();
+        if (!state.activeProgram) return [];
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) return [];
+
+        const currentWeek = state.activeProgram.currentWeek;
+        const currentDay = state.activeProgram.currentDay;
+        const upcoming: { weekNumber: number; dayNumber: number; dayName: string; workoutName: string; isRest: boolean; isToday: boolean; template: WorkoutTemplate | null }[] = [];
+
+        // Collect workouts from current and next weeks
+        for (let weekOffset = 0; weekOffset < 3 && upcoming.length < limit; weekOffset++) {
+          const weekIndex = currentWeek - 1 + weekOffset;
+          if (weekIndex >= program.weeks.length) break;
+
+          const week = program.weeks[weekIndex];
+          const weekNum = week.weekNumber;
+
+          for (const day of week.days) {
+            // Skip past days in the current week
+            if (weekOffset === 0 && day.dayNumber < currentDay) continue;
+            if (upcoming.length >= limit) break;
+
+            const template = day.templateId ? state.getTemplateById(day.templateId) : null;
+            const isToday = weekOffset === 0 && day.dayNumber === currentDay;
+
+            upcoming.push({
+              weekNumber: weekNum,
+              dayNumber: day.dayNumber,
+              dayName: ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.dayNumber] || `Day ${day.dayNumber}`,
+              workoutName: day.isRest ? 'Rest Day' : (template?.name || day.name),
+              isRest: day.isRest,
+              isToday,
+              template,
+            });
+          }
+        }
+
+        return upcoming;
+      },
+
       startProgramWorkout: () => {
         const todaysWorkout = get().getTodaysWorkout();
         if (!todaysWorkout || !todaysWorkout.template) {
@@ -1509,6 +1553,41 @@ export const useFitnessStore = create<FitnessStore>()(
 
         // Start workout from the template
         get().startWorkoutFromTemplate(todaysWorkout.template.id);
+      },
+
+      startProgramWorkoutForDay: (weekNumber: number, dayNumber: number) => {
+        const state = get();
+        if (!state.activeProgram) {
+          get().showToast('No active program');
+          return;
+        }
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) {
+          get().showToast('Program not found');
+          return;
+        }
+
+        const week = program.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) {
+          get().showToast('Week not found');
+          return;
+        }
+
+        const day = week.days.find(d => d.dayNumber === dayNumber);
+        if (!day || day.isRest) {
+          get().showToast('No workout for this day');
+          return;
+        }
+
+        const template = day.templateId ? state.getTemplateById(day.templateId) : null;
+        if (!template) {
+          get().showToast('Workout template not found');
+          return;
+        }
+
+        // Start workout from the template
+        get().startWorkoutFromTemplate(template.id);
       },
 
       calculateSuggestedWeight: (exerciseId: string) => {

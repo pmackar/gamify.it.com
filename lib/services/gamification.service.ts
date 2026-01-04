@@ -8,7 +8,7 @@
 import prisma from "@/lib/db";
 import { getMainLevelFromXP, getAppLevelFromXP, getAppLevelXPRequired } from "@/lib/levels";
 import { XP_VALUES } from "@/lib/gamification";
-import { checkAndAwardAchievements } from "@/lib/achievements";
+import { checkAchievements as checkAchievementsBase } from "@/lib/achievements";
 
 // ============================================================================
 // Types
@@ -466,7 +466,7 @@ export async function checkAchievements(
   context: Record<string, unknown> = {}
 ): Promise<AchievementAwardResult> {
   try {
-    const newAchievements = await checkAndAwardAchievements(userId, appId, context);
+    const newAchievements = await checkAchievementsBase(userId);
 
     const awarded = newAchievements.map((a) => ({
       id: a.id,

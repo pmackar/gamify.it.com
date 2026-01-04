@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 
   const body = await request.json();
-  const { name, description, difficulty, goal, is_template } = body;
+  const { name, description, difficulty, goal, is_template, progression_config } = body;
 
   const program = await prisma.coaching_programs.update({
     where: { id: programId },
@@ -108,6 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       ...(difficulty !== undefined && { difficulty }),
       ...(goal !== undefined && { goal }),
       ...(is_template !== undefined && { is_template }),
+      ...(progression_config !== undefined && { progression_config }),
       updated_at: new Date(),
     },
   });

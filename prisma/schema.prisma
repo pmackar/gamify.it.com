@@ -941,6 +941,7 @@ model coach_profiles {
 
   athletes        coaching_relationships[]
   programs        coaching_programs[]
+  templates       coaching_workout_templates[]
 
   @@index([user_id])
 }
@@ -968,20 +969,22 @@ model coaching_relationships {
 
 /// Training program template/assignment
 model coaching_programs {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  coach_id       String          @db.Uuid
-  coach          coach_profiles  @relation(fields: [coach_id], references: [id], onDelete: Cascade)
-  name           String
-  description    String?
-  duration_weeks Int
-  difficulty     String?         // beginner, intermediate, advanced
-  goal           String?         // strength, hypertrophy, endurance, general
-  is_template    Boolean         @default(false)
-  created_at     DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime        @default(now()) @db.Timestamptz(6)
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id           String          @db.Uuid
+  coach              coach_profiles  @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  duration_weeks     Int
+  difficulty         String?         // beginner, intermediate, advanced
+  goal               String?         // strength, hypertrophy, endurance, general
+  is_template        Boolean         @default(false)
+  progression_config Json?           // Stores ProgressionConfig from types.ts
+  created_at         DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime        @default(now()) @db.Timestamptz(6)
 
-  weeks          coaching_program_weeks[]
-  assignments    coaching_program_assignments[]
+  weeks              coaching_program_weeks[]
+  assignments        coaching_program_assignments[]
+  versions           coaching_program_versions[]
 
   @@index([coach_id])
   @@index([is_template])
@@ -1076,6 +1079,57 @@ model coaching_workout_completions {
   @@unique([assignment_id, prescribed_workout_id, scheduled_date])
   @@index([assignment_id])
   @@index([scheduled_date])
+}
+
+/// Reusable workout templates for coaches
+model coaching_workout_templates {
+  id          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id    String                        @db.Uuid
+  coach       coach_profiles                @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  is_public   Boolean                       @default(false)
+  created_at  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime                      @default(now()) @db.Timestamptz(6)
+
+  exercises   coaching_template_exercises[]
+
+  @@index([coach_id])
+  @@index([is_public])
+}
+
+/// Exercises within a workout template
+model coaching_template_exercises {
+  id            String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_id   String                     @db.Uuid
+  template      coaching_workout_templates @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  exercise_id   String
+  exercise_name String
+  order_index   Int
+  sets          Int
+  reps_min      Int
+  reps_max      Int?
+  intensity     String?
+  rest_seconds  Int?
+  notes         String?
+
+  @@unique([template_id, order_index])
+  @@index([template_id])
+}
+
+/// Version history for programs
+model coaching_program_versions {
+  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id String            @db.Uuid
+  program    coaching_programs @relation(fields: [program_id], references: [id], onDelete: Cascade)
+  version    Int
+  snapshot   Json              // Full program state at time of save
+  notes      String?           // "Added deload week", etc.
+  created_by String            @db.Uuid
+  created_at DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@unique([program_id, version])
+  @@index([program_id])
 }
 
 // ============================================

@@ -16,8 +16,15 @@ import {
   Trash2,
   Copy,
   UserPlus,
+  BookmarkPlus,
+  FolderOpen,
+  TrendingUp,
+  History,
+  RotateCcw,
 } from "lucide-react";
-import { EXERCISES } from "@/lib/fitness/data";
+import { EXERCISES, getExerciseTier, TIER_COLORS } from "@/lib/fitness/data";
+import { ProgressionConfig } from "@/lib/fitness/types";
+import ProgressionBuilder from "@/components/fitness/ProgressionBuilder";
 
 interface Exercise {
   id: string;
@@ -58,6 +65,7 @@ interface Program {
   goal: string | null;
   weeks: Week[];
   assignments: any[];
+  progression_config: ProgressionConfig | null;
 }
 
 interface Athlete {
@@ -67,6 +75,14 @@ interface Athlete {
     display_name: string | null;
     email: string;
   };
+}
+
+interface Version {
+  id: string;
+  version: number;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
 }
 
 export default function ProgramEditorPage({
@@ -89,6 +105,20 @@ export default function ProgramEditorPage({
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [copiedWeek, setCopiedWeek] = useState<Week | null>(null);
+  const [copiedWorkout, setCopiedWorkout] = useState<Workout | null>(null);
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState<number | null>(null);
+  const [showProgressionBuilder, setShowProgressionBuilder] = useState(false);
+  const [savingProgression, setSavingProgression] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [versions, setVersions] = useState<Version[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+  const [savingVersion, setSavingVersion] = useState(false);
+  const [restoringVersion, setRestoringVersion] = useState<string | null>(null);
 
   useEffect(() => {
     loadProgram();
@@ -122,6 +152,251 @@ export default function ProgramEditorPage({
       }
     } catch (error) {
       console.error("Error loading athletes:", error);
+    }
+  };
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch("/api/fitness/coach/templates");
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data.templates || []);
+      }
+    } catch (error) {
+      console.error("Error loading templates:", error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const saveWorkoutAsTemplate = async () => {
+    if (!editingWorkout || editingWorkout.exercises.length === 0) return;
+
+    const templateName = prompt("Template name:", editingWorkout.name || "New Template");
+    if (!templateName) return;
+
+    setSavingTemplate(true);
+    try {
+      const res = await fetch("/api/fitness/coach/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: templateName,
+          description: `Created from ${program?.name || "program"}`,
+          exercises: editingWorkout.exercises.map((ex) => ({
+            exercise_id: ex.exercise_id,
+            exercise_name: ex.exercise_name,
+            sets: ex.sets,
+            reps_min: ex.reps_min,
+            reps_max: ex.reps_max,
+            intensity: ex.intensity,
+            rest_seconds: ex.rest_seconds,
+            notes: ex.notes,
+          })),
+        }),
+      });
+      if (res.ok) {
+        alert("Template saved!");
+      }
+    } catch (error) {
+      console.error("Error saving template:", error);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const loadTemplateIntoWorkout = (template: any) => {
+    if (!editingWorkout) return;
+
+    setEditingWorkout({
+      ...editingWorkout,
+      exercises: template.exercises.map((ex: any, i: number) => ({
+        id: `template-${Date.now()}-${i}`,
+        exercise_id: ex.exercise_id,
+        exercise_name: ex.exercise_name,
+        order_index: i,
+        sets: ex.sets,
+        reps_min: ex.reps_min,
+        reps_max: ex.reps_max,
+        intensity: ex.intensity,
+        rest_seconds: ex.rest_seconds,
+        notes: ex.notes,
+      })),
+    });
+    setShowTemplatePicker(false);
+  };
+
+  const copyWeek = (week: Week) => {
+    setCopiedWeek(week);
+    setCopiedWorkout(null);
+  };
+
+  const pasteWeekTo = async (targetWeek: Week) => {
+    if (!copiedWeek || !program) return;
+
+    const confirmed = confirm(
+      `Replace Week ${targetWeek.week_number} with Week ${copiedWeek.week_number}?`
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `/api/fitness/coach/programs/${programId}/bulk`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "copy_week",
+            source_week_id: copiedWeek.id,
+            target_week_id: targetWeek.id,
+          }),
+        }
+      );
+
+      if (res.ok) {
+        await loadProgram();
+        setCopiedWeek(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to paste week");
+      }
+    } catch (error) {
+      console.error("Error pasting week:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyWorkout = (workout: Workout) => {
+    setCopiedWorkout(workout);
+    setCopiedWeek(null);
+  };
+
+  const pasteWorkoutTo = async (targetWorkout: Workout) => {
+    if (!copiedWorkout || !program) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `/api/fitness/coach/programs/${programId}/workouts/${targetWorkout.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: copiedWorkout.name,
+            notes: copiedWorkout.notes,
+            rest_day: copiedWorkout.rest_day,
+            exercises: copiedWorkout.exercises.map((ex, i) => ({
+              exercise_id: ex.exercise_id,
+              exercise_name: ex.exercise_name,
+              order_index: i,
+              sets: ex.sets,
+              reps_min: ex.reps_min,
+              reps_max: ex.reps_max,
+              intensity: ex.intensity,
+              rest_seconds: ex.rest_seconds,
+              notes: ex.notes,
+            })),
+          }),
+        }
+      );
+
+      if (res.ok) {
+        await loadProgram();
+        setCopiedWorkout(null);
+      }
+    } catch (error) {
+      console.error("Error pasting workout:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveProgressionConfig = async (config: ProgressionConfig) => {
+    if (!program) return;
+    setSavingProgression(true);
+    try {
+      const res = await fetch(`/api/fitness/coach/programs/${programId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progression_config: config }),
+      });
+
+      if (res.ok) {
+        setProgram({ ...program, progression_config: config });
+      }
+    } catch (error) {
+      console.error("Error saving progression:", error);
+    } finally {
+      setSavingProgression(false);
+    }
+  };
+
+  const loadVersions = async () => {
+    setLoadingVersions(true);
+    try {
+      const res = await fetch(`/api/fitness/coach/programs/${programId}/versions`);
+      if (res.ok) {
+        const data = await res.json();
+        setVersions(data.versions || []);
+      }
+    } catch (error) {
+      console.error("Error loading versions:", error);
+    } finally {
+      setLoadingVersions(false);
+    }
+  };
+
+  const createVersion = async () => {
+    const notes = prompt("Version notes (optional):", `Saved at ${new Date().toLocaleString()}`);
+    if (notes === null) return; // User cancelled
+
+    setSavingVersion(true);
+    try {
+      const res = await fetch(`/api/fitness/coach/programs/${programId}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes }),
+      });
+
+      if (res.ok) {
+        await loadVersions();
+        alert("Version saved!");
+      }
+    } catch (error) {
+      console.error("Error creating version:", error);
+    } finally {
+      setSavingVersion(false);
+    }
+  };
+
+  const restoreVersion = async (versionId: string, versionNum: number) => {
+    const confirmed = confirm(
+      `Restore to version ${versionNum}? This will overwrite current program data.`
+    );
+    if (!confirmed) return;
+
+    setRestoringVersion(versionId);
+    try {
+      const res = await fetch(
+        `/api/fitness/coach/programs/${programId}/versions/${versionId}`,
+        { method: "POST" }
+      );
+
+      if (res.ok) {
+        await loadProgram();
+        setShowVersionHistory(false);
+        alert(`Restored to version ${versionNum}`);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to restore version");
+      }
+    } catch (error) {
+      console.error("Error restoring version:", error);
+    } finally {
+      setRestoringVersion(null);
     }
   };
 
@@ -290,19 +565,81 @@ export default function ProgramEditorPage({
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setShowAssign(true)}
-            className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all text-sm"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowProgressionBuilder(true)}
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all text-sm"
+              style={{
+                background: program?.progression_config && program.progression_config.type !== "none"
+                  ? "rgba(255, 215, 0, 0.2)"
+                  : "rgba(107, 114, 128, 0.2)",
+                border: program?.progression_config && program.progression_config.type !== "none"
+                  ? "1px solid #FFD700"
+                  : "1px solid #6b7280",
+                color: program?.progression_config && program.progression_config.type !== "none"
+                  ? "#FFD700"
+                  : "#9ca3af",
+              }}
+            >
+              <TrendingUp className="w-4 h-4" />
+              Progression
+            </button>
+            <button
+              onClick={() => {
+                loadVersions();
+                setShowVersionHistory(true);
+              }}
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all text-sm"
+              style={{
+                background: "rgba(107, 114, 128, 0.2)",
+                border: "1px solid #6b7280",
+                color: "#9ca3af",
+              }}
+            >
+              <History className="w-4 h-4" />
+              History
+            </button>
+            <button
+              onClick={() => setShowAssign(true)}
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all text-sm"
+              style={{
+                background: "rgba(95, 191, 138, 0.2)",
+                border: "1px solid #5fbf8a",
+                color: "#5fbf8a",
+              }}
+            >
+              <UserPlus className="w-4 h-4" />
+              Assign
+            </button>
+          </div>
+        </div>
+
+        {/* Clipboard Indicator */}
+        {(copiedWeek || copiedWorkout) && (
+          <div
+            className="mb-4 p-3 rounded-lg flex items-center justify-between"
             style={{
-              background: "rgba(95, 191, 138, 0.2)",
-              border: "1px solid #5fbf8a",
-              color: "#5fbf8a",
+              background: "rgba(255, 215, 0, 0.1)",
+              border: "1px dashed #FFD700",
             }}
           >
-            <UserPlus className="w-4 h-4" />
-            Assign
-          </button>
-        </div>
+            <div className="flex items-center gap-2 text-sm text-[#FFD700]">
+              <Copy className="w-4 h-4" />
+              {copiedWeek
+                ? `Week ${copiedWeek.week_number} copied`
+                : `${copiedWorkout?.name || "Workout"} copied`}
+            </div>
+            <button
+              onClick={() => {
+                setCopiedWeek(null);
+                setCopiedWorkout(null);
+              }}
+              className="text-gray-500 hover:text-white text-xs"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Weeks */}
         <div className="space-y-4">
@@ -312,19 +649,19 @@ export default function ProgramEditorPage({
               className="rounded-lg overflow-hidden"
               style={{
                 background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
-                border: "1px solid #3d3d4d",
+                border: copiedWeek?.id === week.id ? "1px solid #FFD700" : "1px solid #3d3d4d",
               }}
             >
               {/* Week Header */}
-              <button
-                onClick={() =>
-                  setExpandedWeek(
-                    expandedWeek === week.week_number ? 0 : week.week_number
-                  )
-                }
-                className="w-full flex items-center justify-between p-4 text-left"
-              >
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-4">
+                <button
+                  onClick={() =>
+                    setExpandedWeek(
+                      expandedWeek === week.week_number ? 0 : week.week_number
+                    )
+                  }
+                  className="flex items-center gap-3"
+                >
                   {expandedWeek === week.week_number ? (
                     <ChevronDown className="w-5 h-5 text-gray-500" />
                   ) : (
@@ -339,11 +676,34 @@ export default function ProgramEditorPage({
                   {week.name && (
                     <span className="text-gray-400 text-sm">- {week.name}</span>
                   )}
+                </button>
+                <div className="flex items-center gap-3">
+                  {copiedWeek && copiedWeek.id !== week.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        pasteWeekTo(week);
+                      }}
+                      className="text-xs px-2 py-1 rounded bg-[#FFD700]/20 text-[#FFD700] hover:bg-[#FFD700]/30"
+                    >
+                      Paste Here
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyWeek(week);
+                    }}
+                    className="text-gray-500 hover:text-white"
+                    title="Copy Week"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <span className="text-gray-500 text-xs">
+                    {week.workouts.filter((w) => !w.rest_day).length} workout days
+                  </span>
                 </div>
-                <span className="text-gray-500 text-xs">
-                  {week.workouts.filter((w) => !w.rest_day).length} workout days
-                </span>
-              </button>
+              </div>
 
               {/* Week Content */}
               {expandedWeek === week.week_number && (
@@ -351,23 +711,52 @@ export default function ProgramEditorPage({
                   {week.workouts.map((workout) => (
                     <div
                       key={workout.id}
-                      onClick={() => setEditingWorkout(workout)}
-                      className={`p-3 rounded cursor-pointer transition-all hover:scale-105 ${
+                      className={`relative p-3 rounded cursor-pointer transition-all hover:scale-105 group ${
                         workout.rest_day ? "opacity-50" : ""
                       }`}
                       style={{
-                        background: workout.rest_day
+                        background: copiedWorkout?.id === workout.id
+                          ? "rgba(255, 215, 0, 0.2)"
+                          : workout.rest_day
                           ? "rgba(0,0,0,0.2)"
                           : workout.exercises.length > 0
                           ? "rgba(95, 191, 138, 0.2)"
                           : "rgba(255, 107, 107, 0.1)",
-                        border: workout.rest_day
+                        border: copiedWorkout?.id === workout.id
+                          ? "1px solid #FFD700"
+                          : workout.rest_day
                           ? "1px dashed #3d3d4d"
                           : workout.exercises.length > 0
                           ? "1px solid #5fbf8a"
                           : "1px solid #FF6B6B33",
                       }}
+                      onClick={() => {
+                        if (copiedWorkout && copiedWorkout.id !== workout.id) {
+                          pasteWorkoutTo(workout);
+                        } else {
+                          setEditingWorkout(workout);
+                        }
+                      }}
                     >
+                      {/* Quick copy button */}
+                      {!workout.rest_day && workout.exercises.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyWorkout(workout);
+                          }}
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-[#FFD700]"
+                          title="Copy Workout"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      )}
+                      {/* Paste indicator */}
+                      {copiedWorkout && copiedWorkout.id !== workout.id && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[#FFD700] text-xs font-bold">PASTE</span>
+                        </div>
+                      )}
                       <div className="text-center">
                         <p className="text-xs text-gray-500 mb-1">
                           Day {workout.day_number}
@@ -476,13 +865,35 @@ export default function ProgramEditorPage({
                 <>
                   <div className="flex items-center justify-between">
                     <label className="text-gray-400 text-sm">Exercises</label>
-                    <button
-                      onClick={() => setShowExercisePicker(true)}
-                      className="flex items-center gap-1 text-xs text-[#5fbf8a] hover:text-[#7dd3a3]"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          loadTemplates();
+                          setShowTemplatePicker(true);
+                        }}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#FFD700]"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        Load Template
+                      </button>
+                      {editingWorkout.exercises.length > 0 && (
+                        <button
+                          onClick={saveWorkoutAsTemplate}
+                          disabled={savingTemplate}
+                          className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#5fbf8a]"
+                        >
+                          <BookmarkPlus className="w-4 h-4" />
+                          {savingTemplate ? "Saving..." : "Save as Template"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowExercisePicker(true)}
+                        className="flex items-center gap-1 text-xs text-[#5fbf8a] hover:text-[#7dd3a3]"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </button>
+                    </div>
                   </div>
 
                   {editingWorkout.exercises.length === 0 ? (
@@ -501,87 +912,170 @@ export default function ProgramEditorPage({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {editingWorkout.exercises.map((ex, i) => (
+                      {editingWorkout.exercises.map((ex, i) => {
+                        const isExpanded = editingExerciseIndex === i;
+                        const isCustom = ex.exercise_id.startsWith("custom_");
+                        const tier = getExerciseTier(ex.exercise_id) as 1 | 2 | 3;
+                        const colors = TIER_COLORS[tier];
+
+                        return (
                         <div
                           key={ex.id}
-                          className="p-3 rounded-lg flex items-start gap-3"
+                          className="rounded-lg overflow-hidden"
                           style={{
                             background: "rgba(0,0,0,0.2)",
-                            border: "1px solid #3d3d4d",
+                            border: isExpanded ? "1px solid #FFD700" : "1px solid #3d3d4d",
                           }}
                         >
-                          <div className="text-gray-500 text-sm font-mono w-6">
-                            {i + 1}.
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="font-medium text-white">
-                              {ex.exercise_name}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  value={ex.sets}
-                                  onChange={(e) =>
-                                    updateExercise(i, {
-                                      sets: parseInt(e.target.value) || 1,
-                                    })
-                                  }
-                                  className="w-12 px-2 py-1 rounded bg-black/30 border border-gray-600 text-white text-center text-sm"
-                                  min="1"
-                                />
-                                <span className="text-gray-500 text-xs">sets</span>
-                              </div>
-                              <span className="text-gray-600">×</span>
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  value={ex.reps_min}
-                                  onChange={(e) =>
-                                    updateExercise(i, {
-                                      reps_min: parseInt(e.target.value) || 1,
-                                    })
-                                  }
-                                  className="w-12 px-2 py-1 rounded bg-black/30 border border-gray-600 text-white text-center text-sm"
-                                  min="1"
-                                />
-                                {ex.reps_max && (
-                                  <>
-                                    <span className="text-gray-500">-</span>
-                                    <input
-                                      type="number"
-                                      value={ex.reps_max || ""}
-                                      onChange={(e) =>
-                                        updateExercise(i, {
-                                          reps_max: parseInt(e.target.value) || null,
-                                        })
-                                      }
-                                      className="w-12 px-2 py-1 rounded bg-black/30 border border-gray-600 text-white text-center text-sm"
-                                      min="1"
-                                    />
-                                  </>
-                                )}
-                                <span className="text-gray-500 text-xs">reps</span>
-                              </div>
-                              <input
-                                type="text"
-                                value={ex.intensity || ""}
-                                onChange={(e) =>
-                                  updateExercise(i, { intensity: e.target.value })
-                                }
-                                placeholder="RPE/intensity"
-                                className="w-24 px-2 py-1 rounded bg-black/30 border border-gray-600 text-white placeholder-gray-500 text-sm"
-                              />
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => removeExercise(i)}
-                            className="text-gray-500 hover:text-red-400"
+                          {/* Exercise Header - Click to expand */}
+                          <div
+                            className="p-3 flex items-center gap-3 cursor-pointer hover:bg-white/5"
+                            onClick={() => setEditingExerciseIndex(isExpanded ? null : i)}
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            <div className="text-gray-500 text-sm font-mono w-6">
+                              {i + 1}.
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-white">
+                                  {ex.exercise_name}
+                                </span>
+                                <span
+                                  className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+                                  style={{
+                                    background: colors.bg,
+                                    border: `1px solid ${colors.border}`,
+                                    color: colors.text,
+                                  }}
+                                >
+                                  {isCustom ? "CUSTOM" : colors.label}
+                                </span>
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1">
+                                {ex.sets} sets × {ex.reps_min}{ex.reps_max ? `-${ex.reps_max}` : ""} reps
+                                {ex.intensity && ` @ ${ex.intensity}`}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-500" />
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeExercise(i);
+                                }}
+                                className="text-gray-500 hover:text-red-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expanded Edit Panel */}
+                          {isExpanded && (
+                            <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-700">
+                              {/* Sets and Reps Row */}
+                              <div className="flex flex-wrap gap-3">
+                                <div>
+                                  <label className="block text-gray-500 text-xs mb-1">Sets</label>
+                                  <input
+                                    type="number"
+                                    value={ex.sets}
+                                    onChange={(e) =>
+                                      updateExercise(i, {
+                                        sets: parseInt(e.target.value) || 1,
+                                      })
+                                    }
+                                    className="w-20 px-3 py-2 rounded bg-black/30 border border-gray-600 text-white text-center"
+                                    min="1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 text-xs mb-1">Reps Min</label>
+                                  <input
+                                    type="number"
+                                    value={ex.reps_min}
+                                    onChange={(e) =>
+                                      updateExercise(i, {
+                                        reps_min: parseInt(e.target.value) || 1,
+                                      })
+                                    }
+                                    className="w-20 px-3 py-2 rounded bg-black/30 border border-gray-600 text-white text-center"
+                                    min="1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 text-xs mb-1">Reps Max</label>
+                                  <input
+                                    type="number"
+                                    value={ex.reps_max || ""}
+                                    onChange={(e) =>
+                                      updateExercise(i, {
+                                        reps_max: e.target.value ? parseInt(e.target.value) : null,
+                                      })
+                                    }
+                                    placeholder="-"
+                                    className="w-20 px-3 py-2 rounded bg-black/30 border border-gray-600 text-white text-center placeholder-gray-600"
+                                    min="1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 text-xs mb-1">Intensity</label>
+                                  <input
+                                    type="text"
+                                    value={ex.intensity || ""}
+                                    onChange={(e) =>
+                                      updateExercise(i, { intensity: e.target.value || null })
+                                    }
+                                    placeholder="RPE 8"
+                                    className="w-24 px-3 py-2 rounded bg-black/30 border border-gray-600 text-white placeholder-gray-600"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-gray-500 text-xs mb-1">Rest (sec)</label>
+                                  <input
+                                    type="number"
+                                    value={ex.rest_seconds || ""}
+                                    onChange={(e) =>
+                                      updateExercise(i, {
+                                        rest_seconds: e.target.value ? parseInt(e.target.value) : null,
+                                      })
+                                    }
+                                    placeholder="90"
+                                    className="w-20 px-3 py-2 rounded bg-black/30 border border-gray-600 text-white text-center placeholder-gray-600"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Notes */}
+                              <div>
+                                <label className="block text-gray-500 text-xs mb-1">Notes</label>
+                                <input
+                                  type="text"
+                                  value={ex.notes || ""}
+                                  onChange={(e) =>
+                                    updateExercise(i, { notes: e.target.value || null })
+                                  }
+                                  placeholder="Coaching cues, form notes..."
+                                  className="w-full px-3 py-1.5 rounded bg-black/30 border border-gray-600 text-white text-sm placeholder-gray-600"
+                                />
+                              </div>
+
+                              {/* Done button */}
+                              <button
+                                onClick={() => setEditingExerciseIndex(null)}
+                                className="text-xs text-[#5fbf8a] hover:text-[#7dd3a3]"
+                              >
+                                Done editing
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
@@ -658,16 +1152,64 @@ export default function ProgramEditorPage({
               autoFocus
             />
             <div className="flex-1 overflow-y-auto space-y-1">
-              {filteredExercises.map((ex) => (
+              {/* Create Custom Exercise option */}
+              {exerciseSearch.trim().length > 0 && (
                 <button
-                  key={ex.id}
-                  onClick={() => addExercise(ex)}
-                  className="w-full text-left p-3 rounded hover:bg-black/30 transition-colors"
+                  onClick={() => {
+                    const customName = exerciseSearch.trim();
+                    const customId = `custom_${customName.toLowerCase().replace(/\s+/g, "_")}`;
+                    addExercise({ id: customId, name: customName });
+                  }}
+                  className="w-full text-left p-3 rounded hover:bg-[#5fbf8a]/20 transition-colors border border-dashed border-[#5fbf8a]/50 mb-2"
                 >
-                  <div className="text-white">{ex.name}</div>
-                  <div className="text-gray-500 text-xs capitalize">{ex.muscle}</div>
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-[#5fbf8a]" />
+                    <span className="text-[#5fbf8a]">Create "{exerciseSearch.trim()}"</span>
+                    <span
+                      className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+                      style={{
+                        background: TIER_COLORS[3].bg,
+                        border: `1px solid ${TIER_COLORS[3].border}`,
+                        color: TIER_COLORS[3].text,
+                      }}
+                    >
+                      CUSTOM
+                    </span>
+                  </div>
+                  <div className="text-gray-500 text-xs ml-6">Add as custom exercise</div>
                 </button>
-              ))}
+              )}
+              {filteredExercises.map((ex) => {
+                const tier = getExerciseTier(ex.id) as 1 | 2 | 3;
+                const colors = TIER_COLORS[tier];
+                return (
+                  <button
+                    key={ex.id}
+                    onClick={() => addExercise(ex)}
+                    className="w-full text-left p-3 rounded hover:bg-black/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-white">{ex.name}</span>
+                      <span
+                        className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+                        style={{
+                          background: colors.bg,
+                          border: `1px solid ${colors.border}`,
+                          color: colors.text,
+                        }}
+                      >
+                        {colors.label}
+                      </span>
+                    </div>
+                    <div className="text-gray-500 text-xs capitalize">{ex.muscle}</div>
+                  </button>
+                );
+              })}
+              {filteredExercises.length === 0 && exerciseSearch.trim().length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Start typing to search exercises</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -753,6 +1295,300 @@ export default function ProgramEditorPage({
                 }}
               >
                 {saving ? "Assigning..." : "Assign"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Picker Modal */}
+      {showTemplatePicker && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80">
+          <div
+            className="w-full max-w-lg p-4 rounded-lg max-h-[80vh] flex flex-col"
+            style={{
+              background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
+              border: "2px solid #FFD700",
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h4
+                className="font-bold"
+                style={{
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: "10px",
+                  color: "#FFD700",
+                }}
+              >
+                LOAD TEMPLATE
+              </h4>
+              <button
+                onClick={() => setShowTemplatePicker(false)}
+                className="text-gray-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingTemplates ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-gray-400">Loading templates...</div>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-8">
+                <FolderOpen className="w-12 h-12 text-gray-600 mb-3" />
+                <p className="text-gray-500 text-center">No templates yet</p>
+                <p className="text-gray-600 text-sm text-center mt-1">
+                  Create exercises in a workout and save as template
+                </p>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => loadTemplateIntoWorkout(template)}
+                    className="w-full text-left p-4 rounded-lg hover:bg-black/30 transition-colors"
+                    style={{
+                      background: "rgba(0,0,0,0.2)",
+                      border: template.is_own
+                        ? "1px solid #5fbf8a"
+                        : "1px solid #3d3d4d",
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-white">
+                        {template.name}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {template.exercise_count} exercises
+                      </span>
+                    </div>
+                    {template.description && (
+                      <p className="text-gray-500 text-sm mb-2">
+                        {template.description}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {template.exercises.slice(0, 4).map((ex: any) => {
+                        const tier = getExerciseTier(ex.exercise_id) as 1 | 2 | 3;
+                        const colors = TIER_COLORS[tier];
+                        return (
+                          <span
+                            key={ex.id}
+                            className="text-xs px-2 py-0.5 rounded"
+                            style={{
+                              background: colors.bg,
+                              color: colors.text,
+                            }}
+                          >
+                            {ex.exercise_name}
+                          </span>
+                        );
+                      })}
+                      {template.exercises.length > 4 && (
+                        <span className="text-xs text-gray-500 px-2 py-0.5">
+                          +{template.exercises.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                    {!template.is_own && (
+                      <div className="text-xs text-gray-600 mt-2">
+                        by {template.coach_name}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <p className="text-gray-600 text-xs text-center mt-4">
+              Loading a template will replace current exercises
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Progression Builder Modal */}
+      {showProgressionBuilder && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/70 overflow-y-auto">
+          <div
+            className="w-full max-w-2xl my-8 p-6 rounded-lg"
+            style={{
+              background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
+              border: "2px solid #FFD700",
+              boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3
+                  className="text-sm"
+                  style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    color: "#FFD700",
+                    fontSize: "10px",
+                  }}
+                >
+                  PROGRESSION RULES
+                </h3>
+                <p className="text-gray-500 text-xs mt-1">
+                  Configure how weights and reps increase over time
+                </p>
+              </div>
+              <button
+                onClick={() => setShowProgressionBuilder(false)}
+                className="text-gray-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <ProgressionBuilder
+              value={program?.progression_config || null}
+              onChange={(config) => {
+                saveProgressionConfig(config);
+              }}
+            />
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowProgressionBuilder(false)}
+                className="flex-1 py-3 rounded-lg text-gray-400 bg-black/30 border border-gray-600 hover:bg-black/40"
+              >
+                Close
+              </button>
+              {savingProgression && (
+                <div className="flex items-center text-gray-400 text-sm">
+                  Saving...
+                </div>
+              )}
+            </div>
+
+            <p className="text-gray-600 text-xs text-center mt-4">
+              Changes are saved automatically
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Version History Modal */}
+      {showVersionHistory && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/70 overflow-y-auto">
+          <div
+            className="w-full max-w-lg my-8 p-6 rounded-lg"
+            style={{
+              background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
+              border: "2px solid #6b7280",
+              boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3
+                  className="text-sm"
+                  style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    color: "#FFD700",
+                    fontSize: "10px",
+                  }}
+                >
+                  VERSION HISTORY
+                </h3>
+                <p className="text-gray-500 text-xs mt-1">
+                  Save and restore program snapshots
+                </p>
+              </div>
+              <button
+                onClick={() => setShowVersionHistory(false)}
+                className="text-gray-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Save Current Version Button */}
+            <button
+              onClick={createVersion}
+              disabled={savingVersion}
+              className="w-full mb-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{
+                background: "linear-gradient(180deg, #5fbf8a 0%, #4aa872 100%)",
+                boxShadow: "0 3px 0 #3d8d61",
+                color: "white",
+              }}
+            >
+              <Save className="w-4 h-4" />
+              {savingVersion ? "Saving..." : "Save Current Version"}
+            </button>
+
+            {/* Version List */}
+            {loadingVersions ? (
+              <div className="py-8 text-center text-gray-400">
+                Loading versions...
+              </div>
+            ) : versions.length === 0 ? (
+              <div className="py-8 text-center">
+                <History className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500">No versions saved yet</p>
+                <p className="text-gray-600 text-sm mt-1">
+                  Click "Save Current Version" to create a snapshot
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {versions.map((version) => (
+                  <div
+                    key={version.id}
+                    className="p-4 rounded-lg flex items-center justify-between"
+                    style={{
+                      background: "rgba(0,0,0,0.2)",
+                      border: "1px solid #3d3d4d",
+                    }}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-bold"
+                          style={{
+                            background: "rgba(255, 215, 0, 0.2)",
+                            color: "#FFD700",
+                          }}
+                        >
+                          v{version.version}
+                        </span>
+                        <span className="text-white text-sm">
+                          {version.notes || `Version ${version.version}`}
+                        </span>
+                      </div>
+                      <p className="text-gray-500 text-xs mt-1">
+                        {new Date(version.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => restoreVersion(version.id, version.version)}
+                      disabled={restoringVersion === version.id}
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded transition-all disabled:opacity-50"
+                      style={{
+                        background: "rgba(107, 114, 128, 0.2)",
+                        border: "1px solid #6b7280",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      {restoringVersion === version.id ? "..." : "Restore"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowVersionHistory(false)}
+                className="flex-1 py-3 rounded-lg text-gray-400 bg-black/30 border border-gray-600 hover:bg-black/40"
+              >
+                Close
               </button>
             </div>
           </div>

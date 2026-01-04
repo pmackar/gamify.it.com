@@ -13,6 +13,10 @@ import {
   Trash2,
   X,
   ArrowLeft,
+  Sparkles,
+  ArrowRight,
+  Loader2,
+  Pencil,
 } from "lucide-react";
 
 interface Program {
@@ -29,6 +33,24 @@ interface Program {
   total_workouts: number;
 }
 
+const EQUIPMENT_OPTIONS = [
+  { id: "barbell", label: "Barbell" },
+  { id: "dumbbell", label: "Dumbbells" },
+  { id: "cable", label: "Cable Machine" },
+  { id: "machine", label: "Machines" },
+  { id: "bodyweight", label: "Bodyweight" },
+  { id: "kettlebell", label: "Kettlebells" },
+];
+
+const FOCUS_AREAS = [
+  { id: "chest", label: "Chest" },
+  { id: "back", label: "Back" },
+  { id: "shoulders", label: "Shoulders" },
+  { id: "legs", label: "Legs" },
+  { id: "arms", label: "Arms" },
+  { id: "core", label: "Core" },
+];
+
 export default function ProgramsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -41,6 +63,32 @@ export default function ProgramsPage() {
     duration_weeks: 4,
     difficulty: "intermediate",
     goal: "strength",
+  });
+
+  // Edit state
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    duration_weeks: 4,
+    difficulty: "intermediate",
+    goal: "strength",
+  });
+  const [updating, setUpdating] = useState(false);
+
+  // AI Generation state
+  const [showAIWizard, setShowAIWizard] = useState(false);
+  const [aiStep, setAiStep] = useState(1);
+  const [generating, setGenerating] = useState(false);
+  const [aiForm, setAiForm] = useState({
+    goal: "strength" as "strength" | "hypertrophy" | "endurance" | "general",
+    durationWeeks: 4,
+    daysPerWeek: 4,
+    experienceLevel: "intermediate" as "beginner" | "intermediate" | "advanced",
+    equipment: ["barbell", "dumbbell", "cable", "machine"] as string[],
+    focusAreas: [] as string[],
+    includeDeload: true,
+    programName: "",
   });
 
   useEffect(() => {
@@ -102,12 +150,96 @@ export default function ProgramsPage() {
     }
   };
 
+  const openEditModal = (program: Program) => {
+    setEditingProgram(program);
+    setEditForm({
+      name: program.name,
+      description: program.description || "",
+      duration_weeks: program.duration_weeks,
+      difficulty: program.difficulty || "intermediate",
+      goal: program.goal || "strength",
+    });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProgram) return;
+    setUpdating(true);
+
+    try {
+      const res = await fetch(`/api/fitness/coach/programs/${editingProgram.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (res.ok) {
+        // Update the program in the local list
+        setPrograms(programs.map((p) =>
+          p.id === editingProgram.id
+            ? { ...p, ...editForm }
+            : p
+        ));
+        setEditingProgram(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to update");
+      }
+    } catch (error) {
+      console.error("Error updating:", error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
+  };
+
+  const handleAIGenerate = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/fitness/coach/programs/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aiForm),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/fitness/coach/programs/${data.program.id}`);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to generate program");
+      }
+    } catch (error) {
+      console.error("Error generating:", error);
+      alert("Failed to generate program. Please try again.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const toggleEquipment = (id: string) => {
+    setAiForm((prev) => ({
+      ...prev,
+      equipment: prev.equipment.includes(id)
+        ? prev.equipment.filter((e) => e !== id)
+        : [...prev.equipment, id],
+    }));
+  };
+
+  const toggleFocusArea = (id: string) => {
+    setAiForm((prev) => ({
+      ...prev,
+      focusAreas: prev.focusAreas.includes(id)
+        ? prev.focusAreas.filter((f) => f !== id)
+        : [...prev.focusAreas, id],
+    }));
   };
 
   if (loading) {
@@ -148,20 +280,37 @@ export default function ProgramsPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
-            style={{
-              background: "linear-gradient(180deg, #FF6B6B 0%, #cc5555 100%)",
-              boxShadow: "0 3px 0 #992222",
-              fontFamily: "'Press Start 2P', monospace",
-              fontSize: "8px",
-              color: "white",
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            NEW
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setAiStep(1);
+                setShowAIWizard(true);
+              }}
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all text-sm"
+              style={{
+                background: "rgba(147, 51, 234, 0.2)",
+                border: "1px solid #9333ea",
+                color: "#c084fc",
+              }}
+            >
+              <Sparkles className="w-4 h-4" />
+              AI Generate
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
+              style={{
+                background: "linear-gradient(180deg, #FF6B6B 0%, #cc5555 100%)",
+                boxShadow: "0 3px 0 #992222",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: "8px",
+                color: "white",
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              NEW
+            </button>
+          </div>
         </div>
 
         {/* Programs Grid */}
@@ -252,6 +401,16 @@ export default function ProgramsPage() {
                     </div>
                   </Link>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openEditModal(program);
+                      }}
+                      className="p-2 text-gray-500 hover:text-[#FFD700] transition-colors"
+                      title="Edit program"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                     {program.active_assignments === 0 && (
                       <button
                         onClick={() => handleDelete(program.id)}
@@ -408,6 +567,430 @@ export default function ProgramsPage() {
                   {creating ? "Creating..." : "Create"}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* AI Generation Wizard */}
+      {showAIWizard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 overflow-y-auto">
+          <div
+            className="w-full max-w-lg my-8 p-6 rounded-lg"
+            style={{
+              background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
+              border: "2px solid #9333ea",
+              boxShadow: "0 4px 0 rgba(147, 51, 234, 0.3)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3
+                  className="flex items-center gap-2"
+                  style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    color: "#c084fc",
+                    fontSize: "10px",
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  AI PROGRAM GENERATOR
+                </h3>
+                <p className="text-gray-500 text-xs mt-2">
+                  Step {aiStep} of 3
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAIWizard(false)}
+                className="text-gray-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Step 1: Goal & Experience */}
+            {aiStep === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">
+                    Training Goal
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "strength", label: "Strength", desc: "Build max strength" },
+                      { id: "hypertrophy", label: "Hypertrophy", desc: "Build muscle size" },
+                      { id: "endurance", label: "Endurance", desc: "Muscular endurance" },
+                      { id: "general", label: "General", desc: "Overall fitness" },
+                    ].map((goal) => (
+                      <button
+                        key={goal.id}
+                        onClick={() => setAiForm({ ...aiForm, goal: goal.id as any })}
+                        className={`p-3 rounded-lg text-left transition-all ${
+                          aiForm.goal === goal.id
+                            ? "border-purple-500 bg-purple-500/10"
+                            : "border-gray-700 bg-black/30 hover:border-gray-600"
+                        }`}
+                        style={{ border: `1px solid ${aiForm.goal === goal.id ? "#9333ea" : "#374151"}` }}
+                      >
+                        <div className="font-medium text-white text-sm">{goal.label}</div>
+                        <div className="text-gray-500 text-xs">{goal.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">
+                    Experience Level
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["beginner", "intermediate", "advanced"].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setAiForm({ ...aiForm, experienceLevel: level as any })}
+                        className={`p-3 rounded-lg capitalize text-sm transition-all ${
+                          aiForm.experienceLevel === level
+                            ? "border-purple-500 bg-purple-500/10 text-white"
+                            : "border-gray-700 bg-black/30 text-gray-400 hover:border-gray-600"
+                        }`}
+                        style={{ border: `1px solid ${aiForm.experienceLevel === level ? "#9333ea" : "#374151"}` }}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Duration & Frequency */}
+            {aiStep === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">
+                    Program Duration
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[4, 6, 8, 12].map((weeks) => (
+                      <button
+                        key={weeks}
+                        onClick={() => setAiForm({ ...aiForm, durationWeeks: weeks })}
+                        className={`p-3 rounded-lg text-center transition-all ${
+                          aiForm.durationWeeks === weeks
+                            ? "border-purple-500 bg-purple-500/10 text-white"
+                            : "border-gray-700 bg-black/30 text-gray-400 hover:border-gray-600"
+                        }`}
+                        style={{ border: `1px solid ${aiForm.durationWeeks === weeks ? "#9333ea" : "#374151"}` }}
+                      >
+                        <div className="font-medium">{weeks}</div>
+                        <div className="text-xs">weeks</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">
+                    Training Days Per Week
+                  </label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[3, 4, 5, 6, 7].map((days) => (
+                      <button
+                        key={days}
+                        onClick={() => setAiForm({ ...aiForm, daysPerWeek: days })}
+                        className={`p-3 rounded-lg text-center transition-all ${
+                          aiForm.daysPerWeek === days
+                            ? "border-purple-500 bg-purple-500/10 text-white"
+                            : "border-gray-700 bg-black/30 text-gray-400 hover:border-gray-600"
+                        }`}
+                        style={{ border: `1px solid ${aiForm.daysPerWeek === days ? "#9333ea" : "#374151"}` }}
+                      >
+                        {days}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="includeDeload"
+                    checked={aiForm.includeDeload}
+                    onChange={(e) => setAiForm({ ...aiForm, includeDeload: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="includeDeload" className="text-gray-400 text-sm cursor-pointer">
+                    Include deload week at the end
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Equipment & Focus Areas */}
+            {aiStep === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">
+                    Available Equipment
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {EQUIPMENT_OPTIONS.map((eq) => (
+                      <button
+                        key={eq.id}
+                        onClick={() => toggleEquipment(eq.id)}
+                        className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                          aiForm.equipment.includes(eq.id)
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500"
+                            : "bg-black/30 text-gray-400 border-gray-700 hover:border-gray-600"
+                        }`}
+                        style={{ border: `1px solid ${aiForm.equipment.includes(eq.id) ? "#9333ea" : "#374151"}` }}
+                      >
+                        {eq.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">
+                    Focus Areas (optional)
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {FOCUS_AREAS.map((area) => (
+                      <button
+                        key={area.id}
+                        onClick={() => toggleFocusArea(area.id)}
+                        className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                          aiForm.focusAreas.includes(area.id)
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500"
+                            : "bg-black/30 text-gray-400 border-gray-700 hover:border-gray-600"
+                        }`}
+                        style={{ border: `1px solid ${aiForm.focusAreas.includes(area.id) ? "#9333ea" : "#374151"}` }}
+                      >
+                        {area.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">
+                    Program Name (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={aiForm.programName}
+                    onChange={(e) => setAiForm({ ...aiForm, programName: e.target.value })}
+                    placeholder="e.g., My Strength Program"
+                    className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex gap-3 mt-6">
+              {aiStep > 1 ? (
+                <button
+                  onClick={() => setAiStep(aiStep - 1)}
+                  className="flex-1 py-3 rounded-lg text-gray-400 bg-black/30 border border-gray-600 hover:bg-black/40"
+                >
+                  Back
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAIWizard(false)}
+                  className="flex-1 py-3 rounded-lg text-gray-400 bg-black/30 border border-gray-600 hover:bg-black/40"
+                >
+                  Cancel
+                </button>
+              )}
+
+              {aiStep < 3 ? (
+                <button
+                  onClick={() => setAiStep(aiStep + 1)}
+                  className="flex-1 py-3 rounded-lg font-bold flex items-center justify-center gap-2"
+                  style={{
+                    background: "linear-gradient(180deg, #9333ea 0%, #7c22c2 100%)",
+                    boxShadow: "0 3px 0 #5b189b",
+                    color: "white",
+                  }}
+                >
+                  Next
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleAIGenerate}
+                  disabled={generating || aiForm.equipment.length === 0}
+                  className="flex-1 py-3 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(180deg, #9333ea 0%, #7c22c2 100%)",
+                    boxShadow: "0 3px 0 #5b189b",
+                    color: "white",
+                  }}
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate Program
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {aiStep === 3 && (
+              <p className="text-gray-600 text-xs text-center mt-4">
+                AI will create a complete program with exercises, sets, and reps
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Program Modal */}
+      {editingProgram && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div
+            className="w-full max-w-md p-6 rounded-lg"
+            style={{
+              background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
+              border: "2px solid #FFD700",
+              boxShadow: "0 4px 0 rgba(255, 215, 0, 0.3)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className="text-sm"
+                style={{
+                  fontFamily: "'Press Start 2P', monospace",
+                  color: "#FFD700",
+                  fontSize: "10px",
+                }}
+              >
+                EDIT PROGRAM
+              </h3>
+              <button
+                onClick={() => setEditingProgram(null)}
+                className="text-gray-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    placeholder="e.g., Beginner Strength Program"
+                    className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, description: e.target.value })
+                    }
+                    placeholder="Program overview and goals..."
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">
+                      Duration (weeks)
+                    </label>
+                    <select
+                      value={editForm.duration_weeks}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, duration_weeks: parseInt(e.target.value) })
+                      }
+                      className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-[#FFD700] focus:outline-none"
+                    >
+                      {[1, 2, 3, 4, 6, 8, 12, 16].map((w) => (
+                        <option key={w} value={w}>
+                          {w} {w === 1 ? "week" : "weeks"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">
+                      Difficulty
+                    </label>
+                    <select
+                      value={editForm.difficulty}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, difficulty: e.target.value })
+                      }
+                      className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-[#FFD700] focus:outline-none"
+                    >
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Goal</label>
+                  <select
+                    value={editForm.goal}
+                    onChange={(e) => setEditForm({ ...editForm, goal: e.target.value })}
+                    className="w-full px-4 py-3 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-[#FFD700] focus:outline-none"
+                  >
+                    <option value="strength">Strength</option>
+                    <option value="hypertrophy">Hypertrophy</option>
+                    <option value="endurance">Endurance</option>
+                    <option value="general">General Fitness</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditingProgram(null)}
+                  className="flex-1 py-3 rounded-lg text-gray-400 bg-black/30 border border-gray-600 hover:bg-black/40 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating || !editForm.name}
+                  className="flex-1 py-3 rounded-lg font-bold transition-all disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(180deg, #FFD700 0%, #cc9900 100%)",
+                    boxShadow: "0 3px 0 #996600",
+                    color: "#1a1a2e",
+                  }}
+                >
+                  {updating ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+
+              <p className="text-gray-500 text-xs text-center mt-4">
+                To edit workouts, click the program to open the full editor
+              </p>
             </form>
           </div>
         </div>

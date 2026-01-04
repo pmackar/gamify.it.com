@@ -14,6 +14,13 @@ export const EXERCISE_TIERS = {
   // Tier 3 - All other exercises (1x XP multiplier) - default
 };
 
+// Tier display colors for UI
+export const TIER_COLORS = {
+  1: { bg: 'rgba(255, 215, 0, 0.2)', border: '#FFD700', text: '#FFD700', label: 'T1' },
+  2: { bg: 'rgba(95, 191, 138, 0.2)', border: '#5fbf8a', text: '#5fbf8a', label: 'T2' },
+  3: { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#9ca3af', label: 'T3' },
+} as const;
+
 // Bodyweight exercises (volume includes user's body weight)
 export const BODYWEIGHT_EXERCISES = [
   'pushups', 'dips_chest', 'dip', 'bench_dip', 'pullups', 'chinups',

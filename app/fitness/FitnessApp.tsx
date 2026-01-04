@@ -75,7 +75,9 @@ export default function FitnessApp() {
   const [addingGoal, setAddingGoal] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [mobileFabOpen, setMobileFabOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+  const desktopMenuRef = useRef<HTMLDivElement>(null);
   const [searchingExercises, setSearchingExercises] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -179,6 +181,17 @@ export default function FitnessApp() {
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
+
+  // Close desktop menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (desktopMenuOpen && desktopMenuRef.current && !desktopMenuRef.current.contains(e.target as Node)) {
+        setDesktopMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [desktopMenuOpen]);
 
   // Rest timer countdown
   useEffect(() => {
@@ -1083,6 +1096,93 @@ export default function FitnessApp() {
         }
         .command-input::placeholder {
           color: var(--text-tertiary);
+        }
+
+        /* Desktop Plus Menu */
+        .command-input-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .desktop-plus-menu {
+          position: relative;
+        }
+        .desktop-plus-btn {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          font-size: 24px;
+          font-weight: 300;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+          flex-shrink: 0;
+        }
+        .desktop-plus-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--border-light);
+        }
+        .desktop-plus-btn.open {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+          transform: rotate(45deg);
+        }
+        .desktop-menu-dropdown {
+          position: absolute;
+          bottom: 54px;
+          left: 0;
+          background: rgba(15,15,20,0.96);
+          backdrop-filter: blur(24px);
+          border: 1px solid var(--border-light);
+          border-radius: 14px;
+          padding: 8px;
+          min-width: 220px;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+          animation: desktop-menu-in 0.15s ease;
+          z-index: 100;
+        }
+        @keyframes desktop-menu-in {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        .desktop-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 10px 12px;
+          background: transparent;
+          border: none;
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.1s ease;
+          text-align: left;
+        }
+        .desktop-menu-item:hover {
+          background: var(--bg-card-hover);
+        }
+        .desktop-menu-icon {
+          font-size: 18px;
+          width: 24px;
+          text-align: center;
+        }
+        .desktop-menu-text {
+          flex: 1;
           font-weight: 400;
         }
 
@@ -4686,6 +4786,95 @@ export default function FitnessApp() {
 
         .widget-start-btn:hover {
           filter: brightness(1.1);
+        }
+
+        .widget-upcoming {
+          margin-top: 12px;
+        }
+
+        .widget-upcoming-label {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+        }
+
+        .widget-workout-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .widget-workout-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          cursor: pointer;
+          text-align: left;
+          width: 100%;
+          transition: all 0.15s ease;
+        }
+
+        .widget-workout-item:hover:not(:disabled) {
+          border-color: var(--accent);
+          background: rgba(255, 215, 0, 0.05);
+        }
+
+        .widget-workout-item.today {
+          border-color: var(--accent);
+          background: rgba(255, 215, 0, 0.1);
+        }
+
+        .widget-workout-item.rest {
+          opacity: 0.5;
+          cursor: default;
+        }
+
+        .widget-workout-item:disabled {
+          cursor: default;
+        }
+
+        .workout-item-day {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 60px;
+        }
+
+        .workout-item-day .day-name {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+
+        .workout-item-day .today-badge {
+          font-size: 9px;
+          font-weight: 700;
+          color: var(--accent);
+          background: rgba(255, 215, 0, 0.2);
+          padding: 2px 5px;
+          border-radius: 4px;
+        }
+
+        .workout-item-name {
+          flex: 1;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .workout-item-week {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          background: var(--surface-hover);
+          padding: 2px 6px;
+          border-radius: 4px;
         }
 
         /* ===== PROGRAMS TABS & LIBRARY ===== */
@@ -8325,8 +8514,12 @@ gamify.it.com/fitness`;
               {/* Active Program Widget */}
               {store.activeProgram && (() => {
                 const todaysWorkout = store.getTodaysWorkout();
-                if (!todaysWorkout) return null;
-                const { program, week, day, template } = todaysWorkout;
+                const upcomingWorkouts = store.getUpcomingWorkouts(14);
+                if (!todaysWorkout && upcomingWorkouts.length === 0) return null;
+
+                const program = todaysWorkout?.program || store.programs.find(p => p.id === store.activeProgram?.programId);
+                if (!program) return null;
+
                 const totalDays = program.durationWeeks * 7;
                 const completedDays = ((store.activeProgram.currentWeek - 1) * 7) + store.activeProgram.currentDay - 1;
                 const progress = Math.round((completedDays / totalDays) * 100);
@@ -8348,23 +8541,35 @@ gamify.it.com/fitness`;
                       <div className="progress-text">{progress}% complete</div>
                     </div>
 
-                    <div className="widget-today">
-                      <div className="widget-today-label">Today&apos;s Workout</div>
-                      {day.isRest ? (
-                        <div className="widget-today-rest">Rest Day 😴</div>
-                      ) : (
-                        <div className="widget-today-workout">{template?.name || day.name}</div>
-                      )}
+                    {/* Upcoming Workouts List */}
+                    <div className="widget-upcoming">
+                      <div className="widget-upcoming-label">Select Workout</div>
+                      <div className="widget-workout-list">
+                        {upcomingWorkouts.slice(0, 7).map((workout, idx) => (
+                          <button
+                            key={`${workout.weekNumber}-${workout.dayNumber}`}
+                            className={`widget-workout-item ${workout.isToday ? 'today' : ''} ${workout.isRest ? 'rest' : ''}`}
+                            onClick={() => {
+                              if (!workout.isRest && workout.template) {
+                                store.startProgramWorkoutForDay(workout.weekNumber, workout.dayNumber);
+                              }
+                            }}
+                            disabled={workout.isRest || !workout.template}
+                          >
+                            <div className="workout-item-day">
+                              <span className="day-name">{workout.dayName}</span>
+                              {workout.isToday && <span className="today-badge">Today</span>}
+                            </div>
+                            <div className="workout-item-name">
+                              {workout.isRest ? '😴 Rest' : workout.workoutName}
+                            </div>
+                            {workout.weekNumber !== store.activeProgram?.currentWeek && (
+                              <div className="workout-item-week">Wk {workout.weekNumber}</div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-
-                    {!day.isRest && template && (
-                      <button
-                        className="widget-start-btn"
-                        onClick={() => store.startProgramWorkout()}
-                      >
-                        ▶ Start Workout
-                      </button>
-                    )}
                   </div>
                 );
               })()}
@@ -8424,36 +8629,64 @@ gamify.it.com/fitness`;
                 ))}
               </div>
             )}
-            <input
-              ref={inputRef}
-              type="text"
-              className="command-input"
-              placeholder={(() => {
-                if (addingGoal) return 'Search exercise for goal...';
-                if (searchingExercises) return 'Search exercises...';
-                // Active workout but viewing different screen
-                if (store.currentWorkout && store.currentView !== 'workout') {
-                  return 'Resume workout...';
-                }
-                // In workout view
-                if (store.currentWorkout && store.currentView === 'workout') {
-                  const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
-                  if (currentEx) {
-                    const lastSet = currentEx.sets[currentEx.sets.length - 1];
-                    const weight = lastSet?.weight || store.records[currentEx.id] || 135;
-                    const reps = lastSet?.reps || 8;
-                    return `Log set: ${weight}x${reps}`;
+            <div className="command-input-row">
+              <div className="desktop-plus-menu" ref={desktopMenuRef}>
+                <button
+                  className={`desktop-plus-btn ${desktopMenuOpen ? 'open' : ''}`}
+                  onClick={() => setDesktopMenuOpen(!desktopMenuOpen)}
+                  aria-label="Quick actions menu"
+                >
+                  +
+                </button>
+                {desktopMenuOpen && (
+                  <div className="desktop-menu-dropdown">
+                    {DEFAULT_COMMANDS.slice(0, 8).map((cmd) => (
+                      <button
+                        key={cmd.id}
+                        className="desktop-menu-item"
+                        onClick={() => {
+                          executeCommand({ type: 'command', ...cmd });
+                          setDesktopMenuOpen(false);
+                        }}
+                      >
+                        <span className="desktop-menu-icon">{cmd.icon}</span>
+                        <span className="desktop-menu-text">{cmd.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                className="command-input"
+                placeholder={(() => {
+                  if (addingGoal) return 'Search exercise for goal...';
+                  if (searchingExercises) return 'Search exercises...';
+                  // Active workout but viewing different screen
+                  if (store.currentWorkout && store.currentView !== 'workout') {
+                    return 'Resume workout...';
                   }
-                  return 'Search exercises...';
-                }
-                return 'What do you want to do?';
-              })()}
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => { setInputFocused(false); setSearchingExercises(false); }}
-            />
+                  // In workout view
+                  if (store.currentWorkout && store.currentView === 'workout') {
+                    const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+                    if (currentEx) {
+                      const lastSet = currentEx.sets[currentEx.sets.length - 1];
+                      const weight = lastSet?.weight || store.records[currentEx.id] || 135;
+                      const reps = lastSet?.reps || 8;
+                      return `Log set: ${weight}x${reps}`;
+                    }
+                    return 'Search exercises...';
+                  }
+                  return 'What do you want to do?';
+                })()}
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => { setInputFocused(false); setSearchingExercises(false); }}
+              />
+            </div>
           </div>
         </div>
 
