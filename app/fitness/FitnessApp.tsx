@@ -99,6 +99,14 @@ export default function FitnessApp() {
   const [bodyWeight, setBodyWeight] = useState(0);
   const [unifiedProfile, setUnifiedProfile] = useState<{ level: number; xp: number; xpToNext: number } | null>(null);
 
+  // Program wizard - inline workout creation
+  const [creatingWorkoutForDay, setCreatingWorkoutForDay] = useState<number | null>(null);
+  const [newWorkoutName, setNewWorkoutName] = useState('');
+  const [newWorkoutExercises, setNewWorkoutExercises] = useState<{ exerciseId: string; exerciseName: string; targetSets: number; targetReps: string }[]>([]);
+  const [newWorkoutMuscleGroups, setNewWorkoutMuscleGroups] = useState<string[]>([]);
+  const [addingExerciseToNewWorkout, setAddingExerciseToNewWorkout] = useState(false);
+  const [newWorkoutExerciseSearch, setNewWorkoutExerciseSearch] = useState('');
+
   useEffect(() => {
     setMounted(true);
     store.loadState();
@@ -3729,6 +3737,10 @@ export default function FitnessApp() {
           gap: 8px;
         }
 
+        .week-structure.enhanced {
+          gap: 0;
+        }
+
         .day-row {
           display: flex;
           align-items: center;
@@ -3737,8 +3749,63 @@ export default function FitnessApp() {
           border-bottom: 1px solid var(--border);
         }
 
+        .day-row.enhanced {
+          flex-direction: column;
+          align-items: stretch;
+          padding: 12px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          margin-bottom: 8px;
+          gap: 8px;
+        }
+
+        .day-row.enhanced.rest {
+          opacity: 0.6;
+        }
+
         .day-row:last-child {
           border-bottom: none;
+        }
+
+        .day-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .day-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--accent);
+          width: 36px;
+          text-transform: uppercase;
+        }
+
+        .day-name-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid var(--border);
+          padding: 6px 0;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+
+        .day-name-input:focus {
+          outline: none;
+          border-bottom-color: var(--accent);
+        }
+
+        .day-name-input::placeholder {
+          color: var(--text-muted);
+        }
+
+        .day-content {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
         .day-name {
@@ -3750,7 +3817,7 @@ export default function FitnessApp() {
 
         .day-select {
           flex: 1;
-          background: var(--surface);
+          background: var(--surface-hover);
           border: 1px solid var(--border);
           border-radius: 8px;
           padding: 10px 12px;
@@ -3762,6 +3829,142 @@ export default function FitnessApp() {
         .day-select:focus {
           outline: none;
           border-color: var(--accent);
+        }
+
+        .day-muscle-tags {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .muscle-tag {
+          font-size: 10px;
+          padding: 3px 8px;
+          background: rgba(255, 215, 0, 0.15);
+          color: var(--accent);
+          border-radius: 10px;
+          text-transform: capitalize;
+        }
+
+        /* Workout Builder Modal */
+        .workout-builder-modal {
+          max-width: 480px;
+          width: 90%;
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .workout-builder-content {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .muscle-tag-selector {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .muscle-tag-btn {
+          padding: 6px 12px;
+          font-size: 12px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .muscle-tag-btn:hover {
+          border-color: var(--accent);
+        }
+
+        .muscle-tag-btn.selected {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+
+        .empty-exercises-mini {
+          padding: 20px;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: 13px;
+          background: var(--surface);
+          border-radius: 8px;
+          border: 1px dashed var(--border);
+        }
+
+        .workout-builder-exercises {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .builder-exercise-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+        }
+
+        .builder-exercise-item .exercise-info {
+          flex: 1;
+        }
+
+        .builder-exercise-item .exercise-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        .builder-exercise-item .exercise-config {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--text-muted);
+          font-size: 13px;
+        }
+
+        .mini-input {
+          width: 40px;
+          padding: 4px 6px;
+          background: var(--surface-hover);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          font-size: 13px;
+          color: var(--text-primary);
+          text-align: center;
+        }
+
+        .mini-input.reps {
+          width: 50px;
+        }
+
+        .mini-input:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+
+        .remove-btn {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          font-size: 16px;
+          cursor: pointer;
+          padding: 4px 8px;
+        }
+
+        .remove-btn:hover {
+          color: #ff6b6b;
         }
 
         /* Progression Options */
@@ -5999,6 +6202,223 @@ gamify.it.com/fitness`;
             </div>
           )}
 
+          {/* Inline Workout Builder Modal (for Program Wizard) */}
+          {creatingWorkoutForDay !== null && (
+            <div className="modal-overlay" onClick={() => setCreatingWorkoutForDay(null)}>
+              <div className="modal workout-builder-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                  <span>Create Workout</span>
+                  <button className="modal-close" onClick={() => setCreatingWorkoutForDay(null)}>✕</button>
+                </div>
+
+                <div className="workout-builder-content">
+                  <div className="form-group">
+                    <label>Workout Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newWorkoutName}
+                      onChange={(e) => setNewWorkoutName(e.target.value)}
+                      placeholder="e.g., Push Day, Upper Body"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Body Parts (optional)</label>
+                    <div className="muscle-tag-selector">
+                      {MUSCLE_CATEGORIES.map(cat => (
+                        <button
+                          key={cat.id}
+                          className={`muscle-tag-btn ${newWorkoutMuscleGroups.includes(cat.id) ? 'selected' : ''}`}
+                          onClick={() => {
+                            if (newWorkoutMuscleGroups.includes(cat.id)) {
+                              setNewWorkoutMuscleGroups(newWorkoutMuscleGroups.filter(m => m !== cat.id));
+                            } else {
+                              setNewWorkoutMuscleGroups([...newWorkoutMuscleGroups, cat.id]);
+                            }
+                          }}
+                        >
+                          {cat.icon} {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <div className="section-header">
+                      <label>Exercises</label>
+                      <span className="exercise-count">{newWorkoutExercises.length}</span>
+                    </div>
+
+                    {newWorkoutExercises.length === 0 ? (
+                      <div className="empty-exercises-mini">
+                        <span>No exercises added yet</span>
+                      </div>
+                    ) : (
+                      <div className="workout-builder-exercises">
+                        {newWorkoutExercises.map((ex, idx) => (
+                          <div key={`${ex.exerciseId}-${idx}`} className="builder-exercise-item">
+                            <div className="exercise-info">
+                              <span className="exercise-name">{ex.exerciseName}</span>
+                              <div className="exercise-config">
+                                <input
+                                  type="number"
+                                  className="mini-input"
+                                  value={ex.targetSets}
+                                  onChange={(e) => {
+                                    const updated = [...newWorkoutExercises];
+                                    updated[idx] = { ...ex, targetSets: parseInt(e.target.value) || 1 };
+                                    setNewWorkoutExercises(updated);
+                                  }}
+                                  min={1}
+                                  max={20}
+                                />
+                                <span>×</span>
+                                <input
+                                  type="text"
+                                  className="mini-input reps"
+                                  value={ex.targetReps}
+                                  onChange={(e) => {
+                                    const updated = [...newWorkoutExercises];
+                                    updated[idx] = { ...ex, targetReps: e.target.value };
+                                    setNewWorkoutExercises(updated);
+                                  }}
+                                  placeholder="8-12"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              className="remove-btn"
+                              onClick={() => {
+                                setNewWorkoutExercises(newWorkoutExercises.filter((_, i) => i !== idx));
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      className="add-exercise-btn"
+                      onClick={() => setAddingExerciseToNewWorkout(true)}
+                    >
+                      + Add Exercise
+                    </button>
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    className="modal-btn secondary"
+                    onClick={() => setCreatingWorkoutForDay(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="modal-btn primary"
+                    disabled={!newWorkoutName.trim()}
+                    onClick={() => {
+                      // Create the template
+                      const templateId = store.createTemplate({
+                        name: newWorkoutName.trim(),
+                        exercises: newWorkoutExercises.map((ex, idx) => ({
+                          exerciseId: ex.exerciseId,
+                          exerciseName: ex.exerciseName,
+                          order: idx,
+                          targetSets: ex.targetSets,
+                          targetReps: ex.targetReps,
+                        })),
+                        targetMuscleGroups: newWorkoutMuscleGroups,
+                      });
+
+                      // Update the program day
+                      const weeks = store.programWizardData?.weeks || [];
+                      const week1 = weeks[0] || { weekNumber: 1, days: [] };
+                      const existingDay = week1.days.find(d => d.dayNumber === creatingWorkoutForDay);
+
+                      const newDay: ProgramDay = {
+                        dayNumber: creatingWorkoutForDay,
+                        name: existingDay?.name || newWorkoutName.trim(),
+                        isRest: false,
+                        templateId,
+                      };
+
+                      const updatedDays = week1.days.filter(d => d.dayNumber !== creatingWorkoutForDay);
+                      updatedDays.push(newDay);
+                      updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
+
+                      const allWeeks: ProgramWeek[] = [];
+                      for (let i = 1; i <= (store.programWizardData?.durationWeeks || 4); i++) {
+                        allWeeks.push({
+                          weekNumber: i,
+                          days: updatedDays.map(d => ({ ...d })),
+                          isDeload: i === (store.programWizardData?.durationWeeks || 4),
+                        });
+                      }
+                      store.updateProgramWizardData({ weeks: allWeeks });
+
+                      // Reset and close
+                      setCreatingWorkoutForDay(null);
+                      setNewWorkoutName('');
+                      setNewWorkoutExercises([]);
+                      setNewWorkoutMuscleGroups([]);
+                    }}
+                  >
+                    Create Workout
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Exercise to New Workout Modal */}
+          {addingExerciseToNewWorkout && (
+            <div className="modal-overlay" onClick={() => setAddingExerciseToNewWorkout(false)}>
+              <div className="modal exercise-picker-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">Add Exercise</div>
+                <input
+                  type="text"
+                  className="exercise-search-input"
+                  placeholder="Search exercises..."
+                  value={newWorkoutExerciseSearch}
+                  onChange={(e) => setNewWorkoutExerciseSearch(e.target.value)}
+                  autoFocus
+                />
+                <div className="exercise-list">
+                  {[...EXERCISES, ...store.customExercises]
+                    .filter(ex =>
+                      ex.name.toLowerCase().includes(newWorkoutExerciseSearch.toLowerCase()) ||
+                      ex.muscle.toLowerCase().includes(newWorkoutExerciseSearch.toLowerCase())
+                    )
+                    .slice(0, 20)
+                    .map(ex => (
+                      <button
+                        key={ex.id}
+                        className="exercise-option"
+                        onClick={() => {
+                          setNewWorkoutExercises([...newWorkoutExercises, {
+                            exerciseId: ex.id,
+                            exerciseName: ex.name,
+                            targetSets: 3,
+                            targetReps: '8-12',
+                          }]);
+                          setAddingExerciseToNewWorkout(false);
+                          setNewWorkoutExerciseSearch('');
+                        }}
+                      >
+                        <span className="exercise-name">{ex.name}</span>
+                        <span className="exercise-muscle">{ex.muscle}</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Programs View */}
           {store.currentView === 'programs' && (
             <div className="view-content">
@@ -6546,62 +6966,96 @@ gamify.it.com/fitness`;
               {/* Step 2: Week Structure */}
               {store.programWizardStep === 2 && (
                 <div className="wizard-content">
-                  <p className="wizard-hint">Assign a template to each day of the week</p>
+                  <p className="wizard-hint">Build your weekly schedule</p>
 
-                  <div className="week-structure">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName, idx) => {
+                  <div className="week-structure enhanced">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayLabel, idx) => {
                       const dayNumber = idx + 1;
                       const weeks = store.programWizardData.weeks || [];
                       const week1 = weeks[0] || { weekNumber: 1, days: [] };
                       const day = week1.days.find(d => d.dayNumber === dayNumber);
+                      const template = day?.templateId ? store.templates.find(t => t.id === day.templateId) : null;
+                      const muscleGroups = template?.targetMuscleGroups || [];
+
+                      const updateDay = (updates: Partial<ProgramDay>) => {
+                        const currentDay = day || { dayNumber, name: '', isRest: false };
+                        const newDay: ProgramDay = { ...currentDay, ...updates };
+
+                        const updatedDays = week1.days.filter(d => d.dayNumber !== dayNumber);
+                        if (newDay.name || newDay.templateId || newDay.isRest) {
+                          updatedDays.push(newDay);
+                        }
+                        updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
+
+                        const allWeeks: ProgramWeek[] = [];
+                        for (let i = 1; i <= (store.programWizardData.durationWeeks || 4); i++) {
+                          allWeeks.push({
+                            weekNumber: i,
+                            days: updatedDays.map(d => ({ ...d })),
+                            isDeload: i === (store.programWizardData.durationWeeks || 4),
+                          });
+                        }
+                        store.updateProgramWizardData({ weeks: allWeeks });
+                      };
 
                       return (
-                        <div key={dayName} className="day-row">
-                          <span className="day-name">{dayName}</span>
-                          <select
-                            className="day-select"
-                            value={day?.isRest ? 'rest' : day?.templateId || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              const isRest = value === 'rest';
-                              const templateId = isRest ? undefined : value || undefined;
+                        <div key={dayLabel} className={`day-row enhanced ${day?.isRest ? 'rest' : ''}`}>
+                          <div className="day-header">
+                            <span className="day-label">{dayLabel}</span>
+                            <input
+                              type="text"
+                              className="day-name-input"
+                              value={day?.name || ''}
+                              onChange={(e) => updateDay({ name: e.target.value })}
+                              placeholder={day?.isRest ? 'Rest' : 'Day name...'}
+                            />
+                          </div>
 
-                              const newDay: ProgramDay = {
-                                dayNumber,
-                                name: isRest ? 'Rest' : (store.templates.find(t => t.id === templateId)?.name || 'Workout'),
-                                isRest,
-                                templateId,
-                              };
+                          <div className="day-content">
+                            <select
+                              className="day-select"
+                              value={day?.isRest ? 'rest' : day?.templateId || ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === 'create-new') {
+                                  setCreatingWorkoutForDay(dayNumber);
+                                  setNewWorkoutName(day?.name || `${dayLabel} Workout`);
+                                  setNewWorkoutExercises([]);
+                                  setNewWorkoutMuscleGroups([]);
+                                } else {
+                                  const isRest = value === 'rest';
+                                  const templateId = isRest ? undefined : value || undefined;
+                                  const selectedTemplate = templateId ? store.templates.find(t => t.id === templateId) : null;
+                                  updateDay({
+                                    isRest,
+                                    templateId,
+                                    name: day?.name || (isRest ? 'Rest' : (selectedTemplate?.name || ''))
+                                  });
+                                }
+                              }}
+                            >
+                              <option value="">-- Select Workout --</option>
+                              <option value="rest">🛌 Rest Day</option>
+                              <option value="create-new">➕ Create New Workout</option>
+                              {store.templates.length > 0 && (
+                                <optgroup label="Your Workouts">
+                                  {store.templates.map(t => (
+                                    <option key={t.id} value={t.id}>
+                                      {store.migrateTemplate(t).name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
 
-                              const updatedDays = week1.days.filter(d => d.dayNumber !== dayNumber);
-                              if (value) {
-                                updatedDays.push(newDay);
-                              }
-                              updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
-
-                              const newWeek: ProgramWeek = { ...week1, days: updatedDays };
-
-                              // Create all weeks with the same structure
-                              const allWeeks: ProgramWeek[] = [];
-                              for (let i = 1; i <= (store.programWizardData.durationWeeks || 4); i++) {
-                                allWeeks.push({
-                                  weekNumber: i,
-                                  days: updatedDays.map(d => ({ ...d })),
-                                  isDeload: i === (store.programWizardData.durationWeeks || 4),
-                                });
-                              }
-
-                              store.updateProgramWizardData({ weeks: allWeeks });
-                            }}
-                          >
-                            <option value="">-- Select --</option>
-                            <option value="rest">🛌 Rest Day</option>
-                            {store.templates.map(t => (
-                              <option key={t.id} value={t.id}>
-                                {store.migrateTemplate(t).name}
-                              </option>
-                            ))}
-                          </select>
+                            {muscleGroups.length > 0 && (
+                              <div className="day-muscle-tags">
+                                {muscleGroups.slice(0, 3).map(mg => (
+                                  <span key={mg} className="muscle-tag">{mg}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
