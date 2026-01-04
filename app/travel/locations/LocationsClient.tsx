@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Star, Filter, Plus, ChevronRight, X, LayoutGrid, List, Loader2 } from "lucide-react";
+import { LOCATION_TYPE_COLORS, getTypeColor } from "@/lib/location-types";
 
 interface Location {
   id: string;
@@ -51,19 +52,8 @@ const LOCATION_TYPES = [
   "OTHER",
 ];
 
-const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  RESTAURANT: { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', text: '#ef4444' },
-  BAR: { bg: 'rgba(168, 85, 247, 0.2)', border: '#a855f7', text: '#a855f7' },
-  CAFE: { bg: 'rgba(249, 115, 22, 0.2)', border: '#f97316', text: '#f97316' },
-  ATTRACTION: { bg: 'rgba(6, 182, 212, 0.2)', border: '#06b6d4', text: '#06b6d4' },
-  HOTEL: { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#3b82f6' },
-  SHOP: { bg: 'rgba(139, 92, 246, 0.2)', border: '#8b5cf6', text: '#8b5cf6' },
-  NATURE: { bg: 'rgba(34, 197, 94, 0.2)', border: '#22c55e', text: '#22c55e' },
-  MUSEUM: { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b', text: '#f59e0b' },
-  BEACH: { bg: 'rgba(20, 184, 166, 0.2)', border: '#14b8a6', text: '#14b8a6' },
-  NIGHTLIFE: { bg: 'rgba(244, 63, 94, 0.2)', border: '#f43f5e', text: '#f43f5e' },
-  OTHER: { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#6b7280' },
-};
+// Use centralized high-contrast colors from lib/location-types.ts
+const TYPE_COLORS = LOCATION_TYPE_COLORS;
 
 export default function LocationsClient({ initialData }: { initialData: InitialData }) {
   const searchParams = useSearchParams();

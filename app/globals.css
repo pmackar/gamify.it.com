@@ -47,6 +47,7 @@
   /* RPG Theme Colors (backwards compatibility) */
   --rpg-bg: #1a1a1a;
   --rpg-bg-dark: var(--theme-bg-base);
+  --rpg-darker: #050508;
   --rpg-card: #2d2d2d;
   --rpg-card-hover: #353535;
   --rpg-border: var(--theme-border-light);
@@ -62,6 +63,21 @@
   --rpg-muted: var(--theme-text-muted);
   --rpg-text: var(--theme-text-primary);
   --rpg-text-dim: var(--theme-text-secondary);
+
+  /* ===== LOCATION TYPE BADGE COLORS ===== */
+  /* High contrast colors for dark backgrounds */
+  --badge-restaurant: #FF8A65;      /* Warm orange - food */
+  --badge-bar: #CE93D8;             /* Light purple - nightlife */
+  --badge-cafe: #A1887F;            /* Warm brown - coffee */
+  --badge-museum: #90CAF9;          /* Light blue - culture */
+  --badge-park: #81C784;            /* Light green - nature */
+  --badge-landmark: #FFD54F;        /* Bright gold - sights */
+  --badge-beach: #4DD0E1;           /* Bright cyan - water */
+  --badge-hotel: #B39DDB;           /* Light purple - lodging */
+  --badge-shop: #F48FB1;            /* Pink - shopping */
+  --badge-entertainment: #FFB74D;   /* Orange - fun */
+  --badge-transit: #78909C;         /* Blue gray - transport */
+  --badge-default: #B0BEC5;         /* Light gray - other */
 
   /* ===== EXTENDED SEMANTIC COLORS ===== */
   /* Additional backgrounds */
@@ -623,6 +639,128 @@ h1, h2, h3 {
   background: rgba(255, 215, 0, 0.2);
   border-color: var(--rpg-gold);
   color: var(--rpg-gold);
+}
+
+/* RPG Badge Hover Effects */
+.rpg-badge-teal:hover {
+  background: rgba(95, 191, 138, 0.3);
+  box-shadow: 0 0 8px var(--rpg-teal-glow);
+  transform: translateY(-1px);
+}
+
+.rpg-badge-gold:hover {
+  background: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 8px var(--rpg-gold-glow);
+  transform: translateY(-1px);
+}
+
+/* RPG List Item - Interactive row styling */
+.rpg-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--rpg-bg-dark);
+  border: 1px solid var(--rpg-border);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.rpg-list-item:hover {
+  background: var(--rpg-card);
+  border-color: var(--rpg-border-light);
+  transform: translateX(4px);
+}
+
+.rpg-list-item:active {
+  transform: translateX(2px);
+}
+
+/* RPG Icon Button - Small clickable icons */
+.rpg-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--rpg-muted);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.rpg-icon-btn:hover {
+  background: rgba(95, 191, 138, 0.1);
+  border-color: var(--rpg-teal);
+  color: var(--rpg-teal);
+}
+
+.rpg-icon-btn:active {
+  transform: scale(0.95);
+}
+
+.rpg-icon-btn-danger:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+/* RPG Pill Button - Compact action buttons */
+.rpg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--rpg-card);
+  border: 2px solid var(--rpg-border);
+  border-radius: 50px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--rpg-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rpg-pill:hover {
+  border-color: var(--rpg-teal);
+  box-shadow: 0 0 10px var(--rpg-teal-glow);
+  transform: translateY(-2px);
+}
+
+.rpg-pill:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.rpg-pill-active {
+  background: rgba(95, 191, 138, 0.2);
+  border-color: var(--rpg-teal);
+  color: var(--rpg-teal);
+}
+
+/* RPG Glow Text - For emphasis */
+.rpg-glow-teal {
+  color: var(--rpg-teal);
+  text-shadow: 0 0 10px var(--rpg-teal-glow);
+}
+
+.rpg-glow-gold {
+  color: var(--rpg-gold);
+  text-shadow: 0 0 10px var(--rpg-gold-glow);
+}
+
+/* RPG Pulse Animation - For notifications/alerts */
+@keyframes rpg-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--rpg-teal-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+.rpg-pulse {
+  animation: rpg-pulse 2s infinite;
 }
 
 /* RPG Navigation Link */

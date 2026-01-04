@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import XPBar from "@/components/ui/XPBar";
 import Link from "next/link";
+import { getTypeColor } from "@/lib/location-types";
 
 interface ProfileData {
   character: {
@@ -94,19 +95,7 @@ const typeIcons: Record<string, React.ElementType> = {
   MUSEUM: Landmark,
 };
 
-const typeColors: Record<string, string> = {
-  RESTAURANT: "text-orange-400",
-  BAR: "text-purple-400",
-  CAFE: "text-amber-400",
-  ATTRACTION: "text-cyan-400",
-  HOTEL: "text-blue-400",
-  SHOP: "text-pink-400",
-  NATURE: "text-green-400",
-  MUSEUM: "text-indigo-400",
-  BEACH: "text-teal-400",
-  NIGHTLIFE: "text-fuchsia-400",
-  OTHER: "text-gray-400",
-};
+// High-contrast colors from centralized lib/location-types.ts
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -278,7 +267,7 @@ export default function ProfilePage() {
               .sort((a, b) => b.count - a.count)
               .map((item) => {
                 const Icon = typeIcons[item.type] || MapPin;
-                const colorClass = typeColors[item.type] || "text-gray-400";
+                const typeColor = getTypeColor(item.type);
                 const maxCount = Math.max(...locationsByType.map((l) => l.count));
                 const percentage = (item.count / maxCount) * 100;
 
@@ -288,7 +277,7 @@ export default function ProfilePage() {
                     href={`/travel/locations?type=${item.type.toLowerCase()}`}
                     className="flex items-center gap-3 p-2 -mx-2 rounded-lg transition-colors hover:bg-gray-800/50"
                   >
-                    <Icon className={`w-5 h-5 ${colorClass}`} />
+                    <Icon className="w-5 h-5" style={{ color: typeColor.text }} />
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span style={{ color: "var(--rpg-text)" }}>
@@ -384,7 +373,7 @@ export default function ProfilePage() {
             <div className="space-y-3">
               {topLocations.map((location, index) => {
                 const Icon = typeIcons[location.type] || MapPin;
-                const colorClass = typeColors[location.type] || "text-gray-400";
+                const typeColor = getTypeColor(location.type);
 
                 return (
                   <Link
@@ -405,7 +394,7 @@ export default function ProfilePage() {
                     >
                       {index + 1}
                     </div>
-                    <Icon className={`w-5 h-5 ${colorClass}`} />
+                    <Icon className="w-5 h-5" style={{ color: typeColor.text }} />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate" style={{ color: "var(--rpg-text)" }}>
                         {location.name}
@@ -444,7 +433,7 @@ export default function ProfilePage() {
             <div className="space-y-3">
               {recentVisits.map((visit) => {
                 const Icon = typeIcons[visit.location.type] || MapPin;
-                const colorClass = typeColors[visit.location.type] || "text-gray-400";
+                const typeColor = getTypeColor(visit.location.type);
 
                 return (
                   <Link
@@ -456,7 +445,7 @@ export default function ProfilePage() {
                       border: "1px solid var(--rpg-border)",
                     }}
                   >
-                    <Icon className={`w-5 h-5 ${colorClass}`} />
+                    <Icon className="w-5 h-5" style={{ color: typeColor.text }} />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate" style={{ color: "var(--rpg-text)" }}>
                         {visit.location.name}

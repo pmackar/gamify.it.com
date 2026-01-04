@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Star, CheckCircle, Flame } from "lucide-react";
+import { getTypeColor } from "@/lib/location-types";
 
 interface Location {
   id: string;
@@ -26,19 +27,7 @@ interface Neighborhood {
   locations: Location[];
 }
 
-const typeColors: Record<string, string> = {
-  RESTAURANT: "bg-orange-500/10 text-orange-400",
-  BAR: "bg-purple-500/10 text-purple-400",
-  CAFE: "bg-amber-500/10 text-amber-400",
-  ATTRACTION: "bg-cyan-500/10 text-cyan-400",
-  HOTEL: "bg-blue-500/10 text-blue-400",
-  SHOP: "bg-pink-500/10 text-pink-400",
-  NATURE: "bg-green-500/10 text-green-400",
-  MUSEUM: "bg-indigo-500/10 text-indigo-400",
-  BEACH: "bg-teal-500/10 text-teal-400",
-  NIGHTLIFE: "bg-fuchsia-500/10 text-fuchsia-400",
-  OTHER: "bg-gray-500/10 text-gray-400",
-};
+// High-contrast colors from centralized lib/location-types.ts
 
 export default function NeighborhoodDetailPage() {
   const params = useParams();
@@ -148,7 +137,14 @@ export default function NeighborhoodDetailPage() {
         {sortedTypes.map((type) => (
           <div key={type}>
             <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded text-xs ${typeColors[type]}`}>
+              <span
+                className="px-2 py-0.5 rounded text-xs font-medium"
+                style={{
+                  background: getTypeColor(type).bg,
+                  color: getTypeColor(type).text,
+                  border: `1px solid ${getTypeColor(type).border}`,
+                }}
+              >
                 {type.charAt(0) + type.slice(1).toLowerCase()}
               </span>
               <span className="text-gray-500 text-sm font-normal">
