@@ -4825,7 +4825,21 @@ export default function FitnessApp() {
 
         .widget-workout-item.today {
           border-color: var(--accent);
-          background: rgba(255, 215, 0, 0.1);
+          border-width: 2px;
+          background: rgba(255, 215, 0, 0.15);
+          padding: 14px 14px;
+          transform: scale(1.02);
+        }
+
+        .widget-workout-item.today .day-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--accent);
+        }
+
+        .widget-workout-item.today .workout-item-name {
+          font-size: 16px;
+          font-weight: 700;
         }
 
         .widget-workout-item.rest {
