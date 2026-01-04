@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AvatarUpload from '@/components/AvatarUpload';
+import { PWAInstallBanner } from '@/components/PWAInstallBanner';
 
 // Icon mapping for achievements
 const ICON_MAP: Record<string, string> = {
@@ -548,6 +549,9 @@ export default function AccountPage() {
           </p>
         </div>
       </div>
+
+      {/* PWA Install Banner - shows only on mobile browser (not PWA) */}
+      <PWAInstallBanner />
     </>
   );
 }
