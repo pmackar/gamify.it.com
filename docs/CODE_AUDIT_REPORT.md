@@ -387,31 +387,242 @@ export const USER_PUBLIC_FIELDS = {
 
 ---
 
-## Refactoring Roadmap
+## Roadmap to 8+/10
 
-### Phase 1: Foundation (Week 1)
-- [ ] Create shared API utilities (withAuth, apiError, validation)
-- [ ] Add Zod schemas for all POST/PUT routes
-- [ ] Fix silent error failures
-- [ ] Add rate limiting with Upstash
+**Current Score: 5.9/10** (after initial fixes)
+**Target Score: 8.0/10**
 
-### Phase 2: Architecture (Week 2-3)
-- [ ] Split FitnessApp.tsx into components
-- [ ] Split lib/fitness/store.ts into domain stores
-- [ ] Consolidate state management patterns
-- [ ] Add React Query for server state
+### Score Breakdown & Targets
 
-### Phase 3: Quality (Week 3-4)
-- [ ] Add Vitest + testing-library
-- [ ] Write tests for critical paths
-- [ ] Add error tracking (Sentry)
-- [ ] Add structured logging
+| Category | Current | Target | Gap | Priority |
+|----------|---------|--------|-----|----------|
+| Architecture | 5.0 | 8.0 | +3.0 | HIGH |
+| Error Handling | 5.5 | 8.5 | +3.0 | HIGH |
+| Security | 8.5 | 9.0 | +0.5 | LOW |
+| Testing | 0.0 | 7.0 | +7.0 | CRITICAL |
+| Code Quality | 6.5 | 8.0 | +1.5 | MEDIUM |
+| Type Safety | 6.5 | 8.0 | +1.5 | MEDIUM |
 
-### Phase 4: Documentation (Ongoing)
-- [ ] Add JSDoc to public functions
-- [ ] Generate OpenAPI spec
-- [ ] Update README
-- [ ] Add architecture decision records
+---
+
+### Phase 1: API Hardening (Score: 5.9 → 6.8)
+**Focus:** Error handling, validation, rate limiting
+**Impact:** +0.9 points
+
+#### 1.1 Migrate API Routes to Shared Utilities
+- [x] Create `lib/api/` (errors, withAuth, validation) ✅
+- [ ] Migrate 20 high-traffic routes to `withAuth` pattern
+- [ ] Add Zod validation schemas to all POST/PUT routes
+- [ ] Standardize error responses across all routes
+
+**Target routes (by traffic):**
+```
+app/api/fitness/sync/route.ts          (critical - data sync)
+app/api/locations/route.ts             (high - location CRUD)
+app/api/quests/route.ts                (high - quest management)
+app/api/activity/route.ts              (high - notifications)
+app/api/friends/route.ts               (high - social)
+app/api/users/[id]/route.ts            (medium - profiles)
+app/api/fitness/leaderboard/route.ts   (medium - rankings)
+```
+
+#### 1.2 Rate Limiting
+- [ ] Install Upstash: `npm install @upstash/ratelimit @upstash/redis`
+- [ ] Create `lib/rateLimit.ts` wrapper
+- [ ] Add rate limiting to public endpoints
+- [ ] Add stricter limits to auth endpoints (login, register)
+
+**Expected score after Phase 1:**
+- Error Handling: 5.5 → 7.5 (+2.0)
+- Security: 8.5 → 9.0 (+0.5)
+
+---
+
+### Phase 2: Testing Foundation (Score: 6.8 → 7.5)
+**Focus:** Core business logic tests
+**Impact:** +0.7 points
+
+#### 2.1 Setup Testing Infrastructure
+```bash
+npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
+```
+
+Create `vitest.config.ts`:
+```typescript
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './tests/setup.ts',
+  },
+});
+```
+
+#### 2.2 Priority Test Files
+| File | Tests | Coverage Target |
+|------|-------|-----------------|
+| `lib/gamification.ts` | XP calcs, level thresholds | 90% |
+| `lib/achievements.ts` | Achievement triggers | 80% |
+| `lib/fitness/store.ts` | Workout CRUD, PR detection | 70% |
+| `lib/api/validation.ts` | Schema validation | 90% |
+| `lib/api/withAuth.ts` | Auth wrapper | 90% |
+
+#### 2.3 API Contract Tests
+- [ ] Create `tests/api/` folder
+- [ ] Test happy paths for all critical endpoints
+- [ ] Test error responses (401, 403, 404, 422)
+- [ ] Test validation rejection
+
+**Expected score after Phase 2:**
+- Testing: 0 → 5.0 (+5.0)
+- Overall bump from confidence
+
+---
+
+### Phase 3: Architecture Refactor (Score: 7.5 → 8.2)
+**Focus:** Split FitnessApp.tsx, consolidate state
+**Impact:** +0.7 points
+
+#### 3.1 FitnessApp.tsx Decomposition
+
+**Current:** 10,823 lines, 100+ useState calls
+
+**Target structure:**
+```
+app/fitness/
+├── FitnessApp.tsx              (500 lines - orchestrator only)
+├── components/
+│   ├── WorkoutPanel.tsx        (active workout display)
+│   ├── SetInputPanel.tsx       (weight/reps/RPE inputs)
+│   ├── ExerciseSelector.tsx    (search & select exercises)
+│   ├── RestTimer.tsx           (rest countdown)
+│   ├── WorkoutHistory.tsx      (past workouts list)
+│   ├── ProgressCharts.tsx      (analytics graphs)
+│   ├── TemplateManager.tsx     (templates CRUD)
+│   ├── ProgramWizard.tsx       (program builder)
+│   └── CampaignTracker.tsx     (campaigns/goals)
+├── hooks/
+│   ├── useWorkoutState.ts      (workout logic)
+│   ├── useExerciseSearch.ts    (fuzzy search)
+│   └── useKeyboardNavigation.ts
+└── views/
+    ├── HomeView.tsx
+    ├── WorkoutView.tsx
+    ├── HistoryView.tsx
+    └── ProfileView.tsx
+```
+
+#### 3.2 Store Decomposition
+
+**Current:** Single 1,800+ line store
+
+**Target:**
+```
+lib/fitness/stores/
+├── workoutStore.ts     (active workout state)
+├── historyStore.ts     (past workouts, PRs)
+├── profileStore.ts     (user stats, preferences)
+├── syncStore.ts        (offline queue, sync status)
+└── index.ts            (combined exports)
+```
+
+#### 3.3 State Pattern Consolidation
+- [ ] Server state → React Query (or keep Prisma direct)
+- [ ] Client state → Zustand (domain stores)
+- [ ] UI state → Component local or Zustand UI store
+- [ ] Theme/Auth → Context (keep as-is)
+
+**Expected score after Phase 3:**
+- Architecture: 5.0 → 8.0 (+3.0)
+- Code Quality: 6.5 → 7.5 (+1.0)
+
+---
+
+### Phase 4: Type Safety & Polish (Score: 8.2 → 8.5)
+**Focus:** Remove `as any`, add strict types
+**Impact:** +0.3 points
+
+#### 4.1 Eliminate `as any` Casts
+- [ ] Audit all 40+ occurrences
+- [ ] Create proper interfaces for Prisma JSON fields
+- [ ] Type fitness data properly
+
+```typescript
+// lib/fitness/types.ts - Add strict types
+interface StoredFitnessData {
+  profile: FitnessProfile;
+  workouts: Workout[];
+  exercises: ExerciseDefinition[];
+  records: Record<string, number>;
+  achievements: string[];
+  templates: WorkoutTemplate[];
+  programs: Program[];
+  campaigns: Campaign[];
+}
+```
+
+#### 4.2 Strict TypeScript Config
+```json
+// tsconfig.json additions
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}
+```
+
+**Expected score after Phase 4:**
+- Type Safety: 6.5 → 8.5 (+2.0)
+
+---
+
+### Final Score Projection
+
+| Category | Start | Phase 1 | Phase 2 | Phase 3 | Phase 4 |
+|----------|-------|---------|---------|---------|---------|
+| Architecture | 5.0 | 5.0 | 5.0 | 8.0 | 8.0 |
+| Error Handling | 5.5 | 7.5 | 7.5 | 7.5 | 8.0 |
+| Security | 8.5 | 9.0 | 9.0 | 9.0 | 9.0 |
+| Testing | 0.0 | 0.0 | 5.0 | 6.0 | 7.0 |
+| Code Quality | 6.5 | 6.5 | 6.5 | 7.5 | 8.0 |
+| Type Safety | 6.5 | 6.5 | 6.5 | 7.0 | 8.5 |
+| **Average** | **5.3** | **5.8** | **6.6** | **7.5** | **8.1** |
+
+---
+
+### Quick Reference: Commands
+
+```bash
+# Phase 1: Rate limiting
+npm install @upstash/ratelimit @upstash/redis
+
+# Phase 2: Testing
+npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom @vitejs/plugin-react
+
+# Run tests
+npm test
+
+# Type check
+npx tsc --noEmit
+```
+
+---
+
+### Definition of Done for 8.0
+
+- [ ] All API routes use `withAuth` wrapper
+- [ ] All POST/PUT routes have Zod validation
+- [ ] Rate limiting on public endpoints
+- [ ] 50%+ test coverage on core modules
+- [ ] FitnessApp.tsx < 1,000 lines
+- [ ] Zero `as any` casts in new code
+- [ ] Standardized error responses everywhere
 
 ---
 
