@@ -1,14 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/friends/leaderboard - Get friend leaderboard
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(async (request, user) => {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type") || "xp"; // xp, streak, level
 
@@ -79,4 +74,4 @@ export async function GET(request: NextRequest) {
     type,
     totalFriends: friendIds.length,
   });
-}
+});

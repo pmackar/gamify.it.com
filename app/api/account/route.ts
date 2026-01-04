@@ -24,7 +24,10 @@ export const GET = withAuth(async (_request, user) => {
     });
 
     const totalXP = profile?.total_xp || 0;
-    const { level: mainLevel, currentLevelXP, xpToNext } = calculateLevelFromXP(totalXP);
+    const mainLevelInfo = getMainLevelFromXP(totalXP);
+    const mainLevel = mainLevelInfo.level;
+    const currentLevelXP = mainLevelInfo.xpInLevel;
+    const xpToNext = mainLevelInfo.xpToNext;
 
     // Build app data with icons and colors
     const appData = [

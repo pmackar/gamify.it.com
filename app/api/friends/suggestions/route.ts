@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/friends/suggestions - Get friend suggestions based on mutual friends
-export async function GET() {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(async (_request, user) => {
   // Get current user's friends
   const friendships = await prisma.friendships.findMany({
     where: {
@@ -77,15 +72,13 @@ export async function GET() {
   const suggestionMap = new Map<string, Set<string>>();
 
   for (const friendship of friendsOfFriends) {
-    const potentialFriendId =
-      friendIds.includes(friendship.requester_id)
-        ? friendship.addressee_id
-        : friendship.requester_id;
+    const potentialFriendId = friendIds.includes(friendship.requester_id)
+      ? friendship.addressee_id
+      : friendship.requester_id;
 
-    const mutualFriendId =
-      friendIds.includes(friendship.requester_id)
-        ? friendship.requester_id
-        : friendship.addressee_id;
+    const mutualFriendId = friendIds.includes(friendship.requester_id)
+      ? friendship.requester_id
+      : friendship.addressee_id;
 
     // Skip if it's the current user or already a friend
     if (potentialFriendId === user.id || friendIds.includes(potentialFriendId)) {
@@ -102,10 +95,7 @@ export async function GET() {
   const pendingRequests = await prisma.friendships.findMany({
     where: {
       status: "PENDING",
-      OR: [
-        { requester_id: user.id },
-        { addressee_id: user.id },
-      ],
+      OR: [{ requester_id: user.id }, { addressee_id: user.id }],
     },
     select: {
       requester_id: true,
@@ -168,7 +158,10 @@ export async function GET() {
 
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
   const mutualFriendMap = new Map(
-    mutualFriendProfiles.map((p) => [p.id, p.display_name || p.username || "Friend"])
+    mutualFriendProfiles.map((p) => [
+      p.id,
+      p.display_name || p.username || "Friend",
+    ])
   );
 
   const suggestions = sortedSuggestions.map(([userId, mutualIds]) => {
@@ -196,4 +189,4 @@ export async function GET() {
     suggestions,
     type: "mutual",
   });
-}
+});

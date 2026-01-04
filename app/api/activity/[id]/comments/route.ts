@@ -1,103 +1,90 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+const CommentSchema = z.object({
+  content: z.string().min(1).max(500),
+});
+
+const DeleteCommentSchema = z.object({
+  commentId: z.string().uuid(),
+});
 
 // GET /api/activity/[id]/comments - Get comments for an activity
-export async function GET(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withAuthParams<{ id: string }>(
+  async (_request, user, { id }) => {
+    // Verify user can see this activity (must be owner or actor's friend)
+    const activity = await prisma.activity_feed.findUnique({
+      where: { id },
+      select: { user_id: true, actor_id: true },
+    });
 
-  const { id } = await context.params;
+    if (!activity) {
+      return Errors.notFound("Activity not found");
+    }
 
-  // Verify user can see this activity (must be owner or actor's friend)
-  const activity = await prisma.activity_feed.findUnique({
-    where: { id },
-    select: { user_id: true, actor_id: true },
-  });
+    // Check if user has access
+    const hasAccess =
+      activity.user_id === user.id ||
+      activity.actor_id === user.id ||
+      (await prisma.friendships.findFirst({
+        where: {
+          status: "ACCEPTED",
+          OR: [
+            { requester_id: user.id, addressee_id: activity.actor_id },
+            { requester_id: activity.actor_id, addressee_id: user.id },
+          ],
+        },
+      }));
 
-  if (!activity) {
-    return NextResponse.json({ error: "Activity not found" }, { status: 404 });
-  }
+    if (!hasAccess) {
+      return Errors.forbidden("Access denied");
+    }
 
-  // Check if user has access
-  const hasAccess =
-    activity.user_id === user.id ||
-    activity.actor_id === user.id ||
-    (await prisma.friendships.findFirst({
-      where: {
-        status: "ACCEPTED",
-        OR: [
-          { requester_id: user.id, addressee_id: activity.actor_id },
-          { requester_id: activity.actor_id, addressee_id: user.id },
-        ],
-      },
-    }));
-
-  if (!hasAccess) {
-    return NextResponse.json({ error: "Access denied" }, { status: 403 });
-  }
-
-  const comments = await prisma.activity_comments.findMany({
-    where: { activity_id: id },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          display_name: true,
-          avatar_url: true,
+    const comments = await prisma.activity_comments.findMany({
+      where: { activity_id: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            avatar_url: true,
+          },
         },
       },
-    },
-    orderBy: { created_at: "asc" },
-  });
+      orderBy: { created_at: "asc" },
+    });
 
-  return NextResponse.json({
-    comments: comments.map((c) => ({
-      id: c.id,
-      content: c.content,
-      createdAt: c.created_at.toISOString(),
-      user: {
-        id: c.user.id,
-        username: c.user.username,
-        displayName: c.user.display_name,
-        avatarUrl: c.user.avatar_url,
-      },
-      isOwn: c.user_id === user.id,
-    })),
-  });
-}
+    return NextResponse.json({
+      comments: comments.map((c) => ({
+        id: c.id,
+        content: c.content,
+        createdAt: c.created_at.toISOString(),
+        user: {
+          id: c.user.id,
+          username: c.user.username,
+          displayName: c.user.display_name,
+          avatarUrl: c.user.avatar_url,
+        },
+        isOwn: c.user_id === user.id,
+      })),
+    });
+  }
+);
 
 // POST /api/activity/[id]/comments - Add a comment
-export async function POST(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await context.params;
-
-  try {
+export const POST = withAuthParams<{ id: string }>(
+  async (request, user, { id }) => {
     const body = await request.json();
-    const { content } = body;
+    const parsed = CommentSchema.safeParse(body);
 
-    if (!content || typeof content !== "string") {
-      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+    if (!parsed.success) {
+      return Errors.invalidInput("Comment must be 1-500 characters");
     }
 
-    const trimmedContent = content.trim();
-    if (trimmedContent.length === 0 || trimmedContent.length > 500) {
-      return NextResponse.json(
-        { error: "Comment must be 1-500 characters" },
-        { status: 400 }
-      );
-    }
+    const trimmedContent = parsed.data.content.trim();
 
     // Verify activity exists and user can comment
     const activity = await prisma.activity_feed.findUnique({
@@ -106,7 +93,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     if (!activity) {
-      return NextResponse.json({ error: "Activity not found" }, { status: 404 });
+      return Errors.notFound("Activity not found");
     }
 
     // Check if user has access (must be owner, actor, or friend of actor)
@@ -124,7 +111,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }));
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return Errors.forbidden("Access denied");
     }
 
     // Create the comment
@@ -177,26 +164,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
         isOwn: true,
       },
     });
-  } catch (error) {
-    console.error("Error creating comment:", error);
-    return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
   }
-}
+);
 
 // DELETE /api/activity/[id]/comments - Delete a comment (needs comment ID in body)
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
+export const DELETE = withAuthParams<{ id: string }>(
+  async (request, user, { id: _activityId }) => {
     const body = await request.json();
-    const { commentId } = body;
+    const parsed = DeleteCommentSchema.safeParse(body);
 
-    if (!commentId) {
-      return NextResponse.json({ error: "Comment ID is required" }, { status: 400 });
+    if (!parsed.success) {
+      return Errors.invalidInput("Comment ID is required");
     }
+
+    const { commentId } = parsed.data;
 
     // Find the comment
     const comment = await prisma.activity_comments.findUnique({
@@ -205,12 +186,12 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     });
 
     if (!comment) {
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      return Errors.notFound("Comment not found");
     }
 
     // Only the comment author can delete
     if (comment.user_id !== user.id) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return Errors.forbidden("Access denied");
     }
 
     await prisma.activity_comments.delete({
@@ -218,8 +199,5 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting comment:", error);
-    return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
   }
-}
+);
