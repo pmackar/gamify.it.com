@@ -117,8 +117,19 @@ export interface LinearProgression {
 
 export interface DoubleProgression {
   type: 'double_progression';
-  repRange: [number, number];   // e.g., [8, 12]
+  repRange: [number, number];   // e.g., [8, 12] - default/global
   weightIncrement: number;      // lbs to add when top of range hit
+  // Per-exercise configuration
+  perExercise?: boolean;
+  exerciseRanges?: Record<string, {
+    repRange: [number, number];
+    weightIncrement?: number;   // Override global
+  }>;
+  // Advanced per-set configuration
+  advancedMode?: boolean;
+  setRanges?: Record<string, {  // exerciseId -> set configs
+    sets: { repRange: [number, number] }[];
+  }>;
 }
 
 export interface RpeProgression {
@@ -182,15 +193,28 @@ export interface ProgramWeek {
   isDeload?: boolean;
 }
 
+export interface DeloadConfig {
+  frequency: number;            // Every N cycles
+  intensityReduction: number;   // e.g., 0.5 = 50% intensity
+  volumeReduction: number;      // e.g., 0.5 = 50% fewer sets
+}
+
 export interface Program {
   id: string;
   name: string;
   description?: string;
-  weeks: ProgramWeek[];
+  // Cycle configuration
+  cycleType: 'weekly' | 'microcycle';
+  cycleLengthDays: number;      // 7 for weekly, 3-10 for microcycle
+  weeks: ProgramWeek[];         // Cycles (kept as 'weeks' for backwards compat)
   progressionRules: ProgressionRule[];
-  durationWeeks: number;
+  durationWeeks: number;        // Total duration in weeks (or cycles for microcycle)
   goal: 'strength' | 'hypertrophy' | 'endurance' | 'general';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  // Periodization
+  periodization?: 'linear' | 'undulating' | 'block' | 'none';
+  // Deload configuration
+  deloadConfig?: DeloadConfig;
   createdAt: string;
   updatedAt: string;
 }

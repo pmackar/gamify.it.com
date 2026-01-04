@@ -106,6 +106,8 @@ export default function FitnessApp() {
   const [newWorkoutMuscleGroups, setNewWorkoutMuscleGroups] = useState<string[]>([]);
   const [addingExerciseToNewWorkout, setAddingExerciseToNewWorkout] = useState(false);
   const [newWorkoutExerciseSearch, setNewWorkoutExerciseSearch] = useState('');
+  // Program wizard - advanced progression mode
+  const [showAdvancedProgression, setShowAdvancedProgression] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -4080,6 +4082,287 @@ export default function FitnessApp() {
           border-color: var(--accent);
         }
 
+        /* Cycle Type Selector */
+        .cycle-type-selector {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .cycle-type-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 16px 12px;
+          background: var(--surface);
+          border: 2px solid var(--border);
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          text-align: center;
+        }
+
+        .cycle-type-btn:hover {
+          border-color: var(--accent);
+          background: var(--surface-hover);
+        }
+
+        .cycle-type-btn.selected {
+          border-color: var(--accent);
+          background: var(--accent);
+        }
+
+        .cycle-type-btn .cycle-icon {
+          font-size: 24px;
+          margin-bottom: 8px;
+        }
+
+        .cycle-type-btn .cycle-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .cycle-type-btn.selected .cycle-name {
+          color: #000;
+        }
+
+        .cycle-type-btn .cycle-desc {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 4px;
+        }
+
+        .cycle-type-btn.selected .cycle-desc {
+          color: rgba(0, 0, 0, 0.7);
+        }
+
+        .microcycle-length {
+          margin-top: 16px;
+          padding: 16px;
+          background: var(--surface-hover);
+          border-radius: 10px;
+        }
+
+        .microcycle-length label {
+          font-size: 13px;
+          color: var(--text-secondary);
+          display: block;
+          margin-bottom: 8px;
+        }
+
+        .length-selector {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .length-selector input[type="range"] {
+          flex: 1;
+          accent-color: var(--accent);
+        }
+
+        .length-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--accent);
+          min-width: 60px;
+        }
+
+        /* Microcycle day label styling */
+        .day-label.micro {
+          width: 50px;
+          font-size: 11px;
+        }
+
+        /* Per-exercise progression */
+        .per-exercise-toggle {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid var(--border);
+        }
+
+        .toggle-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+          color: var(--text-primary);
+          cursor: pointer;
+        }
+
+        .toggle-label input[type="checkbox"] {
+          accent-color: var(--accent);
+          width: 18px;
+          height: 18px;
+        }
+
+        .per-exercise-config {
+          margin-top: 16px;
+          background: var(--surface);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .exercise-ranges-header {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 12px;
+          background: var(--surface-hover);
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+
+        .exercise-range-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 12px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .exercise-range-row:last-child {
+          border-bottom: none;
+        }
+
+        .exercise-range-row .exercise-name {
+          font-size: 13px;
+          color: var(--text-primary);
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 150px;
+        }
+
+        .range-inputs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--text-muted);
+        }
+
+        .form-input.mini {
+          width: 40px;
+          padding: 6px;
+          font-size: 13px;
+          text-align: center;
+        }
+
+        .form-input.tiny {
+          width: 32px;
+          padding: 4px;
+          font-size: 12px;
+          text-align: center;
+        }
+
+        /* Advanced mode toggle */
+        .advanced-mode-toggle {
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+
+        .advanced-toggle-btn {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          font-size: 12px;
+          cursor: pointer;
+          padding: 8px 0;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .advanced-toggle-btn:hover {
+          color: var(--accent);
+        }
+
+        .advanced-toggle-btn.expanded {
+          color: var(--accent);
+        }
+
+        /* Per-set configuration */
+        .per-set-config {
+          margin-top: 12px;
+          padding: 12px;
+          background: rgba(255, 215, 0, 0.05);
+          border-radius: 8px;
+        }
+
+        .config-hint {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-bottom: 12px;
+        }
+
+        .exercise-sets-config {
+          margin-bottom: 16px;
+        }
+
+        .exercise-sets-config:last-child {
+          margin-bottom: 0;
+        }
+
+        .exercise-sets-header {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .sets-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .set-range-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 8px;
+          background: var(--surface);
+          border-radius: 6px;
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+
+        .set-label {
+          color: var(--text-secondary);
+          margin-right: 4px;
+        }
+
+        /* Review progression details */
+        .review-progression-type {
+          font-size: 14px;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .review-progression-details {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .review-progression-details span {
+          font-size: 12px;
+          color: var(--text-secondary);
+          padding: 4px 10px;
+          background: var(--surface-hover);
+          border-radius: 12px;
+        }
+
+        .per-exercise-badge,
+        .advanced-badge {
+          background: rgba(255, 215, 0, 0.15) !important;
+          color: var(--accent) !important;
+        }
+
         /* Review Section */
         .review-section {
           background: var(--surface);
@@ -6922,15 +7205,53 @@ gamify.it.com/fitness`;
                   </div>
 
                   <div className="form-group">
-                    <label>Duration (weeks)</label>
+                    <label>Schedule Type</label>
+                    <div className="cycle-type-selector">
+                      <button
+                        className={`cycle-type-btn ${(store.programWizardData.cycleType || 'weekly') === 'weekly' ? 'selected' : ''}`}
+                        onClick={() => store.updateProgramWizardData({ cycleType: 'weekly', cycleLengthDays: 7 })}
+                      >
+                        <span className="cycle-icon">📅</span>
+                        <span className="cycle-name">Weekly</span>
+                        <span className="cycle-desc">7-day weeks (Mon-Sun)</span>
+                      </button>
+                      <button
+                        className={`cycle-type-btn ${store.programWizardData.cycleType === 'microcycle' ? 'selected' : ''}`}
+                        onClick={() => store.updateProgramWizardData({ cycleType: 'microcycle', cycleLengthDays: 5 })}
+                      >
+                        <span className="cycle-icon">🔄</span>
+                        <span className="cycle-name">Microcycle</span>
+                        <span className="cycle-desc">Custom length (3-10 days)</span>
+                      </button>
+                    </div>
+
+                    {store.programWizardData.cycleType === 'microcycle' && (
+                      <div className="microcycle-length">
+                        <label>Cycle Length</label>
+                        <div className="length-selector">
+                          <input
+                            type="range"
+                            min={3}
+                            max={10}
+                            value={store.programWizardData.cycleLengthDays || 5}
+                            onChange={(e) => store.updateProgramWizardData({ cycleLengthDays: parseInt(e.target.value) })}
+                          />
+                          <span className="length-value">{store.programWizardData.cycleLengthDays || 5} days</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Duration ({store.programWizardData.cycleType === 'microcycle' ? 'cycles' : 'weeks'})</label>
                     <div className="option-row">
-                      {[4, 6, 8, 12].map(weeks => (
+                      {[4, 6, 8, 12].map(num => (
                         <button
-                          key={weeks}
-                          className={`option-btn small ${store.programWizardData.durationWeeks === weeks ? 'selected' : ''}`}
-                          onClick={() => store.updateProgramWizardData({ durationWeeks: weeks })}
+                          key={num}
+                          className={`option-btn small ${store.programWizardData.durationWeeks === num ? 'selected' : ''}`}
+                          onClick={() => store.updateProgramWizardData({ durationWeeks: num })}
                         >
-                          {weeks}
+                          {num}
                         </button>
                       ))}
                     </div>
@@ -6963,298 +7284,508 @@ gamify.it.com/fitness`;
                 </div>
               )}
 
-              {/* Step 2: Week Structure */}
-              {store.programWizardStep === 2 && (
-                <div className="wizard-content">
-                  <p className="wizard-hint">Build your weekly schedule</p>
+              {/* Step 2: Cycle Structure */}
+              {store.programWizardStep === 2 && (() => {
+                const isMicrocycle = store.programWizardData.cycleType === 'microcycle';
+                const cycleLength = store.programWizardData.cycleLengthDays || 7;
+                const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-                  <div className="week-structure enhanced">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayLabel, idx) => {
-                      const dayNumber = idx + 1;
-                      const weeks = store.programWizardData.weeks || [];
-                      const week1 = weeks[0] || { weekNumber: 1, days: [] };
-                      const day = week1.days.find(d => d.dayNumber === dayNumber);
-                      const template = day?.templateId ? store.templates.find(t => t.id === day.templateId) : null;
-                      const muscleGroups = template?.targetMuscleGroups || [];
+                // Generate day labels based on cycle type
+                const dayLabels = isMicrocycle
+                  ? Array.from({ length: cycleLength }, (_, i) => `Day ${i + 1}`)
+                  : weekDays;
 
-                      const updateDay = (updates: Partial<ProgramDay>) => {
-                        const currentDay = day || { dayNumber, name: '', isRest: false };
-                        const newDay: ProgramDay = { ...currentDay, ...updates };
+                return (
+                  <div className="wizard-content">
+                    <p className="wizard-hint">
+                      {isMicrocycle
+                        ? `Build your ${cycleLength}-day microcycle`
+                        : 'Build your weekly schedule'}
+                    </p>
 
-                        const updatedDays = week1.days.filter(d => d.dayNumber !== dayNumber);
-                        if (newDay.name || newDay.templateId || newDay.isRest) {
-                          updatedDays.push(newDay);
-                        }
-                        updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
+                    <div className={`week-structure enhanced ${isMicrocycle ? 'microcycle' : ''}`}>
+                      {dayLabels.map((dayLabel, idx) => {
+                        const dayNumber = idx + 1;
+                        const weeks = store.programWizardData.weeks || [];
+                        const week1 = weeks[0] || { weekNumber: 1, days: [] };
+                        const day = week1.days.find(d => d.dayNumber === dayNumber);
+                        const template = day?.templateId ? store.templates.find(t => t.id === day.templateId) : null;
+                        const muscleGroups = template?.targetMuscleGroups || [];
 
-                        const allWeeks: ProgramWeek[] = [];
-                        for (let i = 1; i <= (store.programWizardData.durationWeeks || 4); i++) {
-                          allWeeks.push({
-                            weekNumber: i,
-                            days: updatedDays.map(d => ({ ...d })),
-                            isDeload: i === (store.programWizardData.durationWeeks || 4),
-                          });
-                        }
-                        store.updateProgramWizardData({ weeks: allWeeks });
-                      };
+                        const updateDay = (updates: Partial<ProgramDay>) => {
+                          const currentDay = day || { dayNumber, name: '', isRest: false };
+                          const newDay: ProgramDay = { ...currentDay, ...updates };
 
-                      return (
-                        <div key={dayLabel} className={`day-row enhanced ${day?.isRest ? 'rest' : ''}`}>
-                          <div className="day-header">
-                            <span className="day-label">{dayLabel}</span>
-                            <input
-                              type="text"
-                              className="day-name-input"
-                              value={day?.name || ''}
-                              onChange={(e) => updateDay({ name: e.target.value })}
-                              placeholder={day?.isRest ? 'Rest' : 'Day name...'}
-                            />
-                          </div>
-
-                          <div className="day-content">
-                            <select
-                              className="day-select"
-                              value={day?.isRest ? 'rest' : day?.templateId || ''}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === 'create-new') {
-                                  setCreatingWorkoutForDay(dayNumber);
-                                  setNewWorkoutName(day?.name || `${dayLabel} Workout`);
-                                  setNewWorkoutExercises([]);
-                                  setNewWorkoutMuscleGroups([]);
-                                } else {
-                                  const isRest = value === 'rest';
-                                  const templateId = isRest ? undefined : value || undefined;
-                                  const selectedTemplate = templateId ? store.templates.find(t => t.id === templateId) : null;
-                                  updateDay({
-                                    isRest,
-                                    templateId,
-                                    name: day?.name || (isRest ? 'Rest' : (selectedTemplate?.name || ''))
-                                  });
-                                }
-                              }}
-                            >
-                              <option value="">-- Select Workout --</option>
-                              <option value="rest">🛌 Rest Day</option>
-                              <option value="create-new">➕ Create New Workout</option>
-                              {store.templates.length > 0 && (
-                                <optgroup label="Your Workouts">
-                                  {store.templates.map(t => (
-                                    <option key={t.id} value={t.id}>
-                                      {store.migrateTemplate(t).name}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              )}
-                            </select>
-
-                            {muscleGroups.length > 0 && (
-                              <div className="day-muscle-tags">
-                                {muscleGroups.slice(0, 3).map(mg => (
-                                  <span key={mg} className="muscle-tag">{mg}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="deload-option">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={store.programWizardData.weeks?.[store.programWizardData.weeks.length - 1]?.isDeload || false}
-                        onChange={(e) => {
-                          const weeks = [...(store.programWizardData.weeks || [])];
-                          if (weeks.length > 0) {
-                            weeks[weeks.length - 1] = {
-                              ...weeks[weeks.length - 1],
-                              isDeload: e.target.checked,
-                              name: e.target.checked ? 'Deload Week' : undefined,
-                            };
-                            store.updateProgramWizardData({ weeks });
+                          const updatedDays = week1.days.filter(d => d.dayNumber !== dayNumber);
+                          if (newDay.name || newDay.templateId || newDay.isRest) {
+                            updatedDays.push(newDay);
                           }
-                        }}
-                      />
-                      Mark final week as deload
-                    </label>
-                  </div>
+                          updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
 
-                  <div className="wizard-actions">
-                    <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(1)}>
-                      ← Back
-                    </button>
-                    <button
-                      className="wizard-btn primary"
-                      onClick={() => store.setProgramWizardStep(3)}
-                    >
-                      Next →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Progression */}
-              {store.programWizardStep === 3 && (
-                <div className="wizard-content">
-                  <p className="wizard-hint">Choose how weights should progress</p>
-
-                  <div className="form-group">
-                    <label>Default Progression Type</label>
-                    <div className="progression-options">
-                      {[
-                        { type: 'double_progression', name: 'Double Progression', desc: 'Increase reps until max, then add weight' },
-                        { type: 'linear', name: 'Linear', desc: 'Add weight each successful session' },
-                        { type: 'rpe_based', name: 'RPE Based', desc: 'Adjust weight based on perceived effort' },
-                        { type: 'none', name: 'None', desc: 'No automatic progression' },
-                      ].map(opt => {
-                        const currentRule = store.programWizardData.progressionRules?.[0];
-                        const isSelected = currentRule?.config.type === opt.type;
+                          const allWeeks: ProgramWeek[] = [];
+                          for (let i = 1; i <= (store.programWizardData.durationWeeks || 4); i++) {
+                            allWeeks.push({
+                              weekNumber: i,
+                              days: updatedDays.map(d => ({ ...d })),
+                              isDeload: i === (store.programWizardData.durationWeeks || 4),
+                            });
+                          }
+                          store.updateProgramWizardData({ weeks: allWeeks });
+                        };
 
                         return (
-                          <button
-                            key={opt.type}
-                            className={`progression-option ${isSelected ? 'selected' : ''}`}
-                            onClick={() => {
-                              let config: ProgressionRule['config'];
-                              switch (opt.type) {
-                                case 'double_progression':
-                                  config = { type: 'double_progression', repRange: [8, 12], weightIncrement: 5 };
-                                  break;
-                                case 'linear':
-                                  config = { type: 'linear', weightIncrement: 5, deloadThreshold: 3, deloadPercent: 0.1 };
-                                  break;
-                                case 'rpe_based':
-                                  config = { type: 'rpe_based', targetRpe: 8, rpeRange: [7, 9], adjustmentPerPoint: 5 };
-                                  break;
-                                default:
-                                  config = { type: 'none' };
-                              }
+                          <div key={dayLabel} className={`day-row enhanced ${day?.isRest ? 'rest' : ''}`}>
+                            <div className="day-header">
+                              <span className={`day-label ${isMicrocycle ? 'micro' : ''}`}>{dayLabel}</span>
+                              <input
+                                type="text"
+                                className="day-name-input"
+                                value={day?.name || ''}
+                                onChange={(e) => updateDay({ name: e.target.value })}
+                                placeholder={day?.isRest ? 'Rest' : 'Workout name...'}
+                              />
+                            </div>
 
-                              const rule: ProgressionRule = {
-                                id: 'default',
-                                name: opt.name,
-                                config,
-                              };
-                              store.updateProgramWizardData({ progressionRules: [rule] });
-                            }}
-                          >
-                            <div className="progression-name">{opt.name}</div>
-                            <div className="progression-desc">{opt.desc}</div>
-                          </button>
+                            <div className="day-content">
+                              <select
+                                className="day-select"
+                                value={day?.isRest ? 'rest' : day?.templateId || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === 'create-new') {
+                                    setCreatingWorkoutForDay(dayNumber);
+                                    setNewWorkoutName(day?.name || `${dayLabel} Workout`);
+                                    setNewWorkoutExercises([]);
+                                    setNewWorkoutMuscleGroups([]);
+                                  } else {
+                                    const isRest = value === 'rest';
+                                    const templateId = isRest ? undefined : value || undefined;
+                                    const selectedTemplate = templateId ? store.templates.find(t => t.id === templateId) : null;
+                                    updateDay({
+                                      isRest,
+                                      templateId,
+                                      name: day?.name || (isRest ? 'Rest' : (selectedTemplate?.name || ''))
+                                    });
+                                  }
+                                }}
+                              >
+                                <option value="">-- Select Workout --</option>
+                                <option value="rest">🛌 Rest Day</option>
+                                <option value="create-new">➕ Create New Workout</option>
+                                {store.templates.length > 0 && (
+                                  <optgroup label="Your Workouts">
+                                    {store.templates.map(t => (
+                                      <option key={t.id} value={t.id}>
+                                        {store.migrateTemplate(t).name}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                              </select>
+
+                              {muscleGroups.length > 0 && (
+                                <div className="day-muscle-tags">
+                                  {muscleGroups.slice(0, 3).map(mg => (
+                                    <span key={mg} className="muscle-tag">{mg}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
-                  </div>
 
-                  {store.programWizardData.progressionRules?.[0]?.config.type === 'double_progression' && (
-                    <div className="progression-config">
-                      <div className="form-row">
-                        <label>Rep Range</label>
-                        <div className="input-row">
-                          <input
-                            type="number"
-                            className="form-input small"
-                            value={(store.programWizardData.progressionRules[0].config as any).repRange[0]}
-                            onChange={(e) => {
-                              const rules = [...(store.programWizardData.progressionRules || [])];
-                              (rules[0].config as any).repRange[0] = parseInt(e.target.value) || 8;
-                              store.updateProgramWizardData({ progressionRules: rules });
-                            }}
-                          />
-                          <span>to</span>
-                          <input
-                            type="number"
-                            className="form-input small"
-                            value={(store.programWizardData.progressionRules[0].config as any).repRange[1]}
-                            onChange={(e) => {
-                              const rules = [...(store.programWizardData.progressionRules || [])];
-                              (rules[0].config as any).repRange[1] = parseInt(e.target.value) || 12;
-                              store.updateProgramWizardData({ progressionRules: rules });
-                            }}
-                          />
-                          <span>reps</span>
-                        </div>
-                      </div>
-                      <div className="form-row">
-                        <label>Weight Increment</label>
-                        <div className="input-row">
-                          <input
-                            type="number"
-                            className="form-input small"
-                            value={(store.programWizardData.progressionRules[0].config as any).weightIncrement}
-                            onChange={(e) => {
-                              const rules = [...(store.programWizardData.progressionRules || [])];
-                              (rules[0].config as any).weightIncrement = parseInt(e.target.value) || 5;
-                              store.updateProgramWizardData({ progressionRules: rules });
-                            }}
-                          />
-                          <span>lbs</span>
-                        </div>
+                    <div className="deload-option">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={store.programWizardData.weeks?.[store.programWizardData.weeks.length - 1]?.isDeload || false}
+                          onChange={(e) => {
+                            const weeks = [...(store.programWizardData.weeks || [])];
+                            if (weeks.length > 0) {
+                              weeks[weeks.length - 1] = {
+                                ...weeks[weeks.length - 1],
+                                isDeload: e.target.checked,
+                                name: e.target.checked ? (isMicrocycle ? 'Deload Cycle' : 'Deload Week') : undefined,
+                              };
+                              store.updateProgramWizardData({ weeks });
+                            }
+                          }}
+                        />
+                        Mark final {isMicrocycle ? 'cycle' : 'week'} as deload
+                      </label>
+                    </div>
+
+                    <div className="wizard-actions">
+                      <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(1)}>
+                        ← Back
+                      </button>
+                      <button
+                        className="wizard-btn primary"
+                        onClick={() => store.setProgramWizardStep(3)}
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Step 3: Progression */}
+              {store.programWizardStep === 3 && (() => {
+                const currentRule = store.programWizardData.progressionRules?.[0];
+                const config = currentRule?.config as any;
+                const isDoubleProgression = config?.type === 'double_progression';
+
+                // Get all unique exercises from templates used in the program
+                const programExercises: { id: string; name: string }[] = [];
+                const seenExercises = new Set<string>();
+                store.programWizardData.weeks?.[0]?.days.forEach(day => {
+                  if (day.templateId) {
+                    const template = store.templates.find(t => t.id === day.templateId);
+                    template?.exercises.forEach(ex => {
+                      if (!seenExercises.has(ex.exerciseId)) {
+                        seenExercises.add(ex.exerciseId);
+                        programExercises.push({ id: ex.exerciseId, name: ex.exerciseName });
+                      }
+                    });
+                  }
+                });
+
+                return (
+                  <div className="wizard-content">
+                    <p className="wizard-hint">Choose how weights should progress</p>
+
+                    <div className="form-group">
+                      <label>Progression Type</label>
+                      <div className="progression-options">
+                        {[
+                          { type: 'double_progression', name: 'Double Progression', desc: 'Increase reps until max, then add weight' },
+                          { type: 'linear', name: 'Linear', desc: 'Add weight each successful session' },
+                          { type: 'rpe_based', name: 'RPE Based', desc: 'Adjust weight based on perceived effort' },
+                          { type: 'none', name: 'None', desc: 'No automatic progression' },
+                        ].map(opt => {
+                          const isSelected = config?.type === opt.type;
+
+                          return (
+                            <button
+                              key={opt.type}
+                              className={`progression-option ${isSelected ? 'selected' : ''}`}
+                              onClick={() => {
+                                let newConfig: ProgressionRule['config'];
+                                switch (opt.type) {
+                                  case 'double_progression':
+                                    newConfig = { type: 'double_progression', repRange: [8, 12], weightIncrement: 5 };
+                                    break;
+                                  case 'linear':
+                                    newConfig = { type: 'linear', weightIncrement: 5, deloadThreshold: 3, deloadPercent: 0.1 };
+                                    break;
+                                  case 'rpe_based':
+                                    newConfig = { type: 'rpe_based', targetRpe: 8, rpeRange: [7, 9], adjustmentPerPoint: 5 };
+                                    break;
+                                  default:
+                                    newConfig = { type: 'none' };
+                                }
+
+                                const rule: ProgressionRule = {
+                                  id: 'default',
+                                  name: opt.name,
+                                  config: newConfig,
+                                };
+                                store.updateProgramWizardData({ progressionRules: [rule] });
+                                setShowAdvancedProgression(false);
+                              }}
+                            >
+                              <div className="progression-name">{opt.name}</div>
+                              <div className="progression-desc">{opt.desc}</div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-                  )}
 
-                  <div className="wizard-actions">
-                    <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(2)}>
-                      ← Back
-                    </button>
-                    <button
-                      className="wizard-btn primary"
-                      onClick={() => store.setProgramWizardStep(4)}
-                    >
-                      Next →
-                    </button>
+                    {isDoubleProgression && (
+                      <div className="progression-config">
+                        <div className="form-row">
+                          <label>Default Rep Range</label>
+                          <div className="input-row">
+                            <input
+                              type="number"
+                              className="form-input small"
+                              value={config.repRange[0]}
+                              onChange={(e) => {
+                                const rules = [...(store.programWizardData.progressionRules || [])];
+                                (rules[0].config as any).repRange[0] = parseInt(e.target.value) || 8;
+                                store.updateProgramWizardData({ progressionRules: rules });
+                              }}
+                            />
+                            <span>to</span>
+                            <input
+                              type="number"
+                              className="form-input small"
+                              value={config.repRange[1]}
+                              onChange={(e) => {
+                                const rules = [...(store.programWizardData.progressionRules || [])];
+                                (rules[0].config as any).repRange[1] = parseInt(e.target.value) || 12;
+                                store.updateProgramWizardData({ progressionRules: rules });
+                              }}
+                            />
+                            <span>reps</span>
+                          </div>
+                        </div>
+                        <div className="form-row">
+                          <label>Weight Increment</label>
+                          <div className="input-row">
+                            <input
+                              type="number"
+                              className="form-input small"
+                              value={config.weightIncrement}
+                              onChange={(e) => {
+                                const rules = [...(store.programWizardData.progressionRules || [])];
+                                (rules[0].config as any).weightIncrement = parseInt(e.target.value) || 5;
+                                store.updateProgramWizardData({ progressionRules: rules });
+                              }}
+                            />
+                            <span>lbs</span>
+                          </div>
+                        </div>
+
+                        {/* Per-exercise configuration toggle */}
+                        {programExercises.length > 0 && (
+                          <div className="per-exercise-toggle">
+                            <label className="toggle-label">
+                              <input
+                                type="checkbox"
+                                checked={config.perExercise || false}
+                                onChange={(e) => {
+                                  const rules = [...(store.programWizardData.progressionRules || [])];
+                                  (rules[0].config as any).perExercise = e.target.checked;
+                                  if (e.target.checked && !config.exerciseRanges) {
+                                    // Initialize with default ranges
+                                    (rules[0].config as any).exerciseRanges = {};
+                                  }
+                                  store.updateProgramWizardData({ progressionRules: rules });
+                                }}
+                              />
+                              <span>Different rep ranges per exercise</span>
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Per-exercise rep ranges */}
+                        {config.perExercise && programExercises.length > 0 && (
+                          <div className="per-exercise-config">
+                            <div className="exercise-ranges-header">
+                              <span>Exercise</span>
+                              <span>Rep Range</span>
+                            </div>
+                            {programExercises.map(ex => {
+                              const exRange = config.exerciseRanges?.[ex.id] || { repRange: [...config.repRange] };
+                              return (
+                                <div key={ex.id} className="exercise-range-row">
+                                  <span className="exercise-name">{ex.name}</span>
+                                  <div className="range-inputs">
+                                    <input
+                                      type="number"
+                                      className="form-input mini"
+                                      value={exRange.repRange[0]}
+                                      onChange={(e) => {
+                                        const rules = [...(store.programWizardData.progressionRules || [])];
+                                        const ranges = { ...(rules[0].config as any).exerciseRanges };
+                                        ranges[ex.id] = {
+                                          ...ranges[ex.id],
+                                          repRange: [parseInt(e.target.value) || 8, exRange.repRange[1]]
+                                        };
+                                        (rules[0].config as any).exerciseRanges = ranges;
+                                        store.updateProgramWizardData({ progressionRules: rules });
+                                      }}
+                                    />
+                                    <span>-</span>
+                                    <input
+                                      type="number"
+                                      className="form-input mini"
+                                      value={exRange.repRange[1]}
+                                      onChange={(e) => {
+                                        const rules = [...(store.programWizardData.progressionRules || [])];
+                                        const ranges = { ...(rules[0].config as any).exerciseRanges };
+                                        ranges[ex.id] = {
+                                          ...ranges[ex.id],
+                                          repRange: [exRange.repRange[0], parseInt(e.target.value) || 12]
+                                        };
+                                        (rules[0].config as any).exerciseRanges = ranges;
+                                        store.updateProgramWizardData({ progressionRules: rules });
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {/* Advanced mode toggle for per-set */}
+                            <div className="advanced-mode-toggle">
+                              <button
+                                className={`advanced-toggle-btn ${showAdvancedProgression ? 'expanded' : ''}`}
+                                onClick={() => setShowAdvancedProgression(!showAdvancedProgression)}
+                              >
+                                {showAdvancedProgression ? '▼' : '▶'} Advanced: Per-set rep ranges
+                              </button>
+                            </div>
+
+                            {showAdvancedProgression && (
+                              <div className="per-set-config">
+                                <p className="config-hint">Configure different rep targets for each set</p>
+                                {programExercises.map(ex => {
+                                  const template = store.programWizardData.weeks?.[0]?.days
+                                    .map(d => d.templateId ? store.templates.find(t => t.id === d.templateId) : null)
+                                    .find(t => t?.exercises.some(e => e.exerciseId === ex.id));
+                                  const templateEx = template?.exercises.find(e => e.exerciseId === ex.id);
+                                  const numSets = templateEx?.targetSets || 3;
+                                  const setRanges = config.setRanges?.[ex.id]?.sets || [];
+
+                                  return (
+                                    <div key={ex.id} className="exercise-sets-config">
+                                      <div className="exercise-sets-header">{ex.name}</div>
+                                      <div className="sets-grid">
+                                        {Array.from({ length: numSets }, (_, setIdx) => {
+                                          const setRange = setRanges[setIdx] || { repRange: config.exerciseRanges?.[ex.id]?.repRange || config.repRange };
+                                          return (
+                                            <div key={setIdx} className="set-range-item">
+                                              <span className="set-label">Set {setIdx + 1}</span>
+                                              <input
+                                                type="number"
+                                                className="form-input tiny"
+                                                value={setRange.repRange[0]}
+                                                onChange={(e) => {
+                                                  const rules = [...(store.programWizardData.progressionRules || [])];
+                                                  const allSetRanges = { ...(rules[0].config as any).setRanges } || {};
+                                                  const exSets = [...(allSetRanges[ex.id]?.sets || [])];
+                                                  while (exSets.length < numSets) {
+                                                    exSets.push({ repRange: [...config.repRange] });
+                                                  }
+                                                  exSets[setIdx] = { repRange: [parseInt(e.target.value) || 8, setRange.repRange[1]] };
+                                                  allSetRanges[ex.id] = { sets: exSets };
+                                                  (rules[0].config as any).setRanges = allSetRanges;
+                                                  (rules[0].config as any).advancedMode = true;
+                                                  store.updateProgramWizardData({ progressionRules: rules });
+                                                }}
+                                              />
+                                              <span>-</span>
+                                              <input
+                                                type="number"
+                                                className="form-input tiny"
+                                                value={setRange.repRange[1]}
+                                                onChange={(e) => {
+                                                  const rules = [...(store.programWizardData.progressionRules || [])];
+                                                  const allSetRanges = { ...(rules[0].config as any).setRanges } || {};
+                                                  const exSets = [...(allSetRanges[ex.id]?.sets || [])];
+                                                  while (exSets.length < numSets) {
+                                                    exSets.push({ repRange: [...config.repRange] });
+                                                  }
+                                                  exSets[setIdx] = { repRange: [setRange.repRange[0], parseInt(e.target.value) || 12] };
+                                                  allSetRanges[ex.id] = { sets: exSets };
+                                                  (rules[0].config as any).setRanges = allSetRanges;
+                                                  (rules[0].config as any).advancedMode = true;
+                                                  store.updateProgramWizardData({ progressionRules: rules });
+                                                }}
+                                              />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="wizard-actions">
+                      <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(2)}>
+                        ← Back
+                      </button>
+                      <button
+                        className="wizard-btn primary"
+                        onClick={() => store.setProgramWizardStep(4)}
+                      >
+                        Next →
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Step 4: Review */}
-              {store.programWizardStep === 4 && (
-                <div className="wizard-content">
-                  <div className="review-section">
-                    <h3>{store.programWizardData.name}</h3>
-                    <div className="review-meta">
-                      {store.programWizardData.durationWeeks} weeks • {store.programWizardData.difficulty} • {store.programWizardData.goal}
-                    </div>
-                  </div>
+              {store.programWizardStep === 4 && (() => {
+                const isMicrocycle = store.programWizardData.cycleType === 'microcycle';
+                const cycleLength = store.programWizardData.cycleLengthDays || 7;
+                const config = store.programWizardData.progressionRules?.[0]?.config as any;
 
-                  <div className="review-section">
-                    <h4>Schedule</h4>
-                    <div className="review-schedule">
-                      {store.programWizardData.weeks?.[0]?.days.map(day => (
-                        <div key={day.dayNumber} className="review-day">
-                          <span className="day-label">
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.dayNumber - 1]}
-                          </span>
-                          <span className={`day-value ${day.isRest ? 'rest' : ''}`}>
-                            {day.isRest ? 'Rest' : day.name}
-                          </span>
+                return (
+                  <div className="wizard-content">
+                    <div className="review-section">
+                      <h3>{store.programWizardData.name}</h3>
+                      <div className="review-meta">
+                        {store.programWizardData.durationWeeks} {isMicrocycle ? 'cycles' : 'weeks'} •{' '}
+                        {isMicrocycle ? `${cycleLength}-day microcycle` : 'Weekly'} •{' '}
+                        {store.programWizardData.difficulty} • {store.programWizardData.goal}
+                      </div>
+                    </div>
+
+                    <div className="review-section">
+                      <h4>Schedule</h4>
+                      <div className="review-schedule">
+                        {store.programWizardData.weeks?.[0]?.days.map(day => (
+                          <div key={day.dayNumber} className="review-day">
+                            <span className="day-label">
+                              {isMicrocycle
+                                ? `Day ${day.dayNumber}`
+                                : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.dayNumber - 1]}
+                            </span>
+                            <span className={`day-value ${day.isRest ? 'rest' : ''}`}>
+                              {day.isRest ? 'Rest' : day.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="review-section">
+                      <h4>Progression</h4>
+                      <p className="review-progression-type">
+                        {store.programWizardData.progressionRules?.[0]?.name || 'None'}
+                      </p>
+                      {config?.type === 'double_progression' && (
+                        <div className="review-progression-details">
+                          <span>Default: {config.repRange[0]}-{config.repRange[1]} reps</span>
+                          <span>+{config.weightIncrement} lbs on success</span>
+                          {config.perExercise && (
+                            <span className="per-exercise-badge">Per-exercise ranges</span>
+                          )}
+                          {config.advancedMode && (
+                            <span className="advanced-badge">Per-set ranges</span>
+                          )}
                         </div>
-                      ))}
+                      )}
+                    </div>
+
+                    <div className="wizard-actions">
+                      <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(3)}>
+                        ← Back
+                      </button>
+                      <button
+                        className="wizard-btn primary"
+                        onClick={() => store.finishProgramWizard()}
+                      >
+                        Create Program
+                      </button>
                     </div>
                   </div>
-
-                  <div className="review-section">
-                    <h4>Progression</h4>
-                    <p>{store.programWizardData.progressionRules?.[0]?.name || 'None'}</p>
-                  </div>
-
-                  <div className="wizard-actions">
-                    <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(3)}>
-                      ← Back
-                    </button>
-                    <button
-                      className="wizard-btn primary"
-                      onClick={() => store.finishProgramWizard()}
-                    >
-                      Create Program
-                    </button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 

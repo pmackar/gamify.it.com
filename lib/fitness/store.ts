@@ -1644,9 +1644,12 @@ export const useFitnessStore = create<FitnessStore>()(
           programWizardData: {
             name: '',
             description: '',
+            cycleType: 'weekly',
+            cycleLengthDays: 7,
             goal: 'hypertrophy',
             difficulty: 'intermediate',
             durationWeeks: 4,
+            periodization: 'none',
             weeks: [],
             progressionRules: [],
           },
