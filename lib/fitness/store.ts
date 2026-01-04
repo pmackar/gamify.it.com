@@ -535,6 +535,22 @@ export const useFitnessStore = create<FitnessStore>()(
         }
       },
 
+      addCustomExerciseWithMuscle: (name: string, muscle: string) => {
+        const id = name.toLowerCase().replace(/\s+/g, '_');
+        const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+
+        // Add to custom exercises if not exists
+        if (!get().customExercises.find(e => e.id === id)) {
+          set((state) => ({
+            customExercises: [...state.customExercises, { id, name: formattedName, muscle }],
+            pendingSync: true
+          }));
+          queueSync(get);
+          get().saveState();
+          get().showToast(`Created ${formattedName}`);
+        }
+      },
+
       updateCustomExercise: (id: string, updates: { name?: string; muscle?: string }) => {
         set((state) => ({
           customExercises: state.customExercises.map(ex =>

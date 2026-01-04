@@ -86,6 +86,11 @@ export default function FitnessApp() {
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
+  const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
+    name: string;
+    muscle: string;
+    context: 'workout' | 'template' | 'program' | 'picker';
+  } | null>(null);
   const [strengthProgressExercise, setStrengthProgressExercise] = useState<string | null>(null);
   const [strengthProgressRange, setStrengthProgressRange] = useState<'30d' | '90d' | '1y' | 'all'>('all');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -507,7 +512,11 @@ export default function FitnessApp() {
         setSearchingExercises(false);
         break;
       case 'new-exercise':
-        store.addCustomExercise(suggestion.id);
+        setCreatingCustomExercise({
+          name: suggestion.id,
+          muscle: 'other',
+          context: 'workout'
+        });
         break;
       case 'select-exercise':
         const idx = store.currentWorkout?.exercises.findIndex(e => e.id === suggestion.id);
@@ -7229,31 +7238,11 @@ gamify.it.com/fitness`;
                     <button
                       className="exercise-option create-custom"
                       onClick={() => {
-                        const name = exerciseSearchQuery.trim();
-                        const id = name.toLowerCase().replace(/\s+/g, '_');
-                        const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-
-                        // Add to custom exercises if not exists
-                        if (!store.customExercises.find(e => e.id === id)) {
-                          store.addCustomExercise(name);
-                        }
-
-                        // Add to template
-                        const template = store.getTemplateById(store.editingTemplateId!);
-                        if (template) {
-                          const newExercise: TemplateExercise = {
-                            exerciseId: id,
-                            exerciseName: formattedName,
-                            order: template.exercises.length,
-                            targetSets: 3,
-                            targetReps: '8-12',
-                          };
-                          store.updateTemplate(template.id, {
-                            exercises: [...template.exercises, newExercise]
-                          });
-                        }
-                        setAddingExerciseToTemplate(false);
-                        setExerciseSearchQuery('');
+                        setCreatingCustomExercise({
+                          name: exerciseSearchQuery.trim(),
+                          muscle: 'other',
+                          context: 'template'
+                        });
                       }}
                     >
                       <span className="exercise-name">✨ Create: &quot;{exerciseSearchQuery}&quot;</span>
@@ -7694,25 +7683,11 @@ gamify.it.com/fitness`;
                     <button
                       className="exercise-option create-custom"
                       onClick={() => {
-                        const name = newWorkoutExerciseSearch.trim();
-                        const id = name.toLowerCase().replace(/\s+/g, '_');
-                        const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-
-                        // Add to custom exercises if not exists
-                        if (!store.customExercises.find(e => e.id === id)) {
-                          store.addCustomExercise(name);
-                        }
-
-                        // Add to new workout exercises
-                        setNewWorkoutExercises([...newWorkoutExercises, {
-                          exerciseId: id,
-                          exerciseName: formattedName,
-                          targetSets: 3,
-                          minReps: 8,
-                          maxReps: 12,
-                        }]);
-                        setAddingExerciseToNewWorkout(false);
-                        setNewWorkoutExerciseSearch('');
+                        setCreatingCustomExercise({
+                          name: newWorkoutExerciseSearch.trim(),
+                          muscle: 'other',
+                          context: 'program'
+                        });
                       }}
                     >
                       <span className="exercise-name">✨ Create: &quot;{newWorkoutExerciseSearch}&quot;</span>
@@ -10280,10 +10255,11 @@ gamify.it.com/fitness`;
                     <div
                       className="exercise-item create-custom"
                       onClick={() => {
-                        store.addCustomExercise(pickerSearchQuery.trim());
-                        setShowExercisePicker(false);
-                        setSelectedCategory(null);
-                        setPickerSearchQuery('');
+                        setCreatingCustomExercise({
+                          name: pickerSearchQuery.trim(),
+                          muscle: 'other',
+                          context: 'picker'
+                        });
                       }}
                     >
                       <div className="exercise-item-icon">✨</div>
@@ -10607,6 +10583,113 @@ gamify.it.com/fitness`;
                   }}
                 >
                   Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Custom Exercise Modal */}
+        {creatingCustomExercise && (
+          <div className="modal-overlay" onClick={() => setCreatingCustomExercise(null)}>
+            <div className="modal edit-exercise-modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">Create Custom Exercise</div>
+              <div className="modal-subtitle">{creatingCustomExercise.name}</div>
+
+              <div className="form-group">
+                <label>Select Body Part</label>
+                <div className="muscle-select-grid">
+                  {MUSCLE_CATEGORIES.map(cat => (
+                    <button
+                      key={cat.id}
+                      className={`muscle-select-btn ${creatingCustomExercise.muscle === cat.id ? 'selected' : ''}`}
+                      onClick={() => setCreatingCustomExercise({
+                        ...creatingCustomExercise,
+                        muscle: cat.id
+                      })}
+                    >
+                      <span className="muscle-select-icon">{cat.icon}</span>
+                      <span className="muscle-select-name">{cat.name}</span>
+                    </button>
+                  ))}
+                  <button
+                    className={`muscle-select-btn ${creatingCustomExercise.muscle === 'other' ? 'selected' : ''}`}
+                    onClick={() => setCreatingCustomExercise({
+                      ...creatingCustomExercise,
+                      muscle: 'other'
+                    })}
+                  >
+                    <span className="muscle-select-icon">❓</span>
+                    <span className="muscle-select-name">Other</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button className="modal-btn secondary" onClick={() => setCreatingCustomExercise(null)}>
+                  Cancel
+                </button>
+                <button
+                  className="modal-btn primary"
+                  onClick={() => {
+                    const name = creatingCustomExercise.name.trim();
+                    const id = name.toLowerCase().replace(/\s+/g, '_');
+                    const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+                    const muscle = creatingCustomExercise.muscle;
+                    const context = creatingCustomExercise.context;
+
+                    // Create the custom exercise with selected muscle
+                    if (!store.customExercises.find(e => e.id === id)) {
+                      store.addCustomExerciseWithMuscle(name, muscle);
+                    }
+
+                    // Handle context-specific actions
+                    if (context === 'workout') {
+                      // Add to current workout
+                      if (store.currentWorkout) {
+                        store.addExerciseToWorkout(id);
+                      }
+                    } else if (context === 'picker') {
+                      // Add to current workout via picker
+                      if (store.currentWorkout) {
+                        store.addExerciseToWorkout(id);
+                      }
+                      setShowExercisePicker(false);
+                      setPickerSearchQuery('');
+                    } else if (context === 'template') {
+                      // Add to template
+                      const template = store.getTemplateById(store.editingTemplateId!);
+                      if (template) {
+                        const newExercise: TemplateExercise = {
+                          exerciseId: id,
+                          exerciseName: formattedName,
+                          order: template.exercises.length,
+                          targetSets: 3,
+                          targetReps: '8-12',
+                        };
+                        store.updateTemplate(template.id, {
+                          exercises: [...template.exercises, newExercise]
+                        });
+                      }
+                      setAddingExerciseToTemplate(false);
+                      setExerciseSearchQuery('');
+                    } else if (context === 'program') {
+                      // Add to program workout
+                      setNewWorkoutExercises(prev => [...prev, {
+                        exerciseId: id,
+                        exerciseName: formattedName,
+                        targetSets: 3,
+                        minReps: 8,
+                        maxReps: 12,
+                      }]);
+                      setAddingExerciseToNewWorkout(false);
+                      setNewWorkoutExerciseSearch('');
+                    }
+
+                    setCreatingCustomExercise(null);
+                  }}
+                >
+                  Create
                 </button>
               </div>
             </div>
