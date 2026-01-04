@@ -11478,6 +11478,8 @@ function SocialView({ onBack }: { onBack: () => void }) {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
+  const [workoutProps, setWorkoutProps] = useState<Record<string, { count: number; hasGivenProps: boolean }>>({});
+  const [givingProps, setGivingProps] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -11497,9 +11499,22 @@ function SocialView({ onBack }: { onBack: () => void }) {
         setChallenge(data.challenge);
         setWeeklyStats(data.weeklyStats);
       }
+
+      let feedData: any[] = [];
       if (feedRes.ok) {
         const data = await feedRes.json();
-        setFeed(data.feed || []);
+        feedData = data.feed || [];
+        setFeed(feedData);
+
+        // Load props for all feed items
+        if (feedData.length > 0) {
+          const workoutKeys = feedData.map((item: any) => item.id).join(',');
+          const propsRes = await fetch(`/api/fitness/workout-props?keys=${workoutKeys}`);
+          if (propsRes.ok) {
+            const propsData = await propsRes.json();
+            setWorkoutProps(propsData.props || {});
+          }
+        }
       }
       if (leaderboardRes.ok) {
         const data = await leaderboardRes.json();
@@ -11509,6 +11524,46 @@ function SocialView({ onBack }: { onBack: () => void }) {
       console.error('Failed to load social data:', e);
     }
     setLoading(false);
+  };
+
+  const giveProps = async (workoutKey: string) => {
+    if (givingProps) return;
+    setGivingProps(workoutKey);
+
+    try {
+      const hasProps = workoutProps[workoutKey]?.hasGivenProps;
+
+      if (hasProps) {
+        // Remove props
+        const res = await fetch(`/api/fitness/workout-props?key=${workoutKey}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWorkoutProps(prev => ({
+            ...prev,
+            [workoutKey]: { count: data.count, hasGivenProps: false },
+          }));
+        }
+      } else {
+        // Give props
+        const res = await fetch('/api/fitness/workout-props', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workoutKey }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWorkoutProps(prev => ({
+            ...prev,
+            [workoutKey]: { count: data.count, hasGivenProps: true },
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to give props:', e);
+    }
+    setGivingProps(null);
   };
 
   const claimReward = async () => {
@@ -11686,6 +11741,21 @@ function SocialView({ onBack }: { onBack: () => void }) {
                         <span className="feed-stat-value">{(item.workout.volume / 1000).toFixed(0)}k</span>
                         <span className="feed-stat-label">lbs</span>
                       </div>
+                    </div>
+                    <div className="feed-actions">
+                      <button
+                        className={`props-btn ${workoutProps[item.id]?.hasGivenProps ? 'active' : ''}`}
+                        onClick={() => giveProps(item.id)}
+                        disabled={givingProps === item.id}
+                      >
+                        <span className="props-icon">🔥</span>
+                        <span className="props-text">
+                          {workoutProps[item.id]?.hasGivenProps ? 'Props!' : 'Give Props'}
+                        </span>
+                        {workoutProps[item.id]?.count > 0 && (
+                          <span className="props-count">{workoutProps[item.id].count}</span>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))
@@ -11971,6 +12041,73 @@ function SocialView({ onBack }: { onBack: () => void }) {
         .feed-stat-label {
           font-size: 12px;
           color: var(--text-tertiary);
+        }
+
+        .feed-actions {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 12px;
+          margin-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+
+        .props-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          background: var(--surface-hover);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .props-btn:hover:not(:disabled) {
+          background: color-mix(in srgb, #FF6B35 15%, transparent);
+          border-color: #FF6B35;
+          color: #FF6B35;
+        }
+
+        .props-btn.active {
+          background: color-mix(in srgb, #FF6B35 20%, transparent);
+          border-color: #FF6B35;
+          color: #FF6B35;
+        }
+
+        .props-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .props-icon {
+          font-size: 16px;
+        }
+
+        .props-btn.active .props-icon {
+          animation: propsPulse 0.3s ease;
+        }
+
+        @keyframes propsPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.3); }
+          100% { transform: scale(1); }
+        }
+
+        .props-text {
+          font-weight: 500;
+        }
+
+        .props-count {
+          background: #FF6B35;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
         }
 
         /* Leaderboard Styles */
