@@ -86,11 +86,12 @@ export default function FitnessApp() {
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
   const [exerciseDetailReturnView, setExerciseDetailReturnView] = useState<string>('home');
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
-  const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
+  const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string; tier: number } | null>(null);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
   const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
     name: string;
     muscle: string;
+    tier: number;
     context: 'workout' | 'template' | 'program' | 'picker';
   } | null>(null);
   const [strengthProgressExercise, setStrengthProgressExercise] = useState<string | null>(null);
@@ -521,6 +522,7 @@ export default function FitnessApp() {
         setCreatingCustomExercise({
           name: suggestion.id,
           muscle: 'other',
+          tier: 3,
           context: 'workout'
         });
         break;
@@ -6284,6 +6286,60 @@ export default function FitnessApp() {
           color: var(--accent);
         }
 
+        .tier-select-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .tier-select-btn {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--surface);
+          border: 2px solid transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .tier-select-btn:hover {
+          background: var(--surface-hover);
+          border-color: var(--tier-color, var(--border));
+        }
+
+        .tier-select-btn.selected {
+          background: color-mix(in srgb, var(--tier-color, var(--accent)) 15%, transparent);
+          border-color: var(--tier-color, var(--accent));
+        }
+
+        .tier-select-badge {
+          font-size: 12px;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 6px;
+          background: color-mix(in srgb, var(--tier-color, var(--accent)) 20%, transparent);
+          color: var(--tier-color, var(--accent));
+          min-width: 80px;
+          text-align: center;
+        }
+
+        .tier-select-desc {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .tier-select-btn.selected .tier-select-badge {
+          background: var(--tier-color, var(--accent));
+          color: #000;
+        }
+
+        .tier-select-btn.selected .tier-select-desc {
+          color: var(--text-primary);
+        }
+
         .modal-actions {
           display: flex;
           gap: 12px;
@@ -7533,6 +7589,7 @@ gamify.it.com/fitness`;
                         setCreatingCustomExercise({
                           name: exerciseSearchQuery.trim(),
                           muscle: 'other',
+                          tier: 3,
                           context: 'template'
                         });
                       }}
@@ -7978,6 +8035,7 @@ gamify.it.com/fitness`;
                         setCreatingCustomExercise({
                           name: newWorkoutExerciseSearch.trim(),
                           muscle: 'other',
+                          tier: 3,
                           context: 'program'
                         });
                       }}
@@ -8332,7 +8390,7 @@ gamify.it.com/fitness`;
                   const sortedExercises = Object.entries(exerciseStats)
                     .map(([id, stats]) => ({
                       id,
-                      tier: getExerciseTier(id),
+                      tier: getExerciseTier(id, store.customExercises),
                       ...stats
                     }))
                     .sort((a, b) => {
@@ -10739,6 +10797,7 @@ gamify.it.com/fitness`;
                         setCreatingCustomExercise({
                           name: pickerSearchQuery.trim(),
                           muscle: 'other',
+                          tier: 3,
                           context: 'picker'
                         });
                       }}
@@ -11101,6 +11160,30 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              <div className="form-group">
+                <label>Exercise Tier</label>
+                <div className="tier-select-grid">
+                  {[
+                    { tier: 1, label: 'T1 Primary', desc: 'Major compound lifts', color: '#FFD700' },
+                    { tier: 2, label: 'T2 Secondary', desc: 'Supporting compounds', color: '#5fbf8a' },
+                    { tier: 3, label: 'T3 Accessory', desc: 'Isolation exercises', color: '#9ca3af' }
+                  ].map(t => (
+                    <button
+                      key={t.tier}
+                      className={`tier-select-btn ${(editingCustomExercise.tier || 3) === t.tier ? 'selected' : ''}`}
+                      style={{ '--tier-color': t.color } as React.CSSProperties}
+                      onClick={() => setEditingCustomExercise({
+                        ...editingCustomExercise,
+                        tier: t.tier
+                      })}
+                    >
+                      <span className="tier-select-badge">{t.label}</span>
+                      <span className="tier-select-desc">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="modal-actions">
                 <button className="modal-btn secondary" onClick={() => setEditingCustomExercise(null)}>
                   Cancel
@@ -11109,7 +11192,8 @@ gamify.it.com/fitness`;
                   className="modal-btn primary"
                   onClick={() => {
                     store.updateCustomExercise(editingCustomExercise.id, {
-                      muscle: editingCustomExercise.muscle
+                      muscle: editingCustomExercise.muscle,
+                      tier: editingCustomExercise.tier || 3
                     });
                     setEditingCustomExercise(null);
                   }}
@@ -11157,6 +11241,30 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              <div className="form-group">
+                <label>Exercise Tier</label>
+                <div className="tier-select-grid">
+                  {[
+                    { tier: 1, label: 'T1 Primary', desc: 'Major compound lifts', color: '#FFD700' },
+                    { tier: 2, label: 'T2 Secondary', desc: 'Supporting compounds', color: '#5fbf8a' },
+                    { tier: 3, label: 'T3 Accessory', desc: 'Isolation exercises', color: '#9ca3af' }
+                  ].map(t => (
+                    <button
+                      key={t.tier}
+                      className={`tier-select-btn ${creatingCustomExercise.tier === t.tier ? 'selected' : ''}`}
+                      style={{ '--tier-color': t.color } as React.CSSProperties}
+                      onClick={() => setCreatingCustomExercise({
+                        ...creatingCustomExercise,
+                        tier: t.tier
+                      })}
+                    >
+                      <span className="tier-select-badge">{t.label}</span>
+                      <span className="tier-select-desc">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="modal-actions">
                 <button className="modal-btn secondary" onClick={() => setCreatingCustomExercise(null)}>
                   Cancel
@@ -11168,11 +11276,12 @@ gamify.it.com/fitness`;
                     const id = name.toLowerCase().replace(/\s+/g, '_');
                     const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
                     const muscle = creatingCustomExercise.muscle;
+                    const tier = creatingCustomExercise.tier;
                     const context = creatingCustomExercise.context;
 
-                    // Create the custom exercise with selected muscle
+                    // Create the custom exercise with selected muscle and tier
                     if (!store.customExercises.find(e => e.id === id)) {
-                      store.addCustomExerciseWithMuscle(name, muscle);
+                      store.addCustomExerciseWithMuscle(name, muscle, tier);
                     }
 
                     // Handle context-specific actions

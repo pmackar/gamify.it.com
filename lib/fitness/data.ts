@@ -815,7 +815,13 @@ export function matchExerciseFromCSV(csvName: string): string | null {
 }
 
 // Helper functions
-export function getExerciseTier(exerciseId: string): number {
+export function getExerciseTier(exerciseId: string, customExercises?: { id: string; tier?: number }[]): number {
+  // Check custom exercises first for user-defined tiers
+  if (customExercises) {
+    const custom = customExercises.find(e => e.id === exerciseId);
+    if (custom?.tier) return custom.tier;
+  }
+  // Fall back to built-in tier definitions
   if (EXERCISE_TIERS.tier1.includes(exerciseId)) return 1;
   if (EXERCISE_TIERS.tier2.includes(exerciseId)) return 2;
   return 3;

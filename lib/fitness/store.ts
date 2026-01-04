@@ -103,7 +103,8 @@ interface FitnessStore extends FitnessState, SyncState {
   startWorkoutWithExercise: (exerciseId: string) => void;
   addExerciseToWorkout: (exerciseId: string) => void;
   addCustomExercise: (name: string) => void;
-  updateCustomExercise: (id: string, updates: { name?: string; muscle?: string }) => void;
+  addCustomExerciseWithMuscleAndTier: (name: string, muscle: string, tier?: number) => void;
+  updateCustomExercise: (id: string, updates: { name?: string; muscle?: string; tier?: number }) => void;
   selectExercise: (index: number) => void;
   logSet: (weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
   updateSet: (setIndex: number, weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
@@ -573,14 +574,14 @@ export const useFitnessStore = create<FitnessStore>()(
         }
       },
 
-      addCustomExerciseWithMuscle: (name: string, muscle: string) => {
+      addCustomExerciseWithMuscle: (name: string, muscle: string, tier?: number) => {
         const id = name.toLowerCase().replace(/\s+/g, '_');
         const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
 
         // Add to custom exercises if not exists
         if (!get().customExercises.find(e => e.id === id)) {
           set((state) => ({
-            customExercises: [...state.customExercises, { id, name: formattedName, muscle }],
+            customExercises: [...state.customExercises, { id, name: formattedName, muscle, tier: tier || 3 }],
             pendingSync: true
           }));
           queueSync(get);
@@ -589,7 +590,12 @@ export const useFitnessStore = create<FitnessStore>()(
         }
       },
 
-      updateCustomExercise: (id: string, updates: { name?: string; muscle?: string }) => {
+      addCustomExerciseWithMuscleAndTier: (name: string, muscle: string, tier?: number) => {
+        // Alias for addCustomExerciseWithMuscle
+        get().addCustomExerciseWithMuscle(name, muscle, tier);
+      },
+
+      updateCustomExercise: (id: string, updates: { name?: string; muscle?: string; tier?: number }) => {
         set((state) => ({
           customExercises: state.customExercises.map(ex =>
             ex.id === id ? { ...ex, ...updates } : ex

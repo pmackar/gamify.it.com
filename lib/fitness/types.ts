@@ -258,7 +258,7 @@ export interface FitnessState {
   records: Record<string, number>;
   recordsMeta: Record<string, PRMeta>;  // Metadata about each PR
   achievements: string[];
-  customExercises: { id: string; name: string; muscle: string }[];
+  customExercises: { id: string; name: string; muscle: string; tier?: number }[];
   templates: WorkoutTemplate[];
   programs: Program[];
   activeProgram: ActiveProgram | null;
