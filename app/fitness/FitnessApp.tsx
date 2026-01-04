@@ -10390,7 +10390,12 @@ gamify.it.com/fitness`;
                           className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
                           onClick={() => {
                             if (!inWorkout) {
-                              store.addExerciseToWorkout(exercise.id);
+                              // If no current workout, start one with this exercise
+                              if (store.currentWorkout) {
+                                store.addExerciseToWorkout(exercise.id);
+                              } else {
+                                store.startWorkoutWithExercise(exercise.id);
+                              }
                             }
                             setShowExercisePicker(false);
                             setSelectedCategory(null);
@@ -10457,7 +10462,12 @@ gamify.it.com/fitness`;
                           className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
                           onClick={() => {
                             if (!inWorkout) {
-                              store.addExerciseToWorkout(exercise.id);
+                              // If no current workout, start one with this exercise
+                              if (store.currentWorkout) {
+                                store.addExerciseToWorkout(exercise.id);
+                              } else {
+                                store.startWorkoutWithExercise(exercise.id);
+                              }
                             }
                             setShowExercisePicker(false);
                             setSelectedCategory(null);
@@ -10845,14 +10855,18 @@ gamify.it.com/fitness`;
 
                     // Handle context-specific actions
                     if (context === 'workout') {
-                      // Add to current workout
+                      // Add to current workout or start new one
                       if (store.currentWorkout) {
                         store.addExerciseToWorkout(id);
+                      } else {
+                        store.startWorkoutWithExercise(id);
                       }
                     } else if (context === 'picker') {
-                      // Add to current workout via picker
+                      // Add to current workout via picker or start new one
                       if (store.currentWorkout) {
                         store.addExerciseToWorkout(id);
+                      } else {
+                        store.startWorkoutWithExercise(id);
                       }
                       setShowExercisePicker(false);
                       setPickerSearchQuery('');
