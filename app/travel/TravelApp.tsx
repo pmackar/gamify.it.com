@@ -174,8 +174,8 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
                       setFabOpen(false);
                     }}
                   >
-                    <ListPlus size={20} />
-                    <span>Add Location to Quest</span>
+                    <ListPlus size={16} />
+                    <span>Add Location</span>
                   </button>
                   <button
                     className="fab-menu-item"
@@ -184,8 +184,8 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
                       setFabOpen(false);
                     }}
                   >
-                    <MapPin size={20} />
-                    <span>Browse Suggestions</span>
+                    <MapPin size={16} />
+                    <span>Browse</span>
                   </button>
                 </>
               ) : (
@@ -198,7 +198,7 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
                       setFabOpen(false);
                     }}
                   >
-                    <MapPin size={20} />
+                    <MapPin size={16} />
                     <span>New Location</span>
                   </button>
                   <button
@@ -208,7 +208,7 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
                       setFabOpen(false);
                     }}
                   >
-                    <Compass size={20} />
+                    <Compass size={16} />
                     <span>New Quest</span>
                   </button>
                 </>
@@ -222,14 +222,14 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
             onClick={() => setFabOpen(!fabOpen)}
             aria-label={fabOpen ? "Close menu" : "Add new"}
           >
-            {fabOpen ? <X size={24} /> : <Plus size={24} />}
+            {fabOpen ? <X size={20} /> : <Plus size={20} />}
           </button>
         </div>
       )}
 
       <style jsx>{`
         .travel-app-container {
-          padding-bottom: 24px;
+          padding-bottom: 120px; /* Space for desktop command bar */
         }
 
         /* Mobile FAB - only visible on mobile */
@@ -239,7 +239,7 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
 
         @media (max-width: 1023px) {
           .travel-app-container {
-            padding-bottom: 100px;
+            padding-bottom: 100px; /* Space for mobile FAB */
           }
 
           .mobile-fab-container {
@@ -251,9 +251,9 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
           }
 
           .fab-button {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             background: linear-gradient(135deg, var(--rpg-teal) 0%, rgba(95, 191, 138, 0.8) 100%);
             border: none;
             color: white;
@@ -261,7 +261,7 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 20px var(--rpg-teal-glow), 0 2px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 12px var(--rpg-teal-glow), 0 2px 6px rgba(0, 0, 0, 0.25);
             transition: all 0.2s ease;
           }
 
@@ -278,11 +278,11 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
 
           .fab-menu {
             position: absolute;
-            bottom: 68px;
+            bottom: 52px;
             right: 0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             animation: fab-menu-in 0.2s ease;
           }
 
@@ -300,17 +300,17 @@ export default function TravelApp({ children, isLoggedIn }: TravelAppProps) {
           .fab-menu-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 16px;
+            gap: 8px;
+            padding: 8px 12px;
             background: var(--rpg-card);
-            border: 2px solid var(--rpg-border);
-            border-radius: 12px;
+            border: 1px solid var(--rpg-border);
+            border-radius: 8px;
             color: var(--rpg-text);
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             white-space: nowrap;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
             transition: all 0.15s ease;
           }
 

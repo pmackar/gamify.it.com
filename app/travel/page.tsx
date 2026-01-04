@@ -43,19 +43,13 @@ const FEATURES = [
 async function getHomeData(userId: string) {
   try {
     const [
-      citiesCount,
-      locationsCount,
-      visitsCount,
       achievementsCount,
       totalAchievements,
       hotlistCount,
       recentVisits,
       activeQuests,
-      cities,
+      visitedLocations,
     ] = await Promise.all([
-      prisma.travel_cities.count({ where: { user_id: userId } }),
-      prisma.travel_locations.count({ where: { user_id: userId } }),
-      prisma.travel_visits.count({ where: { user_id: userId } }),
       prisma.user_achievements.count({
         where: {
           user_id: userId,
@@ -100,21 +94,36 @@ async function getHomeData(userId: string) {
         orderBy: { updated_at: "desc" },
         take: 3,
       }),
-      // Cities for countries count
-      prisma.travel_cities.findMany({
-        where: { user_id: userId },
-        select: { country: true },
+      // Get locations the user has actually visited (for stats)
+      prisma.travel_user_location_data.findMany({
+        where: { user_id: userId, visited: true },
+        include: {
+          location: {
+            select: {
+              id: true,
+              city: { select: { id: true, name: true, country: true } },
+            },
+          },
+        },
       }),
     ]);
 
-    const uniqueCountries = new Set(cities.map((c) => c.country));
+    // Calculate unique visited cities and countries
+    const visitedCityIds = new Set<string>();
+    const visitedCountries = new Set<string>();
+    for (const v of visitedLocations) {
+      if (v.location.city) {
+        visitedCityIds.add(v.location.city.id);
+        visitedCountries.add(v.location.city.country);
+      }
+    }
 
     return {
       stats: {
-        countries: uniqueCountries.size,
-        cities: citiesCount,
-        locations: locationsCount,
-        visits: visitsCount,
+        countries: visitedCountries.size,
+        cities: visitedCityIds.size,
+        locations: visitedLocations.length,
+        visits: visitedLocations.length,
         hotlist: hotlistCount,
         achievements: achievementsCount,
         totalAchievements,

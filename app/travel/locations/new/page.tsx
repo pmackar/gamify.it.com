@@ -44,18 +44,27 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
   }
 }
 
+interface Quest {
+  id: string;
+  name: string;
+  cities: Array<{ name: string }>;
+}
+
 export default function NewLocationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const addToQuestId = searchParams.get("addToQuest");
+  const prefillName = searchParams.get("name");
 
   const [cities, setCities] = useState<City[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [success, setSuccess] = useState<{ xpGained: number; leveledUp: boolean; locationId: string; addedToQuest?: boolean } | null>(null);
 
   // Form state
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefillName || "");
+  const [selectedQuestId, setSelectedQuestId] = useState(addToQuestId || "");
   const [type, setType] = useState("");
   const [cityId, setCityId] = useState("");
   const [newCity, setNewCity] = useState({ name: "", country: "" });
@@ -95,7 +104,7 @@ export default function NewLocationPage() {
   const [addToHotlist, setAddToHotlist] = useState(false);
   const [initialRating, setInitialRating] = useState<number>(0);
 
-  // Fetch existing cities
+  // Fetch existing cities and quests
   useEffect(() => {
     async function fetchCities() {
       try {
@@ -108,7 +117,19 @@ export default function NewLocationPage() {
         console.error("Failed to fetch cities:", error);
       }
     }
+    async function fetchQuests() {
+      try {
+        const res = await fetch("/api/quests?status=PLANNING&status=ACTIVE");
+        if (res.ok) {
+          const data = await res.json();
+          setQuests(data.quests || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch quests:", error);
+      }
+    }
     fetchCities();
+    fetchQuests();
   }, []);
 
   // Import from Google Maps URL
@@ -354,10 +375,11 @@ export default function NewLocationPage() {
       const locationId = data.location.id;
       let addedToQuest = false;
 
-      // If we came from a quest, add this location to the quest
-      if (addToQuestId) {
+      // If we have a quest selected, add this location to the quest
+      const questToAddTo = selectedQuestId || addToQuestId;
+      if (questToAddTo) {
         try {
-          const questRes = await fetch(`/api/quests/${addToQuestId}/items`, {
+          const questRes = await fetch(`/api/quests/${questToAddTo}/items`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ locationId }),
@@ -380,8 +402,8 @@ export default function NewLocationPage() {
 
       // Redirect after showing success - go to quest if we added to one
       setTimeout(() => {
-        if (addToQuestId && addedToQuest) {
-          router.push(`/travel/quests/${addToQuestId}`);
+        if (questToAddTo && addedToQuest) {
+          router.push(`/travel/quests/${questToAddTo}`);
         } else {
           router.push(`/travel/locations/${locationId}`);
         }
@@ -792,6 +814,27 @@ export default function NewLocationPage() {
             </div>
           )}
         </div>
+
+        {/* Add to Quest - shown if quests exist */}
+        {quests.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--rpg-text)' }}>
+              Add to Quest <span className="text-xs" style={{ color: 'var(--rpg-muted)' }}>(optional)</span>
+            </label>
+            <select
+              value={selectedQuestId}
+              onChange={(e) => setSelectedQuestId(e.target.value)}
+              className="rpg-input w-full"
+            >
+              <option value="">Don&apos;t add to a quest</option>
+              {quests.map((quest) => (
+                <option key={quest.id} value={quest.id}>
+                  {quest.name} {quest.cities.length > 0 && `(${quest.cities.map(c => c.name).join(", ")})`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Location Name */}
         <div>

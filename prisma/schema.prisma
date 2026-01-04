@@ -120,6 +120,7 @@ model profiles {
   user_inventory     user_inventory[]
 
   // Travel relations
+  travel_states        travel_states[]
   travel_cities        travel_cities[]
   travel_neighborhoods travel_neighborhoods[]
   travel_locations     travel_locations[]
@@ -246,6 +247,28 @@ model gamify_fitness_data {
 // TRAVEL APP TABLES
 // ============================================
 
+model travel_states {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  country       String
+  country_code  String?
+  abbreviation  String?
+  latitude      Float?
+  longitude     Float?
+
+  user_id       String    @db.Uuid
+  user          profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  cities        travel_cities[]
+
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, name, country])
+  @@index([user_id])
+  @@index([country])
+}
+
 model travel_cities {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
@@ -263,6 +286,9 @@ model travel_cities {
   user_id       String    @db.Uuid
   user          profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  state_id      String?   @db.Uuid
+  state         travel_states? @relation(fields: [state_id], references: [id], onDelete: SetNull)
+
   neighborhoods travel_neighborhoods[]
   locations     travel_locations[]
   quests        travel_quests[]
@@ -274,6 +300,7 @@ model travel_cities {
   @@unique([user_id, name, country])
   @@index([user_id])
   @@index([country])
+  @@index([state_id])
 }
 
 model travel_neighborhoods {
