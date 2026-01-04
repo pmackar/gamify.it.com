@@ -84,6 +84,7 @@ export default function FitnessApp() {
   const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [programsTab, setProgramsTab] = useState<'my' | 'library'>('my');
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
+  const [exerciseDetailReturnView, setExerciseDetailReturnView] = useState<string>('home');
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
@@ -8197,7 +8198,13 @@ gamify.it.com/fitness`;
                 <div className="view-header">
                   <button className="back-btn" onClick={() => {
                     setExerciseDetailId(null);
-                    store.setView('home');
+                    // Return to where user came from, or workout if active
+                    if (store.currentWorkout) {
+                      store.setView('workout');
+                      setShowExercisePicker(true);
+                    } else {
+                      store.setView(exerciseDetailReturnView as any);
+                    }
                   }}>←</button>
                   <span className="view-title">{exercise.name}</span>
                 </div>
@@ -10486,6 +10493,7 @@ gamify.it.com/fitness`;
                             className="exercise-info-btn"
                             onClick={(e) => {
                               e.stopPropagation();
+                              setExerciseDetailReturnView(store.currentView);
                               setExerciseDetailId(exercise.id);
                               store.setView('exercise-detail');
                               setShowExercisePicker(false);
@@ -10643,6 +10651,7 @@ gamify.it.com/fitness`;
                     key={exercise.id}
                     className="muscle-group-exercise"
                     onClick={() => {
+                      setExerciseDetailReturnView(store.currentView);
                       setExerciseDetailId(exercise.id);
                       store.setView('exercise-detail');
                       setViewingMuscleGroup(null);
