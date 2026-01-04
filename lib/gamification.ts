@@ -1,4 +1,5 @@
 import prisma from "@/lib/db";
+import { getMainLevelFromXP, getAppLevelFromXP } from "@/lib/levels";
 
 // XP values for different actions
 export const XP_VALUES = {
@@ -194,14 +195,14 @@ export async function addXP(userId: string, amount: number): Promise<{
     data: { xp: newXP, level: newLevel, xp_to_next: xpToNext },
   });
 
-  // Also update global profile XP and recalculate main_level
+  // Also update global profile XP and recalculate main_level (steeper 2x curve)
   const profile = await prisma.profiles.findUnique({
     where: { id: userId },
     select: { total_xp: true },
   });
 
   const newTotalXP = (profile?.total_xp || 0) + boostedAmount;
-  const globalLevelInfo = calculateLevelFromTotalXP(newTotalXP);
+  const globalLevelInfo = getMainLevelFromXP(newTotalXP);
 
   await prisma.profiles.update({
     where: { id: userId },

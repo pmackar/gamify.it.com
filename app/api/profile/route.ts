@@ -1,35 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { withAuth, Errors } from "@/lib/api";
-
-// Calculate level and XP progress from total XP
-function calculateLevelFromXP(totalXp: number) {
-  let level = 1;
-  let xpNeeded = 100;
-  let cumulativeXP = 0;
-
-  // Level up while we have enough XP
-  while (cumulativeXP + xpNeeded <= totalXp) {
-    cumulativeXP += xpNeeded;
-    level++;
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-
-  return {
-    level,
-    xpInCurrentLevel: totalXp - cumulativeXP,
-    xpToNextLevel: xpNeeded,
-  };
-}
-
-// Calculate XP to next level for app profiles
-function calculateAppXPToNext(level: number): number {
-  let xpNeeded = 100;
-  for (let i = 1; i < level; i++) {
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-  return xpNeeded;
-}
+import { getMainLevelFromXP, getAppLevelXPRequired } from "@/lib/levels";
 
 export const GET = withAuth(async (_request, user) => {
   try {
@@ -47,8 +19,8 @@ export const GET = withAuth(async (_request, user) => {
     ]);
 
     const totalXp = user.totalXP || 0;
-    // Always calculate level from total XP to ensure accuracy
-    const { level, xpInCurrentLevel, xpToNextLevel } = calculateLevelFromXP(totalXp);
+    // Calculate main level from total XP (uses steeper 2x curve from 250)
+    const mainLevelInfo = getMainLevelFromXP(totalXp);
 
     // Build app XP map
     const apps: Record<string, { xp: number; level: number; xpToNext: number }> = {};
@@ -56,7 +28,7 @@ export const GET = withAuth(async (_request, user) => {
       apps[app.app_id] = {
         xp: app.xp || 0,
         level: app.level || 1,
-        xpToNext: app.xp_to_next || calculateAppXPToNext(app.level || 1),
+        xpToNext: app.xp_to_next || getAppLevelXPRequired(app.level || 1),
       };
     }
 
@@ -68,10 +40,10 @@ export const GET = withAuth(async (_request, user) => {
         name: user.name || "Traveler",
         email: user.email,
         avatar: user.image,
-        level,
+        level: mainLevelInfo.level,
         xp: totalXp,
-        xpInCurrentLevel,
-        xpToNextLevel,
+        xpInCurrentLevel: mainLevelInfo.xpInLevel,
+        xpToNextLevel: mainLevelInfo.xpToNext,
         currentStreak: user.currentStreak || 0,
         longestStreak: user.longestStreak || 0,
       },

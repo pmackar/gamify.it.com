@@ -1,25 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseUser } from '@/lib/auth';
 import prisma from '@/lib/db';
-
-// Calculate level from cumulative XP (same formula used everywhere)
-function getLevelFromTotalXP(totalXP: number): { level: number; xpInLevel: number; xpToNext: number } {
-  let level = 1;
-  let xpNeeded = 100;
-  let cumulativeXP = 0;
-
-  while (cumulativeXP + xpNeeded <= totalXP) {
-    cumulativeXP += xpNeeded;
-    level++;
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-
-  return {
-    level,
-    xpInLevel: totalXP - cumulativeXP,
-    xpToNext: xpNeeded,
-  };
-}
+import { getMainLevelFromXP, getAppLevelFromXP } from '@/lib/levels';
 
 // POST /api/profile/sync-xp - Reconcile XP from app local data to unified profile
 export async function POST(request: Request) {
@@ -145,9 +127,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Calculate new totals
+    // Calculate new totals (main level uses steeper 2x curve)
     const newTotalXP = (profile.total_xp || 0) + results.totalDiff;
-    const newLevelInfo = getLevelFromTotalXP(newTotalXP);
+    const newLevelInfo = getMainLevelFromXP(newTotalXP);
 
     results.profile.after = {
       totalXP: newTotalXP,
@@ -166,9 +148,9 @@ export async function POST(request: Request) {
         },
       });
 
-      // Update fitness app_profile to match local state
+      // Update fitness app_profile to match local state (app levels use 1.5x curve)
       if (results.fitness && results.fitness.diff > 0) {
-        const fitnessLevelInfo = getLevelFromTotalXP(results.fitness.localXP);
+        const fitnessLevelInfo = getAppLevelFromXP(results.fitness.localXP);
         await prisma.app_profiles.upsert({
           where: {
             user_id_app_id: { user_id: user.id, app_id: 'fitness' },
@@ -190,9 +172,9 @@ export async function POST(request: Request) {
         });
       }
 
-      // Update today app_profile to match local state
+      // Update today app_profile to match local state (app levels use 1.5x curve)
       if (results.today && results.today.diff > 0) {
-        const todayLevelInfo = getLevelFromTotalXP(results.today.localXP);
+        const todayLevelInfo = getAppLevelFromXP(results.today.localXP);
         await prisma.app_profiles.upsert({
           where: {
             user_id_app_id: { user_id: user.id, app_id: 'today' },

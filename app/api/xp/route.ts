@@ -4,15 +4,12 @@ import prisma from '@/lib/db';
 import { rollForLoot, LootDrop, ItemRarity, getItem } from '@/lib/loot';
 import { addWeeklyXp } from '@/lib/leagues';
 import { addSeasonXp } from '@/lib/seasons';
-
-// XP required per level (each level needs 1.5x more)
-function calculateXPForLevel(level: number): number {
-  let xpNeeded = 100;
-  for (let i = 1; i < level; i++) {
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-  return xpNeeded;
-}
+import {
+  getMainLevelFromXP,
+  getMainLevelXPRequired,
+  getAppLevelFromXP,
+  getAppLevelXPRequired,
+} from '@/lib/levels';
 
 // Get streak multiplier
 function getStreakMultiplier(streakDays: number): number {
@@ -21,25 +18,6 @@ function getStreakMultiplier(streakDays: number): number {
   if (streakDays >= 7) return 1.25;
   if (streakDays >= 3) return 1.1;
   return 1.0;
-}
-
-// Calculate level from total XP
-function getLevelFromTotalXP(totalXP: number): { level: number; xpInLevel: number; xpToNext: number } {
-  let level = 1;
-  let xpNeeded = 100;
-  let cumulativeXP = 0;
-
-  while (cumulativeXP + xpNeeded <= totalXP) {
-    cumulativeXP += xpNeeded;
-    level++;
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-
-  return {
-    level,
-    xpInLevel: totalXP - cumulativeXP,
-    xpToNext: xpNeeded,
-  };
 }
 
 // DELETE - Revoke XP (for deleted workouts/uncompleted tasks)
@@ -79,7 +57,7 @@ export async function DELETE(request: Request) {
 
     // Calculate new global XP (don't go below 0)
     const newGlobalTotalXP = Math.max(0, (profile.total_xp || 0) - xpAmount);
-    const globalLevelInfo = getLevelFromTotalXP(newGlobalTotalXP);
+    const globalLevelInfo = getMainLevelFromXP(newGlobalTotalXP);
 
     // Calculate new app XP
     // First, calculate current total app XP
@@ -92,7 +70,7 @@ export async function DELETE(request: Request) {
     }
 
     const newAppTotalXP = Math.max(0, currentAppTotalXP - xpAmount);
-    const appLevelInfo = getLevelFromTotalXP(newAppTotalXP);
+    const appLevelInfo = getAppLevelFromXP(newAppTotalXP);
 
     // Update profile
     await prisma.profiles.update({
@@ -202,26 +180,17 @@ export async function POST(request: Request) {
     const streakMultiplier = getStreakMultiplier(newStreak);
     const finalXP = Math.floor(xpAmount * streakMultiplier);
 
-    // --- Update Global XP & Level ---
-    let globalXP = (profile.total_xp || 0) + finalXP;
-    let globalLevel = profile.main_level || 1;
-    let globalXPToNext = calculateXPForLevel(globalLevel);
-    let leveledUp = false;
-
-    // Level up loop
-    while (globalXP >= globalXPToNext) {
-      globalXP -= globalXPToNext;
-      globalLevel++;
-      globalXPToNext = calculateXPForLevel(globalLevel);
-      leveledUp = true;
-    }
+    // --- Update Global XP & Level (uses steeper 2x curve from 250) ---
+    const newTotalXP = (profile.total_xp || 0) + finalXP;
+    const globalLevelInfo = getMainLevelFromXP(newTotalXP);
+    const leveledUp = globalLevelInfo.level > (profile.main_level || 1);
 
     // Update profile
     await prisma.profiles.update({
       where: { id: user.id },
       data: {
-        total_xp: globalXP + calculateTotalXPForLevel(globalLevel), // Store cumulative
-        main_level: globalLevel,
+        total_xp: newTotalXP, // Store cumulative
+        main_level: globalLevelInfo.level,
         current_streak: newStreak,
         longest_streak: Math.max(newStreak, profile.longest_streak || 0),
         last_activity_date: today,
@@ -265,17 +234,18 @@ export async function POST(request: Request) {
       });
     }
 
-    let appXP = (appProfile.xp || 0) + finalXP;
-    let appLevel = appProfile.level || 1;
-    let appXPToNext = appProfile.xp_to_next || 100;
-    let appLeveledUp = false;
-
-    while (appXP >= appXPToNext) {
-      appXP -= appXPToNext;
-      appLevel++;
-      appXPToNext = Math.floor(appXPToNext * 1.5);
-      appLeveledUp = true;
+    // Calculate cumulative app XP then add new XP
+    let currentAppCumulativeXP = appProfile.xp || 0;
+    let tempLevel = appProfile.level || 1;
+    let tempXPNeeded = 100;
+    for (let i = 1; i < tempLevel; i++) {
+      currentAppCumulativeXP += tempXPNeeded;
+      tempXPNeeded = Math.floor(tempXPNeeded * 1.5);
     }
+
+    const newAppTotalXP = currentAppCumulativeXP + finalXP;
+    const appLevelInfo = getAppLevelFromXP(newAppTotalXP);
+    const appLeveledUp = appLevelInfo.level > (appProfile.level || 1);
 
     // Merge metadata with existing stats
     const existingStats = (appProfile.stats as Record<string, unknown>) || {};
@@ -290,9 +260,9 @@ export async function POST(request: Request) {
     await prisma.app_profiles.update({
       where: { id: appProfile.id },
       data: {
-        xp: appXP,
-        level: appLevel,
-        xp_to_next: appXPToNext,
+        xp: appLevelInfo.xpInLevel,
+        level: appLevelInfo.level,
+        xp_to_next: appLevelInfo.xpToNext,
         stats: newStats,
         updated_at: new Date(),
       },
@@ -301,8 +271,8 @@ export async function POST(request: Request) {
     // --- Check Achievements ---
     const newAchievements = await checkAndAwardAchievements(user.id, appId, {
       streak: newStreak,
-      globalLevel,
-      appLevel,
+      globalLevel: globalLevelInfo.level,
+      appLevel: appLevelInfo.level,
       stats: newStats,
       metadata,
     });
@@ -416,15 +386,16 @@ export async function POST(request: Request) {
       xpAwarded: finalXP,
       streakMultiplier,
       globalXP: {
-        level: globalLevel,
-        xp: globalXP,
-        xpToNext: globalXPToNext,
+        level: globalLevelInfo.level,
+        xp: globalLevelInfo.xpInLevel,
+        xpToNext: globalLevelInfo.xpToNext,
+        totalXP: newTotalXP,
         leveledUp,
       },
       appXP: {
-        level: appLevel,
-        xp: appXP,
-        xpToNext: appXPToNext,
+        level: appLevelInfo.level,
+        xp: appLevelInfo.xpInLevel,
+        xpToNext: appLevelInfo.xpToNext,
         leveledUp: appLeveledUp,
       },
       streak: {
@@ -447,17 +418,6 @@ export async function POST(request: Request) {
     console.error('XP API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
-
-// Helper to calculate total XP earned up to a level
-function calculateTotalXPForLevel(level: number): number {
-  let total = 0;
-  let xpNeeded = 100;
-  for (let i = 1; i < level; i++) {
-    total += xpNeeded;
-    xpNeeded = Math.floor(xpNeeded * 1.5);
-  }
-  return total;
 }
 
 // Achievement checking with app filtering
