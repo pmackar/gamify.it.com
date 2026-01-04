@@ -1622,6 +1622,25 @@ export default function FitnessApp() {
           margin-right: 4px;
           opacity: 0.7;
         }
+        .prev-set-badge.current {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+          cursor: default;
+        }
+        .prev-set-badge.current:hover {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+        .prev-workout-section.this-time {
+          margin-top: 0;
+          border-top: none;
+          padding-top: 0;
+        }
+        .prev-workout-section.this-time .prev-workout-label {
+          color: var(--accent);
+        }
 
         /* Exercise Notes Section */
         .exercise-notes-section {
@@ -9589,6 +9608,24 @@ gamify.it.com/fitness`;
                         {s.isWarmup && <span className="warmup-w">W</span>}
                         {s.weight}×{s.reps}
                       </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Current Workout Sets Display */}
+              {currentEx && currentEx.sets.length > 0 && editingSetIndex === null && (
+                <div className="prev-workout-section this-time">
+                  <div className="prev-workout-label">This time:</div>
+                  <div className="prev-workout-sets">
+                    {currentEx.sets.map((s, i) => (
+                      <span
+                        key={i}
+                        className={`prev-set-badge current ${s.isWarmup ? 'warmup' : ''}`}
+                      >
+                        {s.isWarmup && <span className="warmup-w">W</span>}
+                        {s.weight}×{s.reps}
+                      </span>
                     ))}
                   </div>
                 </div>
