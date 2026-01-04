@@ -1356,6 +1356,11 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           min-width: 160px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
           z-index: var(--z-dropdown, 200);
+          pointer-events: auto;
+        }
+
+        .nav-dropdown * {
+          pointer-events: auto;
         }
 
         .nav-dropdown-email {
