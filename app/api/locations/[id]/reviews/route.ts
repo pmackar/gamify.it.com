@@ -4,17 +4,17 @@ import prisma from "@/lib/db";
 import { addXP } from "@/lib/gamification";
 
 interface RouteParams {
-  params: Promise<{ locationId: string }>;
+  params: Promise<{ id: string }>;
 }
 
-// GET /api/locations/[locationId]/reviews - List reviews for a location
+// GET /api/locations/[id]/reviews - List reviews for a location
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { locationId } = await params;
+  const { id: locationId } = await params;
   const { searchParams } = new URL(request.url);
   const sort = searchParams.get("sort") || "recent";
 
@@ -72,14 +72,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   });
 }
 
-// POST /api/locations/[locationId]/reviews - Create a review
+// POST /api/locations/[id]/reviews - Create a review
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const user = await getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { locationId } = await params;
+  const { id: locationId } = await params;
   const body = await request.json();
 
   // Validate required fields
