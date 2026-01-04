@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes } from '@/lib/fitness/data';
+import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes, getExerciseTier } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
@@ -95,6 +95,10 @@ export default function FitnessApp() {
   } | null>(null);
   const [strengthProgressExercise, setStrengthProgressExercise] = useState<string | null>(null);
   const [strengthProgressRange, setStrengthProgressRange] = useState<'30d' | '90d' | '1y' | 'all'>('all');
+  const [analyticsProgressRange, setAnalyticsProgressRange] = useState<'ytd' | '90d' | '365d' | 'all' | 'custom'>('ytd');
+  const [analyticsShowAllExercises, setAnalyticsShowAllExercises] = useState(false);
+  const [analyticsCustomDateStart, setAnalyticsCustomDateStart] = useState<string>('');
+  const [analyticsCustomDateEnd, setAnalyticsCustomDateEnd] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -5714,6 +5718,136 @@ export default function FitnessApp() {
           font-weight: 600;
         }
 
+        /* Progress Range Selector */
+        .progress-range-selector {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+
+        .range-btn {
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .range-btn:hover {
+          border-color: var(--accent);
+        }
+
+        .range-btn.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+
+        .custom-date-picker {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .date-input {
+          padding: 8px 12px;
+          font-size: 13px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+        }
+
+        .date-separator {
+          color: var(--text-tertiary);
+          font-size: 12px;
+        }
+
+        /* Enhanced Strength Cards */
+        .strength-cards.expanded {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .strength-cards.expanded .strength-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-align: left;
+          padding: 12px 14px;
+        }
+
+        .strength-tier {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 4px 8px;
+          border-radius: 6px;
+          color: #000;
+          flex-shrink: 0;
+        }
+
+        .strength-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .strength-info .strength-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+
+        .strength-meta {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+
+        .strength-stats {
+          text-align: right;
+          flex-shrink: 0;
+        }
+
+        .strength-stats .strength-pr {
+          font-size: 15px;
+        }
+
+        .strength-stats .strength-gain {
+          font-size: 11px;
+        }
+
+        .show-all-btn {
+          width: 100%;
+          padding: 12px;
+          margin-top: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          background: transparent;
+          border: 1px dashed var(--border);
+          border-radius: 10px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .show-all-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        .section-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+
         /* ===== EXERCISE DETAIL VIEW ===== */
         .exercise-detail-view {
           padding: 16px;
@@ -8153,36 +8287,160 @@ gamify.it.com/fitness`;
                 </div>
 
                 {/* Strength Progress */}
-                {topExercises.length > 0 && (
-                  <div className="analytics-section">
-                    <h3 className="section-title">Strength Progress</h3>
-                    <p className="section-subtitle">Tap to view history</p>
-                    <div className="strength-cards">
-                      {topExercises.map(exId => {
-                        const exercise = EXERCISES.find(e => e.id === exId) || store.customExercises.find(e => e.id === exId);
-                        const progress = store.getStrengthProgress(exId);
-                        const currentPR = store.records[exId] || 0;
-                        const firstWeight = progress[0]?.weight || currentPR;
-                        const improvement = currentPR - firstWeight;
+                {(() => {
+                  // Calculate date range filter
+                  const now = new Date();
+                  let startDate: Date | null = null;
+                  let endDate: Date = now;
 
-                        return (
-                          <div
-                            key={exId}
-                            className="strength-card clickable"
-                            onClick={() => setStrengthProgressExercise(exId)}
+                  if (analyticsProgressRange === 'ytd') {
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                  } else if (analyticsProgressRange === '90d') {
+                    startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                  } else if (analyticsProgressRange === '365d') {
+                    startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                  } else if (analyticsProgressRange === 'custom' && analyticsCustomDateStart) {
+                    startDate = new Date(analyticsCustomDateStart);
+                    if (analyticsCustomDateEnd) endDate = new Date(analyticsCustomDateEnd);
+                  }
+
+                  // Filter workouts by date range
+                  const filteredWorkouts = store.workouts.filter(w => {
+                    const workoutDate = new Date(w.startTime);
+                    if (startDate && workoutDate < startDate) return false;
+                    if (workoutDate > endDate) return false;
+                    return true;
+                  });
+
+                  // Calculate exercise frequency and volume within range
+                  const exerciseStats: Record<string, { frequency: number; volume: number }> = {};
+                  filteredWorkouts.forEach(w => {
+                    w.exercises.forEach(ex => {
+                      if (!exerciseStats[ex.id]) {
+                        exerciseStats[ex.id] = { frequency: 0, volume: 0 };
+                      }
+                      exerciseStats[ex.id].frequency++;
+                      ex.sets.forEach(s => {
+                        if (!s.isWarmup) {
+                          exerciseStats[ex.id].volume += s.weight * s.reps;
+                        }
+                      });
+                    });
+                  });
+
+                  // Sort by tier first, then by frequency within tier
+                  const sortedExercises = Object.entries(exerciseStats)
+                    .map(([id, stats]) => ({
+                      id,
+                      tier: getExerciseTier(id),
+                      ...stats
+                    }))
+                    .sort((a, b) => {
+                      if (a.tier !== b.tier) return a.tier - b.tier;
+                      return b.frequency - a.frequency;
+                    });
+
+                  const displayExercises = analyticsShowAllExercises
+                    ? sortedExercises
+                    : sortedExercises.slice(0, 6);
+
+                  const tierLabels: Record<number, string> = { 1: 'T1', 2: 'T2', 3: 'T3' };
+                  const tierColors: Record<number, string> = { 1: '#FFD700', 2: '#5fbf8a', 3: '#6b7280' };
+
+                  return sortedExercises.length > 0 && (
+                    <div className="analytics-section">
+                      <div className="section-header-row">
+                        <div>
+                          <h3 className="section-title">Strength Progress</h3>
+                          <p className="section-subtitle">Sorted by tier, then frequency</p>
+                        </div>
+                      </div>
+
+                      {/* Time Range Selector */}
+                      <div className="progress-range-selector">
+                        {[
+                          { value: 'ytd', label: `${now.getFullYear()}` },
+                          { value: '90d', label: '90 Days' },
+                          { value: '365d', label: '365 Days' },
+                          { value: 'all', label: 'All Time' },
+                          { value: 'custom', label: 'Custom' },
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            className={`range-btn ${analyticsProgressRange === opt.value ? 'active' : ''}`}
+                            onClick={() => setAnalyticsProgressRange(opt.value as typeof analyticsProgressRange)}
                           >
-                            <div className="strength-name">{exercise?.name || exId}</div>
-                            <div className="strength-pr">{currentPR} lbs</div>
-                            {improvement > 0 && (
-                              <div className="strength-gain">+{improvement} lbs</div>
-                            )}
-                            <div className="strength-arrow">›</div>
-                          </div>
-                        );
-                      })}
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Custom Date Picker */}
+                      {analyticsProgressRange === 'custom' && (
+                        <div className="custom-date-picker">
+                          <input
+                            type="date"
+                            value={analyticsCustomDateStart}
+                            onChange={(e) => setAnalyticsCustomDateStart(e.target.value)}
+                            className="date-input"
+                          />
+                          <span className="date-separator">to</span>
+                          <input
+                            type="date"
+                            value={analyticsCustomDateEnd}
+                            onChange={(e) => setAnalyticsCustomDateEnd(e.target.value)}
+                            className="date-input"
+                          />
+                        </div>
+                      )}
+
+                      <div className="strength-cards expanded">
+                        {displayExercises.map(({ id: exId, tier, frequency }) => {
+                          const exercise = EXERCISES.find(e => e.id === exId) || store.customExercises.find(e => e.id === exId);
+                          const currentPR = store.records[exId] || 0;
+                          const meta = store.recordsMeta[exId];
+                          const firstWeight = meta?.firstWeight || currentPR;
+                          const improvement = currentPR - firstWeight;
+
+                          return (
+                            <div
+                              key={exId}
+                              className="strength-card clickable"
+                              onClick={() => setStrengthProgressExercise(exId)}
+                            >
+                              <div className="strength-tier" style={{ backgroundColor: tierColors[tier] }}>
+                                {tierLabels[tier]}
+                              </div>
+                              <div className="strength-info">
+                                <div className="strength-name">{exercise?.name || exId}</div>
+                                <div className="strength-meta">{frequency} sessions</div>
+                              </div>
+                              <div className="strength-stats">
+                                <div className="strength-pr">{currentPR} lbs</div>
+                                {improvement > 0 && (
+                                  <div className="strength-gain">+{improvement}</div>
+                                )}
+                              </div>
+                              <div className="strength-arrow">›</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Show All / Show Less Toggle */}
+                      {sortedExercises.length > 6 && (
+                        <button
+                          className="show-all-btn"
+                          onClick={() => setAnalyticsShowAllExercises(!analyticsShowAllExercises)}
+                        >
+                          {analyticsShowAllExercises
+                            ? `Show Less`
+                            : `Show All ${sortedExercises.length} Exercises`}
+                        </button>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {volumeByWeek.every(w => w.volume === 0) && (
                   <div className="empty-state">
