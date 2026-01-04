@@ -103,6 +103,7 @@ export default function FitnessApp() {
 
   // Program wizard - inline workout creation
   const [creatingWorkoutForDay, setCreatingWorkoutForDay] = useState<number | null>(null);
+  const [editingWorkoutTemplateId, setEditingWorkoutTemplateId] = useState<string | null>(null); // Track if editing existing
   const [newWorkoutName, setNewWorkoutName] = useState('');
   const [newWorkoutExercises, setNewWorkoutExercises] = useState<{
     exerciseId: string;
@@ -4130,6 +4131,31 @@ export default function FitnessApp() {
           border-color: var(--accent);
         }
 
+        .day-select-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .day-select-row .day-select {
+          flex: 1;
+        }
+
+        .day-edit-btn {
+          background: none;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 8px 10px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.15s ease;
+        }
+
+        .day-edit-btn:hover {
+          border-color: var(--accent);
+          background: var(--surface-hover);
+        }
+
         .day-muscle-tags {
           display: flex;
           gap: 6px;
@@ -7121,6 +7147,7 @@ gamify.it.com/fitness`;
           {creatingWorkoutForDay !== null && (
             <div className="modal-overlay" onClick={() => {
               setCreatingWorkoutForDay(null);
+              setEditingWorkoutTemplateId(null);
               setNewWorkoutName('');
               setNewWorkoutExercises([]);
               setNewWorkoutMuscleGroups([]);
@@ -7128,9 +7155,10 @@ gamify.it.com/fitness`;
             }}>
               <div className="modal workout-builder-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                  <span>Create Workout</span>
+                  <span>{editingWorkoutTemplateId ? 'Edit Workout' : 'Create Workout'}</span>
                   <button className="modal-close" onClick={() => {
                     setCreatingWorkoutForDay(null);
+                    setEditingWorkoutTemplateId(null);
                     setNewWorkoutName('');
                     setNewWorkoutExercises([]);
                     setNewWorkoutMuscleGroups([]);
@@ -7342,61 +7370,157 @@ gamify.it.com/fitness`;
                   >
                     Cancel
                   </button>
-                  <button
-                    className="modal-btn primary"
-                    disabled={!newWorkoutName.trim()}
-                    onClick={() => {
-                      // Create the template - convert minReps/maxReps to targetReps string
-                      const templateId = store.createTemplate({
-                        name: newWorkoutName.trim(),
-                        exercises: newWorkoutExercises.map((ex, idx) => ({
-                          exerciseId: ex.exerciseId,
-                          exerciseName: ex.exerciseName,
-                          order: idx,
-                          targetSets: ex.targetSets,
-                          targetReps: ex.minReps === ex.maxReps
-                            ? `${ex.minReps}`
-                            : `${ex.minReps}-${ex.maxReps}`,
-                        })),
-                        targetMuscleGroups: newWorkoutMuscleGroups,
-                      });
+                  {editingWorkoutTemplateId ? (
+                    // Edit mode - show Update and Save as New buttons
+                    <>
+                      <button
+                        className="modal-btn"
+                        disabled={!newWorkoutName.trim()}
+                        onClick={() => {
+                          // Save as new template
+                          const templateId = store.createTemplate({
+                            name: newWorkoutName.trim(),
+                            exercises: newWorkoutExercises.map((ex, idx) => ({
+                              exerciseId: ex.exerciseId,
+                              exerciseName: ex.exerciseName,
+                              order: idx,
+                              targetSets: ex.targetSets,
+                              targetReps: ex.minReps === ex.maxReps
+                                ? `${ex.minReps}`
+                                : `${ex.minReps}-${ex.maxReps}`,
+                            })),
+                            targetMuscleGroups: newWorkoutMuscleGroups,
+                          });
 
-                      // Update the program day
-                      const weeks = store.programWizardData?.weeks || [];
-                      const week1 = weeks[0] || { weekNumber: 1, days: [] };
-                      const existingDay = week1.days.find(d => d.dayNumber === creatingWorkoutForDay);
+                          // Update the program day to use new template
+                          const weeks = store.programWizardData?.weeks || [];
+                          const week1 = weeks[0] || { weekNumber: 1, days: [] };
+                          const existingDay = week1.days.find(d => d.dayNumber === creatingWorkoutForDay);
 
-                      const newDay: ProgramDay = {
-                        dayNumber: creatingWorkoutForDay,
-                        name: existingDay?.name || newWorkoutName.trim(),
-                        isRest: false,
-                        templateId,
-                      };
+                          const newDay: ProgramDay = {
+                            dayNumber: creatingWorkoutForDay!,
+                            name: existingDay?.name || newWorkoutName.trim(),
+                            isRest: false,
+                            templateId,
+                          };
 
-                      const updatedDays = week1.days.filter(d => d.dayNumber !== creatingWorkoutForDay);
-                      updatedDays.push(newDay);
-                      updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
+                          const updatedDays = week1.days.filter(d => d.dayNumber !== creatingWorkoutForDay);
+                          updatedDays.push(newDay);
+                          updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
 
-                      const allWeeks: ProgramWeek[] = [];
-                      for (let i = 1; i <= (store.programWizardData?.durationWeeks || 4); i++) {
-                        allWeeks.push({
-                          weekNumber: i,
-                          days: updatedDays.map(d => ({ ...d })),
-                          isDeload: i === (store.programWizardData?.durationWeeks || 4),
+                          const allWeeks: ProgramWeek[] = [];
+                          for (let i = 1; i <= (store.programWizardData?.durationWeeks || 4); i++) {
+                            allWeeks.push({
+                              weekNumber: i,
+                              days: updatedDays.map(d => ({ ...d })),
+                              isDeload: i === (store.programWizardData?.durationWeeks || 4),
+                            });
+                          }
+                          store.updateProgramWizardData({ weeks: allWeeks });
+
+                          // Reset and close
+                          setCreatingWorkoutForDay(null);
+                          setEditingWorkoutTemplateId(null);
+                          setNewWorkoutName('');
+                          setNewWorkoutExercises([]);
+                          setNewWorkoutMuscleGroups([]);
+                          setShowWorkoutAdvancedMode(false);
+                        }}
+                      >
+                        Save as New
+                      </button>
+                      <button
+                        className="modal-btn primary"
+                        disabled={!newWorkoutName.trim()}
+                        onClick={() => {
+                          // Update existing template
+                          store.updateTemplate(editingWorkoutTemplateId, {
+                            name: newWorkoutName.trim(),
+                            exercises: newWorkoutExercises.map((ex, idx) => ({
+                              exerciseId: ex.exerciseId,
+                              exerciseName: ex.exerciseName,
+                              order: idx,
+                              targetSets: ex.targetSets,
+                              targetReps: ex.minReps === ex.maxReps
+                                ? `${ex.minReps}`
+                                : `${ex.minReps}-${ex.maxReps}`,
+                            })),
+                            targetMuscleGroups: newWorkoutMuscleGroups,
+                          });
+
+                          store.showToast('Workout updated');
+
+                          // Reset and close
+                          setCreatingWorkoutForDay(null);
+                          setEditingWorkoutTemplateId(null);
+                          setNewWorkoutName('');
+                          setNewWorkoutExercises([]);
+                          setNewWorkoutMuscleGroups([]);
+                          setShowWorkoutAdvancedMode(false);
+                        }}
+                      >
+                        Update Existing
+                      </button>
+                    </>
+                  ) : (
+                    // Create mode - single create button
+                    <button
+                      className="modal-btn primary"
+                      disabled={!newWorkoutName.trim()}
+                      onClick={() => {
+                        // Create the template - convert minReps/maxReps to targetReps string
+                        const templateId = store.createTemplate({
+                          name: newWorkoutName.trim(),
+                          exercises: newWorkoutExercises.map((ex, idx) => ({
+                            exerciseId: ex.exerciseId,
+                            exerciseName: ex.exerciseName,
+                            order: idx,
+                            targetSets: ex.targetSets,
+                            targetReps: ex.minReps === ex.maxReps
+                              ? `${ex.minReps}`
+                              : `${ex.minReps}-${ex.maxReps}`,
+                          })),
+                          targetMuscleGroups: newWorkoutMuscleGroups,
                         });
-                      }
-                      store.updateProgramWizardData({ weeks: allWeeks });
 
-                      // Reset and close
-                      setCreatingWorkoutForDay(null);
-                      setNewWorkoutName('');
-                      setNewWorkoutExercises([]);
-                      setNewWorkoutMuscleGroups([]);
-                      setShowWorkoutAdvancedMode(false);
-                    }}
-                  >
-                    Create Workout
-                  </button>
+                        // Update the program day
+                        const weeks = store.programWizardData?.weeks || [];
+                        const week1 = weeks[0] || { weekNumber: 1, days: [] };
+                        const existingDay = week1.days.find(d => d.dayNumber === creatingWorkoutForDay);
+
+                        const newDay: ProgramDay = {
+                          dayNumber: creatingWorkoutForDay!,
+                          name: existingDay?.name || newWorkoutName.trim(),
+                          isRest: false,
+                          templateId,
+                        };
+
+                        const updatedDays = week1.days.filter(d => d.dayNumber !== creatingWorkoutForDay);
+                        updatedDays.push(newDay);
+                        updatedDays.sort((a, b) => a.dayNumber - b.dayNumber);
+
+                        const allWeeks: ProgramWeek[] = [];
+                        for (let i = 1; i <= (store.programWizardData?.durationWeeks || 4); i++) {
+                          allWeeks.push({
+                            weekNumber: i,
+                            days: updatedDays.map(d => ({ ...d })),
+                            isDeload: i === (store.programWizardData?.durationWeeks || 4),
+                          });
+                        }
+                        store.updateProgramWizardData({ weeks: allWeeks });
+
+                        // Reset and close
+                        setCreatingWorkoutForDay(null);
+                        setEditingWorkoutTemplateId(null);
+                        setNewWorkoutName('');
+                        setNewWorkoutExercises([]);
+                        setNewWorkoutMuscleGroups([]);
+                        setShowWorkoutAdvancedMode(false);
+                      }}
+                    >
+                      Create Workout
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -8172,41 +8296,73 @@ gamify.it.com/fitness`;
                             </div>
 
                             <div className="day-content">
-                              <select
-                                className="day-select"
-                                value={day?.isRest ? 'rest' : day?.templateId || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value === 'create-new') {
-                                    setCreatingWorkoutForDay(dayNumber);
-                                    setNewWorkoutName(day?.name || `${dayLabel} Workout`);
-                                    setNewWorkoutExercises([]);
-                                    setNewWorkoutMuscleGroups([]);
-                                  } else {
-                                    const isRest = value === 'rest';
-                                    const templateId = isRest ? undefined : value || undefined;
-                                    const selectedTemplate = templateId ? store.templates.find(t => t.id === templateId) : null;
-                                    updateDay({
-                                      isRest,
-                                      templateId,
-                                      name: day?.name || (isRest ? 'Rest' : (selectedTemplate?.name || ''))
-                                    });
-                                  }
-                                }}
-                              >
-                                <option value="">-- Select Workout --</option>
-                                <option value="rest">🛌 Rest Day</option>
-                                <option value="create-new">➕ Create New Workout</option>
-                                {store.templates.length > 0 && (
-                                  <optgroup label="Your Workouts">
-                                    {store.templates.map(t => (
-                                      <option key={t.id} value={t.id}>
-                                        {store.migrateTemplate(t).name}
-                                      </option>
-                                    ))}
-                                  </optgroup>
+                              <div className="day-select-row">
+                                <select
+                                  className="day-select"
+                                  value={day?.isRest ? 'rest' : day?.templateId || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === 'create-new') {
+                                      setCreatingWorkoutForDay(dayNumber);
+                                      setEditingWorkoutTemplateId(null);
+                                      setNewWorkoutName(day?.name || `${dayLabel} Workout`);
+                                      setNewWorkoutExercises([]);
+                                      setNewWorkoutMuscleGroups([]);
+                                    } else {
+                                      const isRest = value === 'rest';
+                                      const templateId = isRest ? undefined : value || undefined;
+                                      const selectedTemplate = templateId ? store.templates.find(t => t.id === templateId) : null;
+                                      updateDay({
+                                        isRest,
+                                        templateId,
+                                        name: day?.name || (isRest ? 'Rest' : (selectedTemplate?.name || ''))
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <option value="">-- Select Workout --</option>
+                                  <option value="rest">🛌 Rest Day</option>
+                                  <option value="create-new">➕ Create New Workout</option>
+                                  {store.templates.length > 0 && (
+                                    <optgroup label="Your Workouts">
+                                      {store.templates.map(t => (
+                                        <option key={t.id} value={t.id}>
+                                          {store.migrateTemplate(t).name}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                </select>
+
+                                {/* Edit button when template selected */}
+                                {template && !day?.isRest && (
+                                  <button
+                                    className="day-edit-btn"
+                                    onClick={() => {
+                                      const migrated = store.migrateTemplate(template);
+                                      setCreatingWorkoutForDay(dayNumber);
+                                      setEditingWorkoutTemplateId(template.id);
+                                      setNewWorkoutName(migrated.name);
+                                      setNewWorkoutMuscleGroups(migrated.targetMuscleGroups || []);
+                                      // Parse exercises from template
+                                      const exercises = migrated.exercises.map(ex => {
+                                        const reps = ex.targetReps?.split('-') || ['8', '12'];
+                                        return {
+                                          exerciseId: ex.exerciseId,
+                                          exerciseName: ex.exerciseName,
+                                          targetSets: ex.targetSets || 3,
+                                          minReps: parseInt(reps[0]) || 8,
+                                          maxReps: parseInt(reps[1] || reps[0]) || 12,
+                                        };
+                                      });
+                                      setNewWorkoutExercises(exercises);
+                                    }}
+                                    title="Edit workout"
+                                  >
+                                    ✏️
+                                  </button>
                                 )}
-                              </select>
+                              </div>
 
                               {muscleGroups.length > 0 && (
                                 <div className="day-muscle-tags">
