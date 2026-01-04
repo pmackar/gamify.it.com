@@ -10,3 +10,13 @@ Campaigns, quests, seasonal challenges - we built these features to make your ex
 **Author:** Peter
 **Title:** Creator of Iron Quest
 **Initials:** PM
+
+
+Fig pig
+manzo
+adronos (Peter's Adronos)
+hoagie
+
+
+> ultrathink plan mode - our goal is to help ensure that users continue using this app and persist in their fitness quest. Do an analysis of how we compare
+  with the best fitness apps as well as how we compare with the best gamification practices.

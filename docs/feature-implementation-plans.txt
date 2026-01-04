@@ -1,0 +1,386 @@
+================================================================================
+GAMIFY.IT.COM - FEATURE IMPLEMENTATION PLANS
+================================================================================
+
+Generated: January 3, 2026
+
+================================================================================
+IN PROGRESS: SMART NOTIFICATIONS
+================================================================================
+Effort: Medium | Impact: High
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | VAPID Keys        | Generate keys, add to .env                         |
+| 2 | Service Worker    | /public/sw.js - handle push events                 |
+| 3 | Subscribe API     | /api/notifications/subscribe - save subscriptions  |
+| 4 | DB Schema         | push_subscriptions, notification_preferences       |
+| 5 | Permission UI     | Component to request push permission               |
+| 6 | Send Logic        | /lib/notifications/web-push.ts                     |
+| 7 | Cron Jobs         | Streak reminders at 6pm, 9pm danger alerts         |
+| 8 | Settings Page     | /settings/notifications - user preferences         |
+
+Files to create:
+  - /public/sw.js
+  - /lib/notifications/web-push.ts
+  - /lib/notifications/email.ts
+  - /app/api/notifications/subscribe/route.ts
+  - /app/api/notifications/send/route.ts
+  - /components/NotificationPermission.tsx
+  - /app/settings/notifications/page.tsx
+  - /app/api/cron/streak-reminder-6pm/route.ts
+  - /app/api/cron/streak-danger-9pm/route.ts
+
+================================================================================
+P1: WEEKLY LEAGUES
+================================================================================
+Effort: Medium | Impact: High (Duolingo's most addictive feature)
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | DB Schema         | leagues, league_members, league_history tables     |
+| 2 | Tier System       | Bronze > Silver > Gold > Platinum > Diamond > Obsidian > Legendary |
+| 3 | Weekly Reset      | Cron job Sunday midnight - reshuffle, promote/demote |
+| 4 | Matchmaking       | Group 30 users per league by XP range              |
+| 5 | XP Tracking       | Track weekly XP separately from total              |
+| 6 | League API        | /api/leagues - current league, standings, history  |
+| 7 | League UI         | Leaderboard with promotion/demotion zones          |
+| 8 | Rewards           | League-specific badges, bonus XP on promotion      |
+
+Database schema:
+  model leagues {
+    id            String   @id @default(uuid())
+    tier          Int      // 1=Bronze, 2=Silver, ... 7=Legendary
+    week_start    DateTime
+    week_end      DateTime
+    created_at    DateTime @default(now())
+  }
+
+  model league_members {
+    id            String   @id @default(uuid())
+    league_id     String
+    user_id       String
+    weekly_xp     Int      @default(0)
+    rank          Int?
+    promoted      Boolean?
+    demoted       Boolean?
+  }
+
+Mechanics:
+  - 30 users per league
+  - Top 10 promote to next tier
+  - Bottom 5 demote to previous tier
+  - Middle 15 stay
+  - Sunday 11:59pm deadline creates urgency
+  - "Demotion Zone" warning in red for bottom 5
+
+================================================================================
+P1: BATTLE PASS / SEASONS
+================================================================================
+Effort: High | Impact: High
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | DB Schema         | seasons, battle_pass_tiers, user_season_progress   |
+| 2 | Season Config     | 90-day seasons, 50 tiers, theme metadata           |
+| 3 | Tier Rewards      | Define free + premium track rewards per tier       |
+| 4 | XP to Season XP   | Separate season XP counter, tier thresholds        |
+| 5 | Challenges        | Cross-app weekly/daily challenges for bonus XP     |
+| 6 | Battle Pass API   | /api/season - progress, claim rewards              |
+| 7 | Battle Pass UI    | Visual tier track, claim buttons, premium upsell   |
+| 8 | Premium Purchase  | Stripe integration for $9.99 pass                  |
+
+Database schema:
+  model seasons {
+    id            String   @id @default(uuid())
+    name          String   // "Summer Grind", "Winter Warrior"
+    theme         String
+    starts_at     DateTime
+    ends_at       DateTime
+    tier_count    Int      @default(50)
+    xp_per_tier   Int      @default(1000)
+  }
+
+  model season_tiers {
+    id            String   @id @default(uuid())
+    season_id     String
+    tier_number   Int
+    free_reward   Json     // { type: 'xp', amount: 100 }
+    premium_reward Json    // { type: 'cosmetic', code: 'frame_gold' }
+  }
+
+  model user_season_progress {
+    id            String   @id @default(uuid())
+    user_id       String
+    season_id     String
+    season_xp     Int      @default(0)
+    current_tier  Int      @default(0)
+    has_premium   Boolean  @default(false)
+    claimed_tiers Int[]    @default([])
+  }
+
+Reward structure (50 tiers):
+  - Every tier: Small XP boost (free) + Cosmetic (premium)
+  - Every 5 tiers: Streak shield (free) + Rare item (premium)
+  - Every 10 tiers: Loot box (free) + Epic item (premium)
+  - Tier 50: Legendary reward (both tracks)
+
+Cross-App Challenges:
+  - "Complete 10 workouts AND 50 tasks" = 500 season XP
+  - "Triple Crown: Workout + Task + Location in same day" = 200 season XP
+  - Weekly: "Earn 1000 XP across all apps" = 300 season XP
+
+================================================================================
+P2: BOSS BATTLES
+================================================================================
+Effort: Medium | Impact: Medium
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | DB Schema         | bosses, boss_events, boss_damage                   |
+| 2 | Personal Bosses   | Flag epic tasks as "boss fights" with HP bar       |
+| 3 | Community Boss    | Monthly event with shared HP pool (10M)            |
+| 4 | Damage = XP       | Every XP earned deals damage to active boss        |
+| 5 | Contribution Tiers| Bronze/Silver/Gold/Legendary contributor rewards   |
+| 6 | Boss API          | /api/boss - current boss, damage, leaderboard      |
+| 7 | Boss UI           | Health bar, damage feed, countdown timer           |
+| 8 | Victory Rewards   | Loot drops + achievements on boss defeat           |
+
+Database schema:
+  model boss_events {
+    id            String   @id @default(uuid())
+    name          String   // "The Procrastination Dragon"
+    description   String
+    icon          String
+    max_hp        BigInt   // 10,000,000
+    current_hp    BigInt
+    starts_at     DateTime
+    ends_at       DateTime
+    defeated_at   DateTime?
+    rewards       Json     // Tiered rewards config
+  }
+
+  model boss_damage {
+    id            String   @id @default(uuid())
+    boss_id       String
+    user_id       String
+    damage        Int
+    source        String   // 'task', 'workout', 'location'
+    created_at    DateTime @default(now())
+  }
+
+Contribution tiers:
+  - Legendary: Top 1% damage dealers
+  - Gold: Top 10%
+  - Silver: Top 25%
+  - Bronze: Any participation
+
+Personal Boss Fights:
+  - Mark task as "Epic" difficulty
+  - Shows as boss with HP bar (subtasks = damage)
+  - Victory animation on completion
+  - Guaranteed rare+ loot drop
+
+================================================================================
+P2: PET COMPANION SYSTEM
+================================================================================
+Effort: High | Impact: High
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | DB Schema         | pets, user_pets, pet_species                       |
+| 2 | Pet Species       | 50+ pets across rarity tiers with stats            |
+| 3 | Hatching          | Use pet eggs from loot -> hatch animation -> pet   |
+| 4 | Feeding           | Daily activity = fed, missed day = sad             |
+| 5 | Happiness         | Affects XP bonus (+5% when happy)                  |
+| 6 | Evolution         | Level 1 > 10 > 25 > 50 with visual changes         |
+| 7 | Pet API           | /api/pets - collection, feed, equip active         |
+| 8 | Pet UI            | Collection page, active pet display, evolution     |
+| 9 | Trading           | Send/receive pets with friends                     |
+
+Database schema:
+  model pet_species {
+    id            String   @id @default(uuid())
+    code          String   @unique
+    name          String
+    description   String
+    rarity        String   // COMMON, RARE, EPIC, LEGENDARY
+    base_icon     String   // Emoji or image
+    evolution_icons Json   // { 10: '...', 25: '...', 50: '...' }
+    xp_bonus      Float    @default(0.05)  // 5% bonus when happy
+  }
+
+  model user_pets {
+    id            String   @id @default(uuid())
+    user_id       String
+    species_id    String
+    name          String?  // User can rename
+    level         Int      @default(1)
+    xp            Int      @default(0)
+    happiness     Int      @default(100)  // 0-100
+    last_fed      DateTime?
+    is_active     Boolean  @default(false)
+    is_shiny      Boolean  @default(false)  // 1% chance variant
+    acquired_at   DateTime @default(now())
+  }
+
+Pet species examples:
+  - Common: Pixel Pup, Code Cat, Task Turtle
+  - Rare: Streak Phoenix, XP Owl, Gym Griffin
+  - Epic: Golden Dragon, Crystal Unicorn
+  - Legendary: Cosmic Whale, Time Titan
+
+Happiness mechanics:
+  - Starts at 100
+  - -20 per missed day
+  - +30 when fed (daily activity)
+  - At 0: Pet is "sad" (no bonus, visual change)
+  - At 100: Pet is "ecstatic" (+5% XP bonus)
+
+Evolution thresholds:
+  - Level 10: First evolution (new icon)
+  - Level 25: Second evolution
+  - Level 50: Final form + special effect
+
+================================================================================
+P3: NARRATIVE QUEST LINES
+================================================================================
+Effort: High | Impact: Medium
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | DB Schema         | story_chapters, story_progress, story_quests       |
+| 2 | Story Content     | Write 5 chapters with dialogue, objectives         |
+| 3 | Quest System      | Story-driven quests that unlock sequentially       |
+| 4 | Characters        | NPC characters that give quests, react to progress |
+| 5 | Cross-App         | Ch2=Fitness, Ch3=Today, Ch4=Travel                 |
+| 6 | Story API         | /api/story - current chapter, quests, dialogue     |
+| 7 | Story UI          | Quest log, character portraits, dialogue boxes     |
+| 8 | Rewards           | Story-exclusive cosmetics, titles, pets            |
+
+Story outline:
+  Chapter 1: The Awakening (Tutorial)
+    - Meet the Guide character
+    - Complete first task in each app
+    - Unlock basic features
+    - Reward: "Adventurer" title
+
+  Chapter 2: Building Strength (Fitness focus)
+    - Complete 10 workouts
+    - Hit first PR
+    - Learn about streaks
+    - Reward: "Iron Initiate" title + Gym Griffin pet egg
+
+  Chapter 3: Mastering Time (Today focus)
+    - Complete 50 tasks
+    - Use all difficulty tiers
+    - Maintain 7-day streak
+    - Reward: "Time Lord" title + exclusive frame
+
+  Chapter 4: Exploring the Unknown (Travel focus)
+    - Log 10 locations
+    - Visit 3 cities
+    - Complete a travel quest
+    - Reward: "World Walker" title + rare pet
+
+  Chapter 5: The Final Challenge (All apps)
+    - Reach level 25
+    - 30-day streak
+    - Complete cross-app challenges
+    - Reward: Legendary "Hero" title + exclusive legendary pet
+
+================================================================================
+P3: SOCIAL ACCOUNTABILITY
+================================================================================
+Effort: Medium | Impact: Medium
+
+| # | Task              | Description                                        |
+|---|-------------------|----------------------------------------------------|
+| 1 | DB Schema         | accountability_pairs, commitments                  |
+| 2 | Partner System    | Pair with 1 friend, see each other's streaks       |
+| 3 | Partner Alerts    | Notify when partner at risk of breaking streak     |
+| 4 | Shared Bonus      | +10% XP when both partners complete daily          |
+| 5 | Commitments       | "I commit to X this week" public posts             |
+| 6 | Success/Fail      | Visible outcome on feed                            |
+| 7 | Accountability API| /api/accountability - partner, commitments         |
+| 8 | Accountability UI | Partner widget, commitment creation                |
+
+Database schema:
+  model accountability_pairs {
+    id            String   @id @default(uuid())
+    user_id       String
+    partner_id    String
+    status        String   // 'pending', 'active', 'ended'
+    created_at    DateTime @default(now())
+    ended_at      DateTime?
+  }
+
+  model commitments {
+    id            String   @id @default(uuid())
+    user_id       String
+    description   String   // "Complete 30 tasks this week"
+    target_type   String   // 'tasks', 'workouts', 'xp', 'streak'
+    target_value  Int
+    current_value Int      @default(0)
+    starts_at     DateTime
+    ends_at       DateTime
+    completed     Boolean?
+    public        Boolean  @default(true)
+  }
+
+Partner features:
+  - See partner's streak status in dashboard
+  - Get notified at 6pm if partner hasn't been active
+  - Shared streak bonus: +10% XP when BOTH complete daily
+  - Partner history and stats
+
+Commitment types:
+  - "I will complete X tasks this week"
+  - "I will maintain my streak for X days"
+  - "I will earn X XP this week"
+  - "I will log X workouts this week"
+
+================================================================================
+SUGGESTED IMPLEMENTATION ORDER
+================================================================================
+
+Priority order based on impact and dependencies:
+
+1. WEEKLY LEAGUES (P1)
+   - Highest engagement driver
+   - Creates competition and urgency
+   - Estimated: 2-3 days
+
+2. SMART NOTIFICATIONS (finish)
+   - Critical for re-engagement
+   - Streak protection alerts
+   - Estimated: 1-2 days
+
+3. BATTLE PASS / SEASONS (P1)
+   - Monetization opportunity
+   - Long-term engagement
+   - Estimated: 3-4 days
+
+4. PET COMPANION SYSTEM (P2)
+   - Emotional investment
+   - Daily return mechanic
+   - Estimated: 3-4 days
+
+5. BOSS BATTLES (P2)
+   - Community events
+   - Shared goals
+   - Estimated: 2 days
+
+6. SOCIAL ACCOUNTABILITY (P3)
+   - Retention boost
+   - Builds on existing friends
+   - Estimated: 1-2 days
+
+7. NARRATIVE QUEST LINES (P3)
+   - Adds depth and meaning
+   - Requires content writing
+   - Estimated: 3-4 days
+
+================================================================================
+END OF DOCUMENT
+================================================================================
