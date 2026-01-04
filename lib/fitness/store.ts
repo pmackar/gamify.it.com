@@ -69,6 +69,7 @@ interface FitnessStore extends FitnessState, SyncState {
   workoutStartTime: number | null; // Timestamp when workout started
   workoutPRsHit: number;
   lastActivityTime: number | null;  // Timestamp of last set logged
+  currentProgramDayInfo: { weekNumber: number; dayNumber: number } | null; // Track which program day this workout is for
 
   // Rest timer state
   restTimerSeconds: number;  // Countdown seconds (0 = not running)
@@ -261,6 +262,7 @@ export const useFitnessStore = create<FitnessStore>()(
       workoutStartTime: null,
       workoutPRsHit: 0,
       lastActivityTime: null,
+      currentProgramDayInfo: null,
 
       // Rest timer state
       restTimerSeconds: 0,
@@ -312,6 +314,7 @@ export const useFitnessStore = create<FitnessStore>()(
                 workoutStartTime: startTime,
                 lastActivityTime: lastActivity,
                 workoutSeconds: Math.floor((lastActivity - startTime) / 1000),
+                currentProgramDayInfo: parsed.programDayInfo || null,
               });
               // Auto-complete the workout
               get().autoCompleteWorkout(endTimeISO);
@@ -325,6 +328,7 @@ export const useFitnessStore = create<FitnessStore>()(
               workoutStartTime: startTime,
               lastActivityTime: lastActivity,
               workoutSeconds: elapsedSeconds,
+              currentProgramDayInfo: parsed.programDayInfo || null,
               currentView: 'workout'
             });
           }
@@ -340,7 +344,8 @@ export const useFitnessStore = create<FitnessStore>()(
             workout: state.currentWorkout,
             exerciseIndex: state.currentExerciseIndex,
             startTime: state.workoutStartTime,
-            lastActivityTime: state.lastActivityTime
+            lastActivityTime: state.lastActivityTime,
+            programDayInfo: state.currentProgramDayInfo
           }));
         }
       },
@@ -898,25 +903,47 @@ export const useFitnessStore = create<FitnessStore>()(
         const newTotalWorkouts = state.profile.totalWorkouts + 1;
         const newTotalVolume = state.profile.totalVolume + workoutVolume;
 
-        set((state) => ({
-          workouts: [completedWorkout, ...state.workouts],
-          profile: {
-            ...state.profile,
-            totalWorkouts: newTotalWorkouts,
-            totalVolume: newTotalVolume
-          },
-          currentWorkout: null,
-          currentExerciseIndex: 0,
-          workoutSeconds: 0,
-          workoutStartTime: null,
-          workoutPRsHit: 0,
-          lastActivityTime: null,
-          currentView: 'home',
-          pendingSync: true
-        }));
+        // Check if this was a program workout
+        const programDayInfo = state.currentProgramDayInfo;
+
+        set((state) => {
+          // If this was a program workout, track it as completed
+          let activeProgram = state.activeProgram;
+          if (programDayInfo && activeProgram) {
+            const workoutKey = `${programDayInfo.weekNumber}-${programDayInfo.dayNumber}`;
+            activeProgram = {
+              ...activeProgram,
+              completedWorkouts: [...activeProgram.completedWorkouts, workoutKey]
+            };
+          }
+
+          return {
+            workouts: [completedWorkout, ...state.workouts],
+            profile: {
+              ...state.profile,
+              totalWorkouts: newTotalWorkouts,
+              totalVolume: newTotalVolume
+            },
+            activeProgram,
+            currentWorkout: null,
+            currentExerciseIndex: 0,
+            workoutSeconds: 0,
+            workoutStartTime: null,
+            workoutPRsHit: 0,
+            lastActivityTime: null,
+            currentProgramDayInfo: null,
+            currentView: 'home',
+            pendingSync: true
+          };
+        });
 
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
         queueSync(get);
+
+        // Advance program day if this was a program workout
+        if (programDayInfo) {
+          get().advanceProgramDay();
+        }
 
         // Call unified XP API
         const prsHit = state.workoutPRsHit;
@@ -989,25 +1016,47 @@ export const useFitnessStore = create<FitnessStore>()(
         const newTotalWorkouts = state.profile.totalWorkouts + 1;
         const newTotalVolume = state.profile.totalVolume + workoutVolume;
 
-        set((state) => ({
-          workouts: [completedWorkout, ...state.workouts],
-          profile: {
-            ...state.profile,
-            totalWorkouts: newTotalWorkouts,
-            totalVolume: newTotalVolume
-          },
-          currentWorkout: null,
-          currentExerciseIndex: 0,
-          workoutSeconds: 0,
-          workoutStartTime: null,
-          workoutPRsHit: 0,
-          lastActivityTime: null,
-          currentView: 'home',
-          pendingSync: true
-        }));
+        // Check if this was a program workout
+        const programDayInfo = state.currentProgramDayInfo;
+
+        set((state) => {
+          // If this was a program workout, track it as completed
+          let activeProgram = state.activeProgram;
+          if (programDayInfo && activeProgram) {
+            const workoutKey = `${programDayInfo.weekNumber}-${programDayInfo.dayNumber}`;
+            activeProgram = {
+              ...activeProgram,
+              completedWorkouts: [...activeProgram.completedWorkouts, workoutKey]
+            };
+          }
+
+          return {
+            workouts: [completedWorkout, ...state.workouts],
+            profile: {
+              ...state.profile,
+              totalWorkouts: newTotalWorkouts,
+              totalVolume: newTotalVolume
+            },
+            activeProgram,
+            currentWorkout: null,
+            currentExerciseIndex: 0,
+            workoutSeconds: 0,
+            workoutStartTime: null,
+            workoutPRsHit: 0,
+            lastActivityTime: null,
+            currentProgramDayInfo: null,
+            currentView: 'home',
+            pendingSync: true
+          };
+        });
 
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
         queueSync(get);
+
+        // Advance program day if this was a program workout
+        if (programDayInfo) {
+          get().advanceProgramDay();
+        }
 
         // Call unified XP API (silent - don't show full completion toast for auto-complete)
         try {
@@ -1042,6 +1091,7 @@ export const useFitnessStore = create<FitnessStore>()(
           workoutStartTime: null,
           workoutPRsHit: 0,
           lastActivityTime: null,
+          currentProgramDayInfo: null,
           currentView: 'home'
         });
         localStorage.removeItem(ACTIVE_WORKOUT_KEY);
@@ -1756,9 +1806,10 @@ export const useFitnessStore = create<FitnessStore>()(
 
         const currentWeek = state.activeProgram.currentWeek;
         const currentDay = state.activeProgram.currentDay;
-        const upcoming: { weekNumber: number; dayNumber: number; dayName: string; workoutName: string; isRest: boolean; isToday: boolean; template: WorkoutTemplate | null }[] = [];
+        const completedWorkouts = state.activeProgram.completedWorkouts || [];
+        const upcoming: { weekNumber: number; dayNumber: number; dayName: string; workoutName: string; isRest: boolean; isToday: boolean; isCompleted: boolean; template: WorkoutTemplate | null }[] = [];
 
-        // Collect workouts from current and next weeks
+        // Collect workouts from current and next weeks (include all days in current week)
         for (let weekOffset = 0; weekOffset < 3 && upcoming.length < limit; weekOffset++) {
           const weekIndex = currentWeek - 1 + weekOffset;
           if (weekIndex >= program.weeks.length) break;
@@ -1767,12 +1818,12 @@ export const useFitnessStore = create<FitnessStore>()(
           const weekNum = week.weekNumber;
 
           for (const day of week.days) {
-            // Skip past days in the current week
-            if (weekOffset === 0 && day.dayNumber < currentDay) continue;
             if (upcoming.length >= limit) break;
 
             const template = day.templateId ? state.getTemplateById(day.templateId) : null;
             const isToday = weekOffset === 0 && day.dayNumber === currentDay;
+            const workoutKey = `${weekNum}-${day.dayNumber}`;
+            const isCompleted = completedWorkouts.includes(workoutKey);
 
             upcoming.push({
               weekNumber: weekNum,
@@ -1781,6 +1832,7 @@ export const useFitnessStore = create<FitnessStore>()(
               workoutName: day.isRest ? 'Rest Day' : (template?.name || day.name),
               isRest: day.isRest,
               isToday,
+              isCompleted,
               template,
             });
           }
@@ -1830,6 +1882,9 @@ export const useFitnessStore = create<FitnessStore>()(
           get().showToast('Workout template not found');
           return;
         }
+
+        // Track which program day this workout is for
+        set({ currentProgramDayInfo: { weekNumber, dayNumber } });
 
         // Start workout from the template
         get().startWorkoutFromTemplate(template.id);

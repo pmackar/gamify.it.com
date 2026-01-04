@@ -5287,6 +5287,25 @@ export default function FitnessApp() {
           cursor: default;
         }
 
+        .widget-workout-item.completed {
+          opacity: 0.7;
+          background: rgba(76, 175, 80, 0.1);
+          border-color: rgba(76, 175, 80, 0.3);
+          cursor: default;
+        }
+
+        .widget-workout-item.completed .workout-item-name {
+          text-decoration: line-through;
+          color: var(--text-secondary);
+        }
+
+        .completed-check {
+          color: #4caf50;
+          font-size: 16px;
+          font-weight: bold;
+          margin-right: 4px;
+        }
+
         .widget-workout-item:disabled {
           cursor: default;
         }
@@ -7854,9 +7873,11 @@ gamify.it.com/fitness`;
                     <div className="program-list">
                       {store.programs.map(program => {
                         const isActive = store.activeProgram?.programId === program.id;
-                        const progress = isActive && store.activeProgram
-                          ? ((store.activeProgram.currentWeek - 1) * 7 + store.activeProgram.currentDay) / (program.durationWeeks * 7) * 100
+                        const totalDays = program.durationWeeks * 7;
+                        const completedDays = isActive && store.activeProgram
+                          ? ((store.activeProgram.currentWeek - 1) * 7) + store.activeProgram.currentDay - 1
                           : 0;
+                        const progress = Math.round((completedDays / totalDays) * 100);
 
                         return (
                           <div key={program.id} className={`program-card ${isActive ? 'active' : ''}`}>
@@ -7874,7 +7895,7 @@ gamify.it.com/fitness`;
                                     <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
                                   </div>
                                   <span className="progress-text">
-                                    Week {store.activeProgram.currentWeek}, Day {store.activeProgram.currentDay}
+                                    Week {store.activeProgram.currentWeek}, Day {store.activeProgram.currentDay} • {progress}% complete
                                   </span>
                                 </div>
                               )}
@@ -9420,22 +9441,23 @@ gamify.it.com/fitness`;
 
                     {/* Upcoming Workouts List */}
                     <div className="widget-upcoming">
-                      <div className="widget-upcoming-label">Select Workout</div>
+                      <div className="widget-upcoming-label">This Week</div>
                       <div className="widget-workout-list">
                         {upcomingWorkouts.slice(0, 7).map((workout, idx) => (
                           <button
                             key={`${workout.weekNumber}-${workout.dayNumber}`}
-                            className={`widget-workout-item ${workout.isToday ? 'today' : ''} ${workout.isRest ? 'rest' : ''}`}
+                            className={`widget-workout-item ${workout.isToday ? 'today' : ''} ${workout.isRest ? 'rest' : ''} ${workout.isCompleted ? 'completed' : ''}`}
                             onClick={() => {
-                              if (!workout.isRest && workout.template) {
+                              if (!workout.isRest && workout.template && !workout.isCompleted) {
                                 store.startProgramWorkoutForDay(workout.weekNumber, workout.dayNumber);
                               }
                             }}
-                            disabled={workout.isRest || !workout.template}
+                            disabled={workout.isRest || !workout.template || workout.isCompleted}
                           >
+                            {workout.isCompleted && <span className="completed-check">✓</span>}
                             <div className="workout-item-day">
                               <span className="day-name">{workout.dayName}</span>
-                              {workout.isToday && <span className="today-badge">Today</span>}
+                              {workout.isToday && !workout.isCompleted && <span className="today-badge">Today</span>}
                             </div>
                             <div className="workout-item-name">
                               {workout.isRest ? '😴 Rest' : workout.workoutName}
