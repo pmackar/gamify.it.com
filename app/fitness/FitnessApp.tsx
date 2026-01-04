@@ -9657,6 +9657,7 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setWeight}
                     onChange={(e) => setSetWeight(Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -9689,6 +9690,7 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setReps}
                     onChange={(e) => setSetReps(Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -9708,6 +9710,7 @@ gamify.it.com/fitness`;
                     value={setRpe || ''}
                     placeholder="–"
                     onChange={(e) => setSetRpe(e.target.value ? Number(e.target.value) : null)}
+                    onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
