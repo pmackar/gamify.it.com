@@ -7,6 +7,7 @@ This roadmap addresses gamification issues across the entire gamify.it.com platf
 - **300x XP imbalance** between apps → Target: <10x difference
 - **Zero user control** over notifications → Full preferences
 - **No cross-app synergy** rewards → Daily multi-app bonuses
+- **Daily streaks punish rest days** → Weekly streak system
 - **Underutilized streak danger** system → Full activation
 
 ---
@@ -563,115 +564,143 @@ model daily_app_usage {
 
 ---
 
-## Phase 6: Streak Danger Activation (Week 6)
+## Phase 6: Weekly Streak System (Week 6-7)
 
 ### Problem
-Streak protection system exists but underutilized.
+Daily streaks are psychologically punishing for activities with natural rest cycles:
+- **Fitness**: Rest days are essential (3-5 workouts/week is healthy)
+- **Travel**: Can't visit new places every day
+- **Life**: Long-term quests have weekly/monthly cadence
 
-### Solution: Full Activation of Existing Cron Jobs
+> "Do you know how most fitness apps are 'push your limits and never take a rest day, or else your weeklong streak will be ruined'?"
 
-#### 6.1 Verify Cron Job Functionality
+### Solution: Hybrid Weekly Streaks
 
-**File:** `app/api/cron/streak-danger-9pm/route.ts` (VERIFY/FIX)
+See full design: `docs/weekly-streak-system.md`
 
-```typescript
-// Ensure this cron job:
-// 1. Runs at 9pm user local time (or 9pm UTC with timezone handling)
-// 2. Queries users with streak >= 3 AND no activity today
-// 3. Sends push notification via configured provider
-// 4. Logs success/failure for monitoring
+#### 6.1 Per-App Weekly Thresholds
 
-export async function GET(request: Request) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+| App | Streak Type | Default Threshold | User Configurable |
+|-----|-------------|-------------------|-------------------|
+| **Fitness** | Weekly | 3 workouts/week | 2-5 range |
+| **Travel** | Weekly | 2 locations/week | 1-3 range |
+| **Life** | Weekly | 1 quest action/week | 1-3 range |
+| **Today** | Daily | 1 task/day | Keep daily (habits ARE daily) |
+| **Global** | Weekly | 2+ apps active | Fixed |
 
-  // Find at-risk users
-  const atRiskUsers = await prisma.profiles.findMany({
-    where: {
-      current_streak: { gte: 3 },
-      last_activity_date: { lt: startOfToday() },
-    },
-    select: {
-      id: true,
-      current_streak: true,
-      push_token: true,
-    },
-  });
+#### 6.2 Database Schema
 
-  // Send notifications
-  for (const user of atRiskUsers) {
-    if (user.push_token) {
-      await sendPushNotification(user.push_token, {
-        title: '🔥 Streak in Danger!',
-        body: `Your ${user.current_streak}-day streak needs you! Log any activity to keep it alive.`,
-        data: { action: 'open_app' },
-      });
-    }
-  }
+**File:** `prisma/schema.prisma` (MODIFY)
 
-  return Response.json({ notified: atRiskUsers.length });
+```prisma
+model weekly_app_activity {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @db.Uuid
+  app             String   // 'fitness' | 'travel' | 'life'
+  week_start      DateTime @db.Date  // Monday of the week
+  activity_count  Int      @default(0)
+  threshold_met   Boolean  @default(false)
+
+  @@unique([user_id, app, week_start])
+}
+
+model user_streaks {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String   @unique @db.Uuid
+
+  // Per-app weekly streaks
+  fitness_streak        Int      @default(0)
+  fitness_threshold     Int      @default(3)  // User-configurable
+  travel_streak         Int      @default(0)
+  travel_threshold      Int      @default(2)
+  life_streak           Int      @default(0)
+  life_threshold        Int      @default(1)
+
+  // Today keeps daily streak
+  today_daily_streak    Int      @default(0)
+
+  // Global weekly streak (2+ apps active)
+  global_weekly_streak  Int      @default(0)
+
+  streak_shields        Int      @default(0)
 }
 ```
 
-#### 6.2 In-App Streak Danger Banner
+#### 6.3 Weekly Streak Multipliers
 
-**File:** `components/StreakDangerBanner.tsx` (NEW)
+| Streak Weeks | Multiplier | Label |
+|--------------|------------|-------|
+| 2+ weeks | 1.10x | "Warming Up" |
+| 4+ weeks | 1.25x | "On Fire" |
+| 8+ weeks | 1.50x | "Unstoppable" |
+| 12+ weeks | 1.75x | "Legendary" |
+| 26+ weeks | 2.00x | "Half-Year Hero" |
+
+#### 6.4 Weekly Rollover Cron
+
+**File:** `app/api/cron/weekly-streak-rollover/route.ts` (NEW)
 
 ```typescript
-// Show when:
-// - Current time > 6pm local
-// - No activity logged today
-// - Current streak >= 3
-
-function StreakDangerBanner() {
-  const { currentStreak, lastActivityDate, streakShields } = useProfile();
-  const hour = new Date().getHours();
-  const hasActivityToday = isToday(lastActivityDate);
-
-  if (hour < 18 || hasActivityToday || currentStreak < 3) {
-    return null;
-  }
-
-  return (
-    <div className="streak-danger-banner">
-      <span className="fire-icon pulse">🔥</span>
-      <div className="danger-text">
-        <strong>Streak at risk!</strong>
-        <span>Your {currentStreak}-day streak needs activity today</span>
-      </div>
-      {streakShields > 0 && (
-        <span className="shield-note">
-          🛡️ {streakShields} shield{streakShields > 1 ? 's' : ''} available
-        </span>
-      )}
-    </div>
-  );
-}
+// Runs Sunday 11:59pm
+// For each user:
+// - Check if each app's threshold was met
+// - If met: increment streak
+// - If not met: use shield or reset
+// - Calculate global streak (2+ apps active)
 ```
 
-#### 6.3 Streak Shield Visibility
+#### 6.5 Thursday Danger Notification
 
-**File:** `components/RetroNavBar.tsx` (MODIFY)
+**File:** `app/api/cron/weekly-streak-danger/route.ts` (NEW)
 
 ```typescript
-// Add shield count near streak display
-<div className="streak-display">
-  <span className="streak-count">🔥 {streak}</span>
-  {shields > 0 && (
-    <span className="shield-count">🛡️ {shields}</span>
-  )}
-</div>
+// Runs Thursday 6pm (3 days before week end)
+// Find users with active streaks who haven't met threshold
+// Send: "💪 2 more workouts needed to keep your 6-week streak!"
+```
+
+#### 6.6 UI: Weekly Progress Display
+
+**File:** `components/WeeklyProgressRing.tsx` (NEW)
+
+```
+┌─────────────────────────────────────┐
+│  This Week                          │
+│  💪 2/3  🗺️ 1/2  📋 ✓  🎯 0/1      │
+│                                     │
+│  Streaks: 💪6w  🗺️4w  🌍8w         │
+└─────────────────────────────────────┘
+```
+
+#### 6.7 Streak Settings UI
+
+**File:** `app/settings/StreakSettings.tsx` (NEW)
+
+```
+┌─────────────────────────────────────────┐
+│         Weekly Goals                    │
+├─────────────────────────────────────────┤
+│  Fitness (workouts/week)                │
+│    ○ 2 (Casual)                         │
+│    ● 3 (Regular) ← Default              │
+│    ○ 4 (Dedicated)                      │
+│    ○ 5 (Athlete)                        │
+├─────────────────────────────────────────┤
+│  Travel (locations/week)                │
+│    ○ 1 (Explorer)                       │
+│    ● 2 (Adventurer) ← Default           │
+│    ○ 3 (Globetrotter)                   │
+└─────────────────────────────────────────┘
 ```
 
 ### Acceptance Criteria
-- [ ] 9pm cron job verified working
-- [ ] Push notifications sending correctly
-- [ ] In-app banner appears after 6pm
-- [ ] Shield count visible in nav
-- [ ] Streak save rate tracked for measurement
+- [ ] Weekly activity tracked per app
+- [ ] User-configurable thresholds
+- [ ] Sunday rollover cron working
+- [ ] Thursday danger notifications sent
+- [ ] Weekly progress visible in nav
+- [ ] Today app keeps daily streak (unchanged)
+- [ ] Streak shields work with weekly system
 
 ---
 
@@ -873,17 +902,21 @@ Week 5-6: Phase 5 (Cross-App Synergy)
 ├── Day 7-8: UI indicator
 └── Day 9-10: Synergy achievements
 
-Week 6: Phase 6 (Streak Danger)
-├── Day 1-2: Verify cron jobs
-├── Day 3-4: In-app banner
-└── Day 5-7: Shield visibility
+Week 6-7: Phase 6 (Weekly Streak System) ⭐ NEW
+├── Day 1-2: Database schema (user_streaks, weekly_app_activity)
+├── Day 3-4: Weekly activity tracking per app
+├── Day 5-6: Sunday rollover cron job
+├── Day 7-8: Thursday danger notifications
+├── Day 9-10: Weekly progress UI (nav bar)
+├── Day 11-12: Streak settings UI (configurable thresholds)
+└── Day 13-14: Migration from daily → weekly
 
-Week 7: Phase 7 (Session Summary)
+Week 8: Phase 7 (Session Summary)
 ├── Day 1-3: Session detection
 ├── Day 4-5: Summary modal
 └── Day 6-7: Reflection prompt
 
-Week 8: Phase 8 (Weekly Summary)
+Week 9: Phase 8 (Weekly Summary)
 ├── Day 1-3: Cron job & data aggregation
 ├── Day 4-5: Summary UI
 └── Day 6-7: Push notification
@@ -893,7 +926,7 @@ Week 8: Phase 8 (Weekly Summary)
 
 ## Files Summary
 
-### New Files (18)
+### New Files (22)
 
 | File | Purpose |
 |------|---------|
@@ -904,32 +937,38 @@ Week 8: Phase 8 (Weekly Summary)
 | `app/settings/NotificationPreferences.tsx` | Preferences UI |
 | `components/LootChestAnimation.tsx` | Tap-to-open loot reveal |
 | `components/MultiAppBonusIndicator.tsx` | Cross-app progress UI |
-| `components/StreakDangerBanner.tsx` | At-risk streak warning |
+| `components/StreakDangerBanner.tsx` | At-risk streak warning (weekly) |
 | `lib/session/tracker.ts` | Session detection logic |
 | `components/SessionSummaryModal.tsx` | End-of-session summary |
 | `components/ReflectionPrompt.tsx` | Optional mood capture |
 | `app/api/cron/weekly-summary/route.ts` | Weekly digest cron |
 | `app/insights/WeeklySummary.tsx` | Weekly summary page |
 | `app/insights/page.tsx` | Insights hub |
+| `lib/services/weekly-streak.service.ts` | Weekly streak core logic |
+| `app/api/cron/weekly-streak-rollover/route.ts` | Sunday streak rollover |
+| `app/api/cron/weekly-streak-danger/route.ts` | Thursday danger notifications |
+| `components/WeeklyProgressRing.tsx` | Weekly progress UI per app |
+| `app/settings/StreakSettings.tsx` | Configurable streak thresholds |
 
-### Modified Files (14)
+### Modified Files (15)
 
 | File | Changes |
 |------|---------|
-| `prisma/schema.prisma` | Add user_preferences, daily_app_usage |
-| `lib/services/gamification.service.ts` | Multi-app bonus, notification dispatch |
+| `prisma/schema.prisma` | Add user_preferences, daily_app_usage, user_streaks, weekly_app_activity |
+| `lib/services/gamification.service.ts` | Multi-app bonus, weekly activity tracking |
 | `lib/loot/drop-calculator.ts` | Activity-level rolling |
 | `lib/achievements.ts` | Synergy achievements |
-| `lib/fitness/store.ts` | XP consolidation |
+| `lib/fitness/store.ts` | XP consolidation, weekly activity tracking |
 | `lib/today/data.ts` | XP increase |
 | `app/api/life/quests/[questId]/route.ts` | Quest XP increase |
-| `app/api/cron/streak-danger-9pm/route.ts` | Verify/fix notifications |
 | `components/XPToast.tsx` | Batched data support |
 | `components/LootDropPopup.tsx` | Multi-item mode |
 | `components/AchievementPopup.tsx` | Queue limits |
-| `components/RetroNavBar.tsx` | Shield display, multi-app indicator |
-| `app/fitness/FitnessApp.tsx` | Use NotificationContext |
-| `app/travel/TravelApp.tsx` | Use NotificationContext |
+| `components/RetroNavBar.tsx` | Weekly progress display, shield count |
+| `app/fitness/FitnessApp.tsx` | Use NotificationContext, track workouts |
+| `app/travel/TravelApp.tsx` | Use NotificationContext, track locations |
+| `app/life/*/page.tsx` | Track quest actions |
+| `app/settings/page.tsx` | Link to streak settings |
 
 ---
 
@@ -941,7 +980,9 @@ Week 8: Phase 8 (Weekly Summary)
 | XP variance (max/min app) | 300x | <10x | DB query |
 | 7-day retention | Baseline | +15% | Analytics |
 | Multi-app users (2+) | Baseline | +25% | daily_app_usage |
-| Streak save rate | Baseline | +20% | DB query |
+| **Weekly streak retention (4+ weeks)** | ~15% | ~40% | user_streaks |
+| **Rest day guilt reports** | Common | Eliminated | User feedback |
+| Streak threshold customization | N/A | 50%+ | user_streaks |
 | Weekly summary opens | N/A | 40%+ | Push analytics |
 | Settings customization | N/A | 30%+ | Preferences API |
 
