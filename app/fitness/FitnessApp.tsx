@@ -8302,7 +8302,7 @@ gamify.it.com/fitness`;
                 <div className="view-header">
                   <button className="back-btn" onClick={() => {
                     setExerciseDetailId(null);
-                    store.setView('home');
+                    store.setView('exercises');
                   }}>←</button>
                   <span className="view-title">{exercise.name}</span>
                 </div>
