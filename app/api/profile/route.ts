@@ -16,6 +16,8 @@ export const GET = withAuth(async (_request, user) => {
           main_level: true,
           current_streak: true,
           longest_streak: true,
+          streak_shields: true,
+          last_activity_date: true,
         },
       }),
       prisma.travel_locations.count({
@@ -57,6 +59,8 @@ export const GET = withAuth(async (_request, user) => {
         xpToNextLevel: mainLevelInfo.xpToNext,
         currentStreak: profile?.current_streak || 0,
         longestStreak: profile?.longest_streak || 0,
+        streakShields: profile?.streak_shields || 0,
+        lastActivityDate: profile?.last_activity_date?.toISOString() || null,
       },
       stats: {
         locations: locationsCount,

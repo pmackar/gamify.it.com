@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
+import { withAuth, Errors } from '@/lib/api';
 import prisma from '@/lib/db';
 import { rollForLoot, LootDrop, ItemRarity, getItem } from '@/lib/loot';
 import { addWeeklyXp } from '@/lib/leagues';
@@ -21,39 +21,33 @@ function getStreakMultiplier(streakDays: number): number {
 }
 
 // DELETE - Revoke XP (for deleted workouts/uncompleted tasks)
-export async function DELETE(request: Request) {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const DELETE = withAuth(async (request, user) => {
+  const body = await request.json();
+  const { appId, xpAmount, reason } = body;
 
-    const body = await request.json();
-    const { appId, xpAmount, reason } = body;
-
-    if (!appId || !xpAmount || xpAmount <= 0) {
-      return NextResponse.json({ error: 'Missing appId or valid xpAmount' }, { status: 400 });
-    }
+  if (!appId || !xpAmount || xpAmount <= 0) {
+    return Errors.invalidInput('Missing appId or valid xpAmount');
+  }
 
     // Get profile
     const profile = await prisma.profiles.findUnique({
       where: { id: user.id },
     });
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-    }
+  if (!profile) {
+    return Errors.notFound('Profile not found');
+  }
 
-    // Get app profile
-    const appProfile = await prisma.app_profiles.findUnique({
-      where: {
-        user_id_app_id: { user_id: user.id, app_id: appId },
-      },
-    });
+  // Get app profile
+  const appProfile = await prisma.app_profiles.findUnique({
+    where: {
+      user_id_app_id: { user_id: user.id, app_id: appId },
+    },
+  });
 
-    if (!appProfile) {
-      return NextResponse.json({ error: 'App profile not found' }, { status: 404 });
-    }
+  if (!appProfile) {
+    return Errors.notFound('App profile not found');
+  }
 
     // Calculate new global XP (don't go below 0)
     const newGlobalTotalXP = Math.max(0, (profile.total_xp || 0) - xpAmount);
@@ -93,60 +87,50 @@ export async function DELETE(request: Request) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      xpRevoked: xpAmount,
-      reason,
-      globalXP: {
-        level: globalLevelInfo.level,
-        xp: globalLevelInfo.xpInLevel,
-        xpToNext: globalLevelInfo.xpToNext,
-        totalXP: newGlobalTotalXP,
-      },
-      appXP: {
-        level: appLevelInfo.level,
-        xp: appLevelInfo.xpInLevel,
-        xpToNext: appLevelInfo.xpToNext,
-      },
-    });
-  } catch (error) {
-    console.error('XP revocation error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  return NextResponse.json({
+    success: true,
+    xpRevoked: xpAmount,
+    reason,
+    globalXP: {
+      level: globalLevelInfo.level,
+      xp: globalLevelInfo.xpInLevel,
+      xpToNext: globalLevelInfo.xpToNext,
+      totalXP: newGlobalTotalXP,
+    },
+    appXP: {
+      level: appLevelInfo.level,
+      xp: appLevelInfo.xpInLevel,
+      xpToNext: appLevelInfo.xpToNext,
+    },
+  });
+});
+
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json();
+  const { appId, action, xpAmount, metadata = {}, skipLoot = false } = body;
+
+  if (!appId || !xpAmount) {
+    return Errors.invalidInput('Missing appId or xpAmount');
   }
-}
 
-export async function POST(request: Request) {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Get or create profile
+  let profile = await prisma.profiles.findUnique({
+    where: { id: user.id },
+  });
 
-    const body = await request.json();
-    const { appId, action, xpAmount, metadata = {} } = body;
-
-    if (!appId || !xpAmount) {
-      return NextResponse.json({ error: 'Missing appId or xpAmount' }, { status: 400 });
-    }
-
-    // Get or create profile
-    let profile = await prisma.profiles.findUnique({
-      where: { id: user.id },
+  if (!profile) {
+    profile = await prisma.profiles.create({
+      data: {
+        id: user.id,
+        email: user.email,
+        display_name: user.email?.split('@')[0] || 'User',
+        total_xp: 0,
+        main_level: 1,
+        current_streak: 0,
+        longest_streak: 0,
+      },
     });
-
-    if (!profile) {
-      profile = await prisma.profiles.create({
-        data: {
-          id: user.id,
-          email: user.email!,
-          display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-          total_xp: 0,
-          main_level: 1,
-          current_streak: 0,
-          longest_streak: 0,
-        },
-      });
-    }
+  }
 
     // --- Update Streak ---
     const today = new Date();
@@ -293,7 +277,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // --- Roll for Loot Drop ---
+    // --- Roll for Loot Drop (skip if using workout-level loot) ---
     let lootDrop: {
       item: { code: string; name: string; icon: string; rarity: ItemRarity };
       quantity: number;
@@ -301,7 +285,8 @@ export async function POST(request: Request) {
       message: string;
     } | null = null;
 
-    const lootResult = rollForLoot(false);
+    // Skip per-XP loot rolling for fitness (uses workout-level loot instead)
+    const lootResult = skipLoot ? { dropped: false } : rollForLoot(false);
     if (lootResult.dropped && lootResult.drop) {
       const drop = lootResult.drop;
 
@@ -412,13 +397,9 @@ export async function POST(request: Request) {
         tier: a.tier,
         icon: a.icon,
       })),
-      lootDrop,
-    });
-  } catch (error) {
-    console.error('XP API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    lootDrop,
+  });
+});
 
 // Achievement checking with app filtering
 async function checkAndAwardAchievements(

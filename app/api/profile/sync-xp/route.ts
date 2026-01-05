@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
+import { withAuth, Errors } from '@/lib/api';
 import prisma from '@/lib/db';
 import { getMainLevelFromXP, getAppLevelFromXP } from '@/lib/levels';
 
 // POST /api/profile/sync-xp - Reconcile XP from app local data to unified profile
-export async function POST(request: Request) {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json().catch(() => ({}));
-    const { dryRun = false } = body;
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json().catch(() => ({}));
+  const { dryRun = false } = body;
 
     const results: {
       fitness: { localXP: number; dbXP: number; diff: number } | null;
@@ -39,9 +33,9 @@ export async function POST(request: Request) {
       where: { id: user.id },
     });
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-    }
+  if (!profile) {
+    return Errors.notFound('Profile not found');
+  }
 
     results.profile.before = {
       totalXP: profile.total_xp || 0,
@@ -199,28 +193,124 @@ export async function POST(request: Request) {
       results.synced = true;
     }
 
-    return NextResponse.json({
-      success: true,
-      dryRun,
-      results,
-      message: dryRun
-        ? `Dry run: Would add ${results.totalDiff} XP (Level ${results.profile.before.level} → ${results.profile.after.level})`
-        : results.totalDiff > 0
-        ? `Synced ${results.totalDiff} XP! Level ${results.profile.before.level} → ${results.profile.after.level}`
-        : 'Already in sync - no changes needed',
-    });
-  } catch (error) {
-    console.error('XP sync error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    success: true,
+    dryRun,
+    results,
+    message: dryRun
+      ? `Dry run: Would add ${results.totalDiff} XP (Level ${results.profile.before.level} → ${results.profile.after.level})`
+      : results.totalDiff > 0
+      ? `Synced ${results.totalDiff} XP! Level ${results.profile.before.level} → ${results.profile.after.level}`
+      : 'Already in sync - no changes needed',
+  });
+});
 
 // GET /api/profile/sync-xp - Check sync status (dry run)
-export async function GET() {
-  // Reuse POST with dryRun=true
-  const request = new Request('http://localhost', {
-    method: 'POST',
-    body: JSON.stringify({ dryRun: true }),
+export const GET = withAuth(async (_request, user) => {
+  // Create a mock request with dryRun=true and call POST logic inline
+  const body = { dryRun: true };
+
+  const results: {
+    fitness: { localXP: number; dbXP: number; diff: number } | null;
+    today: { localXP: number; dbXP: number; diff: number } | null;
+    totalDiff: number;
+    profile: {
+      before: { totalXP: number; level: number };
+      after: { totalXP: number; level: number };
+    };
+    synced: boolean;
+  } = {
+    fitness: null,
+    today: null,
+    totalDiff: 0,
+    profile: {
+      before: { totalXP: 0, level: 1 },
+      after: { totalXP: 0, level: 1 },
+    },
+    synced: false,
+  };
+
+  const profile = await prisma.profiles.findUnique({
+    where: { id: user.id },
   });
-  return POST(request);
-}
+
+  if (!profile) {
+    return Errors.notFound('Profile not found');
+  }
+
+  results.profile.before = {
+    totalXP: profile.total_xp || 0,
+    level: profile.main_level || 1,
+  };
+
+  // Check fitness XP
+  const fitnessData = await prisma.gamify_fitness_data.findUnique({
+    where: { user_id: user.id },
+  });
+
+  const fitnessAppProfile = await prisma.app_profiles.findUnique({
+    where: {
+      user_id_app_id: { user_id: user.id, app_id: 'fitness' },
+    },
+  });
+
+  if (fitnessData?.data) {
+    const data = fitnessData.data as { profile?: { xp?: number } };
+    const localFitnessXP = data.profile?.xp || 0;
+
+    let dbFitnessCumulativeXP = 0;
+    if (fitnessAppProfile) {
+      let xpNeeded = 100;
+      for (let i = 1; i < (fitnessAppProfile.level || 1); i++) {
+        dbFitnessCumulativeXP += xpNeeded;
+        xpNeeded = Math.floor(xpNeeded * 1.5);
+      }
+      dbFitnessCumulativeXP += fitnessAppProfile.xp || 0;
+    }
+
+    const fitnessDiff = localFitnessXP - dbFitnessCumulativeXP;
+    results.fitness = { localXP: localFitnessXP, dbXP: dbFitnessCumulativeXP, diff: fitnessDiff };
+    if (fitnessDiff > 0) results.totalDiff += fitnessDiff;
+  }
+
+  // Check today XP
+  const todayData = await prisma.gamify_today_data.findUnique({
+    where: { user_id: user.id },
+  });
+
+  const todayAppProfile = await prisma.app_profiles.findUnique({
+    where: {
+      user_id_app_id: { user_id: user.id, app_id: 'today' },
+    },
+  });
+
+  if (todayData?.data) {
+    const data = todayData.data as { profile?: { xp?: number } };
+    const localTodayXP = data.profile?.xp || 0;
+
+    let dbTodayCumulativeXP = 0;
+    if (todayAppProfile) {
+      let xpNeeded = 100;
+      for (let i = 1; i < (todayAppProfile.level || 1); i++) {
+        dbTodayCumulativeXP += xpNeeded;
+        xpNeeded = Math.floor(xpNeeded * 1.5);
+      }
+      dbTodayCumulativeXP += todayAppProfile.xp || 0;
+    }
+
+    const todayDiff = localTodayXP - dbTodayCumulativeXP;
+    results.today = { localXP: localTodayXP, dbXP: dbTodayCumulativeXP, diff: todayDiff };
+    if (todayDiff > 0) results.totalDiff += todayDiff;
+  }
+
+  const newTotalXP = (profile.total_xp || 0) + results.totalDiff;
+  const newLevelInfo = getMainLevelFromXP(newTotalXP);
+  results.profile.after = { totalXP: newTotalXP, level: newLevelInfo.level };
+
+  return NextResponse.json({
+    success: true,
+    dryRun: true,
+    results,
+    message: `Dry run: Would add ${results.totalDiff} XP (Level ${results.profile.before.level} → ${results.profile.after.level})`,
+  });
+});

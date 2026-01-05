@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coaching/invites - Get pending coaching invites for current user
-export async function GET() {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const invites = await prisma.coaching_relationships.findMany({
+export const GET = withAuth(async (_request, user) => {
+  const invites = await prisma.coaching_relationships.findMany({
       where: {
         athlete_id: user.id,
         status: "PENDING",
@@ -47,12 +41,5 @@ export async function GET() {
       },
     }));
 
-    return NextResponse.json({ invites: formattedInvites });
-  } catch (error) {
-    console.error("Error fetching coaching invites:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch invites" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({ invites: formattedInvites });
+});

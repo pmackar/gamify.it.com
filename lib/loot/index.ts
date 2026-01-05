@@ -5,4 +5,17 @@
  */
 
 export * from './loot-tables';
-export * from './drop-calculator';
+export {
+  // Legacy per-XP loot
+  rollForLoot,
+  openLootBox,
+  getDropChanceText,
+  simulateDrops,
+  // Workout-level loot (Phase 2)
+  rollWorkoutLoot,
+  // Types
+  type LootDrop,
+  type LootRollResult,
+  type WorkoutLootContext,
+  type WorkoutLootResult,
+} from './drop-calculator';

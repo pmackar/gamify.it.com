@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coaching/coaches - Get my coaches (as an athlete)
-export async function GET() {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const relationships = await prisma.coaching_relationships.findMany({
+export const GET = withAuth(async (_request, user) => {
+  const relationships = await prisma.coaching_relationships.findMany({
       where: {
         athlete_id: user.id,
         status: { in: ["ACTIVE", "PAUSED"] },
@@ -65,12 +59,5 @@ export async function GET() {
       current_assignment: rel.assignments[0] || null,
     }));
 
-    return NextResponse.json({ coaches });
-  } catch (error) {
-    console.error("Error fetching coaches:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch coaches" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({ coaches });
+});

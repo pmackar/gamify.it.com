@@ -1,21 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteParams {
-  params: Promise<{ questId: string }>;
-}
-
 // GET /api/life/quests/[questId] - Get quest details
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { questId } = await params;
-
-  const quest = await prisma.life_quests.findUnique({
+export const GET = withAuthParams<{ questId: string }>(
+  async (_request, user, { questId }) => {
+    const quest = await prisma.life_quests.findUnique({
     where: { id: questId },
     include: {
       milestones: {
@@ -40,14 +30,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (!quest) {
-    return NextResponse.json({ error: "Quest not found" }, { status: 404 });
-  }
+    if (!quest) {
+      return Errors.notFound("Quest not found");
+    }
 
-  // Verify ownership
-  if (quest.user_id !== user.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
+    // Verify ownership
+    if (quest.user_id !== user.id) {
+      return Errors.forbidden("Not authorized to view this quest");
+    }
 
   return NextResponse.json({
     quest: {
@@ -120,27 +110,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       })),
     },
   });
-}
+  }
+);
 
 // PATCH /api/life/quests/[questId] - Update quest
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const PATCH = withAuthParams<{ questId: string }>(
+  async (request, user, { questId }) => {
+    const body = await request.json();
 
-  const { questId } = await params;
-  const body = await request.json();
+    // Verify ownership
+    const quest = await prisma.life_quests.findUnique({
+      where: { id: questId },
+      select: { user_id: true },
+    });
 
-  // Verify ownership
-  const quest = await prisma.life_quests.findUnique({
-    where: { id: questId },
-    select: { user_id: true },
-  });
-
-  if (!quest || quest.user_id !== user.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
+    if (!quest || quest.user_id !== user.id) {
+      return Errors.forbidden("Not authorized to update this quest");
+    }
 
   const { status, currentCount, progressPercent } = body;
 
@@ -166,38 +152,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  return NextResponse.json({
-    quest: {
-      id: updatedQuest.id,
-      status: updatedQuest.status,
-      journeyStage: updatedQuest.journey_stage,
-      progressPercent: updatedQuest.progress_percent,
-    },
-  });
-}
+    return NextResponse.json({
+      quest: {
+        id: updatedQuest.id,
+        status: updatedQuest.status,
+        journeyStage: updatedQuest.journey_stage,
+        progressPercent: updatedQuest.progress_percent,
+      },
+    });
+  }
+);
 
 // DELETE /api/life/quests/[questId] - Delete/abandon quest
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const DELETE = withAuthParams<{ questId: string }>(
+  async (_request, user, { questId }) => {
+    // Verify ownership
+    const quest = await prisma.life_quests.findUnique({
+      where: { id: questId },
+      select: { user_id: true },
+    });
+
+    if (!quest || quest.user_id !== user.id) {
+      return Errors.forbidden("Not authorized to delete this quest");
+    }
+
+    await prisma.life_quests.delete({
+      where: { id: questId },
+    });
+
+    return NextResponse.json({ success: true });
   }
-
-  const { questId } = await params;
-
-  // Verify ownership
-  const quest = await prisma.life_quests.findUnique({
-    where: { id: questId },
-    select: { user_id: true },
-  });
-
-  if (!quest || quest.user_id !== user.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
-  await prisma.life_quests.delete({
-    where: { id: questId },
-  });
-
-  return NextResponse.json({ success: true });
-}
+);

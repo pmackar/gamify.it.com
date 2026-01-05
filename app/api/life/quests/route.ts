@@ -1,14 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/life/quests - List user's quests
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(async (request, user) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status"); // ACTIVE, COMPLETED, etc.
 
@@ -67,15 +62,10 @@ export async function GET(request: NextRequest) {
       createdAt: q.created_at.toISOString(),
     })),
   });
-}
+});
 
 // POST /api/life/quests - Create new quest
-export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withAuth(async (request, user) => {
   const body = await request.json();
   const {
     title,
@@ -96,10 +86,7 @@ export async function POST(request: NextRequest) {
   } = body;
 
   if (!title || !questType) {
-    return NextResponse.json(
-      { error: "Title and quest type are required" },
-      { status: 400 }
-    );
+    return Errors.invalidInput("Title and quest type are required");
   }
 
   // Create the quest with milestones
@@ -167,4 +154,4 @@ export async function POST(request: NextRequest) {
     },
     xpAwarded: 25,
   });
-}
+});

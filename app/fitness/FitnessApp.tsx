@@ -2,11 +2,16 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes } from '@/lib/fitness/data';
+import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes, getExerciseTier } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule, ExerciseWeightConfig, WeightBasis } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
 import FitnessLeaderboard from './components/FitnessLeaderboard';
+import { StreakDangerBanner } from '@/components/fitness/StreakDangerBanner';
+import { WeeklyWinsModal } from '@/components/fitness/WeeklyWinsModal';
+import { AlmostThereCard } from '@/components/fitness/AlmostThereCard';
+import { AccountabilityCard } from '@/components/fitness/AccountabilityCard';
+import { DailyChallengeCard } from '@/components/fitness/DailyChallengeCard';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
 
@@ -84,16 +89,23 @@ export default function FitnessApp() {
   const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [programsTab, setProgramsTab] = useState<'my' | 'library'>('my');
   const [exerciseDetailId, setExerciseDetailId] = useState<string | null>(null);
+  const [exerciseDetailReturnView, setExerciseDetailReturnView] = useState<string>('home');
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
-  const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string } | null>(null);
+  const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string; tier: number } | null>(null);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
   const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
     name: string;
     muscle: string;
+    tier: number;
     context: 'workout' | 'template' | 'program' | 'picker';
   } | null>(null);
   const [strengthProgressExercise, setStrengthProgressExercise] = useState<string | null>(null);
   const [strengthProgressRange, setStrengthProgressRange] = useState<'30d' | '90d' | '1y' | 'all'>('all');
+  const [analyticsProgressRange, setAnalyticsProgressRange] = useState<'ytd' | '90d' | '365d' | 'all' | 'custom'>('ytd');
+  const [analyticsShowAllExercises, setAnalyticsShowAllExercises] = useState(false);
+  const [analyticsCustomDateStart, setAnalyticsCustomDateStart] = useState<string>('');
+  const [analyticsCustomDateEnd, setAnalyticsCustomDateEnd] = useState<string>('');
+  const [showEditPicker, setShowEditPicker] = useState<'exercise' | 'template' | 'program' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
@@ -457,6 +469,30 @@ export default function FitnessApp() {
     if ('import'.startsWith(q) || 'csv'.startsWith(q) || 'strong'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[12] });
     if ('reset'.startsWith(q) || 'erase'.startsWith(q) || 'clear'.startsWith(q) || 'wipe'.startsWith(q)) results.push({ type: 'command', ...DEFAULT_COMMANDS[13] });
 
+    // Edit commands
+    if ('edit'.startsWith(q) || 'modify'.startsWith(q) || 'change'.startsWith(q)) {
+      if (store.customExercises.length > 0) {
+        results.push({ type: 'edit-menu', id: 'edit-exercise', title: 'Edit Custom Exercise', subtitle: `${store.customExercises.length} custom exercises`, icon: '✏️' });
+      }
+      if (store.templates.length > 0) {
+        results.push({ type: 'edit-menu', id: 'edit-template', title: 'Edit Template', subtitle: `${store.templates.length} templates`, icon: '📝' });
+      }
+      if (store.programs.length > 0) {
+        results.push({ type: 'edit-menu', id: 'edit-program', title: 'Edit Program', subtitle: `${store.programs.length} programs`, icon: '📅' });
+      }
+    }
+
+    // Show custom exercises when in edit exercise mode
+    if (showEditPicker === 'exercise') {
+      for (const ex of store.customExercises) {
+        if (!q || ex.name.toLowerCase().includes(q)) {
+          const tierLabel = ex.tier === 1 ? 'T1' : ex.tier === 2 ? 'T2' : 'T3';
+          results.push({ type: 'edit-custom-exercise', id: ex.id, title: ex.name, subtitle: `${ex.muscle} • ${tierLabel}`, icon: '✏️' });
+        }
+      }
+      return results.slice(0, 10);
+    }
+
     for (const template of store.templates) {
       if (template.name.toLowerCase().includes(q)) {
         results.push({ type: 'template', id: template.id, title: template.name, subtitle: `${template.exercises.length} exercises`, icon: '📝' });
@@ -472,7 +508,7 @@ export default function FitnessApp() {
     }
 
     return results.slice(0, 8);
-  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, addingGoal, searchingExercises]);
+  }, [query, store.currentWorkout, store.currentView, store.currentExerciseIndex, store.records, store.templates, store.customExercises, store.programs, addingGoal, searchingExercises, showEditPicker]);
 
   const suggestions = getSuggestions();
 
@@ -516,6 +552,7 @@ export default function FitnessApp() {
         setCreatingCustomExercise({
           name: suggestion.id,
           muscle: 'other',
+          tier: 3,
           context: 'workout'
         });
         break;
@@ -527,6 +564,23 @@ export default function FitnessApp() {
       case 'cancel-workout': if (confirm('Discard this workout?')) store.cancelWorkout(); break;
       case 'resume': store.setView('workout'); break;
       case 'history': store.setView('history'); break;
+      case 'edit-menu':
+        if (suggestion.id === 'edit-exercise') {
+          setShowEditPicker('exercise');
+          setQuery('');
+        } else if (suggestion.id === 'edit-template') {
+          store.setView('templates');
+        } else if (suggestion.id === 'edit-program') {
+          store.setView('programs');
+        }
+        break;
+      case 'edit-custom-exercise':
+        const customEx = store.customExercises.find(e => e.id === suggestion.id);
+        if (customEx) {
+          setEditingCustomExercise({ ...customEx, tier: customEx.tier || 3 });
+        }
+        setShowEditPicker(null);
+        break;
       case 'add-campaign-goal':
         if (selectedCampaignId) {
           const exercise = getExerciseById(suggestion.id);
@@ -3064,6 +3118,21 @@ export default function FitnessApp() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-top: 4px;
+        }
+
+        .hero-tap-hint {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-top: 16px;
+          opacity: 0.6;
+        }
+
+        .home-hero:hover .hero-tap-hint {
+          opacity: 1;
+        }
+
+        .home-hero:active .hero-card {
+          transform: scale(0.98);
         }
 
         /* Section Headers */
@@ -6024,6 +6093,136 @@ export default function FitnessApp() {
           font-weight: 600;
         }
 
+        /* Progress Range Selector */
+        .progress-range-selector {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+
+        .range-btn {
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .range-btn:hover {
+          border-color: var(--accent);
+        }
+
+        .range-btn.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+
+        .custom-date-picker {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .date-input {
+          padding: 8px 12px;
+          font-size: 13px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+        }
+
+        .date-separator {
+          color: var(--text-tertiary);
+          font-size: 12px;
+        }
+
+        /* Enhanced Strength Cards */
+        .strength-cards.expanded {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .strength-cards.expanded .strength-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-align: left;
+          padding: 12px 14px;
+        }
+
+        .strength-tier {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 4px 8px;
+          border-radius: 6px;
+          color: #000;
+          flex-shrink: 0;
+        }
+
+        .strength-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .strength-info .strength-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+
+        .strength-meta {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+
+        .strength-stats {
+          text-align: right;
+          flex-shrink: 0;
+        }
+
+        .strength-stats .strength-pr {
+          font-size: 15px;
+        }
+
+        .strength-stats .strength-gain {
+          font-size: 11px;
+        }
+
+        .show-all-btn {
+          width: 100%;
+          padding: 12px;
+          margin-top: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          background: transparent;
+          border: 1px dashed var(--border);
+          border-radius: 10px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .show-all-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        .section-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+
         /* ===== EXERCISE DETAIL VIEW ===== */
         .exercise-detail-view {
           padding: 16px;
@@ -6063,7 +6262,55 @@ export default function FitnessApp() {
           padding: 4px 8px;
           border-radius: 4px;
           text-transform: capitalize;
+        }
+
+        .exercise-info-card .tier-badge {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+
+        .exercise-info-card .tier-1 {
+          background: rgba(255, 215, 0, 0.2);
+          color: #FFD700;
+          border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .exercise-info-card .tier-2 {
+          background: rgba(95, 191, 138, 0.2);
+          color: #5fbf8a;
+          border: 1px solid rgba(95, 191, 138, 0.3);
+        }
+
+        .exercise-info-card .tier-3 {
+          background: rgba(107, 114, 128, 0.2);
+          color: #9ca3af;
+          border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
+        .custom-badge {
+          background: rgba(139, 92, 246, 0.2);
+          color: #a78bfa;
+          font-size: 10px;
+          font-weight: 500;
+          padding: 3px 6px;
+          border-radius: 4px;
           margin-left: auto;
+        }
+
+        .edit-exercise-btn {
+          background: transparent;
+          border: none;
+          font-size: 16px;
+          padding: 4px 8px;
+          cursor: pointer;
+          opacity: 0.7;
+          transition: opacity 0.2s;
+        }
+
+        .edit-exercise-btn:hover {
+          opacity: 1;
         }
 
         .secondary-muscles {
@@ -6222,6 +6469,23 @@ export default function FitnessApp() {
         }
 
         .start-exercise-btn:active {
+          transform: scale(0.98);
+        }
+
+        .add-to-workout-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--success);
+          color: white;
+          font-size: 15px;
+          font-weight: 600;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          margin-top: 8px;
+        }
+
+        .add-to-workout-btn:active {
           transform: scale(0.98);
         }
 
@@ -6441,6 +6705,60 @@ export default function FitnessApp() {
 
         .muscle-select-btn.selected .muscle-select-name {
           color: var(--accent);
+        }
+
+        .tier-select-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .tier-select-btn {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--surface);
+          border: 2px solid transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .tier-select-btn:hover {
+          background: var(--surface-hover);
+          border-color: var(--tier-color, var(--border));
+        }
+
+        .tier-select-btn.selected {
+          background: color-mix(in srgb, var(--tier-color, var(--accent)) 15%, transparent);
+          border-color: var(--tier-color, var(--accent));
+        }
+
+        .tier-select-badge {
+          font-size: 12px;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 6px;
+          background: color-mix(in srgb, var(--tier-color, var(--accent)) 20%, transparent);
+          color: var(--tier-color, var(--accent));
+          min-width: 80px;
+          text-align: center;
+        }
+
+        .tier-select-desc {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .tier-select-btn.selected .tier-select-badge {
+          background: var(--tier-color, var(--accent));
+          color: #000;
+        }
+
+        .tier-select-btn.selected .tier-select-desc {
+          color: var(--text-primary);
         }
 
         .modal-actions {
@@ -7755,6 +8073,7 @@ gamify.it.com/fitness`;
                         setCreatingCustomExercise({
                           name: exerciseSearchQuery.trim(),
                           muscle: 'other',
+                          tier: 3,
                           context: 'template'
                         });
                       }}
@@ -8200,6 +8519,7 @@ gamify.it.com/fitness`;
                         setCreatingCustomExercise({
                           name: newWorkoutExerciseSearch.trim(),
                           muscle: 'other',
+                          tier: 3,
                           context: 'program'
                         });
                       }}
@@ -8515,36 +8835,160 @@ gamify.it.com/fitness`;
                 </div>
 
                 {/* Strength Progress */}
-                {topExercises.length > 0 && (
-                  <div className="analytics-section">
-                    <h3 className="section-title">Strength Progress</h3>
-                    <p className="section-subtitle">Tap to view history</p>
-                    <div className="strength-cards">
-                      {topExercises.map(exId => {
-                        const exercise = EXERCISES.find(e => e.id === exId) || store.customExercises.find(e => e.id === exId);
-                        const progress = store.getStrengthProgress(exId);
-                        const currentPR = store.records[exId] || 0;
-                        const firstWeight = progress[0]?.weight || currentPR;
-                        const improvement = currentPR - firstWeight;
+                {(() => {
+                  // Calculate date range filter
+                  const now = new Date();
+                  let startDate: Date | null = null;
+                  let endDate: Date = now;
 
-                        return (
-                          <div
-                            key={exId}
-                            className="strength-card clickable"
-                            onClick={() => setStrengthProgressExercise(exId)}
+                  if (analyticsProgressRange === 'ytd') {
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                  } else if (analyticsProgressRange === '90d') {
+                    startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                  } else if (analyticsProgressRange === '365d') {
+                    startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                  } else if (analyticsProgressRange === 'custom' && analyticsCustomDateStart) {
+                    startDate = new Date(analyticsCustomDateStart);
+                    if (analyticsCustomDateEnd) endDate = new Date(analyticsCustomDateEnd);
+                  }
+
+                  // Filter workouts by date range
+                  const filteredWorkouts = store.workouts.filter(w => {
+                    const workoutDate = new Date(w.startTime);
+                    if (startDate && workoutDate < startDate) return false;
+                    if (workoutDate > endDate) return false;
+                    return true;
+                  });
+
+                  // Calculate exercise frequency and volume within range
+                  const exerciseStats: Record<string, { frequency: number; volume: number }> = {};
+                  filteredWorkouts.forEach(w => {
+                    w.exercises.forEach(ex => {
+                      if (!exerciseStats[ex.id]) {
+                        exerciseStats[ex.id] = { frequency: 0, volume: 0 };
+                      }
+                      exerciseStats[ex.id].frequency++;
+                      ex.sets.forEach(s => {
+                        if (!s.isWarmup) {
+                          exerciseStats[ex.id].volume += s.weight * s.reps;
+                        }
+                      });
+                    });
+                  });
+
+                  // Sort by tier first, then by frequency within tier
+                  const sortedExercises = Object.entries(exerciseStats)
+                    .map(([id, stats]) => ({
+                      id,
+                      tier: getExerciseTier(id, store.customExercises),
+                      ...stats
+                    }))
+                    .sort((a, b) => {
+                      if (a.tier !== b.tier) return a.tier - b.tier;
+                      return b.frequency - a.frequency;
+                    });
+
+                  const displayExercises = analyticsShowAllExercises
+                    ? sortedExercises
+                    : sortedExercises.slice(0, 6);
+
+                  const tierLabels: Record<number, string> = { 1: 'T1', 2: 'T2', 3: 'T3' };
+                  const tierColors: Record<number, string> = { 1: '#FFD700', 2: '#5fbf8a', 3: '#6b7280' };
+
+                  return sortedExercises.length > 0 && (
+                    <div className="analytics-section">
+                      <div className="section-header-row">
+                        <div>
+                          <h3 className="section-title">Strength Progress</h3>
+                          <p className="section-subtitle">Sorted by tier, then frequency</p>
+                        </div>
+                      </div>
+
+                      {/* Time Range Selector */}
+                      <div className="progress-range-selector">
+                        {[
+                          { value: 'ytd', label: `${now.getFullYear()}` },
+                          { value: '90d', label: '90 Days' },
+                          { value: '365d', label: '365 Days' },
+                          { value: 'all', label: 'All Time' },
+                          { value: 'custom', label: 'Custom' },
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            className={`range-btn ${analyticsProgressRange === opt.value ? 'active' : ''}`}
+                            onClick={() => setAnalyticsProgressRange(opt.value as typeof analyticsProgressRange)}
                           >
-                            <div className="strength-name">{exercise?.name || exId}</div>
-                            <div className="strength-pr">{currentPR} lbs</div>
-                            {improvement > 0 && (
-                              <div className="strength-gain">+{improvement} lbs</div>
-                            )}
-                            <div className="strength-arrow">›</div>
-                          </div>
-                        );
-                      })}
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Custom Date Picker */}
+                      {analyticsProgressRange === 'custom' && (
+                        <div className="custom-date-picker">
+                          <input
+                            type="date"
+                            value={analyticsCustomDateStart}
+                            onChange={(e) => setAnalyticsCustomDateStart(e.target.value)}
+                            className="date-input"
+                          />
+                          <span className="date-separator">to</span>
+                          <input
+                            type="date"
+                            value={analyticsCustomDateEnd}
+                            onChange={(e) => setAnalyticsCustomDateEnd(e.target.value)}
+                            className="date-input"
+                          />
+                        </div>
+                      )}
+
+                      <div className="strength-cards expanded">
+                        {displayExercises.map(({ id: exId, tier, frequency }) => {
+                          const exercise = EXERCISES.find(e => e.id === exId) || store.customExercises.find(e => e.id === exId);
+                          const currentPR = store.records[exId] || 0;
+                          const meta = store.recordsMeta[exId];
+                          const firstWeight = meta?.firstWeight || currentPR;
+                          const improvement = currentPR - firstWeight;
+
+                          return (
+                            <div
+                              key={exId}
+                              className="strength-card clickable"
+                              onClick={() => setStrengthProgressExercise(exId)}
+                            >
+                              <div className="strength-tier" style={{ backgroundColor: tierColors[tier] }}>
+                                {tierLabels[tier]}
+                              </div>
+                              <div className="strength-info">
+                                <div className="strength-name">{exercise?.name || exId}</div>
+                                <div className="strength-meta">{frequency} sessions</div>
+                              </div>
+                              <div className="strength-stats">
+                                <div className="strength-pr">{currentPR} lbs</div>
+                                {improvement > 0 && (
+                                  <div className="strength-gain">+{improvement}</div>
+                                )}
+                              </div>
+                              <div className="strength-arrow">›</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Show All / Show Less Toggle */}
+                      {sortedExercises.length > 6 && (
+                        <button
+                          className="show-all-btn"
+                          onClick={() => setAnalyticsShowAllExercises(!analyticsShowAllExercises)}
+                        >
+                          {analyticsShowAllExercises
+                            ? `Show Less`
+                            : `Show All ${sortedExercises.length} Exercises`}
+                        </button>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {volumeByWeek.every(w => w.volume === 0) && (
                   <div className="empty-state">
@@ -8559,7 +9003,22 @@ gamify.it.com/fitness`;
 
           {/* Exercise Detail View */}
           {store.currentView === 'exercise-detail' && exerciseDetailId && (() => {
-            const exercise = EXERCISES.find(e => e.id === exerciseDetailId);
+            // Check both built-in and custom exercises
+            const builtInExercise = EXERCISES.find(e => e.id === exerciseDetailId);
+            const customExercise = store.customExercises.find(e => e.id === exerciseDetailId);
+            const isCustom = !builtInExercise && !!customExercise;
+
+            // Create unified exercise object
+            const exercise = builtInExercise || (customExercise ? {
+              id: customExercise.id,
+              name: customExercise.name,
+              muscle: customExercise.muscle,
+              equipment: 'custom',
+              secondaryMuscles: [],
+              formTips: [],
+              commonMistakes: [],
+            } : null);
+
             if (!exercise) return null;
 
             // Get user's history with this exercise
@@ -8587,14 +9046,35 @@ gamify.it.com/fitness`;
             const lastWorkout = exerciseWorkouts[exerciseWorkouts.length - 1];
             const lastWorkoutDate = lastWorkout ? new Date(lastWorkout.startTime).toLocaleDateString() : null;
 
+            // Get tier for this exercise
+            const exerciseTier = getExerciseTier(exerciseDetailId, store.customExercises);
+
             return (
               <div className="view-content exercise-detail-view">
                 <div className="view-header">
                   <button className="back-btn" onClick={() => {
                     setExerciseDetailId(null);
-                    store.setView('exercises');
+                    // Return to where user came from, or workout if active
+                    if (store.currentWorkout) {
+                      store.setView('workout');
+                      setShowExercisePicker(true);
+                    } else {
+                      store.setView(exerciseDetailReturnView as any);
+                    }
                   }}>←</button>
                   <span className="view-title">{exercise.name}</span>
+                  {isCustom && (
+                    <button
+                      className="edit-exercise-btn"
+                      onClick={() => {
+                        if (customExercise) {
+                          setEditingCustomExercise({ ...customExercise, tier: customExercise.tier || 3 });
+                        }
+                      }}
+                    >
+                      ✏️
+                    </button>
+                  )}
                 </div>
 
                 {/* Exercise Info Card */}
@@ -8605,6 +9085,10 @@ gamify.it.com/fitness`;
                     </span>
                     <span className="muscle-name">{exercise.muscle.charAt(0).toUpperCase() + exercise.muscle.slice(1)}</span>
                     <span className="equipment-badge">{exercise.equipment}</span>
+                    <span className={`tier-badge tier-${exerciseTier}`}>
+                      T{exerciseTier}
+                    </span>
+                    {isCustom && <span className="custom-badge">Custom</span>}
                   </div>
 
                   {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
@@ -8674,16 +9158,38 @@ gamify.it.com/fitness`;
                 )}
 
                 {/* Start Workout Button */}
-                {!store.activeWorkout && (
+                {!store.currentWorkout && (
                   <button
                     className="start-exercise-btn"
                     onClick={() => {
                       store.startWorkout();
-                      store.addExercise(exercise.id, exercise.name);
+                      store.addExerciseToWorkout(exercise.id);
                       setExerciseDetailId(null);
                     }}
                   >
                     Start Workout with {exercise.name}
+                  </button>
+                )}
+
+                {/* Add to Active Workout Button */}
+                {store.currentWorkout && (
+                  <button
+                    className="add-to-workout-btn"
+                    onClick={() => {
+                      const alreadyInWorkout = store.currentWorkout?.exercises.some(ex => ex.id === exercise.id);
+                      if (alreadyInWorkout) {
+                        store.showToast(`${exercise.name} already in workout`);
+                      } else {
+                        store.addExerciseToWorkout(exercise.id);
+                        store.showToast(`Added ${exercise.name}`);
+                      }
+                      setExerciseDetailId(null);
+                      store.setView('workout');
+                    }}
+                  >
+                    {store.currentWorkout?.exercises.some(ex => ex.id === exercise.id)
+                      ? `${exercise.name} Already Added`
+                      : `Add ${exercise.name} to Workout`}
                   </button>
                 )}
               </div>
@@ -8736,7 +9242,7 @@ gamify.it.com/fitness`;
                               const currentPriorities = store.programWizardData?.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general'];
                               const filtered = currentPriorities.filter((g: string) => g !== draggedGoal);
                               filtered.splice(idx, 0, draggedGoal);
-                              store.updateProgramWizardData({ goalPriorities: filtered, goal: filtered[0] });
+                              store.updateProgramWizardData({ goalPriorities: filtered, goal: filtered[0] as Program['goal'] });
                             }
                           }}
                         >
@@ -8759,7 +9265,7 @@ gamify.it.com/fitness`;
                               store.updateProgramWizardData({
                                 goalPriorities: newPriorities,
                                 excludedGoals: [...currentExcluded, goal],
-                                goal: newPriorities[0] || 'general'
+                                goal: (newPriorities[0] || 'general') as Program['goal']
                               });
                             }}
                             title="Exclude from priorities"
@@ -8782,7 +9288,7 @@ gamify.it.com/fitness`;
                                 store.updateProgramWizardData({
                                   goalPriorities: [...currentPriorities, goal],
                                   excludedGoals: currentExcluded.filter((g: string) => g !== goal),
-                                  goal: currentPriorities[0] || goal
+                                  goal: (currentPriorities[0] || goal) as Program['goal']
                                 });
                               }}
                               title="Click to re-add"
@@ -9932,7 +10438,10 @@ gamify.it.com/fitness`;
           {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
-              <div className="home-hero">
+              {/* Streak Danger Banner - shows when user has streak but hasn't worked out today */}
+              <StreakDangerBanner onStartWorkout={() => store.setView('templates')} />
+
+              <div className="home-hero" onClick={() => store.setView('analytics')} style={{ cursor: 'pointer' }}>
                 <div className="hero-card">
                   <div className="home-icon">🏋️</div>
                   <h1 className="home-title">IRON QUEST</h1>
@@ -9951,8 +10460,18 @@ gamify.it.com/fitness`;
                       <div className="home-stat-label">XP</div>
                     </div>
                   </div>
+                  <div className="hero-tap-hint">Tap for Analytics</div>
                 </div>
               </div>
+
+              {/* Almost There - Achievement previews */}
+              <AlmostThereCard />
+
+              {/* Accountability Partners */}
+              <AccountabilityCard />
+
+              {/* Daily Challenges */}
+              <DailyChallengeCard />
 
               {/* Active Program Widget */}
               {store.activeProgram && (() => {
@@ -11037,17 +11556,22 @@ gamify.it.com/fitness`;
                           key={exercise.id}
                           className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
                           onClick={() => {
-                            if (!inWorkout) {
-                              // If no current workout, start one with this exercise
-                              if (store.currentWorkout) {
+                            if (store.currentWorkout) {
+                              // In active workout, add exercise
+                              if (!inWorkout) {
                                 store.addExerciseToWorkout(exercise.id);
-                              } else {
-                                store.startWorkoutWithExercise(exercise.id);
                               }
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                              setPickerSearchQuery('');
+                            } else {
+                              // Not in workout - go to exercise detail page
+                              setExerciseDetailId(exercise.id);
+                              setExerciseDetailReturnView('home');
+                              store.setView('exercise-detail');
+                              setShowExercisePicker(false);
+                              setPickerSearchQuery('');
                             }
-                            setShowExercisePicker(false);
-                            setSelectedCategory(null);
-                            setPickerSearchQuery('');
                           }}
                         >
                           <div className="exercise-item-icon">{inWorkout ? '✓' : categoryIcon}</div>
@@ -11067,6 +11591,7 @@ gamify.it.com/fitness`;
                         setCreatingCustomExercise({
                           name: pickerSearchQuery.trim(),
                           muscle: 'other',
+                          tier: 3,
                           context: 'picker'
                         });
                       }}
@@ -11109,17 +11634,23 @@ gamify.it.com/fitness`;
                           key={exercise.id}
                           className={`exercise-item ${inWorkout ? 'in-workout' : ''}`}
                           onClick={() => {
-                            if (!inWorkout) {
-                              // If no current workout, start one with this exercise
-                              if (store.currentWorkout) {
+                            if (store.currentWorkout) {
+                              // In active workout, add exercise
+                              if (!inWorkout) {
                                 store.addExerciseToWorkout(exercise.id);
-                              } else {
-                                store.startWorkoutWithExercise(exercise.id);
                               }
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                              setPickerSearchQuery('');
+                            } else {
+                              // Not in workout - go to exercise detail page
+                              setExerciseDetailId(exercise.id);
+                              setExerciseDetailReturnView('home');
+                              store.setView('exercise-detail');
+                              setShowExercisePicker(false);
+                              setSelectedCategory(null);
+                              setPickerSearchQuery('');
                             }
-                            setShowExercisePicker(false);
-                            setSelectedCategory(null);
-                            setPickerSearchQuery('');
                           }}
                         >
                           <div className="exercise-item-icon">
@@ -11130,20 +11661,6 @@ gamify.it.com/fitness`;
                             <div className="exercise-item-equipment">{exercise.equipment}</div>
                           </div>
                           {inWorkout && <div className="exercise-item-check">Added</div>}
-                          <button
-                            className="exercise-info-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExerciseDetailId(exercise.id);
-                              store.setView('exercise-detail');
-                              setShowExercisePicker(false);
-                              setSelectedCategory(null);
-                              setPickerSearchQuery('');
-                            }}
-                            title="View exercise details"
-                          >
-                            ℹ
-                          </button>
                         </div>
                       );
                     })}
@@ -11291,6 +11808,7 @@ gamify.it.com/fitness`;
                     key={exercise.id}
                     className="muscle-group-exercise"
                     onClick={() => {
+                      setExerciseDetailReturnView(store.currentView);
                       setExerciseDetailId(exercise.id);
                       store.setView('exercise-detail');
                       setViewingMuscleGroup(null);
@@ -11427,6 +11945,30 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              <div className="form-group">
+                <label>Exercise Tier</label>
+                <div className="tier-select-grid">
+                  {[
+                    { tier: 1, label: 'T1 Primary', desc: 'Major compound lifts', color: '#FFD700' },
+                    { tier: 2, label: 'T2 Secondary', desc: 'Supporting compounds', color: '#5fbf8a' },
+                    { tier: 3, label: 'T3 Accessory', desc: 'Isolation exercises', color: '#9ca3af' }
+                  ].map(t => (
+                    <button
+                      key={t.tier}
+                      className={`tier-select-btn ${(editingCustomExercise.tier || 3) === t.tier ? 'selected' : ''}`}
+                      style={{ '--tier-color': t.color } as React.CSSProperties}
+                      onClick={() => setEditingCustomExercise({
+                        ...editingCustomExercise,
+                        tier: t.tier
+                      })}
+                    >
+                      <span className="tier-select-badge">{t.label}</span>
+                      <span className="tier-select-desc">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="modal-actions">
                 <button className="modal-btn secondary" onClick={() => setEditingCustomExercise(null)}>
                   Cancel
@@ -11435,7 +11977,8 @@ gamify.it.com/fitness`;
                   className="modal-btn primary"
                   onClick={() => {
                     store.updateCustomExercise(editingCustomExercise.id, {
-                      muscle: editingCustomExercise.muscle
+                      muscle: editingCustomExercise.muscle,
+                      tier: editingCustomExercise.tier || 3
                     });
                     setEditingCustomExercise(null);
                   }}
@@ -11483,6 +12026,30 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              <div className="form-group">
+                <label>Exercise Tier</label>
+                <div className="tier-select-grid">
+                  {[
+                    { tier: 1, label: 'T1 Primary', desc: 'Major compound lifts', color: '#FFD700' },
+                    { tier: 2, label: 'T2 Secondary', desc: 'Supporting compounds', color: '#5fbf8a' },
+                    { tier: 3, label: 'T3 Accessory', desc: 'Isolation exercises', color: '#9ca3af' }
+                  ].map(t => (
+                    <button
+                      key={t.tier}
+                      className={`tier-select-btn ${creatingCustomExercise.tier === t.tier ? 'selected' : ''}`}
+                      style={{ '--tier-color': t.color } as React.CSSProperties}
+                      onClick={() => setCreatingCustomExercise({
+                        ...creatingCustomExercise,
+                        tier: t.tier
+                      })}
+                    >
+                      <span className="tier-select-badge">{t.label}</span>
+                      <span className="tier-select-desc">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="modal-actions">
                 <button className="modal-btn secondary" onClick={() => setCreatingCustomExercise(null)}>
                   Cancel
@@ -11494,11 +12061,12 @@ gamify.it.com/fitness`;
                     const id = name.toLowerCase().replace(/\s+/g, '_');
                     const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
                     const muscle = creatingCustomExercise.muscle;
+                    const tier = creatingCustomExercise.tier;
                     const context = creatingCustomExercise.context;
 
-                    // Create the custom exercise with selected muscle
+                    // Create the custom exercise with selected muscle and tier
                     if (!store.customExercises.find(e => e.id === id)) {
-                      store.addCustomExerciseWithMuscle(name, muscle);
+                      store.addCustomExerciseWithMuscle(name, muscle, tier);
                     }
 
                     // Handle context-specific actions
@@ -11681,6 +12249,9 @@ gamify.it.com/fitness`;
             </div>
           );
         })()}
+
+        {/* Weekly Wins Modal - Shows Sunday evening or Monday morning */}
+        <WeeklyWinsModal />
       </div>
     </>
   );
@@ -11697,6 +12268,8 @@ function SocialView({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [claimingDaily, setClaimingDaily] = useState(false);
+  const [workoutProps, setWorkoutProps] = useState<Record<string, { count: number; hasGivenProps: boolean }>>({});
+  const [givingProps, setGivingProps] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -11719,9 +12292,22 @@ function SocialView({ onBack }: { onBack: () => void }) {
         setDailyChallenge(data.dailyChallenge);
         setWeeklyStats(data.weeklyStats);
       }
+
+      let feedData: any[] = [];
       if (feedRes.ok) {
         const data = await feedRes.json();
-        setFeed(data.feed || []);
+        feedData = data.feed || [];
+        setFeed(feedData);
+
+        // Load props for all feed items
+        if (feedData.length > 0) {
+          const workoutKeys = feedData.map((item: any) => item.id).join(',');
+          const propsRes = await fetch(`/api/fitness/workout-props?keys=${workoutKeys}`);
+          if (propsRes.ok) {
+            const propsData = await propsRes.json();
+            setWorkoutProps(propsData.props || {});
+          }
+        }
       }
       if (leaderboardRes.ok) {
         const data = await leaderboardRes.json();
@@ -11731,6 +12317,46 @@ function SocialView({ onBack }: { onBack: () => void }) {
       console.error('Failed to load social data:', e);
     }
     setLoading(false);
+  };
+
+  const giveProps = async (workoutKey: string) => {
+    if (givingProps) return;
+    setGivingProps(workoutKey);
+
+    try {
+      const hasProps = workoutProps[workoutKey]?.hasGivenProps;
+
+      if (hasProps) {
+        // Remove props
+        const res = await fetch(`/api/fitness/workout-props?key=${workoutKey}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWorkoutProps(prev => ({
+            ...prev,
+            [workoutKey]: { count: data.count, hasGivenProps: false },
+          }));
+        }
+      } else {
+        // Give props
+        const res = await fetch('/api/fitness/workout-props', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workoutKey }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWorkoutProps(prev => ({
+            ...prev,
+            [workoutKey]: { count: data.count, hasGivenProps: true },
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to give props:', e);
+    }
+    setGivingProps(null);
   };
 
   const claimReward = async (isDaily: boolean = false) => {
@@ -11983,6 +12609,21 @@ function SocialView({ onBack }: { onBack: () => void }) {
                         <span className="feed-stat-value">{(item.workout.volume / 1000).toFixed(0)}k</span>
                         <span className="feed-stat-label">lbs</span>
                       </div>
+                    </div>
+                    <div className="feed-actions">
+                      <button
+                        className={`props-btn ${workoutProps[item.id]?.hasGivenProps ? 'active' : ''}`}
+                        onClick={() => giveProps(item.id)}
+                        disabled={givingProps === item.id}
+                      >
+                        <span className="props-icon">🔥</span>
+                        <span className="props-text">
+                          {workoutProps[item.id]?.hasGivenProps ? 'Props!' : 'Give Props'}
+                        </span>
+                        {workoutProps[item.id]?.count > 0 && (
+                          <span className="props-count">{workoutProps[item.id].count}</span>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))
@@ -12296,6 +12937,73 @@ function SocialView({ onBack }: { onBack: () => void }) {
         .feed-stat-label {
           font-size: 12px;
           color: var(--text-tertiary);
+        }
+
+        .feed-actions {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 12px;
+          margin-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+
+        .props-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          background: var(--surface-hover);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .props-btn:hover:not(:disabled) {
+          background: color-mix(in srgb, #FF6B35 15%, transparent);
+          border-color: #FF6B35;
+          color: #FF6B35;
+        }
+
+        .props-btn.active {
+          background: color-mix(in srgb, #FF6B35 20%, transparent);
+          border-color: #FF6B35;
+          color: #FF6B35;
+        }
+
+        .props-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .props-icon {
+          font-size: 16px;
+        }
+
+        .props-btn.active .props-icon {
+          animation: propsPulse 0.3s ease;
+        }
+
+        @keyframes propsPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.3); }
+          100% { transform: scale(1); }
+        }
+
+        .props-text {
+          font-weight: 500;
+        }
+
+        .props-count {
+          background: #FF6B35;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
         }
 
         /* Leaderboard Styles */

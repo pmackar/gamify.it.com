@@ -1,19 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
 import { requireAdmin } from "@/lib/permissions-server";
 import prisma from "@/lib/db";
 
 type SortField = "email" | "main_level" | "total_xp" | "current_streak" | "last_activity_date" | "created_at";
 type SortDirection = "asc" | "desc";
 
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const GET = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -89,78 +83,58 @@ export async function GET(request: NextRequest) {
       transformedUsers = transformedUsers.filter((u) => u.role !== "ADMIN");
     }
 
-    return NextResponse.json({
-      users: transformedUsers,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Admin users error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({
+    users: transformedUsers,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
+});
 
 /**
  * PATCH /api/admin/users
  *
  * Update a user's role
  */
-export async function PATCH(request: NextRequest) {
-  try {
-    const currentUser = await getAuthUser();
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const PATCH = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
-    await requireAdmin(currentUser.id);
+  const body = await request.json();
+  const { userId, role } = body;
 
-    const body = await request.json();
-    const { userId, role } = body;
+  if (!userId) {
+    return NextResponse.json({ error: "userId is required" }, { status: 400 });
+  }
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
-    }
+  if (!role || !["USER", "ADMIN"].includes(role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
 
-    if (!role || !["USER", "ADMIN"].includes(role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
-
-    // Prevent self-demotion
-    if (userId === currentUser.id && role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Cannot remove your own admin role" },
-        { status: 400 }
-      );
-    }
-
-    // Upsert the user role
-    await prisma.user_roles.upsert({
-      where: { user_id: userId },
-      update: { role },
-      create: {
-        user_id: userId,
-        role,
-        granted_by: currentUser.id,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      userId,
-      role,
-    });
-  } catch (error) {
-    console.error("Update user role error:", error);
+  // Prevent self-demotion
+  if (userId === user.id && role !== "ADMIN") {
     return NextResponse.json(
-      { error: "Failed to update user role" },
-      { status: 500 }
+      { error: "Cannot remove your own admin role" },
+      { status: 400 }
     );
   }
-}
+
+  // Upsert the user role
+  await prisma.user_roles.upsert({
+    where: { user_id: userId },
+    update: { role },
+    create: {
+      user_id: userId,
+      role,
+      granted_by: user.id,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    userId,
+    role,
+  });
+});

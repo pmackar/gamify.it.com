@@ -1,28 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
-interface RouteParams {
-  params: Promise<{ questId: string }>;
-}
-
 // POST /api/life/quests/[questId]/log - Log progress for counting quests
-export async function POST(request: NextRequest, { params }: RouteParams) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withAuthParams<{ questId: string }>(
+  async (request, user, { questId }) => {
+    const body = await request.json();
+    const { countAdded, notes } = body;
 
-  const { questId } = await params;
-  const body = await request.json();
-  const { countAdded, notes } = body;
+    if (!countAdded || countAdded < 1) {
+      return Errors.invalidInput("Count must be at least 1");
+    }
 
-  if (!countAdded || countAdded < 1) {
-    return NextResponse.json({ error: "Count must be at least 1" }, { status: 400 });
-  }
-
-  // Verify ownership and get quest
-  const quest = await prisma.life_quests.findUnique({
+    // Verify ownership and get quest
+    const quest = await prisma.life_quests.findUnique({
     where: { id: questId },
     include: {
       milestones: {
@@ -31,13 +22,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (!quest || quest.user_id !== user.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
+    if (!quest || quest.user_id !== user.id) {
+      return Errors.forbidden("Not authorized to log to this quest");
+    }
 
-  if (quest.status !== "ACTIVE") {
-    return NextResponse.json({ error: "Quest is not active" }, { status: 400 });
-  }
+    if (quest.status !== "ACTIVE") {
+      return Errors.invalidInput("Quest is not active");
+    }
 
   // Calculate XP
   const baseXP = 15;
@@ -138,14 +129,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  return NextResponse.json({
-    success: true,
-    xpEarned: totalXP,
-    criticalHit,
-    newCount,
-    newProgress,
-    journeyStage,
-    isComplete,
-    milestonesCompleted: completedMilestones.length,
-  });
-}
+    return NextResponse.json({
+      success: true,
+      xpEarned: totalXP,
+      criticalHit,
+      newCount,
+      newProgress,
+      journeyStage,
+      isComplete,
+      milestonesCompleted: completedMilestones.length,
+    });
+  }
+);

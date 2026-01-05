@@ -146,6 +146,7 @@ model profiles {
   activity_feed_actor  activity_feed[] @relation("ActivityFeedActor")
   activity_kudos_given activity_kudos[] @relation("ActivityKudosGiver")
   activity_comments    activity_comments[] @relation("ActivityCommentAuthor")
+  workout_props_given  workout_props[] @relation("WorkoutPropsGiver")
 
   // Coaching relations
   coach_profile        coach_profiles?
@@ -248,6 +249,20 @@ model gamify_fitness_data {
   user_id    String    @id @db.Uuid
   data       Json      @default("{}")
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// Props/kudos on friends' workouts
+model workout_props {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workout_key String   // Format: "userId:workoutId" (composite key for workout)
+  giver_id    String   @db.Uuid
+  giver       profiles @relation("WorkoutPropsGiver", fields: [giver_id], references: [id], onDelete: Cascade)
+  emoji       String   @default("🔥")
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([workout_key, giver_id])
+  @@index([workout_key])
+  @@index([giver_id])
 }
 
 // ============================================

@@ -1,34 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
+const RespondSchema = z.object({
+  relationship_id: z.string().uuid(),
+  action: z.enum(["accept", "decline"]),
+});
+
 // POST /api/fitness/coaching/respond - Accept or decline coaching invite
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json();
+  const parsed = RespondSchema.safeParse(body);
 
-    const body = await req.json();
-    const { relationship_id, action } = body;
+  if (!parsed.success) {
+    return Errors.invalidInput("Missing relationship_id or action must be 'accept' or 'decline'");
+  }
 
-    if (!relationship_id || !action) {
-      return NextResponse.json(
-        { error: "Missing relationship_id or action" },
-        { status: 400 }
-      );
-    }
+  const { relationship_id, action } = parsed.data;
 
-    if (!["accept", "decline"].includes(action)) {
-      return NextResponse.json(
-        { error: "Action must be 'accept' or 'decline'" },
-        { status: 400 }
-      );
-    }
-
-    // Find the relationship
-    const relationship = await prisma.coaching_relationships.findFirst({
+  // Find the relationship
+  const relationship = await prisma.coaching_relationships.findFirst({
       where: {
         id: relationship_id,
         athlete_id: user.id,
@@ -49,64 +41,54 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (!relationship) {
-      return NextResponse.json(
-        { error: "Invite not found or already responded" },
-        { status: 404 }
-      );
-    }
-
-    if (action === "accept") {
-      // Accept the invite
-      await prisma.coaching_relationships.update({
-        where: { id: relationship.id },
-        data: {
-          status: "ACTIVE",
-          accepted_at: new Date(),
-        },
-      });
-
-      // Notify coach
-      await prisma.activity_feed.create({
-        data: {
-          user_id: relationship.coach.user_id,
-          actor_id: user.id,
-          type: "PARTY_MEMBER_JOINED", // Reusing for coaching acceptance
-          entity_type: "coaching",
-          entity_id: relationship.id,
-          metadata: {
-            athlete_name: user.email,
-            type: "coaching_accepted",
-          },
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: "Coaching invite accepted",
-        status: "ACTIVE",
-      });
-    } else {
-      // Decline the invite
-      await prisma.coaching_relationships.update({
-        where: { id: relationship.id },
-        data: {
-          status: "ENDED",
-          ended_at: new Date(),
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: "Coaching invite declined",
-        status: "ENDED",
-      });
-    }
-  } catch (error) {
-    console.error("Error responding to coaching invite:", error);
-    return NextResponse.json(
-      { error: "Failed to respond to invite" },
-      { status: 500 }
-    );
+  if (!relationship) {
+    return Errors.notFound("Invite not found or already responded");
   }
-}
+
+  if (action === "accept") {
+    // Accept the invite
+    await prisma.coaching_relationships.update({
+      where: { id: relationship.id },
+      data: {
+        status: "ACTIVE",
+        accepted_at: new Date(),
+      },
+    });
+
+    // Notify coach
+    await prisma.activity_feed.create({
+      data: {
+        user_id: relationship.coach.user_id,
+        actor_id: user.id,
+        type: "PARTY_MEMBER_JOINED", // Reusing for coaching acceptance
+        entity_type: "coaching",
+        entity_id: relationship.id,
+        metadata: {
+          athlete_name: user.email,
+          type: "coaching_accepted",
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Coaching invite accepted",
+      status: "ACTIVE",
+    });
+  } else {
+    // Decline the invite
+    await prisma.coaching_relationships.update({
+      where: { id: relationship.id },
+      data: {
+        status: "ENDED",
+        ended_at: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Coaching invite declined",
+      status: "ENDED",
+    });
+  }
+});

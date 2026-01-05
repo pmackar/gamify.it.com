@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
+import { withAuth, Errors } from '@/lib/api';
 import { getUserSeasonProgress, claimTierReward, purchasePremiumPass } from '@/lib/seasons';
 
 /**
@@ -7,90 +7,70 @@ import { getUserSeasonProgress, claimTierReward, purchasePremiumPass } from '@/l
  *
  * Get current season info and user's progress
  */
-export async function GET() {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const GET = withAuth(async (_request, user) => {
+  const progress = await getUserSeasonProgress(user.id);
 
-    const progress = await getUserSeasonProgress(user.id);
-
-    if (!progress) {
-      return NextResponse.json({
-        active: false,
-        message: 'No active season',
-      });
-    }
-
+  if (!progress) {
     return NextResponse.json({
-      active: true,
-      ...progress,
+      active: false,
+      message: 'No active season',
     });
-  } catch (error) {
-    console.error('Get season error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+
+  return NextResponse.json({
+    active: true,
+    ...progress,
+  });
+});
 
 /**
  * POST /api/seasons
  *
  * Claim tier reward or purchase premium
  */
-export async function POST(request: Request) {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json();
+  const { action, tierNumber, isPremium } = body;
 
-    const body = await request.json();
-    const { action, tierNumber, isPremium } = body;
-
-    switch (action) {
-      case 'claim': {
-        if (typeof tierNumber !== 'number') {
-          return NextResponse.json({ error: 'tierNumber required' }, { status: 400 });
-        }
-
-        const result = await claimTierReward(user.id, tierNumber, isPremium ?? false);
-
-        if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: 400 });
-        }
-
-        // Get updated progress
-        const progress = await getUserSeasonProgress(user.id);
-
-        return NextResponse.json({
-          success: true,
-          reward: result.reward,
-          progress,
-        });
+  switch (action) {
+    case 'claim': {
+      if (typeof tierNumber !== 'number') {
+        return Errors.invalidInput('tierNumber required');
       }
 
-      case 'purchase_premium': {
-        const success = await purchasePremiumPass(user.id);
+      const result = await claimTierReward(user.id, tierNumber, isPremium ?? false);
 
-        if (!success) {
-          return NextResponse.json({ error: 'No active season' }, { status: 400 });
-        }
-
-        const progress = await getUserSeasonProgress(user.id);
-
-        return NextResponse.json({
-          success: true,
-          message: 'Premium pass activated',
-          progress,
-        });
+      if (!result.success) {
+        return Errors.invalidInput(result.error || 'Failed to claim reward');
       }
 
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+      // Get updated progress
+      const progress = await getUserSeasonProgress(user.id);
+
+      return NextResponse.json({
+        success: true,
+        reward: result.reward,
+        progress,
+      });
     }
-  } catch (error) {
-    console.error('Season action error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+    case 'purchase_premium': {
+      const success = await purchasePremiumPass(user.id);
+
+      if (!success) {
+        return Errors.invalidInput('No active season');
+      }
+
+      const progress = await getUserSeasonProgress(user.id);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Premium pass activated',
+        progress,
+      });
+    }
+
+    default:
+      return Errors.invalidInput('Invalid action');
   }
-}
+});

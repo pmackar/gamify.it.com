@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
 import { requireAdmin } from "@/lib/permissions-server";
 import prisma from "@/lib/db";
 
@@ -8,14 +8,8 @@ import prisma from "@/lib/db";
  *
  * Fetch all app features and their tier requirements
  */
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const GET = withAuth(async (_request, user) => {
+  await requireAdmin(user.id);
 
     // Get all app features
     const features = await prisma.app_features.findMany({
@@ -46,35 +40,22 @@ export async function GET(request: NextRequest) {
       featuresByApp[feature.app_id].push(feature);
     });
 
-    return NextResponse.json({
-      features,
-      featuresByApp,
-      subscriptionCounts: countsByTierAndApp,
-      tiers: ["FREE", "PREMIUM", "COACH", "PRO"],
-      apps: ["global", "fitness", "today", "travel"],
-    });
-  } catch (error) {
-    console.error("Admin roles error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch roles data" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({
+    features,
+    featuresByApp,
+    subscriptionCounts: countsByTierAndApp,
+    tiers: ["FREE", "PREMIUM", "COACH", "PRO"],
+    apps: ["global", "fitness", "today", "travel"],
+  });
+});
 
 /**
  * POST /api/admin/roles
  *
  * Create a new app feature
  */
-export async function POST(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const POST = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
     const body = await request.json();
     const { app_id, feature_key, name, description, min_tier } = body;
@@ -113,29 +94,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, feature });
-  } catch (error) {
-    console.error("Create feature error:", error);
-    return NextResponse.json(
-      { error: "Failed to create feature" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({ success: true, feature });
+});
 
 /**
  * PATCH /api/admin/roles
  *
  * Update an existing app feature
  */
-export async function PATCH(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const PATCH = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
     const body = await request.json();
     const { id, name, description, min_tier } = body;
@@ -159,29 +127,16 @@ export async function PATCH(request: NextRequest) {
       data: updateData,
     });
 
-    return NextResponse.json({ success: true, feature });
-  } catch (error) {
-    console.error("Update feature error:", error);
-    return NextResponse.json(
-      { error: "Failed to update feature" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({ success: true, feature });
+});
 
 /**
  * DELETE /api/admin/roles
  *
  * Delete an app feature
  */
-export async function DELETE(request: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await requireAdmin(user.id);
+export const DELETE = withAuth(async (request, user) => {
+  await requireAdmin(user.id);
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -194,12 +149,5 @@ export async function DELETE(request: NextRequest) {
       where: { id },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Delete feature error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete feature" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({ success: true });
+});

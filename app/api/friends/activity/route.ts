@@ -1,14 +1,32 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
-// GET /api/friends/activity - Get friends' recent activity for accountability
-export async function GET() {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+interface Activity {
+  type: string;
+  metadata: unknown;
+}
+
+function getActivitySummary(activities: Activity[]): string {
+  if (activities.length === 0) return "";
+
+  const types = activities.map((a) => a.type);
+
+  if (types.includes("QUEST_ITEM_COMPLETED")) {
+    return "Completed a quest item";
+  }
+  if (types.includes("QUEST_COMPLETED")) {
+    return "Finished a quest!";
+  }
+  if (types.includes("PARTY_MEMBER_JOINED")) {
+    return "Joined a party";
   }
 
+  return `${activities.length} action${activities.length > 1 ? "s" : ""} today`;
+}
+
+// GET /api/friends/activity - Get friends' recent activity for accountability
+export const GET = withAuth(async (_request, user) => {
   // Get user's friends
   const friendships = await prisma.friendships.findMany({
     where: {
@@ -53,8 +71,6 @@ export async function GET() {
   // Get today's date range
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
 
   // Get recent activity from friends (last 24 hours)
   const recentActivity = await prisma.activity_feed.findMany({
@@ -84,12 +100,13 @@ export async function GET() {
     // Check if they were active in the last hour
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const isOnline = profile.last_activity_date && new Date(profile.last_activity_date) > oneHourAgo;
+    const isOnline =
+      profile.last_activity_date &&
+      new Date(profile.last_activity_date) > oneHourAgo;
 
     // Get a summary of their activity
-    const activitySummary = activities.length > 0
-      ? getActivitySummary(activities.slice(0, 3))
-      : null;
+    const activitySummary =
+      activities.length > 0 ? getActivitySummary(activities.slice(0, 3)) : null;
 
     return {
       id: profile.id,
@@ -121,27 +138,4 @@ export async function GET() {
     totalActive,
     totalFriends: friendIds.length,
   });
-}
-
-interface Activity {
-  type: string;
-  metadata: unknown;
-}
-
-function getActivitySummary(activities: Activity[]): string {
-  if (activities.length === 0) return "";
-
-  const types = activities.map((a) => a.type);
-
-  if (types.includes("QUEST_ITEM_COMPLETED")) {
-    return "Completed a quest item";
-  }
-  if (types.includes("QUEST_COMPLETED")) {
-    return "Finished a quest!";
-  }
-  if (types.includes("PARTY_MEMBER_JOINED")) {
-    return "Joined a party";
-  }
-
-  return `${activities.length} action${activities.length > 1 ? "s" : ""} today`;
-}
+});

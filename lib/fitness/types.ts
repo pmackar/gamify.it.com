@@ -218,6 +218,7 @@ export interface Program {
   durationWeeks: number;        // Total duration in weeks (or cycles for microcycle)
   goal: 'strength' | 'hypertrophy' | 'endurance' | 'general';
   goalPriorities?: string[];    // ['strength', 'hypertrophy', ...] in priority order
+  excludedGoals?: string[];     // Goals excluded from priority list
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   // Periodization
   periodization?: 'linear' | 'undulating' | 'block' | 'none';
@@ -274,7 +275,7 @@ export interface FitnessState {
   records: Record<string, number>;
   recordsMeta: Record<string, PRMeta>;  // Metadata about each PR
   achievements: string[];
-  customExercises: { id: string; name: string; muscle: string }[];
+  customExercises: { id: string; name: string; muscle: string; tier?: number }[];
   templates: WorkoutTemplate[];
   programs: Program[];
   activeProgram: ActiveProgram | null;

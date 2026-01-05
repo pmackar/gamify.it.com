@@ -1,24 +1,30 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { getRarityColor, getRarityGlow, ItemRarity } from '@/lib/loot';
 
 interface LootDropItem {
   code: string;
   name: string;
   icon: string;
-  rarity: ItemRarity;
+  rarity?: ItemRarity;
+  description?: string;
+  type?: string;
 }
 
 interface LootDrop {
   item: LootDropItem;
+  rarity?: ItemRarity;
   quantity: number;
   instantXP?: number;
-  message: string;
+  message?: string;
+  bonuses?: string[];
+  isWorkoutLoot?: boolean;
 }
 
 interface LootDropContextType {
   showLootDrop: (drop: LootDrop) => void;
+  showWorkoutLoot: (drop: LootDrop) => void;
 }
 
 const LootDropContext = createContext<LootDropContextType | null>(null);
@@ -38,8 +44,10 @@ function LootDropNotification({
   drop: LootDrop;
   onClose: () => void;
 }) {
-  const rarityColor = getRarityColor(drop.item.rarity);
-  const rarityGlow = getRarityGlow(drop.item.rarity);
+  const rarity = drop.rarity || drop.item.rarity || 'COMMON';
+  const rarityColor = getRarityColor(rarity);
+  const rarityGlow = getRarityGlow(rarity);
+  const message = drop.message || `Found ${drop.item.name}!`;
 
   return (
     <>
@@ -255,10 +263,20 @@ function LootDropNotification({
             ))}
           </div>
 
-          <div className="loot-rarity">{drop.item.rarity} DROP!</div>
+          <div className="loot-rarity">{rarity} DROP!</div>
           <div className="loot-icon">{drop.item.icon}</div>
           <div className="loot-name">{drop.item.name}</div>
-          <div className="loot-message">{drop.message}</div>
+          <div className="loot-message">{message}</div>
+          {drop.bonuses && drop.bonuses.length > 0 && (
+            <div className="loot-bonuses" style={{
+              fontSize: '0.4rem',
+              color: '#5fbf8a',
+              marginBottom: '0.5rem',
+              fontFamily: "'Press Start 2P', monospace",
+            }}>
+              Bonus: {drop.bonuses.join(', ')}
+            </div>
+          )}
 
           {drop.instantXP && (
             <div className="loot-xp">
@@ -276,11 +294,205 @@ function LootDropNotification({
   );
 }
 
+// Chest animation component for workout loot
+function WorkoutLootChest({
+  drop,
+  onOpen,
+}: {
+  drop: LootDrop;
+  onOpen: () => void;
+}) {
+  const [isOpening, setIsOpening] = useState(false);
+  const rarity = drop.rarity || 'COMMON';
+  const rarityColor = getRarityColor(rarity);
+  const rarityGlow = getRarityGlow(rarity);
+
+  const handleOpen = () => {
+    setIsOpening(true);
+    // Delay before showing the loot
+    setTimeout(onOpen, 800);
+  };
+
+  return (
+    <>
+      <style jsx>{`
+        .chest-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(8px);
+          z-index: 10002;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .chest-title {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.8rem;
+          color: #FFD700;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          margin-bottom: 2rem;
+          text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.02); }
+        }
+
+        .chest-container {
+          position: relative;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+
+        .chest-container:hover {
+          transform: scale(1.05);
+        }
+
+        .chest-container:active {
+          transform: scale(0.98);
+        }
+
+        .chest {
+          font-size: 6rem;
+          filter: drop-shadow(0 0 30px ${rarityGlow});
+          animation: chestBounce 1.5s ease-in-out infinite;
+        }
+
+        .chest.opening {
+          animation: chestOpen 0.8s ease forwards;
+        }
+
+        @keyframes chestBounce {
+          0%, 100% { transform: translateY(0) rotate(-2deg); }
+          25% { transform: translateY(-10px) rotate(2deg); }
+          50% { transform: translateY(0) rotate(-2deg); }
+          75% { transform: translateY(-5px) rotate(1deg); }
+        }
+
+        @keyframes chestOpen {
+          0% { transform: scale(1) rotate(0deg); }
+          30% { transform: scale(1.2) rotate(-5deg); }
+          50% { transform: scale(1.3) rotate(5deg); filter: brightness(2); }
+          70% { transform: scale(1.1) rotate(-2deg); }
+          100% { transform: scale(0) rotate(10deg); opacity: 0; }
+        }
+
+        .chest-glow {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 200px;
+          height: 200px;
+          background: radial-gradient(circle, ${rarityGlow} 0%, transparent 70%);
+          transform: translate(-50%, -50%);
+          animation: glowPulse 2s ease-in-out infinite;
+          pointer-events: none;
+        }
+
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+          50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .chest-prompt {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: #888;
+          margin-top: 2rem;
+          animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .chest-bonuses {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: #5fbf8a;
+          margin-top: 1rem;
+          text-align: center;
+          max-width: 300px;
+        }
+
+        .particles {
+          position: absolute;
+          inset: -50px;
+          pointer-events: none;
+        }
+
+        .particle {
+          position: absolute;
+          width: 4px;
+          height: 4px;
+          background: ${rarityColor};
+          border-radius: 50%;
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+          50% { transform: translateY(-30px) rotate(180deg); opacity: 1; }
+        }
+      `}</style>
+
+      <div className="chest-overlay">
+        <div className="chest-title">Workout Complete!</div>
+
+        <div className="chest-container" onClick={handleOpen}>
+          <div className="chest-glow" />
+          <div className="particles">
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className="particle"
+                style={{
+                  left: `${20 + Math.random() * 60}%`,
+                  top: `${20 + Math.random() * 60}%`,
+                  animationDelay: `${i * 0.25}s`,
+                }}
+              />
+            ))}
+          </div>
+          <div className={`chest ${isOpening ? 'opening' : ''}`}>📦</div>
+        </div>
+
+        {!isOpening && (
+          <>
+            <div className="chest-prompt">TAP TO OPEN</div>
+            {drop.bonuses && drop.bonuses.length > 0 && (
+              <div className="chest-bonuses">
+                Rarity boosted by: {drop.bonuses.join(', ')}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 export function LootDropProvider({ children }: { children: ReactNode }) {
   const [currentDrop, setCurrentDrop] = useState<LootDrop | null>(null);
+  const [showChest, setShowChest] = useState(false);
+  const [pendingWorkoutDrop, setPendingWorkoutDrop] = useState<LootDrop | null>(null);
 
   const showLootDrop = useCallback((drop: LootDrop) => {
     setCurrentDrop(drop);
+    setShowChest(false);
 
     // Auto-dismiss after 10 seconds
     setTimeout(() => {
@@ -288,14 +500,65 @@ export function LootDropProvider({ children }: { children: ReactNode }) {
     }, 10000);
   }, []);
 
+  const showWorkoutLoot = useCallback((drop: LootDrop) => {
+    setPendingWorkoutDrop(drop);
+    setShowChest(true);
+  }, []);
+
+  const handleChestOpen = useCallback(() => {
+    setShowChest(false);
+    if (pendingWorkoutDrop) {
+      setCurrentDrop(pendingWorkoutDrop);
+      setPendingWorkoutDrop(null);
+
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => {
+        setCurrentDrop(null);
+      }, 10000);
+    }
+  }, [pendingWorkoutDrop]);
+
   const closeDrop = useCallback(() => {
     setCurrentDrop(null);
   }, []);
 
+  // Listen for loot-dropped event (from workout completion)
+  useEffect(() => {
+    const handleLootDropped = (event: CustomEvent) => {
+      const detail = event.detail;
+      if (detail?.isWorkoutLoot) {
+        showWorkoutLoot({
+          item: detail.item,
+          rarity: detail.rarity,
+          quantity: 1,
+          instantXP: detail.instantXP,
+          bonuses: detail.bonuses,
+          isWorkoutLoot: true,
+        });
+      } else {
+        showLootDrop({
+          item: detail.item,
+          rarity: detail.rarity,
+          quantity: 1,
+          instantXP: detail.instantXP,
+          message: detail.message,
+        });
+      }
+    };
+
+    window.addEventListener('loot-dropped', handleLootDropped as EventListener);
+    return () => {
+      window.removeEventListener('loot-dropped', handleLootDropped as EventListener);
+    };
+  }, [showLootDrop, showWorkoutLoot]);
+
   return (
-    <LootDropContext.Provider value={{ showLootDrop }}>
+    <LootDropContext.Provider value={{ showLootDrop, showWorkoutLoot }}>
       {children}
-      {currentDrop && (
+      {showChest && pendingWorkoutDrop && (
+        <WorkoutLootChest drop={pendingWorkoutDrop} onOpen={handleChestOpen} />
+      )}
+      {currentDrop && !showChest && (
         <LootDropNotification drop={currentDrop} onClose={closeDrop} />
       )}
     </LootDropContext.Provider>

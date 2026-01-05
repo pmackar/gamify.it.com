@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
+import { withAuth, Errors } from '@/lib/api';
 import prisma from '@/lib/db';
 import { rollForLoot, LootDrop } from '@/lib/loot';
 
@@ -9,21 +9,15 @@ import { rollForLoot, LootDrop } from '@/lib/loot';
  * Roll for a loot drop after completing an action
  * Called internally by XP API or directly from clients
  */
-export async function POST(request: Request) {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json();
+  const { source, boosted = false } = body;
 
-    const body = await request.json();
-    const { source, boosted = false } = body;
-
-    // Valid sources: 'task', 'workout', 'location', 'quest', 'daily_reward'
-    const validSources = ['task', 'workout', 'location', 'quest', 'daily_reward', 'achievement'];
-    if (!validSources.includes(source)) {
-      return NextResponse.json({ error: 'Invalid source' }, { status: 400 });
-    }
+  // Valid sources: 'task', 'workout', 'location', 'quest', 'daily_reward'
+  const validSources = ['task', 'workout', 'location', 'quest', 'daily_reward', 'achievement'];
+  if (!validSources.includes(source)) {
+    return Errors.invalidInput('Invalid source');
+  }
 
     // Roll for loot
     const result = rollForLoot(boosted);
@@ -76,28 +70,24 @@ export async function POST(request: Request) {
       await addToInventory(user.id, dbItem.id, drop.quantity, source);
     }
 
-    return NextResponse.json({
-      dropped: true,
-      drop: {
-        item: {
-          code: drop.item.code,
-          name: drop.item.name,
-          description: drop.item.description,
-          icon: drop.item.icon,
-          rarity: drop.item.rarity,
-          type: drop.item.type,
-        },
-        quantity: drop.quantity,
-        instantXP: xpAwarded || undefined,
+  return NextResponse.json({
+    dropped: true,
+    drop: {
+      item: {
+        code: drop.item.code,
+        name: drop.item.name,
+        description: drop.item.description,
+        icon: drop.item.icon,
+        rarity: drop.item.rarity,
+        type: drop.item.type,
       },
-      rarity: result.rarity,
-      message: getLootMessage(result.rarity!, drop),
-    });
-  } catch (error) {
-    console.error('Loot roll error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+      quantity: drop.quantity,
+      instantXP: xpAwarded || undefined,
+    },
+    rarity: result.rarity,
+    message: getLootMessage(result.rarity!, drop),
+  });
+});
 
 /**
  * Add item to user's inventory

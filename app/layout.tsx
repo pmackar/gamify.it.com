@@ -13,6 +13,9 @@ import { DailyRewardsProvider } from "@/components/DailyRewards";
 import { LootDropProvider } from "@/components/LootDropPopup";
 import { LevelUpProvider } from "@/components/LevelUpPopup";
 import { XPToastProvider } from "@/components/XPToast";
+import { NotificationProvider } from "@/components/NotificationContext";
+import { ReflectionProvider } from "@/components/fitness/ReflectionProvider";
+import { PRCelebrationProvider } from "@/components/fitness/PRCelebration";
 
 // Inline script to prevent FOUC (flash of unstyled content)
 const themeScript = `
@@ -94,20 +97,26 @@ export default function RootLayout({
           <ThemeProvider>
             <NavBarProvider>
               <XPProvider>
-                <XPToastProvider>
+                <NotificationProvider>
+                  <XPToastProvider>
                   <LevelUpProvider>
                     <DailyRewardsProvider>
                       <LootDropProvider>
                         <AchievementProvider>
-                          <RetroNavBar />
-                          <AppSwitcher />
-                          {children}
-                          <UpdatePrompt />
+                          <ReflectionProvider>
+                            <PRCelebrationProvider>
+                              <RetroNavBar />
+                              <AppSwitcher />
+                              {children}
+                              <UpdatePrompt />
+                            </PRCelebrationProvider>
+                          </ReflectionProvider>
                         </AchievementProvider>
                       </LootDropProvider>
                     </DailyRewardsProvider>
                   </LevelUpProvider>
                 </XPToastProvider>
+                </NotificationProvider>
               </XPProvider>
             </NavBarProvider>
           </ThemeProvider>

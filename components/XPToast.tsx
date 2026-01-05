@@ -1,12 +1,20 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import {
+  useNotifications,
+  dispatchXPQueued,
+  dispatchXPFlush,
+  XPNotificationData,
+  NotificationItem
+} from './NotificationContext';
 
 interface XPGainData {
   amount: number;
   reason?: string;
   multiplier?: number;
   streakBonus?: boolean;
+  app?: 'fitness' | 'travel' | 'today' | 'life' | 'global';
 }
 
 interface XPToastContextType {
@@ -23,15 +31,31 @@ export function useXPToast() {
   return context;
 }
 
-// Custom event for XP gains
+// Custom event for XP gains (kept for backwards compatibility)
 export const XP_GAINED_EVENT = 'xp-gained';
 
-export function dispatchXPGain(amount: number, reason?: string, multiplier?: number, streakBonus?: boolean) {
+// Legacy dispatch function - now queues to batched system
+export function dispatchXPGain(
+  amount: number,
+  reason?: string,
+  multiplier?: number,
+  streakBonus?: boolean,
+  app?: 'fitness' | 'travel' | 'today' | 'life' | 'global'
+) {
   if (typeof window !== 'undefined' && amount > 0) {
+    // Queue to new batched system
+    dispatchXPQueued({ amount, reason, multiplier, streakBonus, app });
+
+    // Also fire legacy event for any existing listeners
     window.dispatchEvent(new CustomEvent(XP_GAINED_EVENT, {
-      detail: { amount, reason, multiplier, streakBonus }
+      detail: { amount, reason, multiplier, streakBonus, app }
     }));
   }
+}
+
+// New: Flush XP notifications for an app (call when exercise/activity completes)
+export function flushXPGain(app?: string) {
+  dispatchXPFlush(app);
 }
 
 interface ToastData extends XPGainData {

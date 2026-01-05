@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api";
 import prisma from "@/lib/db";
 
 interface Workout {
@@ -57,12 +57,7 @@ interface Activity {
 }
 
 // GET /api/fitness/friends-activity - Get friends' recent fitness activity
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(async (request, user) => {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
 
@@ -170,4 +165,4 @@ export async function GET(request: NextRequest) {
       timestamp: a.timestamp.toISOString(),
     })),
   });
-}
+});
