@@ -1407,45 +1407,59 @@ export default function FitnessApp() {
         .set-panel-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.6);
-          backdrop-filter: blur(4px);
-          z-index: 150;
+          background: rgba(0,0,0,0.8);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 9998;
         }
 
         .set-panel {
           position: fixed;
+          top: env(safe-area-inset-top, 0px);
           bottom: 0;
           left: 0;
           right: 0;
           background: var(--bg-elevated);
-          border-top: 1px solid var(--border-light);
           border-radius: 20px 20px 0 0;
-          padding: 16px 16px;
-          padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
-          z-index: 151;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
           animation: slideUp 0.25s ease-out;
-          max-height: 85vh;
+          overflow: hidden;
+        }
+
+        .set-panel-content {
+          flex: 1;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          padding: 16px;
+          padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
         }
+
         @media (min-width: 768px) {
           .set-panel {
+            top: auto;
+            bottom: 0;
             max-width: 500px;
+            max-height: 85vh;
             left: 50%;
             transform: translateX(-50%);
             border-radius: 20px 20px 0 0;
+          }
+          .set-panel-content {
             padding: 24px;
             padding-bottom: 24px;
           }
         }
         @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
         @media (min-width: 768px) {
           @keyframes slideUp {
-            from { transform: translate(-50%, 100%); }
-            to { transform: translate(-50%, 0); }
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
           }
         }
 
@@ -1453,7 +1467,16 @@ export default function FitnessApp() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          padding: 16px;
+          padding-top: calc(16px + env(safe-area-inset-top, 0px));
+          background: var(--bg-elevated);
+          border-bottom: 1px solid var(--border-light);
+          flex-shrink: 0;
+        }
+        @media (min-width: 768px) {
+          .set-panel-header {
+            padding-top: 16px;
+          }
         }
         .set-panel-title {
           font-weight: 600;
@@ -10309,6 +10332,7 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              <div className="set-panel-content">
               {/* Target Prescription from Program/Template */}
               {currentEx && ((currentEx as { _targetWeight?: number })._targetWeight || (currentEx as { _targetReps?: string })._targetReps) && (
                 <div className="target-prescription">
@@ -10557,6 +10581,7 @@ gamify.it.com/fitness`;
                   ))}
                 </div>
               )}
+              </div>{/* end set-panel-content */}
             </div>
           </>
         );
