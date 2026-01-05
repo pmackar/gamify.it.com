@@ -5652,7 +5652,7 @@ export default function FitnessApp() {
 
         /* ===== ANALYTICS ===== */
         .analytics-view {
-          padding: 16px;
+          /* No extra padding - view-content provides it */
         }
 
         .analytics-summary {
@@ -5667,6 +5667,7 @@ export default function FitnessApp() {
           border: 1px solid var(--border);
           border-radius: 12px;
           padding: 12px;
+          overflow: hidden;
         }
 
         .summary-label {
