@@ -24,6 +24,7 @@ import type {
 } from './types';
 import { isLegacyTemplate } from './types';
 import { dispatchXPUpdate } from '@/components/XPContext';
+import { flushXPGain } from '@/components/XPToast';
 import {
   DEFAULT_TEMPLATES,
   MILESTONES,
@@ -608,6 +609,8 @@ export const useFitnessStore = create<FitnessStore>()(
       },
 
       selectExercise: (index: number) => {
+        // Flush any pending XP notifications before switching exercises
+        flushXPGain('fitness');
         set({ currentExerciseIndex: index });
         get().saveState();
       },
@@ -666,12 +669,48 @@ export const useFitnessStore = create<FitnessStore>()(
 
         // Check PR and milestone only for working sets
         if (!isWarmup) {
+          // Capture current PR data BEFORE checkPR updates it
+          const state = get();
+          const previousPRWeight = state.records[exercise.id] || 0;
+          const prMeta = state.recordsMeta[exercise.id];
+
           const isPR = get().checkPR(exercise.id, weight);
           if (isPR) {
             set((state) => ({ workoutPRsHit: state.workoutPRsHit + 1 }));
-            get().showToast(`🏆 New PR: ${weight} lbs!`);
             // Strong haptic for PR
             haptic([100, 50, 100, 50, 200]);
+
+            // Calculate improvement
+            const weightGain = previousPRWeight > 0 ? weight - previousPRWeight : 0;
+            const percentageGain = previousPRWeight > 0
+              ? Math.round((weightGain / previousPRWeight) * 100)
+              : 0;
+
+            // Dispatch enhanced PR celebration
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('pr-achieved', {
+                detail: {
+                  exerciseId: exercise.id,
+                  exerciseName: exercise.name,
+                  newWeight: weight,
+                  newReps: reps,
+                  previousBest: previousPRWeight > 0 ? {
+                    weight: previousPRWeight,
+                    reps: 0, // We don't track PR reps currently
+                    date: prMeta?.date || '',
+                  } : undefined,
+                  firstRecord: prMeta?.firstWeight ? {
+                    weight: prMeta.firstWeight,
+                    reps: 0,
+                    date: prMeta.firstDate || '',
+                  } : undefined,
+                  improvement: {
+                    weightGain,
+                    percentageGain,
+                  },
+                }
+              }));
+            }
           }
 
           const milestone = get().checkMilestone(exercise.id, weight);
@@ -886,6 +925,9 @@ export const useFitnessStore = create<FitnessStore>()(
       },
 
       finishWorkout: async () => {
+        // Flush any pending XP notifications before finishing
+        flushXPGain('fitness');
+
         const state = get();
         if (!state.currentWorkout) return;
 
@@ -951,8 +993,9 @@ export const useFitnessStore = create<FitnessStore>()(
           get().advanceProgramDay();
         }
 
-        // Call unified XP API
+        // Call unified XP API (skip per-XP loot - we use workout-level loot)
         const prsHit = state.workoutPRsHit;
+        const totalSets = completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0);
         try {
           const response = await fetch('/api/xp', {
             method: 'POST',
@@ -961,10 +1004,11 @@ export const useFitnessStore = create<FitnessStore>()(
               appId: 'fitness',
               action: 'workout_complete',
               xpAmount: completedWorkout.totalXP,
+              skipLoot: true, // Use workout-level loot instead
               metadata: {
                 workoutCount: newTotalWorkouts,
                 totalVolume: newTotalVolume,
-                totalSets: completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0),
+                totalSets,
                 prsHit,
               }
             })
@@ -989,6 +1033,49 @@ export const useFitnessStore = create<FitnessStore>()(
           } else {
             get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
           }
+
+          // Roll for workout-level loot (guaranteed drop)
+          const lootResponse = await fetch('/api/loot/workout-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              totalXP: completedWorkout.totalXP,
+              exerciseCount: completedWorkout.exercises.length,
+              prsHit,
+              setCount: totalSets,
+            })
+          });
+
+          if (lootResponse.ok) {
+            const lootData = await lootResponse.json();
+            if (lootData.loot) {
+              // Dispatch loot drop event for the popup
+              window.dispatchEvent(new CustomEvent('loot-dropped', {
+                detail: {
+                  item: lootData.loot.item,
+                  rarity: lootData.loot.rarity,
+                  instantXP: lootData.loot.instantXP,
+                  bonuses: lootData.bonuses,
+                  isWorkoutLoot: true, // Flag for chest animation
+                }
+              }));
+            }
+          }
+
+          // Dispatch reflection prompt after loot
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('show-reflection-prompt', {
+              detail: {
+                workoutId: completedWorkout.id,
+                stats: {
+                  duration: completedWorkout.duration || 0,
+                  exerciseCount: completedWorkout.exercises.length,
+                  setCount: totalSets,
+                  prsHit,
+                }
+              }
+            }));
+          }, 500); // Small delay to let loot animation finish
         } catch {
           // Fallback if API fails
           get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
@@ -1065,6 +1152,8 @@ export const useFitnessStore = create<FitnessStore>()(
         }
 
         // Call unified XP API (silent - don't show full completion toast for auto-complete)
+        const totalSets = completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0);
+        const prsHit = state.workoutPRsHit;
         try {
           await fetch('/api/xp', {
             method: 'POST',
@@ -1073,15 +1162,44 @@ export const useFitnessStore = create<FitnessStore>()(
               appId: 'fitness',
               action: 'workout_complete',
               xpAmount: completedWorkout.totalXP,
+              skipLoot: true, // Use workout-level loot
               metadata: {
                 workoutCount: newTotalWorkouts,
                 totalVolume: newTotalVolume,
-                totalSets: completedWorkout.exercises.reduce((t, e) => t + e.sets.length, 0),
-                prsHit: state.workoutPRsHit,
+                totalSets,
+                prsHit,
                 autoCompleted: true,
               }
             })
           });
+
+          // Roll for workout-level loot (silent for auto-complete)
+          const lootResponse = await fetch('/api/loot/workout-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              totalXP: completedWorkout.totalXP,
+              exerciseCount: completedWorkout.exercises.length,
+              prsHit,
+              setCount: totalSets,
+            })
+          });
+
+          if (lootResponse.ok) {
+            const lootData = await lootResponse.json();
+            if (lootData.loot) {
+              // Dispatch loot drop event (will show when user opens app)
+              window.dispatchEvent(new CustomEvent('loot-dropped', {
+                detail: {
+                  item: lootData.loot.item,
+                  rarity: lootData.loot.rarity,
+                  instantXP: lootData.loot.instantXP,
+                  bonuses: lootData.bonuses,
+                  isWorkoutLoot: true,
+                }
+              }));
+            }
+          }
         } catch {
           // Silent fail for auto-complete
         }

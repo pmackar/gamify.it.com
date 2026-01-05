@@ -7,6 +7,11 @@ import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateEx
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
 import FitnessLeaderboard from './components/FitnessLeaderboard';
+import { StreakDangerBanner } from '@/components/fitness/StreakDangerBanner';
+import { WeeklyWinsModal } from '@/components/fitness/WeeklyWinsModal';
+import { AlmostThereCard } from '@/components/fitness/AlmostThereCard';
+import { AccountabilityCard } from '@/components/fitness/AccountabilityCard';
+import { DailyChallengeCard } from '@/components/fitness/DailyChallengeCard';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
 
@@ -9888,6 +9893,9 @@ gamify.it.com/fitness`;
           {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
+              {/* Streak Danger Banner - shows when user has streak but hasn't worked out today */}
+              <StreakDangerBanner onStartWorkout={() => store.setView('templates')} />
+
               <div className="home-hero" onClick={() => store.setView('analytics')} style={{ cursor: 'pointer' }}>
                 <div className="hero-card">
                   <div className="home-icon">🏋️</div>
@@ -9910,6 +9918,15 @@ gamify.it.com/fitness`;
                   <div className="hero-tap-hint">Tap for Analytics</div>
                 </div>
               </div>
+
+              {/* Almost There - Achievement previews */}
+              <AlmostThereCard />
+
+              {/* Accountability Partners */}
+              <AccountabilityCard />
+
+              {/* Daily Challenges */}
+              <DailyChallengeCard />
 
               {/* Active Program Widget */}
               {store.activeProgram && (() => {
@@ -11584,6 +11601,9 @@ gamify.it.com/fitness`;
             </div>
           );
         })()}
+
+        {/* Weekly Wins Modal - Shows Sunday evening or Monday morning */}
+        <WeeklyWinsModal />
       </div>
     </>
   );

@@ -107,7 +107,7 @@ export const DELETE = withAuth(async (request, user) => {
 
 export const POST = withAuth(async (request, user) => {
   const body = await request.json();
-  const { appId, action, xpAmount, metadata = {} } = body;
+  const { appId, action, xpAmount, metadata = {}, skipLoot = false } = body;
 
   if (!appId || !xpAmount) {
     return Errors.invalidInput('Missing appId or xpAmount');
@@ -277,7 +277,7 @@ export const POST = withAuth(async (request, user) => {
       });
     }
 
-    // --- Roll for Loot Drop ---
+    // --- Roll for Loot Drop (skip if using workout-level loot) ---
     let lootDrop: {
       item: { code: string; name: string; icon: string; rarity: ItemRarity };
       quantity: number;
@@ -285,7 +285,8 @@ export const POST = withAuth(async (request, user) => {
       message: string;
     } | null = null;
 
-    const lootResult = rollForLoot(false);
+    // Skip per-XP loot rolling for fitness (uses workout-level loot instead)
+    const lootResult = skipLoot ? { dropped: false } : rollForLoot(false);
     if (lootResult.dropped && lootResult.drop) {
       const drop = lootResult.drop;
 
