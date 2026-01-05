@@ -3012,6 +3012,95 @@ export default function FitnessApp() {
           color: var(--text-primary);
         }
 
+        /* Milestones Carousel */
+        .milestones-carousel-section {
+          padding: 0 16px 24px;
+        }
+
+        .milestones-carousel {
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          padding: 4px 0;
+        }
+
+        .milestones-carousel::-webkit-scrollbar {
+          display: none;
+        }
+
+        .milestone-progress-card {
+          flex: 0 0 280px;
+          scroll-snap-align: start;
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(236, 72, 153, 0.1) 100%);
+          border: 1px solid rgba(168, 85, 247, 0.3);
+          border-radius: 16px;
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .milestone-progress-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(168, 85, 247, 0.5);
+          box-shadow: 0 4px 20px rgba(168, 85, 247, 0.2);
+        }
+
+        .milestone-icon {
+          font-size: 32px;
+          flex-shrink: 0;
+        }
+
+        .milestone-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .milestone-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+
+        .milestone-exercise {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-bottom: 8px;
+        }
+
+        .milestone-progress-bar {
+          height: 6px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+
+        .milestone-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #a855f7 0%, #ec4899 100%);
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+
+        .milestone-progress-text {
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+
+        .milestone-xp {
+          font-size: 14px;
+          font-weight: 700;
+          color: #FFD700;
+          flex-shrink: 0;
+        }
+
         .recent-section {
           padding: 0 16px;
         }
@@ -9484,6 +9573,49 @@ gamify.it.com/fitness`;
                           </button>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Almost There - Upcoming Milestones Carousel */}
+              {(() => {
+                const upcomingMilestones = store.getUpcomingMilestones();
+                if (upcomingMilestones.length === 0) return null;
+
+                return (
+                  <div className="milestones-carousel-section">
+                    <div className="section-header">
+                      <p className="section-label">Almost There!</p>
+                      <h2 className="section-title">Upcoming Milestones</h2>
+                    </div>
+                    <div className="milestones-carousel">
+                      {upcomingMilestones.map((milestone) => (
+                        <div
+                          key={`${milestone.exerciseId}-${milestone.targetWeight}`}
+                          className="milestone-progress-card"
+                          onClick={() => {
+                            setChartExerciseId(milestone.exerciseId);
+                            setShowProgressChart(true);
+                          }}
+                        >
+                          <div className="milestone-icon">{milestone.milestoneIcon}</div>
+                          <div className="milestone-info">
+                            <div className="milestone-name">{milestone.milestoneName}</div>
+                            <div className="milestone-exercise">{milestone.exerciseName}</div>
+                            <div className="milestone-progress-bar">
+                              <div
+                                className="milestone-progress-fill"
+                                style={{ width: `${milestone.progress}%` }}
+                              />
+                            </div>
+                            <div className="milestone-progress-text">
+                              {milestone.currentPR}/{milestone.targetWeight} lbs
+                            </div>
+                          </div>
+                          <div className="milestone-xp">+{milestone.xpReward} XP</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
