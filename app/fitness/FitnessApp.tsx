@@ -5583,20 +5583,24 @@ export default function FitnessApp() {
         }
 
         /* Volume Chart */
+        .volume-chart-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
         .volume-chart {
           display: flex;
           align-items: flex-end;
-          height: 120px;
+          height: 100px;
           gap: 6px;
-          padding: 8px 0;
         }
 
         .chart-bar-container {
           flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
           height: 100%;
+          display: flex;
+          align-items: flex-end;
         }
 
         .chart-bar {
@@ -5607,10 +5611,16 @@ export default function FitnessApp() {
           transition: height 0.3s ease;
         }
 
+        .chart-labels {
+          display: flex;
+          gap: 6px;
+        }
+
         .chart-label {
-          font-size: 9px;
+          flex: 1;
+          font-size: 10px;
           color: var(--text-tertiary);
-          margin-top: 4px;
+          text-align: center;
         }
 
         .chart-legend {
@@ -8080,16 +8090,22 @@ gamify.it.com/fitness`;
                 {/* Volume Chart */}
                 <div className="analytics-section">
                   <h3 className="section-title">Volume Trend</h3>
-                  <div className="volume-chart">
-                    {volumeByWeek.map((week, idx) => (
-                      <div key={idx} className="chart-bar-container">
-                        <div
-                          className="chart-bar"
-                          style={{ height: `${(week.volume / maxVolume) * 100}%` }}
-                        />
-                        <div className="chart-label">{week.week.split(' ')[0]}</div>
-                      </div>
-                    ))}
+                  <div className="volume-chart-wrapper">
+                    <div className="volume-chart">
+                      {volumeByWeek.map((week, idx) => (
+                        <div key={idx} className="chart-bar-container">
+                          <div
+                            className="chart-bar"
+                            style={{ height: `${(week.volume / maxVolume) * 100}%` }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="chart-labels">
+                      {volumeByWeek.map((week, idx) => (
+                        <div key={idx} className="chart-label">{week.week.split(' ')[0]}</div>
+                      ))}
+                    </div>
                   </div>
                   <div className="chart-legend">Volume (lbs) over last 8 weeks</div>
                 </div>
