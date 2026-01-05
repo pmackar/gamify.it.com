@@ -11360,11 +11360,13 @@ gamify.it.com/fitness`;
 function SocialView({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenge'>('challenge');
   const [challenge, setChallenge] = useState<any>(null);
+  const [dailyChallenge, setDailyChallenge] = useState<any>(null);
   const [weeklyStats, setWeeklyStats] = useState<any>(null);
   const [feed, setFeed] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
+  const [claimingDaily, setClaimingDaily] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -11373,8 +11375,10 @@ function SocialView({ onBack }: { onBack: () => void }) {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Get user's timezone offset in minutes
+      const tzOffset = new Date().getTimezoneOffset() * -1; // Invert because getTimezoneOffset returns opposite sign
       const [challengeRes, feedRes, leaderboardRes] = await Promise.all([
-        fetch('/api/fitness/challenges'),
+        fetch(`/api/fitness/challenges?tz=${tzOffset}`),
         fetch('/api/fitness/social?type=feed'),
         fetch('/api/fitness/social?type=leaderboard'),
       ]);
@@ -11382,6 +11386,7 @@ function SocialView({ onBack }: { onBack: () => void }) {
       if (challengeRes.ok) {
         const data = await challengeRes.json();
         setChallenge(data.challenge);
+        setDailyChallenge(data.dailyChallenge);
         setWeeklyStats(data.weeklyStats);
       }
       if (feedRes.ok) {
@@ -11398,24 +11403,45 @@ function SocialView({ onBack }: { onBack: () => void }) {
     setLoading(false);
   };
 
-  const claimReward = async () => {
-    if (!challenge || claiming) return;
-    setClaiming(true);
+  const claimReward = async (isDaily: boolean = false) => {
+    const targetChallenge = isDaily ? dailyChallenge : challenge;
+    if (!targetChallenge || (isDaily ? claimingDaily : claiming)) return;
+
+    if (isDaily) {
+      setClaimingDaily(true);
+    } else {
+      setClaiming(true);
+    }
+
     try {
+      const tzOffset = new Date().getTimezoneOffset() * -1;
       const res = await fetch('/api/fitness/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challenge_id: challenge.id }),
+        body: JSON.stringify({
+          challenge_id: targetChallenge.id,
+          type: isDaily ? 'daily' : 'weekly',
+          tz: tzOffset,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
-        setChallenge({ ...challenge, claimed: true });
+        if (isDaily) {
+          setDailyChallenge({ ...dailyChallenge, claimed: true });
+        } else {
+          setChallenge({ ...challenge, claimed: true });
+        }
         alert(`🎉 +${data.xp_awarded} XP claimed!`);
       }
     } catch (e) {
       console.error('Failed to claim reward:', e);
     }
-    setClaiming(false);
+
+    if (isDaily) {
+      setClaimingDaily(false);
+    } else {
+      setClaiming(false);
+    }
   };
 
   const formatTimeAgo = (timestamp: string) => {
@@ -11463,50 +11489,104 @@ function SocialView({ onBack }: { onBack: () => void }) {
         </div>
       ) : (
         <>
-          {/* Weekly Challenge Tab */}
-          {activeTab === 'challenge' && challenge && (
+          {/* Challenges Tab */}
+          {activeTab === 'challenge' && (
             <div className="challenge-section">
-              <div className="challenge-card">
-                <div className="challenge-header">
-                  <span className="challenge-icon">{challenge.icon}</span>
-                  <div className="challenge-info">
-                    <div className="challenge-name">{challenge.name}</div>
-                    <div className="challenge-desc">{challenge.description}</div>
+              {/* Daily Challenge */}
+              {dailyChallenge && (
+                <>
+                  <div className="challenge-section-label">Daily Challenge</div>
+                  <div className="challenge-card daily">
+                    <div className="challenge-header">
+                      <span className="challenge-icon">{dailyChallenge.icon}</span>
+                      <div className="challenge-info">
+                        <div className="challenge-name">{dailyChallenge.name}</div>
+                        <div className="challenge-desc">{dailyChallenge.description}</div>
+                      </div>
+                      <div className="challenge-timer daily">
+                        {dailyChallenge.hoursUntilReset}h left
+                      </div>
+                    </div>
+                    <div className="challenge-progress">
+                      <div className="challenge-progress-bar daily">
+                        <div
+                          className="challenge-progress-fill daily"
+                          style={{ width: `${dailyChallenge.progressPercent}%` }}
+                        />
+                      </div>
+                      <div className="challenge-progress-text">
+                        {dailyChallenge.progress.toLocaleString()} / {dailyChallenge.target.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="challenge-reward">
+                      <span className="challenge-xp">+{dailyChallenge.xp_reward} XP</span>
+                      {dailyChallenge.completed ? (
+                        dailyChallenge.claimed ? (
+                          <span className="challenge-claimed">✓ Claimed</span>
+                        ) : (
+                          <button
+                            className="challenge-claim-btn"
+                            onClick={() => claimReward(true)}
+                            disabled={claimingDaily}
+                          >
+                            {claimingDaily ? 'Claiming...' : 'Claim Reward'}
+                          </button>
+                        )
+                      ) : (
+                        <span className="challenge-pending">In Progress</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="challenge-timer">
-                    {challenge.daysUntilReset}d left
+                </>
+              )}
+
+              {/* Weekly Challenge */}
+              {challenge && (
+                <>
+                  <div className="challenge-section-label">Weekly Challenge</div>
+                  <div className="challenge-card">
+                    <div className="challenge-header">
+                      <span className="challenge-icon">{challenge.icon}</span>
+                      <div className="challenge-info">
+                        <div className="challenge-name">{challenge.name}</div>
+                        <div className="challenge-desc">{challenge.description}</div>
+                      </div>
+                      <div className="challenge-timer">
+                        {challenge.daysUntilReset}d left
+                      </div>
+                    </div>
+                    <div className="challenge-progress">
+                      <div className="challenge-progress-bar">
+                        <div
+                          className="challenge-progress-fill"
+                          style={{ width: `${challenge.progressPercent}%` }}
+                        />
+                      </div>
+                      <div className="challenge-progress-text">
+                        {challenge.progress.toLocaleString()} / {challenge.target.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="challenge-reward">
+                      <span className="challenge-xp">+{challenge.xp_reward} XP</span>
+                      {challenge.completed ? (
+                        challenge.claimed ? (
+                          <span className="challenge-claimed">✓ Claimed</span>
+                        ) : (
+                          <button
+                            className="challenge-claim-btn"
+                            onClick={() => claimReward(false)}
+                            disabled={claiming}
+                          >
+                            {claiming ? 'Claiming...' : 'Claim Reward'}
+                          </button>
+                        )
+                      ) : (
+                        <span className="challenge-pending">In Progress</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="challenge-progress">
-                  <div className="challenge-progress-bar">
-                    <div
-                      className="challenge-progress-fill"
-                      style={{ width: `${challenge.progressPercent}%` }}
-                    />
-                  </div>
-                  <div className="challenge-progress-text">
-                    {challenge.progress.toLocaleString()} / {challenge.target.toLocaleString()}
-                  </div>
-                </div>
-                <div className="challenge-reward">
-                  <span className="challenge-xp">+{challenge.xp_reward} XP</span>
-                  {challenge.completed ? (
-                    challenge.claimed ? (
-                      <span className="challenge-claimed">✓ Claimed</span>
-                    ) : (
-                      <button
-                        className="challenge-claim-btn"
-                        onClick={claimReward}
-                        disabled={claiming}
-                      >
-                        {claiming ? 'Claiming...' : 'Claim Reward'}
-                      </button>
-                    )
-                  ) : (
-                    <span className="challenge-pending">In Progress</span>
-                  )}
-                </div>
-              </div>
+                </>
+              )}
 
               {weeklyStats && (
                 <div className="weekly-stats-card">
@@ -11758,6 +11838,34 @@ function SocialView({ onBack }: { onBack: () => void }) {
         .challenge-pending {
           color: var(--text-tertiary);
           font-size: 14px;
+        }
+
+        /* Daily Challenge Specific Styles */
+        .challenge-section-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+          margin-top: 8px;
+        }
+        .challenge-section-label:first-child {
+          margin-top: 0;
+        }
+        .challenge-card.daily {
+          border-color: rgba(59, 130, 246, 0.3);
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+        }
+        .challenge-timer.daily {
+          background: rgba(59, 130, 246, 0.15);
+          color: #3b82f6;
+        }
+        .challenge-progress-bar.daily {
+          background: rgba(59, 130, 246, 0.15);
+        }
+        .challenge-progress-fill.daily {
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
         }
 
         /* Weekly Stats */
