@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth, Errors } from '@/lib/api';
 import prisma from '@/lib/db';
-import { EXERCISES } from '@/lib/fitness/data';
 
 interface Challenge {
   id: string;
-  type: 'volume' | 'sets' | 'exercise' | 'pr_attempt' | 'duration';
+  type: 'volume' | 'sets' | 'duration';
   title: string;
   description: string;
   target: number;
@@ -29,8 +28,6 @@ export const GET = withAuth(async (_request, user) => {
 
   const data = fitnessData?.data as any || {};
   const workouts = data.workouts || [];
-  const records = data.records || {};
-  const profile = data.profile || {};
 
   // Calculate user's baseline stats from last 2 weeks
   const twoWeeksAgo = new Date();
@@ -57,7 +54,7 @@ export const GET = withAuth(async (_request, user) => {
     challenges = updateChallengeProgress(storedChallenges, getTodaysWorkout(workouts));
   } else {
     // Generate new challenges based on user's history
-    challenges = generateChallenges(stats, records, dateKey);
+    challenges = generateChallenges(stats, dateKey);
 
     // Save to fitness data
     await prisma.gamify_fitness_data.update({
@@ -212,11 +209,9 @@ function calculateUserStats(workouts: any[]) {
 
 function generateChallenges(
   stats: ReturnType<typeof calculateUserStats>,
-  records: Record<string, number>,
   dateKey: string
 ): Challenge[] {
   const challenges: Challenge[] = [];
-  const seed = hashCode(dateKey);
 
   // Easy challenge: Based on sets
   const easySetTarget = Math.max(6, Math.round(stats.avgSetsPerWorkout * 0.7));
@@ -248,43 +243,20 @@ function generateChallenges(
     completed: false,
   });
 
-  // Hard challenge: Based on user's patterns
-  if (stats.mostUsedExercises.length > 0) {
-    // PR attempt on a favorite exercise
-    const exerciseId = stats.mostUsedExercises[seed % stats.mostUsedExercises.length];
-    const exercise = EXERCISES.find(e => e.id === exerciseId);
-    const currentPR = records[exerciseId] || 0;
-
-    if (exercise && currentPR > 0) {
-      challenges.push({
-        id: `${dateKey}-pr`,
-        type: 'pr_attempt',
-        title: 'PR Hunter',
-        description: `Beat your ${exercise.name} PR (${currentPR} lbs)`,
-        target: currentPR + 5,
-        current: 0,
-        xpReward: 100,
-        difficulty: 'hard',
-        expiresAt: getEndOfDay(),
-        completed: false,
-      });
-    } else {
-      // Fallback: duration challenge
-      const durationTarget = Math.round(stats.avgDuration * 1.2);
-      challenges.push({
-        id: `${dateKey}-duration`,
-        type: 'duration',
-        title: 'Endurance Test',
-        description: `Work out for ${durationTarget}+ minutes`,
-        target: durationTarget,
-        current: 0,
-        xpReward: 75,
-        difficulty: 'hard',
-        expiresAt: getEndOfDay(),
-        completed: false,
-      });
-    }
-  }
+  // Hard challenge: Duration-based (works for any workout type)
+  const durationTarget = Math.max(30, Math.round(stats.avgDuration * 1.2));
+  challenges.push({
+    id: `${dateKey}-duration`,
+    type: 'duration',
+    title: 'Endurance Test',
+    description: `Work out for ${durationTarget}+ minutes`,
+    target: durationTarget,
+    current: 0,
+    xpReward: 75,
+    difficulty: 'hard',
+    expiresAt: getEndOfDay(),
+    completed: false,
+  });
 
   return challenges;
 }
@@ -339,14 +311,4 @@ function getEndOfDay(): string {
   const end = new Date();
   end.setHours(23, 59, 59, 999);
   return end.toISOString();
-}
-
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
 }
