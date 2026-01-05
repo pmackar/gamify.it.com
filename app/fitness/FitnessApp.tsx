@@ -623,6 +623,7 @@ export default function FitnessApp() {
       // Get program prescription from template data if available
       const targetReps = (currentEx as { _targetReps?: string })._targetReps;
       const targetRpe = (currentEx as { _targetRpe?: number })._targetRpe;
+      const targetWeight = (currentEx as { _targetWeight?: number })._targetWeight;
 
       // Parse target reps (handles "8-12" format, takes lower bound)
       const parseTargetReps = (reps?: string): number | null => {
@@ -631,9 +632,10 @@ export default function FitnessApp() {
         return match ? parseInt(match[1], 10) : null;
       };
 
-      // Weight priority: current workout > previous workout > PR > default
+      // Weight priority: current workout > previous workout > program prescription > PR > default
       const weight = lastSet?.weight
         || lastWorkoutSet?.weight
+        || targetWeight
         || store.records[currentEx.id]
         || 135;
 
@@ -1292,6 +1294,19 @@ export default function FitnessApp() {
           font-size: 15px;
           color: var(--text-primary);
           margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .exercise-target {
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--accent);
+          background: rgba(139, 92, 246, 0.15);
+          padding: 2px 8px;
+          border-radius: 6px;
+          white-space: nowrap;
         }
         .exercise-sets {
           display: flex;
@@ -1613,6 +1628,40 @@ export default function FitnessApp() {
         .note-indicator {
           font-size: 14px;
           opacity: 0.7;
+        }
+
+        /* Target Prescription */
+        .target-prescription {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          padding: 10px 12px;
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.1));
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          border-radius: 10px;
+        }
+        .target-label {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--accent);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .target-values {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .target-weight {
+          color: var(--accent);
+        }
+        .target-reps {
+          color: var(--text-primary);
+        }
+        .target-rpe {
+          color: var(--text-secondary);
+          font-weight: 500;
         }
 
         /* Previous Workout Section */
@@ -6805,7 +6854,17 @@ export default function FitnessApp() {
                     <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
                     <div className="exercise-number">{idx + 1}</div>
                     <div className="exercise-info">
-                      <div className="exercise-name">{exercise.name}</div>
+                      <div className="exercise-name">
+                        {exercise.name}
+                        {/* Show target prescription from program/template */}
+                        {((exercise as { _targetReps?: string })._targetReps || (exercise as { _targetWeight?: number })._targetWeight) && (
+                          <span className="exercise-target">
+                            {(exercise as { _targetWeight?: number })._targetWeight && `${(exercise as { _targetWeight?: number })._targetWeight} lbs`}
+                            {(exercise as { _targetWeight?: number })._targetWeight && (exercise as { _targetReps?: string })._targetReps && ' × '}
+                            {(exercise as { _targetReps?: string })._targetReps && `${(exercise as { _targetReps?: string })._targetReps} reps`}
+                          </span>
+                        )}
+                      </div>
                       <div className="exercise-sets">
                         {exercise.sets.length === 0 ? (
                           <span className="set-badge empty">No sets yet</span>
@@ -9944,6 +10003,25 @@ gamify.it.com/fitness`;
                   <button className="minimize-btn" onClick={() => setShowSetPanel(false)} title="Minimize">▼</button>
                 </div>
               </div>
+
+              {/* Target Prescription from Program/Template */}
+              {currentEx && ((currentEx as { _targetWeight?: number })._targetWeight || (currentEx as { _targetReps?: string })._targetReps) && (
+                <div className="target-prescription">
+                  <span className="target-label">Target:</span>
+                  <span className="target-values">
+                    {(currentEx as { _targetWeight?: number })._targetWeight && (
+                      <span className="target-weight">{(currentEx as { _targetWeight?: number })._targetWeight} lbs</span>
+                    )}
+                    {(currentEx as { _targetWeight?: number })._targetWeight && (currentEx as { _targetReps?: string })._targetReps && ' × '}
+                    {(currentEx as { _targetReps?: string })._targetReps && (
+                      <span className="target-reps">{(currentEx as { _targetReps?: string })._targetReps} reps</span>
+                    )}
+                    {(currentEx as { _targetRpe?: number })._targetRpe && (
+                      <span className="target-rpe"> @RPE {(currentEx as { _targetRpe?: number })._targetRpe}</span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               {/* Previous Workout Display */}
               {lastWorkoutEx && lastWorkoutEx.sets.length > 0 && editingSetIndex === null && (

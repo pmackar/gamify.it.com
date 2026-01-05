@@ -460,6 +460,10 @@ export const useFitnessStore = create<FitnessStore>()(
 
         const exercises: WorkoutExercise[] = template.exercises.map(ex => {
           const exerciseData = getExerciseById(ex.exerciseId);
+          // Calculate suggested weight based on progression rules or PR
+          const suggestedWeight = get().calculateSuggestedWeight(ex.exerciseId)
+            || state.records[ex.exerciseId]
+            || null;
           return {
             id: ex.exerciseId,
             name: ex.exerciseName || exerciseData?.name || ex.exerciseId,
@@ -469,6 +473,7 @@ export const useFitnessStore = create<FitnessStore>()(
             _targetSets: ex.targetSets,
             _targetReps: ex.targetReps,
             _targetRpe: ex.targetRpe,
+            _targetWeight: suggestedWeight,
           } as WorkoutExercise;
         });
 
