@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes, getExerciseTier } from '@/lib/fitness/data';
-import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from '@/lib/fitness/types';
+import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule, ExerciseWeightConfig, WeightBasis } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
 import FitnessLeaderboard from './components/FitnessLeaderboard';
@@ -1002,6 +1002,7 @@ export default function FitnessApp() {
           --accent: var(--app-fitness);
           --accent-dark: var(--app-fitness-dark);
           --accent-glow: var(--app-fitness-glow);
+          --accent-rgb: 248, 113, 113; /* RGB values for rgba() usage */
 
           /* Map local vars to theme system for dark/light/terminal support */
           --bg-primary: var(--theme-bg-base);
@@ -1460,45 +1461,59 @@ export default function FitnessApp() {
         .set-panel-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.6);
-          backdrop-filter: blur(4px);
-          z-index: 60;
+          background: rgba(0,0,0,0.8);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 9998;
         }
 
         .set-panel {
           position: fixed;
+          top: env(safe-area-inset-top, 0px);
           bottom: 0;
           left: 0;
           right: 0;
           background: var(--bg-elevated);
-          border-top: 1px solid var(--border-light);
           border-radius: 20px 20px 0 0;
-          padding: 16px 16px;
-          padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
-          z-index: 61;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
           animation: slideUp 0.25s ease-out;
-          max-height: 85vh;
+          overflow: hidden;
+        }
+
+        .set-panel-content {
+          flex: 1;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          padding: 16px;
+          padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
         }
+
         @media (min-width: 768px) {
           .set-panel {
+            top: auto;
+            bottom: 0;
             max-width: 500px;
+            max-height: 85vh;
             left: 50%;
             transform: translateX(-50%);
             border-radius: 20px 20px 0 0;
+          }
+          .set-panel-content {
             padding: 24px;
             padding-bottom: 24px;
           }
         }
         @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
         @media (min-width: 768px) {
           @keyframes slideUp {
-            from { transform: translate(-50%, 100%); }
-            to { transform: translate(-50%, 0); }
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
           }
         }
 
@@ -1506,7 +1521,16 @@ export default function FitnessApp() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          padding: 16px;
+          padding-top: calc(16px + env(safe-area-inset-top, 0px));
+          background: var(--bg-elevated);
+          border-bottom: 1px solid var(--border-light);
+          flex-shrink: 0;
+        }
+        @media (min-width: 768px) {
+          .set-panel-header {
+            padding-top: 16px;
+          }
         }
         .set-panel-title {
           font-weight: 600;
@@ -5233,6 +5257,159 @@ export default function FitnessApp() {
           color: var(--accent) !important;
         }
 
+        /* Weight Configuration Section */
+        .weight-config-section {
+          margin-top: 24px;
+          padding-top: 24px;
+          border-top: 1px solid var(--border);
+        }
+
+        .weight-config-section h4 {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .weight-config-hint {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-bottom: 16px;
+        }
+
+        .weight-config-list {
+          background: var(--surface);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .weight-config-header {
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 8px;
+          padding: 10px 12px;
+          background: var(--surface-hover);
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+
+        .weight-config-row {
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 8px;
+          padding: 12px;
+          border-bottom: 1px solid var(--border);
+          align-items: center;
+        }
+
+        .weight-config-row:last-child {
+          border-bottom: none;
+        }
+
+        .weight-config-row .exercise-name {
+          font-size: 13px;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .weight-basis-selector {
+          display: flex;
+          gap: 2px;
+          background: var(--bg-secondary);
+          border-radius: 6px;
+          padding: 2px;
+        }
+
+        .weight-basis-btn {
+          padding: 6px 10px;
+          font-size: 11px;
+          font-weight: 500;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.15s ease;
+        }
+
+        .weight-basis-btn:hover {
+          color: var(--text-secondary);
+        }
+
+        .weight-basis-btn.active {
+          background: var(--accent);
+          color: var(--bg-primary);
+        }
+
+        .weight-config-inputs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 120px;
+        }
+
+        .weight-config-inputs .form-input {
+          width: 60px;
+          padding: 6px 8px;
+          font-size: 13px;
+          text-align: center;
+        }
+
+        .weight-config-inputs .unit {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+
+        .weight-config-inputs .pr-display {
+          font-size: 12px;
+          color: var(--text-secondary);
+          padding: 6px 10px;
+          background: var(--surface-hover);
+          border-radius: 4px;
+        }
+
+        .weight-config-inputs .working-weight {
+          font-size: 11px;
+          color: var(--accent);
+        }
+
+        .percentage-input {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .percentage-input .form-input {
+          width: 50px;
+        }
+
+        @media (max-width: 480px) {
+          .weight-config-header {
+            display: none;
+          }
+
+          .weight-config-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .weight-config-row .exercise-name {
+            font-weight: 500;
+          }
+
+          .weight-basis-selector {
+            justify-content: center;
+          }
+
+          .weight-config-inputs {
+            justify-content: center;
+          }
+        }
+
         /* Review Section */
         .review-section {
           background: var(--surface);
@@ -5720,7 +5897,7 @@ export default function FitnessApp() {
 
         /* ===== ANALYTICS ===== */
         .analytics-view {
-          padding: 16px;
+          /* No extra padding - view-content provides it */
         }
 
         .analytics-summary {
@@ -5735,6 +5912,7 @@ export default function FitnessApp() {
           border: 1px solid var(--border);
           border-radius: 12px;
           padding: 12px;
+          overflow: hidden;
         }
 
         .summary-label {
@@ -9784,6 +9962,115 @@ gamify.it.com/fitness`;
                       </div>
                     )}
 
+                    {/* Weight Configuration Section */}
+                    {programExercises.length > 0 && (
+                      <div className="weight-config-section">
+                        <h4>Starting Weights</h4>
+                        <p className="weight-config-hint">
+                          Choose how to determine starting weights for each exercise
+                        </p>
+                        <div className="weight-config-list">
+                          <div className="weight-config-header">
+                            <span>Exercise</span>
+                            <span>Weight Basis</span>
+                            <span>Value</span>
+                          </div>
+                          {programExercises.map(ex => {
+                            const weightConfigs = store.programWizardData.exerciseWeightConfigs || [];
+                            const exConfig = weightConfigs.find(c => c.exerciseId === ex.id) || {
+                              exerciseId: ex.id,
+                              weightBasis: 'auto' as const,
+                            };
+                            const pr = store.records[ex.id];
+                            const workingWeight = exConfig.weightBasis === 'max' && exConfig.maxWeight
+                              ? Math.round((exConfig.maxWeight * (exConfig.workingPercentage || 0.75)) / 5) * 5
+                              : null;
+
+                            const updateExConfig = (updates: Partial<typeof exConfig>) => {
+                              const configs = [...(store.programWizardData.exerciseWeightConfigs || [])];
+                              const idx = configs.findIndex(c => c.exerciseId === ex.id);
+                              const newConfig = { ...exConfig, ...updates };
+                              if (idx >= 0) {
+                                configs[idx] = newConfig;
+                              } else {
+                                configs.push(newConfig);
+                              }
+                              store.updateProgramWizardData({ exerciseWeightConfigs: configs });
+                            };
+
+                            return (
+                              <div key={ex.id} className="weight-config-row">
+                                <span className="exercise-name">{ex.name}</span>
+                                <div className="weight-basis-selector">
+                                  <button
+                                    className={`weight-basis-btn ${exConfig.weightBasis === 'auto' ? 'active' : ''}`}
+                                    onClick={() => updateExConfig({ weightBasis: 'auto' })}
+                                  >
+                                    Auto
+                                  </button>
+                                  <button
+                                    className={`weight-basis-btn ${exConfig.weightBasis === 'max' ? 'active' : ''}`}
+                                    onClick={() => updateExConfig({ weightBasis: 'max', workingPercentage: exConfig.workingPercentage || 0.75 })}
+                                  >
+                                    Max
+                                  </button>
+                                  <button
+                                    className={`weight-basis-btn ${exConfig.weightBasis === 'starting' ? 'active' : ''}`}
+                                    onClick={() => updateExConfig({ weightBasis: 'starting' })}
+                                  >
+                                    Starting
+                                  </button>
+                                </div>
+                                <div className="weight-config-inputs">
+                                  {exConfig.weightBasis === 'auto' && (
+                                    <span className="pr-display">
+                                      {pr ? `PR: ${pr} lbs` : 'No PR'}
+                                    </span>
+                                  )}
+                                  {exConfig.weightBasis === 'max' && (
+                                    <>
+                                      <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="1RM"
+                                        value={exConfig.maxWeight || ''}
+                                        onChange={(e) => updateExConfig({ maxWeight: parseInt(e.target.value) || undefined })}
+                                      />
+                                      <div className="percentage-input">
+                                        <span className="unit">@</span>
+                                        <input
+                                          type="number"
+                                          className="form-input"
+                                          value={Math.round((exConfig.workingPercentage || 0.75) * 100)}
+                                          onChange={(e) => updateExConfig({ workingPercentage: (parseInt(e.target.value) || 75) / 100 })}
+                                        />
+                                        <span className="unit">%</span>
+                                      </div>
+                                      {workingWeight && (
+                                        <span className="working-weight">= {workingWeight} lbs</span>
+                                      )}
+                                    </>
+                                  )}
+                                  {exConfig.weightBasis === 'starting' && (
+                                    <>
+                                      <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="Weight"
+                                        value={exConfig.startingWeight || ''}
+                                        onChange={(e) => updateExConfig({ startingWeight: parseInt(e.target.value) || undefined })}
+                                      />
+                                      <span className="unit">lbs</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="wizard-actions">
                       <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(2)}>
                         ← Back
@@ -9852,6 +10139,47 @@ gamify.it.com/fitness`;
                         </div>
                       )}
                     </div>
+
+                    {/* Weight Configs Review */}
+                    {store.programWizardData.exerciseWeightConfigs && store.programWizardData.exerciseWeightConfigs.length > 0 && (
+                      <div className="review-section">
+                        <h4>Starting Weights</h4>
+                        <div className="review-progression-details" style={{ flexDirection: 'column', gap: '6px' }}>
+                          {store.programWizardData.exerciseWeightConfigs
+                            .filter(c => c.weightBasis !== 'auto')
+                            .map(c => {
+                              const exName = (() => {
+                                // Find exercise name from templates
+                                for (const day of store.programWizardData.weeks?.[0]?.days || []) {
+                                  if (day.templateId) {
+                                    const template = store.templates.find(t => t.id === day.templateId);
+                                    const ex = template?.exercises.find(e => e.exerciseId === c.exerciseId);
+                                    if (ex) return ex.exerciseName;
+                                  }
+                                }
+                                return c.exerciseId;
+                              })();
+
+                              if (c.weightBasis === 'max' && c.maxWeight) {
+                                const workingWeight = Math.round((c.maxWeight * (c.workingPercentage || 0.75)) / 5) * 5;
+                                return (
+                                  <span key={c.exerciseId}>
+                                    {exName}: {c.maxWeight} lbs max @ {Math.round((c.workingPercentage || 0.75) * 100)}% = {workingWeight} lbs
+                                  </span>
+                                );
+                              }
+                              if (c.weightBasis === 'starting' && c.startingWeight) {
+                                return (
+                                  <span key={c.exerciseId}>
+                                    {exName}: Start at {c.startingWeight} lbs
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="wizard-actions">
                       <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(3)}>
@@ -10523,6 +10851,7 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              <div className="set-panel-content">
               {/* Target Prescription from Program/Template */}
               {currentEx && ((currentEx as { _targetWeight?: number })._targetWeight || (currentEx as { _targetReps?: string })._targetReps) && (
                 <div className="target-prescription">
@@ -10771,6 +11100,7 @@ gamify.it.com/fitness`;
                   ))}
                 </div>
               )}
+              </div>{/* end set-panel-content */}
             </div>
           </>
         );
@@ -11931,11 +12261,13 @@ gamify.it.com/fitness`;
 function SocialView({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenge'>('challenge');
   const [challenge, setChallenge] = useState<any>(null);
+  const [dailyChallenge, setDailyChallenge] = useState<any>(null);
   const [weeklyStats, setWeeklyStats] = useState<any>(null);
   const [feed, setFeed] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
+  const [claimingDaily, setClaimingDaily] = useState(false);
   const [workoutProps, setWorkoutProps] = useState<Record<string, { count: number; hasGivenProps: boolean }>>({});
   const [givingProps, setGivingProps] = useState<string | null>(null);
 
@@ -11946,8 +12278,10 @@ function SocialView({ onBack }: { onBack: () => void }) {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Get user's timezone offset in minutes
+      const tzOffset = new Date().getTimezoneOffset() * -1; // Invert because getTimezoneOffset returns opposite sign
       const [challengeRes, feedRes, leaderboardRes] = await Promise.all([
-        fetch('/api/fitness/challenges'),
+        fetch(`/api/fitness/challenges?tz=${tzOffset}`),
         fetch('/api/fitness/social?type=feed'),
         fetch('/api/fitness/social?type=leaderboard'),
       ]);
@@ -11955,6 +12289,7 @@ function SocialView({ onBack }: { onBack: () => void }) {
       if (challengeRes.ok) {
         const data = await challengeRes.json();
         setChallenge(data.challenge);
+        setDailyChallenge(data.dailyChallenge);
         setWeeklyStats(data.weeklyStats);
       }
 
@@ -12024,24 +12359,45 @@ function SocialView({ onBack }: { onBack: () => void }) {
     setGivingProps(null);
   };
 
-  const claimReward = async () => {
-    if (!challenge || claiming) return;
-    setClaiming(true);
+  const claimReward = async (isDaily: boolean = false) => {
+    const targetChallenge = isDaily ? dailyChallenge : challenge;
+    if (!targetChallenge || (isDaily ? claimingDaily : claiming)) return;
+
+    if (isDaily) {
+      setClaimingDaily(true);
+    } else {
+      setClaiming(true);
+    }
+
     try {
+      const tzOffset = new Date().getTimezoneOffset() * -1;
       const res = await fetch('/api/fitness/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challenge_id: challenge.id }),
+        body: JSON.stringify({
+          challenge_id: targetChallenge.id,
+          type: isDaily ? 'daily' : 'weekly',
+          tz: tzOffset,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
-        setChallenge({ ...challenge, claimed: true });
+        if (isDaily) {
+          setDailyChallenge({ ...dailyChallenge, claimed: true });
+        } else {
+          setChallenge({ ...challenge, claimed: true });
+        }
         alert(`🎉 +${data.xp_awarded} XP claimed!`);
       }
     } catch (e) {
       console.error('Failed to claim reward:', e);
     }
-    setClaiming(false);
+
+    if (isDaily) {
+      setClaimingDaily(false);
+    } else {
+      setClaiming(false);
+    }
   };
 
   const formatTimeAgo = (timestamp: string) => {
@@ -12089,50 +12445,104 @@ function SocialView({ onBack }: { onBack: () => void }) {
         </div>
       ) : (
         <>
-          {/* Weekly Challenge Tab */}
-          {activeTab === 'challenge' && challenge && (
+          {/* Challenges Tab */}
+          {activeTab === 'challenge' && (
             <div className="challenge-section">
-              <div className="challenge-card">
-                <div className="challenge-header">
-                  <span className="challenge-icon">{challenge.icon}</span>
-                  <div className="challenge-info">
-                    <div className="challenge-name">{challenge.name}</div>
-                    <div className="challenge-desc">{challenge.description}</div>
+              {/* Daily Challenge */}
+              {dailyChallenge && (
+                <>
+                  <div className="challenge-section-label">Daily Challenge</div>
+                  <div className="challenge-card daily">
+                    <div className="challenge-header">
+                      <span className="challenge-icon">{dailyChallenge.icon}</span>
+                      <div className="challenge-info">
+                        <div className="challenge-name">{dailyChallenge.name}</div>
+                        <div className="challenge-desc">{dailyChallenge.description}</div>
+                      </div>
+                      <div className="challenge-timer daily">
+                        {dailyChallenge.hoursUntilReset}h left
+                      </div>
+                    </div>
+                    <div className="challenge-progress">
+                      <div className="challenge-progress-bar daily">
+                        <div
+                          className="challenge-progress-fill daily"
+                          style={{ width: `${dailyChallenge.progressPercent}%` }}
+                        />
+                      </div>
+                      <div className="challenge-progress-text">
+                        {dailyChallenge.progress.toLocaleString()} / {dailyChallenge.target.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="challenge-reward">
+                      <span className="challenge-xp">+{dailyChallenge.xp_reward} XP</span>
+                      {dailyChallenge.completed ? (
+                        dailyChallenge.claimed ? (
+                          <span className="challenge-claimed">✓ Claimed</span>
+                        ) : (
+                          <button
+                            className="challenge-claim-btn"
+                            onClick={() => claimReward(true)}
+                            disabled={claimingDaily}
+                          >
+                            {claimingDaily ? 'Claiming...' : 'Claim Reward'}
+                          </button>
+                        )
+                      ) : (
+                        <span className="challenge-pending">In Progress</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="challenge-timer">
-                    {challenge.daysUntilReset}d left
+                </>
+              )}
+
+              {/* Weekly Challenge */}
+              {challenge && (
+                <>
+                  <div className="challenge-section-label">Weekly Challenge</div>
+                  <div className="challenge-card">
+                    <div className="challenge-header">
+                      <span className="challenge-icon">{challenge.icon}</span>
+                      <div className="challenge-info">
+                        <div className="challenge-name">{challenge.name}</div>
+                        <div className="challenge-desc">{challenge.description}</div>
+                      </div>
+                      <div className="challenge-timer">
+                        {challenge.daysUntilReset}d left
+                      </div>
+                    </div>
+                    <div className="challenge-progress">
+                      <div className="challenge-progress-bar">
+                        <div
+                          className="challenge-progress-fill"
+                          style={{ width: `${challenge.progressPercent}%` }}
+                        />
+                      </div>
+                      <div className="challenge-progress-text">
+                        {challenge.progress.toLocaleString()} / {challenge.target.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="challenge-reward">
+                      <span className="challenge-xp">+{challenge.xp_reward} XP</span>
+                      {challenge.completed ? (
+                        challenge.claimed ? (
+                          <span className="challenge-claimed">✓ Claimed</span>
+                        ) : (
+                          <button
+                            className="challenge-claim-btn"
+                            onClick={() => claimReward(false)}
+                            disabled={claiming}
+                          >
+                            {claiming ? 'Claiming...' : 'Claim Reward'}
+                          </button>
+                        )
+                      ) : (
+                        <span className="challenge-pending">In Progress</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="challenge-progress">
-                  <div className="challenge-progress-bar">
-                    <div
-                      className="challenge-progress-fill"
-                      style={{ width: `${challenge.progressPercent}%` }}
-                    />
-                  </div>
-                  <div className="challenge-progress-text">
-                    {challenge.progress.toLocaleString()} / {challenge.target.toLocaleString()}
-                  </div>
-                </div>
-                <div className="challenge-reward">
-                  <span className="challenge-xp">+{challenge.xp_reward} XP</span>
-                  {challenge.completed ? (
-                    challenge.claimed ? (
-                      <span className="challenge-claimed">✓ Claimed</span>
-                    ) : (
-                      <button
-                        className="challenge-claim-btn"
-                        onClick={claimReward}
-                        disabled={claiming}
-                      >
-                        {claiming ? 'Claiming...' : 'Claim Reward'}
-                      </button>
-                    )
-                  ) : (
-                    <span className="challenge-pending">In Progress</span>
-                  )}
-                </div>
-              </div>
+                </>
+              )}
 
               {weeklyStats && (
                 <div className="weekly-stats-card">
@@ -12399,6 +12809,34 @@ function SocialView({ onBack }: { onBack: () => void }) {
         .challenge-pending {
           color: var(--text-tertiary);
           font-size: 14px;
+        }
+
+        /* Daily Challenge Specific Styles */
+        .challenge-section-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+          margin-top: 8px;
+        }
+        .challenge-section-label:first-child {
+          margin-top: 0;
+        }
+        .challenge-card.daily {
+          border-color: rgba(59, 130, 246, 0.3);
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+        }
+        .challenge-timer.daily {
+          background: rgba(59, 130, 246, 0.15);
+          color: #3b82f6;
+        }
+        .challenge-progress-bar.daily {
+          background: rgba(59, 130, 246, 0.15);
+        }
+        .challenge-progress-fill.daily {
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
         }
 
         /* Weekly Stats */

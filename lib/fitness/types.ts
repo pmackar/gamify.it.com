@@ -29,6 +29,10 @@ export interface Workout {
   totalXP: number;
   duration?: number;
   source?: WorkoutSource;  // Where the workout originated (manual = logged in-app)
+  programDayInfo?: {       // If this workout was from a program, track which day
+    weekNumber: number;
+    dayNumber: number;
+  };
 }
 
 export interface WeightEntry {
@@ -220,6 +224,8 @@ export interface Program {
   periodization?: 'linear' | 'undulating' | 'block' | 'none';
   // Deload configuration
   deloadConfig?: DeloadConfig;
+  // Per-exercise weight configuration (max, starting, or auto from history)
+  exerciseWeightConfigs?: ExerciseWeightConfig[];
   createdAt: string;
   updatedAt: string;
 }
@@ -241,6 +247,17 @@ export interface ExerciseProgressEntry {
   consecutiveSuccesses: number;
   consecutiveFailures: number;
   suggestedWeight?: number;
+}
+
+// Weight configuration per exercise in a program
+export type WeightBasis = 'max' | 'starting' | 'auto';
+
+export interface ExerciseWeightConfig {
+  exerciseId: string;
+  weightBasis: WeightBasis;
+  maxWeight?: number;           // 1RM if weightBasis is 'max'
+  startingWeight?: number;      // Starting weight if weightBasis is 'starting'
+  workingPercentage?: number;   // e.g., 0.75 for 75% of max (used with 'max' basis)
 }
 
 // ============================================

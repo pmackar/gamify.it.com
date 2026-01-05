@@ -4,44 +4,48 @@ import prisma from "@/lib/db";
 // GET /api/fitness/stats - Get aggregate fitness stats for landing page
 export async function GET() {
   try {
-    // Count total sets logged across all users
-    // Sets are stored in workout exercises as JSON arrays
-    const workouts = await prisma.fitness_workouts.findMany({
+    // Get all fitness data from gamify_fitness_data table
+    const allFitnessData = await prisma.gamify_fitness_data.findMany({
       select: {
-        exercises: true,
+        data: true,
       },
     });
 
     let totalSets = 0;
-    workouts.forEach((workout) => {
-      if (workout.exercises && Array.isArray(workout.exercises)) {
-        (workout.exercises as { sets?: unknown[] }[]).forEach((exercise) => {
-          if (exercise.sets && Array.isArray(exercise.sets)) {
-            totalSets += exercise.sets.length;
-          }
-        });
-      }
-    });
-
-    // Count total PRs hit
-    // PRs are stored per user per exercise - count all PR entries
-    const prCount = await prisma.fitness_user_stats.count();
-
-    // Count unique exercises used
+    let totalPRs = 0;
     const exerciseSet = new Set<string>();
-    workouts.forEach((workout) => {
-      if (workout.exercises && Array.isArray(workout.exercises)) {
-        (workout.exercises as { name?: string }[]).forEach((exercise) => {
-          if (exercise.name) {
-            exerciseSet.add(exercise.name.toLowerCase());
-          }
-        });
-      }
+
+    // Aggregate stats from all users' fitness data
+    allFitnessData.forEach((record) => {
+      const data = record.data as any;
+      if (!data) return;
+
+      // Count sets from workouts
+      const workouts = data.workouts || [];
+      workouts.forEach((workout: any) => {
+        if (workout.exercises && Array.isArray(workout.exercises)) {
+          workout.exercises.forEach((exercise: any) => {
+            // Add to unique exercises
+            if (exercise.name) {
+              exerciseSet.add(exercise.name.toLowerCase());
+            }
+            // Count sets
+            if (exercise.sets && Array.isArray(exercise.sets)) {
+              totalSets += exercise.sets.length;
+            }
+          });
+        }
+      });
+
+      // Count PRs from records object
+      const records = data.records || {};
+      totalPRs += Object.keys(records).length;
     });
+
     const uniqueExercises = exerciseSet.size;
 
-    // Count total users
-    const userCount = await prisma.users.count();
+    // Count total users with fitness data
+    const userCount = allFitnessData.length;
 
     // Format numbers for display
     const formatNumber = (num: number): string => {
@@ -53,8 +57,8 @@ export async function GET() {
     return NextResponse.json({
       setsLogged: formatNumber(totalSets),
       setsLoggedRaw: totalSets,
-      prsHit: formatNumber(prCount),
-      prsHitRaw: prCount,
+      prsHit: formatNumber(totalPRs),
+      prsHitRaw: totalPRs,
       exercises: uniqueExercises > 0 ? uniqueExercises : 60, // Default to 60 if no data
       exercisesRaw: uniqueExercises,
       users: formatNumber(userCount),
