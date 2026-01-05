@@ -1409,7 +1409,7 @@ export default function FitnessApp() {
           inset: 0;
           background: rgba(0,0,0,0.6);
           backdrop-filter: blur(4px);
-          z-index: 100;
+          z-index: 150;
         }
 
         .set-panel {
@@ -1422,7 +1422,7 @@ export default function FitnessApp() {
           border-radius: 20px 20px 0 0;
           padding: 16px 16px;
           padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
-          z-index: 101;
+          z-index: 151;
           animation: slideUp 0.25s ease-out;
           max-height: 85vh;
           overflow-y: auto;
