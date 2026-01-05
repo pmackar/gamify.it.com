@@ -29,6 +29,10 @@ export interface Workout {
   totalXP: number;
   duration?: number;
   source?: WorkoutSource;  // Where the workout originated (manual = logged in-app)
+  programDayInfo?: {       // If this workout was from a program, track which day
+    weekNumber: number;
+    dayNumber: number;
+  };
 }
 
 export interface WeightEntry {

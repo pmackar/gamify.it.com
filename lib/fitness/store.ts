@@ -904,10 +904,18 @@ export const useFitnessStore = create<FitnessStore>()(
           ? Math.floor((Date.now() - state.workoutStartTime) / 1000)
           : state.workoutSeconds;
 
+        // Check if this was a program workout
+        const programDayInfo = state.currentProgramDayInfo;
+
         const completedWorkout: Workout = {
           ...state.currentWorkout,
           endTime,
-          duration
+          duration,
+          // Store program day info on workout so we can track it if deleted
+          programDayInfo: programDayInfo ? {
+            weekNumber: programDayInfo.weekNumber,
+            dayNumber: programDayInfo.dayNumber
+          } : undefined
         };
 
         // Calculate total volume for this workout
@@ -917,9 +925,6 @@ export const useFitnessStore = create<FitnessStore>()(
 
         const newTotalWorkouts = state.profile.totalWorkouts + 1;
         const newTotalVolume = state.profile.totalVolume + workoutVolume;
-
-        // Check if this was a program workout
-        const programDayInfo = state.currentProgramDayInfo;
 
         set((state) => {
           // If this was a program workout, track it as completed
@@ -1017,10 +1022,18 @@ export const useFitnessStore = create<FitnessStore>()(
           ? Math.floor((endTimeMs - state.workoutStartTime) / 1000)
           : state.workoutSeconds;
 
+        // Check if this was a program workout
+        const programDayInfo = state.currentProgramDayInfo;
+
         const completedWorkout: Workout = {
           ...state.currentWorkout,
           endTime: endTimeISO,
-          duration
+          duration,
+          // Store program day info on workout so we can track it if deleted
+          programDayInfo: programDayInfo ? {
+            weekNumber: programDayInfo.weekNumber,
+            dayNumber: programDayInfo.dayNumber
+          } : undefined
         };
 
         // Calculate total volume for this workout
@@ -1030,9 +1043,6 @@ export const useFitnessStore = create<FitnessStore>()(
 
         const newTotalWorkouts = state.profile.totalWorkouts + 1;
         const newTotalVolume = state.profile.totalVolume + workoutVolume;
-
-        // Check if this was a program workout
-        const programDayInfo = state.currentProgramDayInfo;
 
         set((state) => {
           // If this was a program workout, track it as completed
@@ -2542,19 +2552,35 @@ export const useFitnessStore = create<FitnessStore>()(
         }, 0) || 0;
         const workoutSets = workout?.exercises.reduce((total, ex) => total + ex.sets.length, 0) || 0;
 
-        set((state) => ({
-          workouts: state.workouts.filter(w => w.id !== workoutId),
-          profile: {
-            ...state.profile,
-            xp: Math.max(0, state.profile.xp - (workout?.totalXP || 0)),
-            totalWorkouts: Math.max(0, state.profile.totalWorkouts - 1),
-            totalVolume: Math.max(0, state.profile.totalVolume - workoutVolume),
-            totalSets: Math.max(0, state.profile.totalSets - workoutSets),
-          },
-          currentView: 'history',
-          selectedWorkoutId: null,
-          pendingSync: true
-        }));
+        // Check if workout was from a program and remove from completedWorkouts
+        const programDayInfo = workout?.programDayInfo;
+
+        set((state) => {
+          // If this was a program workout, remove it from completedWorkouts
+          let activeProgram = state.activeProgram;
+          if (programDayInfo && activeProgram) {
+            const workoutKey = `${programDayInfo.weekNumber}-${programDayInfo.dayNumber}`;
+            activeProgram = {
+              ...activeProgram,
+              completedWorkouts: activeProgram.completedWorkouts.filter(key => key !== workoutKey)
+            };
+          }
+
+          return {
+            workouts: state.workouts.filter(w => w.id !== workoutId),
+            profile: {
+              ...state.profile,
+              xp: Math.max(0, state.profile.xp - (workout?.totalXP || 0)),
+              totalWorkouts: Math.max(0, state.profile.totalWorkouts - 1),
+              totalVolume: Math.max(0, state.profile.totalVolume - workoutVolume),
+              totalSets: Math.max(0, state.profile.totalSets - workoutSets),
+            },
+            activeProgram,
+            currentView: 'history',
+            selectedWorkoutId: null,
+            pendingSync: true
+          };
+        });
         queueSync(get);
         get().showToast('Workout deleted');
       },
