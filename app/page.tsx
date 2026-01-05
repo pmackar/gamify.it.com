@@ -482,7 +482,7 @@ function SplashIntro() {
                   <li className="phase-item">Party Quests (Group Challenges)</li>
                   <li className="phase-item">Activity Feed & Notifications</li>
                   <li className="phase-item">Friend Suggestions</li>
-                  <li className="phase-item">Progressive Opt-In Onboarding</li>
+                  <li className="phase-item">Progressive Opt-In (pick 1+ realms)</li>
                 </ul>
               </div>
             </div>
