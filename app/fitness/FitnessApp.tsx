@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes } from '@/lib/fitness/data';
-import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule } from '@/lib/fitness/types';
+import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule, ExerciseWeightConfig, WeightBasis } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
 import FriendsWorkoutFeed from './components/FriendsWorkoutFeed';
 import FitnessLeaderboard from './components/FitnessLeaderboard';
@@ -5165,6 +5165,159 @@ export default function FitnessApp() {
           color: var(--accent) !important;
         }
 
+        /* Weight Configuration Section */
+        .weight-config-section {
+          margin-top: 24px;
+          padding-top: 24px;
+          border-top: 1px solid var(--border);
+        }
+
+        .weight-config-section h4 {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .weight-config-hint {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-bottom: 16px;
+        }
+
+        .weight-config-list {
+          background: var(--surface);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .weight-config-header {
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 8px;
+          padding: 10px 12px;
+          background: var(--surface-hover);
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+
+        .weight-config-row {
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 8px;
+          padding: 12px;
+          border-bottom: 1px solid var(--border);
+          align-items: center;
+        }
+
+        .weight-config-row:last-child {
+          border-bottom: none;
+        }
+
+        .weight-config-row .exercise-name {
+          font-size: 13px;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .weight-basis-selector {
+          display: flex;
+          gap: 2px;
+          background: var(--bg-secondary);
+          border-radius: 6px;
+          padding: 2px;
+        }
+
+        .weight-basis-btn {
+          padding: 6px 10px;
+          font-size: 11px;
+          font-weight: 500;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.15s ease;
+        }
+
+        .weight-basis-btn:hover {
+          color: var(--text-secondary);
+        }
+
+        .weight-basis-btn.active {
+          background: var(--accent);
+          color: var(--bg-primary);
+        }
+
+        .weight-config-inputs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 120px;
+        }
+
+        .weight-config-inputs .form-input {
+          width: 60px;
+          padding: 6px 8px;
+          font-size: 13px;
+          text-align: center;
+        }
+
+        .weight-config-inputs .unit {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+
+        .weight-config-inputs .pr-display {
+          font-size: 12px;
+          color: var(--text-secondary);
+          padding: 6px 10px;
+          background: var(--surface-hover);
+          border-radius: 4px;
+        }
+
+        .weight-config-inputs .working-weight {
+          font-size: 11px;
+          color: var(--accent);
+        }
+
+        .percentage-input {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .percentage-input .form-input {
+          width: 50px;
+        }
+
+        @media (max-width: 480px) {
+          .weight-config-header {
+            display: none;
+          }
+
+          .weight-config-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .weight-config-row .exercise-name {
+            font-weight: 500;
+          }
+
+          .weight-basis-selector {
+            justify-content: center;
+          }
+
+          .weight-config-inputs {
+            justify-content: center;
+          }
+        }
+
         /* Review Section */
         .review-section {
           background: var(--surface);
@@ -9280,6 +9433,115 @@ gamify.it.com/fitness`;
                       </div>
                     )}
 
+                    {/* Weight Configuration Section */}
+                    {programExercises.length > 0 && (
+                      <div className="weight-config-section">
+                        <h4>Starting Weights</h4>
+                        <p className="weight-config-hint">
+                          Choose how to determine starting weights for each exercise
+                        </p>
+                        <div className="weight-config-list">
+                          <div className="weight-config-header">
+                            <span>Exercise</span>
+                            <span>Weight Basis</span>
+                            <span>Value</span>
+                          </div>
+                          {programExercises.map(ex => {
+                            const weightConfigs = store.programWizardData.exerciseWeightConfigs || [];
+                            const exConfig = weightConfigs.find(c => c.exerciseId === ex.id) || {
+                              exerciseId: ex.id,
+                              weightBasis: 'auto' as const,
+                            };
+                            const pr = store.records[ex.id];
+                            const workingWeight = exConfig.weightBasis === 'max' && exConfig.maxWeight
+                              ? Math.round((exConfig.maxWeight * (exConfig.workingPercentage || 0.75)) / 5) * 5
+                              : null;
+
+                            const updateExConfig = (updates: Partial<typeof exConfig>) => {
+                              const configs = [...(store.programWizardData.exerciseWeightConfigs || [])];
+                              const idx = configs.findIndex(c => c.exerciseId === ex.id);
+                              const newConfig = { ...exConfig, ...updates };
+                              if (idx >= 0) {
+                                configs[idx] = newConfig;
+                              } else {
+                                configs.push(newConfig);
+                              }
+                              store.updateProgramWizardData({ exerciseWeightConfigs: configs });
+                            };
+
+                            return (
+                              <div key={ex.id} className="weight-config-row">
+                                <span className="exercise-name">{ex.name}</span>
+                                <div className="weight-basis-selector">
+                                  <button
+                                    className={`weight-basis-btn ${exConfig.weightBasis === 'auto' ? 'active' : ''}`}
+                                    onClick={() => updateExConfig({ weightBasis: 'auto' })}
+                                  >
+                                    Auto
+                                  </button>
+                                  <button
+                                    className={`weight-basis-btn ${exConfig.weightBasis === 'max' ? 'active' : ''}`}
+                                    onClick={() => updateExConfig({ weightBasis: 'max', workingPercentage: exConfig.workingPercentage || 0.75 })}
+                                  >
+                                    Max
+                                  </button>
+                                  <button
+                                    className={`weight-basis-btn ${exConfig.weightBasis === 'starting' ? 'active' : ''}`}
+                                    onClick={() => updateExConfig({ weightBasis: 'starting' })}
+                                  >
+                                    Starting
+                                  </button>
+                                </div>
+                                <div className="weight-config-inputs">
+                                  {exConfig.weightBasis === 'auto' && (
+                                    <span className="pr-display">
+                                      {pr ? `PR: ${pr} lbs` : 'No PR'}
+                                    </span>
+                                  )}
+                                  {exConfig.weightBasis === 'max' && (
+                                    <>
+                                      <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="1RM"
+                                        value={exConfig.maxWeight || ''}
+                                        onChange={(e) => updateExConfig({ maxWeight: parseInt(e.target.value) || undefined })}
+                                      />
+                                      <div className="percentage-input">
+                                        <span className="unit">@</span>
+                                        <input
+                                          type="number"
+                                          className="form-input"
+                                          value={Math.round((exConfig.workingPercentage || 0.75) * 100)}
+                                          onChange={(e) => updateExConfig({ workingPercentage: (parseInt(e.target.value) || 75) / 100 })}
+                                        />
+                                        <span className="unit">%</span>
+                                      </div>
+                                      {workingWeight && (
+                                        <span className="working-weight">= {workingWeight} lbs</span>
+                                      )}
+                                    </>
+                                  )}
+                                  {exConfig.weightBasis === 'starting' && (
+                                    <>
+                                      <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="Weight"
+                                        value={exConfig.startingWeight || ''}
+                                        onChange={(e) => updateExConfig({ startingWeight: parseInt(e.target.value) || undefined })}
+                                      />
+                                      <span className="unit">lbs</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="wizard-actions">
                       <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(2)}>
                         ← Back
@@ -9348,6 +9610,47 @@ gamify.it.com/fitness`;
                         </div>
                       )}
                     </div>
+
+                    {/* Weight Configs Review */}
+                    {store.programWizardData.exerciseWeightConfigs && store.programWizardData.exerciseWeightConfigs.length > 0 && (
+                      <div className="review-section">
+                        <h4>Starting Weights</h4>
+                        <div className="review-progression-details" style={{ flexDirection: 'column', gap: '6px' }}>
+                          {store.programWizardData.exerciseWeightConfigs
+                            .filter(c => c.weightBasis !== 'auto')
+                            .map(c => {
+                              const exName = (() => {
+                                // Find exercise name from templates
+                                for (const day of store.programWizardData.weeks?.[0]?.days || []) {
+                                  if (day.templateId) {
+                                    const template = store.templates.find(t => t.id === day.templateId);
+                                    const ex = template?.exercises.find(e => e.exerciseId === c.exerciseId);
+                                    if (ex) return ex.exerciseName;
+                                  }
+                                }
+                                return c.exerciseId;
+                              })();
+
+                              if (c.weightBasis === 'max' && c.maxWeight) {
+                                const workingWeight = Math.round((c.maxWeight * (c.workingPercentage || 0.75)) / 5) * 5;
+                                return (
+                                  <span key={c.exerciseId}>
+                                    {exName}: {c.maxWeight} lbs max @ {Math.round((c.workingPercentage || 0.75) * 100)}% = {workingWeight} lbs
+                                  </span>
+                                );
+                              }
+                              if (c.weightBasis === 'starting' && c.startingWeight) {
+                                return (
+                                  <span key={c.exerciseId}>
+                                    {exName}: Start at {c.startingWeight} lbs
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="wizard-actions">
                       <button className="wizard-btn secondary" onClick={() => store.setProgramWizardStep(3)}>

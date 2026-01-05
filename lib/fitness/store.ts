@@ -1975,9 +1975,33 @@ export const useFitnessStore = create<FitnessStore>()(
         const program = state.programs.find(p => p.id === state.activeProgram!.programId);
         if (!program) return null;
 
+        // Check for exercise weight config
+        const weightConfig = program.exerciseWeightConfigs?.find(c => c.exerciseId === exerciseId);
+
         const progress = state.activeProgram.exerciseProgress[exerciseId];
         if (!progress) {
-          // First time - use PR or 0
+          // First time - use weight config or PR
+          if (weightConfig) {
+            switch (weightConfig.weightBasis) {
+              case 'max':
+                if (weightConfig.maxWeight) {
+                  const percentage = weightConfig.workingPercentage || 0.75;
+                  // Round to nearest 5 lbs
+                  return Math.round((weightConfig.maxWeight * percentage) / 5) * 5;
+                }
+                break;
+              case 'starting':
+                if (weightConfig.startingWeight) {
+                  return weightConfig.startingWeight;
+                }
+                break;
+              case 'auto':
+              default:
+                // Fall through to PR-based
+                break;
+            }
+          }
+          // Default: use PR or null
           return state.records[exerciseId] || null;
         }
 
