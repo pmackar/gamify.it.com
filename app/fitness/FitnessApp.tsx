@@ -117,6 +117,7 @@ export default function FitnessApp() {
   const [editingBodyStats, setEditingBodyStats] = useState(false);
   const [heightFeet, setHeightFeet] = useState(5);
   const [heightInches, setHeightInches] = useState(10);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [bodyWeight, setBodyWeight] = useState(0);
   const [unifiedProfile, setUnifiedProfile] = useState<{ level: number; xp: number; xpToNext: number } | null>(null);
 
@@ -168,6 +169,20 @@ export default function FitnessApp() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  // Track keyboard height for modal positioning
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const handleResize = () => {
+      const heightDiff = window.innerHeight - viewport.height;
+      setKeyboardHeight(heightDiff > 100 ? heightDiff : 0);
+    };
+
+    viewport.addEventListener('resize', handleResize);
+    return () => viewport.removeEventListener('resize', handleResize);
   }, []);
 
   // Show onboarding for new users
@@ -1470,7 +1485,7 @@ export default function FitnessApp() {
         .set-panel {
           position: fixed;
           top: env(safe-area-inset-top, 0px);
-          bottom: 0;
+          bottom: var(--keyboard-height, 0px);
           left: 0;
           right: 0;
           background: var(--bg-elevated);
@@ -1480,6 +1495,7 @@ export default function FitnessApp() {
           flex-direction: column;
           animation: slideUp 0.25s ease-out;
           overflow: hidden;
+          transition: bottom 0.15s ease-out;
         }
 
         .set-panel-content {
@@ -2520,6 +2536,7 @@ export default function FitnessApp() {
         .modal-overlay {
           position: fixed;
           inset: 0;
+          bottom: var(--keyboard-height, 0px);
           background: rgba(0,0,0,0.8);
           backdrop-filter: blur(8px);
           display: flex;
@@ -2527,6 +2544,7 @@ export default function FitnessApp() {
           justify-content: center;
           z-index: 100;
           padding: 20px;
+          transition: bottom 0.15s ease-out;
         }
 
         .modal {
@@ -2536,6 +2554,8 @@ export default function FitnessApp() {
           padding: 28px;
           width: 100%;
           max-width: 380px;
+          max-height: calc(100% - 40px);
+          overflow-y: auto;
           box-shadow: 0 24px 80px rgba(0,0,0,0.6);
         }
 
@@ -3264,12 +3284,14 @@ export default function FitnessApp() {
         .exercise-picker-overlay {
           position: fixed;
           inset: 0;
+          bottom: var(--keyboard-height, 0px);
           background: rgba(0, 0, 0, 0.9);
           backdrop-filter: blur(8px);
           z-index: 100;
           display: flex;
           flex-direction: column;
           padding: env(safe-area-inset-top, 20px) 0 env(safe-area-inset-bottom, 20px);
+          transition: bottom 0.15s ease-out;
         }
 
         .exercise-picker-header {
@@ -7290,7 +7312,7 @@ export default function FitnessApp() {
         }
       `}</style>
 
-      <div className="fitness-app text-white">
+      <div className="fitness-app text-white" style={{ '--keyboard-height': `${keyboardHeight}px` } as React.CSSProperties}>
         <PixelParticles />
         {/* Main Content */}
         <main className="content-area" style={{ paddingTop: 'var(--content-top, 100px)' }}>
