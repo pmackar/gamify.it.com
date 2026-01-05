@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseUser } from '@/lib/auth';
+import { withAuth, Errors } from '@/lib/api';
 import prisma from '@/lib/db';
 
 /**
@@ -7,22 +7,13 @@ import prisma from '@/lib/db';
  *
  * Use an item from inventory
  */
-export async function POST(request: Request) {
-  try {
-    const user = await getSupabaseUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json();
+  const { inventoryId, itemCode } = body;
 
-    const body = await request.json();
-    const { inventoryId, itemCode } = body;
-
-    if (!inventoryId && !itemCode) {
-      return NextResponse.json(
-        { error: 'Must provide inventoryId or itemCode' },
-        { status: 400 }
-      );
-    }
+  if (!inventoryId && !itemCode) {
+    return Errors.invalidInput('Must provide inventoryId or itemCode');
+  }
 
     // Find the inventory entry
     let inventoryEntry;
@@ -47,13 +38,13 @@ export async function POST(request: Request) {
       });
     }
 
-    if (!inventoryEntry) {
-      return NextResponse.json({ error: 'Item not found in inventory' }, { status: 404 });
-    }
+  if (!inventoryEntry) {
+    return Errors.notFound('Item not found in inventory');
+  }
 
-    if (inventoryEntry.quantity <= 0) {
-      return NextResponse.json({ error: 'No items remaining' }, { status: 400 });
-    }
+  if (inventoryEntry.quantity <= 0) {
+    return Errors.invalidInput('No items remaining');
+  }
 
     const item = inventoryEntry.item;
     const effects = item.effects as Record<string, unknown> || {};
@@ -92,7 +83,7 @@ export async function POST(request: Request) {
         break;
 
       default:
-        return NextResponse.json({ error: 'Cannot use this item type' }, { status: 400 });
+        return Errors.invalidInput('Cannot use this item type');
     }
 
     // Decrement quantity or remove from inventory
@@ -107,21 +98,17 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      item: {
-        code: item.code,
-        name: item.name,
-        icon: item.icon,
-      },
-      effect: result,
-      remainingQuantity: Math.max(0, inventoryEntry.quantity - 1),
-    });
-  } catch (error) {
-    console.error('Use item error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    success: true,
+    item: {
+      code: item.code,
+      name: item.name,
+      icon: item.icon,
+    },
+    effect: result,
+    remainingQuantity: Math.max(0, inventoryEntry.quantity - 1),
+  });
+});
 
 /**
  * Apply consumable item effects
