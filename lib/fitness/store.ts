@@ -153,6 +153,16 @@ interface FitnessStore extends FitnessState, SyncState {
   // Records & Achievements
   checkPR: (exerciseId: string, weight: number) => boolean;
   checkMilestone: (exerciseId: string, weight: number) => { name: string; icon: string; xp: number } | null;
+  getUpcomingMilestones: () => Array<{
+    exerciseId: string;
+    exerciseName: string;
+    currentPR: number;
+    targetWeight: number;
+    milestoneName: string;
+    milestoneIcon: string;
+    xpReward: number;
+    progress: number;
+  }>;
   editPR: (exerciseId: string, weight: number) => void;
   deletePR: (exerciseId: string) => void;
   recalculatePRsFromHistory: () => void;
@@ -452,6 +462,10 @@ export const useFitnessStore = create<FitnessStore>()(
 
         const exercises: WorkoutExercise[] = template.exercises.map(ex => {
           const exerciseData = getExerciseById(ex.exerciseId);
+          // Calculate suggested weight based on progression rules or PR
+          const suggestedWeight = get().calculateSuggestedWeight(ex.exerciseId)
+            || state.records[ex.exerciseId]
+            || null;
           return {
             id: ex.exerciseId,
             name: ex.exerciseName || exerciseData?.name || ex.exerciseId,
@@ -461,6 +475,7 @@ export const useFitnessStore = create<FitnessStore>()(
             _targetSets: ex.targetSets,
             _targetReps: ex.targetReps,
             _targetRpe: ex.targetRpe,
+            _targetWeight: suggestedWeight,
           } as WorkoutExercise;
         });
 
@@ -1556,6 +1571,59 @@ export const useFitnessStore = create<FitnessStore>()(
           }
         }
         return null;
+      },
+
+      // Get upcoming milestones for all lifts where user has PR but hasn't hit next milestone
+      getUpcomingMilestones: () => {
+        const state = get();
+        const upcoming: Array<{
+          exerciseId: string;
+          exerciseName: string;
+          currentPR: number;
+          targetWeight: number;
+          milestoneName: string;
+          milestoneIcon: string;
+          xpReward: number;
+          progress: number; // percentage 0-100
+        }> = [];
+
+        // Check each exercise that has milestones
+        for (const [exerciseId, milestones] of Object.entries(MILESTONES)) {
+          const currentPR = state.records[exerciseId] || 0;
+          if (currentPR === 0) continue; // Skip if user has no PR for this exercise
+
+          // Find the next unachieved milestone
+          for (const milestone of milestones) {
+            const key = `${exerciseId}_${milestone.weight}`;
+            if (!state.achievements.includes(key)) {
+              // This is the next milestone to achieve
+              const exercise = getExerciseById(exerciseId);
+              // Calculate progress - from previous milestone (or 0) to this milestone
+              const prevMilestoneIdx = milestones.findIndex(m => m.weight === milestone.weight) - 1;
+              const prevWeight = prevMilestoneIdx >= 0 ? milestones[prevMilestoneIdx].weight : 0;
+              const progressRange = milestone.weight - prevWeight;
+              const userProgress = currentPR - prevWeight;
+              const progress = Math.min(Math.round((userProgress / progressRange) * 100), 99);
+
+              if (progress > 0) { // Only show if user has made some progress
+                upcoming.push({
+                  exerciseId,
+                  exerciseName: exercise?.name || exerciseId,
+                  currentPR,
+                  targetWeight: milestone.weight,
+                  milestoneName: milestone.name,
+                  milestoneIcon: milestone.icon,
+                  xpReward: milestone.xp,
+                  progress
+                });
+              }
+              break; // Only show next milestone for each exercise
+            }
+          }
+        }
+
+        // Sort by progress descending (closest to completion first)
+        return upcoming.sort((a, b) => b.progress - a.progress);
       },
 
       saveTemplate: (name: string) => {
