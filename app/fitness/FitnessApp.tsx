@@ -6489,7 +6489,10 @@ export default function FitnessApp() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .content-area { padding-top: var(--content-top, 90px); }
+          .content-area {
+            padding-top: var(--content-top, 90px);
+            padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+          }
         }
 
         /* Mobile FAB and Command Bar - only visible on mobile */
@@ -6688,6 +6691,56 @@ export default function FitnessApp() {
 
           .mobile-close-btn:active {
             background: var(--bg-primary);
+          }
+
+          /* Mobile Bottom Navigation */
+          .mobile-bottom-nav {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            z-index: 90;
+            justify-content: space-around;
+          }
+
+          .mobile-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 10px;
+            cursor: pointer;
+            transition: color 0.15s;
+          }
+
+          .mobile-nav-btn.active {
+            color: var(--accent);
+          }
+
+          .mobile-nav-btn:active {
+            color: var(--accent);
+          }
+
+          .mobile-nav-icon {
+            font-size: 20px;
+          }
+
+          .mobile-nav-label {
+            font-weight: 500;
+          }
+
+          /* Adjust FAB position when bottom nav is present */
+          .mobile-fab-fitness {
+            bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
           }
         }
       `}</style>
@@ -9798,6 +9851,45 @@ gamify.it.com/fitness`;
             +
           </button>
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="mobile-bottom-nav">
+          <button
+            className={`mobile-nav-btn ${store.currentView === 'home' ? 'active' : ''}`}
+            onClick={() => store.setView('home')}
+          >
+            <span className="mobile-nav-icon">🏠</span>
+            <span className="mobile-nav-label">Home</span>
+          </button>
+          <button
+            className={`mobile-nav-btn ${store.currentView === 'exercises' ? 'active' : ''}`}
+            onClick={() => store.setView('exercises')}
+          >
+            <span className="mobile-nav-icon">📚</span>
+            <span className="mobile-nav-label">Exercises</span>
+          </button>
+          <button
+            className={`mobile-nav-btn ${store.currentView === 'history' ? 'active' : ''}`}
+            onClick={() => store.setView('history')}
+          >
+            <span className="mobile-nav-icon">📋</span>
+            <span className="mobile-nav-label">History</span>
+          </button>
+          <button
+            className={`mobile-nav-btn ${store.currentView === 'analytics' ? 'active' : ''}`}
+            onClick={() => store.setView('analytics')}
+          >
+            <span className="mobile-nav-icon">📊</span>
+            <span className="mobile-nav-label">Analytics</span>
+          </button>
+          <button
+            className={`mobile-nav-btn ${store.currentView === 'profile' ? 'active' : ''}`}
+            onClick={() => store.setView('profile')}
+          >
+            <span className="mobile-nav-icon">👤</span>
+            <span className="mobile-nav-label">Profile</span>
+          </button>
+        </nav>
 
         {/* Set Panel */}
         {showSetPanel && store.currentWorkout && (() => {
