@@ -948,6 +948,7 @@ export default function FitnessApp() {
           --accent: var(--app-fitness);
           --accent-dark: var(--app-fitness-dark);
           --accent-glow: var(--app-fitness-glow);
+          --accent-rgb: 248, 113, 113; /* RGB values for rgba() usage */
 
           /* Map local vars to theme system for dark/light/terminal support */
           --bg-primary: var(--theme-bg-base);
