@@ -2601,6 +2601,43 @@ export default function FitnessApp() {
           color: var(--accent);
         }
 
+        /* Profile Link Button */
+        .profile-link-btn {
+          width: 100%;
+          padding: 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.15s;
+          margin-bottom: 16px;
+        }
+
+        .profile-link-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+
+        .profile-link-icon {
+          font-size: 24px;
+        }
+
+        .profile-link-text {
+          flex: 1;
+          text-align: left;
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+
+        .profile-link-arrow {
+          font-size: 20px;
+          color: var(--text-tertiary);
+        }
+
         /* Export Button */
         .export-btn {
           width: 100%;
@@ -3009,6 +3046,14 @@ export default function FitnessApp() {
           border-radius: 12px;
           padding: 14px;
           position: relative;
+          transition: all 0.15s;
+        }
+        .pr-card.clickable {
+          cursor: pointer;
+        }
+        .pr-card.clickable:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
         }
         .pr-card.imported {
           border-color: rgba(59, 130, 246, 0.3);
@@ -6358,6 +6403,127 @@ export default function FitnessApp() {
           margin-bottom: 12px;
         }
 
+        /* ===== EXERCISE LIBRARY VIEW ===== */
+        .exercises-library-view {
+          padding: 16px;
+          padding-bottom: 100px;
+        }
+
+        .exercise-search-container {
+          margin-bottom: 12px;
+        }
+
+        .exercise-search-input {
+          width: 100%;
+          padding: 12px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 16px;
+          outline: none;
+        }
+
+        .exercise-search-input:focus {
+          border-color: var(--accent);
+        }
+
+        .muscle-filter-row {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 12px;
+          margin-bottom: 12px;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .muscle-filter-btn {
+          flex-shrink: 0;
+          padding: 8px 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+
+        .muscle-filter-btn.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: white;
+        }
+
+        .exercise-library-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .exercise-group {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .exercise-group-header {
+          padding: 12px 16px;
+          background: var(--surface-hover);
+          font-weight: 600;
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .exercise-count {
+          color: var(--text-tertiary);
+          font-weight: 400;
+          font-size: 13px;
+        }
+
+        .exercise-library-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          cursor: pointer;
+          transition: background 0.15s;
+          border-bottom: 1px solid var(--border-light);
+        }
+
+        .exercise-library-item:last-child {
+          border-bottom: none;
+        }
+
+        .exercise-library-item:hover {
+          background: var(--surface-hover);
+        }
+
+        .exercise-item-info {
+          flex: 1;
+        }
+
+        .exercise-item-name {
+          font-size: 14px;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+
+        .exercise-item-pr {
+          font-size: 12px;
+          color: var(--accent);
+        }
+
+        .exercise-item-arrow {
+          color: var(--text-tertiary);
+          font-size: 18px;
+        }
+
         /* ===== EXERCISE DETAIL VIEW ===== */
         .exercise-detail-view {
           padding: 16px;
@@ -6491,6 +6657,10 @@ export default function FitnessApp() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 8px;
+        }
+
+        .stats-grid.stats-grid-3col {
+          grid-template-columns: repeat(3, 1fr);
         }
 
         .stat-item {
@@ -7729,9 +7899,18 @@ gamify.it.com/fitness`;
                     const meta = store.recordsMeta[id];
                     const progress = meta?.firstWeight ? weight - meta.firstWeight : 0;
                     const progressPercent = meta?.firstWeight ? Math.round((progress / meta.firstWeight) * 100) : 0;
+                    const reps = meta?.reps || 1;
 
                     return (
-                      <div key={id} className={`pr-card ${meta?.imported ? 'imported' : ''}`}>
+                      <div
+                        key={id}
+                        className={`pr-card clickable ${meta?.imported ? 'imported' : ''}`}
+                        onClick={() => {
+                          setExerciseDetailId(id);
+                          setExerciseDetailReturnView('profile');
+                          store.setView('exercise-detail');
+                        }}
+                      >
                         <div className="pr-header">
                           <div className="pr-exercise">{exercise?.name || id}</div>
                           <div className="pr-actions">
@@ -7762,9 +7941,9 @@ gamify.it.com/fitness`;
                             </button>
                           </div>
                         </div>
-                        <div className="pr-weight">{weight} lbs</div>
+                        <div className="pr-weight">{weight} x {reps}</div>
                         <div className="pr-meta">
-                          {meta?.date && (
+                          {meta?.date && !meta?.imported && (
                             <span className="pr-date">
                               {new Date(meta.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                             </span>
@@ -7781,6 +7960,16 @@ gamify.it.com/fitness`;
                     );
                   })}
               </div>
+
+              {/* Analytics Link */}
+              <button
+                className="profile-link-btn"
+                onClick={() => store.setView('analytics')}
+              >
+                <span className="profile-link-icon">📊</span>
+                <span className="profile-link-text">Analytics Dashboard</span>
+                <span className="profile-link-arrow">›</span>
+              </button>
 
               {/* Export Data */}
               <div className="section-title">Data</div>
@@ -7972,6 +8161,106 @@ gamify.it.com/fitness`;
           {/* Coach View */}
           {store.currentView === 'coach' && (
             <CoachView onBack={() => store.setView('home')} />
+          )}
+
+          {/* Exercise Library View */}
+          {store.currentView === 'exercises' && (
+            <div className="view-content exercises-library-view">
+              <div className="view-header">
+                <span className="view-title">Exercise Library</span>
+              </div>
+
+              {/* Search */}
+              <div className="exercise-search-container">
+                <input
+                  type="text"
+                  className="exercise-search-input"
+                  placeholder="Search exercises..."
+                  value={pickerSearchQuery}
+                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Muscle Group Filter */}
+              <div className="muscle-filter-row">
+                <button
+                  className={`muscle-filter-btn ${!selectedCategory ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  All
+                </button>
+                {MUSCLE_CATEGORIES.map(cat => (
+                  <button
+                    key={cat.id}
+                    className={`muscle-filter-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(cat.id)}
+                  >
+                    {cat.icon} {cat.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Exercise List */}
+              <div className="exercise-library-list">
+                {(() => {
+                  const allExercises = [...EXERCISES, ...store.customExercises.map(ce => ({
+                    id: ce.id,
+                    name: ce.name,
+                    muscle: ce.muscle,
+                    equipment: 'custom',
+                    secondaryMuscles: [],
+                    formTips: [],
+                    commonMistakes: [],
+                  }))];
+
+                  const filteredExercises = allExercises.filter(ex => {
+                    const matchesSearch = !pickerSearchQuery ||
+                      ex.name.toLowerCase().includes(pickerSearchQuery.toLowerCase());
+                    const matchesCategory = !selectedCategory || ex.muscle === selectedCategory;
+                    return matchesSearch && matchesCategory;
+                  });
+
+                  // Group by muscle
+                  const grouped: Record<string, typeof filteredExercises> = {};
+                  filteredExercises.forEach(ex => {
+                    if (!grouped[ex.muscle]) grouped[ex.muscle] = [];
+                    grouped[ex.muscle].push(ex);
+                  });
+
+                  return Object.entries(grouped).map(([muscle, exercises]) => (
+                    <div key={muscle} className="exercise-group">
+                      <div className="exercise-group-header">
+                        {MUSCLE_CATEGORIES.find(m => m.id === muscle)?.icon || '💪'} {muscle.charAt(0).toUpperCase() + muscle.slice(1)}
+                        <span className="exercise-count">({exercises.length})</span>
+                      </div>
+                      {exercises.map(ex => {
+                        const pr = store.records[ex.id];
+                        const prMeta = store.recordsMeta[ex.id];
+                        return (
+                          <div
+                            key={ex.id}
+                            className="exercise-library-item"
+                            onClick={() => {
+                              setExerciseDetailId(ex.id);
+                              setExerciseDetailReturnView('exercises');
+                              store.setView('exercise-detail');
+                            }}
+                          >
+                            <div className="exercise-item-info">
+                              <div className="exercise-item-name">{ex.name}</div>
+                              {pr && (
+                                <div className="exercise-item-pr">PR: {pr} x {prMeta?.reps || 1}</div>
+                              )}
+                            </div>
+                            <span className="exercise-item-arrow">›</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
           )}
 
           {/* Templates View */}
@@ -9193,23 +9482,54 @@ gamify.it.com/fitness`;
             const totalSessions = exerciseWorkouts.length;
             const currentPR = store.records[exerciseDetailId] || 0;
 
-            // Calculate total volume for this exercise
+            // Calculate total volume and find best set (highest e1RM) for this exercise
             let totalVolume = 0;
             let totalSets = 0;
+            let bestSet: { weight: number; reps: number; e1rm: number } | null = null;
+
+            // Epley formula for estimated 1RM: weight * (1 + reps/30)
+            const calcE1RM = (weight: number, reps: number) => {
+              if (reps === 1) return weight;
+              return Math.round(weight * (1 + reps / 30));
+            };
+
             exerciseWorkouts.forEach(w => {
               w.exercises.filter(ex => ex.id === exerciseDetailId).forEach(ex => {
                 ex.sets.forEach(s => {
                   if (!s.isWarmup) {
                     totalVolume += s.weight * s.reps;
                     totalSets++;
+
+                    // Track best set by estimated 1RM
+                    const e1rm = calcE1RM(s.weight, s.reps);
+                    if (!bestSet || e1rm > bestSet.e1rm) {
+                      bestSet = { weight: s.weight, reps: s.reps, e1rm };
+                    }
                   }
                 });
               });
             });
 
-            // Get last workout with this exercise
+            // Get current estimated 1RM from most recent workout
             const lastWorkout = exerciseWorkouts[exerciseWorkouts.length - 1];
             const lastWorkoutDate = lastWorkout ? new Date(lastWorkout.startTime).toLocaleDateString() : null;
+
+            let currentE1RM = 0;
+            if (lastWorkout) {
+              const lastEx = lastWorkout.exercises.find(ex => ex.id === exerciseDetailId);
+              if (lastEx && lastEx.sets.length > 0) {
+                // Find best e1RM from last workout
+                lastEx.sets.forEach(s => {
+                  if (!s.isWarmup) {
+                    const e1rm = calcE1RM(s.weight, s.reps);
+                    if (e1rm > currentE1RM) currentE1RM = e1rm;
+                  }
+                });
+              }
+            }
+
+            // Get PR metadata for reps
+            const prMeta = store.recordsMeta[exerciseDetailId];
 
             // Get tier for this exercise
             const exerciseTier = getExerciseTier(exerciseDetailId, store.customExercises);
@@ -9269,10 +9589,18 @@ gamify.it.com/fitness`;
                 {/* Your Stats */}
                 <div className="exercise-stats-card">
                   <h3 className="card-title">Your Stats</h3>
-                  <div className="stats-grid">
+                  <div className="stats-grid stats-grid-3col">
                     <div className="stat-item">
-                      <div className="stat-value">{currentPR}</div>
-                      <div className="stat-label">PR (lbs)</div>
+                      <div className="stat-value">{currentPR} x {prMeta?.reps || 1}</div>
+                      <div className="stat-label">PR</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{bestSet ? `${bestSet.weight} x ${bestSet.reps}` : '-'}</div>
+                      <div className="stat-label">Best Set</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{currentE1RM || bestSet?.e1rm || '-'}</div>
+                      <div className="stat-label">Est. 1RM</div>
                     </div>
                     <div className="stat-item">
                       <div className="stat-value">{totalSessions}</div>
@@ -9283,7 +9611,7 @@ gamify.it.com/fitness`;
                       <div className="stat-label">Total Sets</div>
                     </div>
                     <div className="stat-item">
-                      <div className="stat-value">{(totalVolume / 1000).toFixed(1)}k</div>
+                      <div className="stat-value">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</div>
                       <div className="stat-label">Volume</div>
                     </div>
                   </div>
@@ -10933,16 +11261,16 @@ gamify.it.com/fitness`;
             <span className="mobile-nav-label">Home</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'templates' ? 'active' : ''}`}
+            className={`mobile-nav-btn ${store.currentView === 'exercises' || store.currentView === 'exercise-detail' ? 'active' : ''}`}
             onClick={() => {
               if (store.currentWorkout) {
                 setShowExercisePicker(true);
               } else {
-                store.setView('templates');
+                store.setView('exercises');
               }
             }}
           >
-            <span className="mobile-nav-icon">📚</span>
+            <span className="mobile-nav-icon">💪</span>
             <span className="mobile-nav-label">Exercises</span>
           </button>
           <button
@@ -10953,11 +11281,11 @@ gamify.it.com/fitness`;
             <span className="mobile-nav-label">History</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'analytics' ? 'active' : ''}`}
-            onClick={() => store.setView('analytics')}
+            className={`mobile-nav-btn ${store.currentView === 'templates' ? 'active' : ''}`}
+            onClick={() => store.setView('templates')}
           >
-            <span className="mobile-nav-icon">📊</span>
-            <span className="mobile-nav-label">Analytics</span>
+            <span className="mobile-nav-icon">📚</span>
+            <span className="mobile-nav-label">Templates</span>
           </button>
           <button
             className={`mobile-nav-btn ${store.currentView === 'profile' ? 'active' : ''}`}

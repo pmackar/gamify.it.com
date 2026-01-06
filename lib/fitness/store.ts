@@ -151,7 +151,7 @@ interface FitnessStore extends FitnessState, SyncState {
   showWorkoutDetail: (workoutId: string) => void;
 
   // Records & Achievements
-  checkPR: (exerciseId: string, weight: number) => boolean;
+  checkPR: (exerciseId: string, weight: number, reps?: number) => boolean;
   checkMilestone: (exerciseId: string, weight: number) => { name: string; icon: string; xp: number } | null;
   getUpcomingMilestones: () => Array<{
     exerciseId: string;
@@ -689,7 +689,7 @@ export const useFitnessStore = create<FitnessStore>()(
           const previousPRWeight = state.records[exercise.id] || 0;
           const prMeta = state.recordsMeta[exercise.id];
 
-          const isPR = get().checkPR(exercise.id, weight);
+          const isPR = get().checkPR(exercise.id, weight, reps);
           if (isPR) {
             set((state) => ({ workoutPRsHit: state.workoutPRsHit + 1 }));
             // Strong haptic for PR
@@ -711,12 +711,12 @@ export const useFitnessStore = create<FitnessStore>()(
                   newReps: reps,
                   previousBest: previousPRWeight > 0 ? {
                     weight: previousPRWeight,
-                    reps: 0, // We don't track PR reps currently
+                    reps: prMeta?.reps || 0,
                     date: prMeta?.date || '',
                   } : undefined,
                   firstRecord: prMeta?.firstWeight ? {
                     weight: prMeta.firstWeight,
-                    reps: 0,
+                    reps: prMeta?.reps || 0,
                     date: prMeta.firstDate || '',
                   } : undefined,
                   improvement: {
@@ -1461,7 +1461,7 @@ export const useFitnessStore = create<FitnessStore>()(
         set({ currentView: 'workout-detail', selectedWorkoutId: workoutId });
       },
 
-      checkPR: (exerciseId: string, weight: number) => {
+      checkPR: (exerciseId: string, weight: number, reps?: number) => {
         const state = get();
         const currentPR = state.records[exerciseId] || 0;
 
@@ -1475,6 +1475,7 @@ export const useFitnessStore = create<FitnessStore>()(
               [exerciseId]: {
                 date: now,
                 imported: false,
+                reps: reps || 1,
                 firstWeight: existingMeta?.firstWeight || weight,
                 firstDate: existingMeta?.firstDate || now,
               }
@@ -1523,7 +1524,7 @@ export const useFitnessStore = create<FitnessStore>()(
       recalculatePRsFromHistory: () => {
         const state = get();
         const newRecords: Record<string, number> = {};
-        const newMeta: Record<string, { date: string; imported: boolean; firstWeight?: number; firstDate?: string }> = {};
+        const newMeta: Record<string, { date: string; imported: boolean; reps?: number; firstWeight?: number; firstDate?: string }> = {};
 
         // Sort workouts by date (oldest first), excluding CSV imports
         const sortedWorkouts = [...state.workouts]
@@ -1543,18 +1544,20 @@ export const useFitnessStore = create<FitnessStore>()(
                 newMeta[exerciseId] = {
                   date: workout.startTime,
                   imported: false,
+                  reps: s.reps,
                   firstWeight: s.weight,
                   firstDate: workout.startTime
                 };
               }
 
-              // Track PR
+              // Track PR - highest weight lifted
               if (s.weight > (newRecords[exerciseId] || 0)) {
                 newRecords[exerciseId] = s.weight;
                 newMeta[exerciseId] = {
                   ...newMeta[exerciseId],
                   date: workout.startTime,
-                  imported: false
+                  imported: false,
+                  reps: s.reps
                 };
               }
             }
