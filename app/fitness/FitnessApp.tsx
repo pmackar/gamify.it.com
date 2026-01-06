@@ -2961,7 +2961,11 @@ export default function FitnessApp() {
           margin-bottom: 4px;
           flex: 1;
         }
-        .pr-edit-btn {
+        .pr-actions {
+          display: flex;
+          gap: 4px;
+        }
+        .pr-edit-btn, .pr-delete-btn {
           background: none;
           border: none;
           padding: 2px;
@@ -2970,8 +2974,12 @@ export default function FitnessApp() {
           opacity: 0.6;
           transition: opacity 0.15s;
         }
-        .pr-edit-btn:hover {
+        .pr-edit-btn:hover, .pr-delete-btn:hover {
           opacity: 1;
+        }
+        .pr-delete-btn:hover {
+          opacity: 1;
+          filter: brightness(1.2);
         }
         .pr-weight {
           font-size: 20px;
@@ -5982,24 +5990,30 @@ export default function FitnessApp() {
 
         .summary-stats {
           display: flex;
-          justify-content: space-between;
+          justify-content: space-evenly;
+          align-items: center;
         }
 
         .summary-stat {
           text-align: center;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .summary-stat .stat-value {
-          font-size: 18px;
+          font-size: 15px;
           font-weight: 700;
           color: var(--text-primary);
           display: block;
         }
 
         .summary-stat .stat-label {
-          font-size: 10px;
+          font-size: 8px;
           color: var(--text-tertiary);
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .analytics-section {
@@ -7655,7 +7669,7 @@ gamify.it.com/fitness`;
                       <div key={id} className={`pr-card ${meta?.imported ? 'imported' : ''}`}>
                         <div className="pr-header">
                           <div className="pr-exercise">{exercise?.name || id}</div>
-                          {meta?.imported && (
+                          <div className="pr-actions">
                             <button
                               className="pr-edit-btn"
                               onClick={(e) => {
@@ -7665,11 +7679,23 @@ gamify.it.com/fitness`;
                                   store.editPR(id, Number(newWeight));
                                 }
                               }}
-                              title="Edit imported PR"
+                              title="Edit PR"
                             >
                               ✏️
                             </button>
-                          )}
+                            <button
+                              className="pr-delete-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete PR for ${exercise?.name || id}?`)) {
+                                  store.deletePR(id);
+                                }
+                              }}
+                              title="Delete PR"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                         <div className="pr-weight">{weight} lbs</div>
                         <div className="pr-meta">
@@ -10835,15 +10861,21 @@ gamify.it.com/fitness`;
         {/* Mobile Bottom Navigation */}
         <nav className="mobile-bottom-nav">
           <button
-            className={`mobile-nav-btn ${store.currentView === 'home' ? 'active' : ''}`}
-            onClick={() => store.setView('home')}
+            className={`mobile-nav-btn ${store.currentView === 'home' || store.currentView === 'workout' ? 'active' : ''}`}
+            onClick={() => store.setView(store.currentWorkout ? 'workout' : 'home')}
           >
             <span className="mobile-nav-icon">🏠</span>
             <span className="mobile-nav-label">Home</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'exercises' ? 'active' : ''}`}
-            onClick={() => store.setView('exercises')}
+            className={`mobile-nav-btn ${store.currentView === 'templates' ? 'active' : ''}`}
+            onClick={() => {
+              if (store.currentWorkout) {
+                setShowExercisePicker(true);
+              } else {
+                store.setView('templates');
+              }
+            }}
           >
             <span className="mobile-nav-icon">📚</span>
             <span className="mobile-nav-label">Exercises</span>
@@ -11013,11 +11045,17 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setWeight}
                     onChange={(e) => setSetWeight(Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Reset scroll after focus to prevent iOS scroll-into-view
+                      setTimeout(() => {
+                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
+                      }, 50);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        repsInputRef.current?.focus();
+                        repsInputRef.current?.focus({ preventScroll: true });
                         repsInputRef.current?.select();
                       }
                     }}
@@ -11045,11 +11083,17 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setReps}
                     onChange={(e) => setSetReps(Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Reset scroll after focus to prevent iOS scroll-into-view
+                      setTimeout(() => {
+                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
+                      }, 50);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        rpeInputRef.current?.focus();
+                        rpeInputRef.current?.focus({ preventScroll: true });
                         rpeInputRef.current?.select();
                       }
                     }}
@@ -11065,7 +11109,13 @@ gamify.it.com/fitness`;
                     value={setRpe || ''}
                     placeholder="–"
                     onChange={(e) => setSetRpe(e.target.value ? Number(e.target.value) : null)}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Reset scroll after focus to prevent iOS scroll-into-view
+                      setTimeout(() => {
+                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
+                      }, 50);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
