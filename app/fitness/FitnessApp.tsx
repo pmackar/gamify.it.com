@@ -5998,14 +5998,14 @@ export default function FitnessApp() {
         }
 
         .summary-stat .stat-value {
-          font-size: 18px;
+          font-size: 15px;
           font-weight: 700;
           color: var(--text-primary);
           display: block;
         }
 
         .summary-stat .stat-label {
-          font-size: 10px;
+          font-size: 8px;
           color: var(--text-tertiary);
           text-transform: uppercase;
         }
