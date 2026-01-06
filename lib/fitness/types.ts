@@ -265,6 +265,7 @@ export interface ExerciseWeightConfig {
 export interface PRMeta {
   date: string;           // When the PR was set
   imported: boolean;      // Whether it came from CSV import
+  reps?: number;          // Number of reps for this PR (1 for true 1RM)
   firstWeight?: number;   // First recorded weight for this exercise
   firstDate?: string;     // Date of first recorded weight
 }
@@ -298,7 +299,7 @@ export interface ActiveWorkout {
   seconds: number;
 }
 
-export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor' | 'programs' | 'program-wizard' | 'program-detail' | 'analytics' | 'exercise-detail';
+export type ViewType = 'home' | 'workout' | 'profile' | 'history' | 'achievements' | 'campaigns' | 'workout-detail' | 'social' | 'coach' | 'templates' | 'template-editor' | 'programs' | 'program-wizard' | 'program-detail' | 'analytics' | 'exercise-detail' | 'exercises';
 
 export interface CommandSuggestion {
   type: string;
