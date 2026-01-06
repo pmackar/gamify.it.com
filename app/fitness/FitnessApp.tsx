@@ -185,6 +185,18 @@ export default function FitnessApp() {
     return () => viewport.removeEventListener('resize', handleResize);
   }, []);
 
+  // Focus weight input when set panel opens (with preventScroll to avoid keyboard scroll issues)
+  useEffect(() => {
+    if (showSetPanel && weightInputRef.current) {
+      // Small delay to let the panel animate in
+      const timer = setTimeout(() => {
+        weightInputRef.current?.focus({ preventScroll: true });
+        weightInputRef.current?.select();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showSetPanel]);
+
   // Show onboarding for new users
   useEffect(() => {
     if (mounted && !store.hasCompletedOnboarding && store.workouts.length === 0) {
@@ -1485,10 +1497,10 @@ export default function FitnessApp() {
 
         .set-panel {
           position: fixed;
-          top: env(safe-area-inset-top, 0px);
-          bottom: var(--keyboard-height, 0px);
+          bottom: max(var(--keyboard-height, 0px), env(safe-area-inset-bottom, 0px));
           left: 0;
           right: 0;
+          max-height: calc(100dvh - env(safe-area-inset-top, 0px) - max(var(--keyboard-height, 0px), env(safe-area-inset-bottom, 0px)));
           background: var(--bg-elevated);
           border-radius: 20px 20px 0 0;
           z-index: 9999;
@@ -1496,7 +1508,7 @@ export default function FitnessApp() {
           flex-direction: column;
           animation: slideUp 0.25s ease-out;
           overflow: hidden;
-          transition: bottom 0.15s ease-out;
+          transition: bottom 0.15s ease-out, max-height 0.15s ease-out;
         }
 
         .set-panel-content {
@@ -1505,7 +1517,6 @@ export default function FitnessApp() {
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
           padding: 16px;
-          padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
         }
 
         @media (min-width: 768px) {
@@ -1539,15 +1550,9 @@ export default function FitnessApp() {
           justify-content: space-between;
           align-items: center;
           padding: 16px;
-          padding-top: calc(16px + env(safe-area-inset-top, 0px));
           background: var(--bg-elevated);
           border-bottom: 1px solid var(--border-light);
           flex-shrink: 0;
-        }
-        @media (min-width: 768px) {
-          .set-panel-header {
-            padding-top: 16px;
-          }
         }
         .set-panel-title {
           font-weight: 600;
@@ -10971,7 +10976,6 @@ gamify.it.com/fitness`;
                       }
                     }}
                     inputMode="decimal"
-                    autoFocus
                   />
                   <div className="input-label">
                     lbs
