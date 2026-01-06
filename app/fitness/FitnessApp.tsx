@@ -7892,7 +7892,17 @@ gamify.it.com/fitness`;
               <div className="pr-grid">
                 {Object.entries(store.records)
                   .filter(([id]) => EXERCISES.some(e => e.id === id) || store.customExercises.some(e => e.id === id))
-                  .sort((a, b) => b[1] - a[1])
+                  .sort((a, b) => {
+                    // Prioritize squat, bench, deadlift at the top
+                    const priority = ['squat', 'bench', 'deadlift'];
+                    const aIdx = priority.indexOf(a[0]);
+                    const bIdx = priority.indexOf(b[0]);
+                    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+                    if (aIdx !== -1) return -1;
+                    if (bIdx !== -1) return 1;
+                    // Then sort by weight
+                    return b[1] - a[1];
+                  })
                   .slice(0, 12)
                   .map(([id, weight]) => {
                     const exercise = getExerciseById(id) || store.customExercises.find(e => e.id === id);
