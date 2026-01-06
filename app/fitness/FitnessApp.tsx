@@ -2961,7 +2961,11 @@ export default function FitnessApp() {
           margin-bottom: 4px;
           flex: 1;
         }
-        .pr-edit-btn {
+        .pr-actions {
+          display: flex;
+          gap: 4px;
+        }
+        .pr-edit-btn, .pr-delete-btn {
           background: none;
           border: none;
           padding: 2px;
@@ -2970,8 +2974,12 @@ export default function FitnessApp() {
           opacity: 0.6;
           transition: opacity 0.15s;
         }
-        .pr-edit-btn:hover {
+        .pr-edit-btn:hover, .pr-delete-btn:hover {
           opacity: 1;
+        }
+        .pr-delete-btn:hover {
+          opacity: 1;
+          filter: brightness(1.2);
         }
         .pr-weight {
           font-size: 20px;
@@ -7655,7 +7663,7 @@ gamify.it.com/fitness`;
                       <div key={id} className={`pr-card ${meta?.imported ? 'imported' : ''}`}>
                         <div className="pr-header">
                           <div className="pr-exercise">{exercise?.name || id}</div>
-                          {meta?.imported && (
+                          <div className="pr-actions">
                             <button
                               className="pr-edit-btn"
                               onClick={(e) => {
@@ -7665,11 +7673,23 @@ gamify.it.com/fitness`;
                                   store.editPR(id, Number(newWeight));
                                 }
                               }}
-                              title="Edit imported PR"
+                              title="Edit PR"
                             >
                               ✏️
                             </button>
-                          )}
+                            <button
+                              className="pr-delete-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete PR for ${exercise?.name || id}?`)) {
+                                  store.deletePR(id);
+                                }
+                              }}
+                              title="Delete PR"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                         <div className="pr-weight">{weight} lbs</div>
                         <div className="pr-meta">

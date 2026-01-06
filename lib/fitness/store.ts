@@ -1525,34 +1525,36 @@ export const useFitnessStore = create<FitnessStore>()(
         const newRecords: Record<string, number> = {};
         const newMeta: Record<string, { date: string; imported: boolean; firstWeight?: number; firstDate?: string }> = {};
 
-        // Sort workouts by date (oldest first)
-        const sortedWorkouts = [...state.workouts].sort(
-          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        );
+        // Sort workouts by date (oldest first), excluding CSV imports
+        const sortedWorkouts = [...state.workouts]
+          .filter(w => w.source !== 'csv')  // Exclude CSV imports from PR calculation
+          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
         for (const workout of sortedWorkouts) {
-          const isImported = workout.source === 'csv';
           for (const exercise of workout.exercises) {
             for (const s of exercise.sets) {
               if (s.isWarmup) continue;
 
+              const exerciseId = exercise.id || (exercise as { exerciseId?: string }).exerciseId;
+              if (!exerciseId) continue;
+
               // Track first weight
-              if (!newMeta[exercise.exerciseId]?.firstWeight) {
-                newMeta[exercise.exerciseId] = {
+              if (!newMeta[exerciseId]?.firstWeight) {
+                newMeta[exerciseId] = {
                   date: workout.startTime,
-                  imported: isImported,
+                  imported: false,
                   firstWeight: s.weight,
                   firstDate: workout.startTime
                 };
               }
 
               // Track PR
-              if (s.weight > (newRecords[exercise.exerciseId] || 0)) {
-                newRecords[exercise.exerciseId] = s.weight;
-                newMeta[exercise.exerciseId] = {
-                  ...newMeta[exercise.exerciseId],
+              if (s.weight > (newRecords[exerciseId] || 0)) {
+                newRecords[exerciseId] = s.weight;
+                newMeta[exerciseId] = {
+                  ...newMeta[exerciseId],
                   date: workout.startTime,
-                  imported: isImported
+                  imported: false
                 };
               }
             }
@@ -1561,7 +1563,7 @@ export const useFitnessStore = create<FitnessStore>()(
 
         set({ records: newRecords, recordsMeta: newMeta, pendingSync: true });
         queueSync(get);
-        get().showToast('PRs recalculated from history');
+        get().showToast('PRs recalculated from history (excluding imports)');
       },
 
       checkMilestone: (exerciseId: string, weight: number) => {
