@@ -680,9 +680,9 @@ export default function FitnessApp() {
       store.selectExercise(exIdx);
     } else {
       // Adding new set - prioritize values in this order:
-      // 1. Last set from current workout
-      // 2. Previous workout for this exercise
-      // 3. Program prescription (for reps/RPE)
+      // 1. Last set from current workout (for quick successive logging)
+      // 2. Program prescription (when workout is from a program/template)
+      // 3. Previous workout for this exercise
       // 4. Personal record (for weight)
       // 5. Defaults
       const lastSet = currentEx.sets[currentEx.sets.length - 1];
@@ -693,6 +693,7 @@ export default function FitnessApp() {
       const targetReps = (currentEx as { _targetReps?: string })._targetReps;
       const targetRpe = (currentEx as { _targetRpe?: number })._targetRpe;
       const targetWeight = (currentEx as { _targetWeight?: number })._targetWeight;
+      const hasPrescription = targetReps || targetRpe || targetWeight;
 
       // Parse target reps (handles "8-12" format, takes lower bound)
       const parseTargetReps = (reps?: string): number | null => {
@@ -701,22 +702,22 @@ export default function FitnessApp() {
         return match ? parseInt(match[1], 10) : null;
       };
 
-      // Weight priority: current workout > previous workout > program prescription > PR > default
+      // Weight priority: current workout > prescription > previous workout > PR > default
       const weight = lastSet?.weight
+        || (hasPrescription ? targetWeight : null)
         || lastWorkoutSet?.weight
-        || targetWeight
         || store.records[currentEx.id]
         || 135;
 
-      // Reps priority: current workout > previous workout > program prescription > default
+      // Reps priority: current workout > prescription > previous workout > default
       const reps = lastSet?.reps
+        || (hasPrescription ? parseTargetReps(targetReps) : null)
         || lastWorkoutSet?.reps
-        || parseTargetReps(targetReps)
         || 8;
 
-      // RPE priority: current workout > program prescription > previous workout > null
+      // RPE priority: current workout > prescription > previous workout > null
       const rpe = lastSet?.rpe
-        || targetRpe
+        || (hasPrescription ? targetRpe : null)
         || lastWorkoutSet?.rpe
         || null;
 
