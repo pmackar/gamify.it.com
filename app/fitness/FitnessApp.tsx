@@ -186,6 +186,13 @@ export default function FitnessApp() {
 
       setKeyboardHeight(newKeyboardHeight);
 
+      // Toggle keyboard-open class on body for CSS-based scroll control
+      if (newKeyboardHeight > 0) {
+        document.body.classList.add('keyboard-open');
+      } else {
+        document.body.classList.remove('keyboard-open');
+      }
+
       // If we were waiting for keyboard to open before showing panel, show it now
       if (newKeyboardHeight > 0 && pendingPanelOpenRef.current) {
         pendingPanelOpenRef.current = false;
@@ -194,7 +201,10 @@ export default function FitnessApp() {
     };
 
     viewport.addEventListener('resize', handleResize);
-    return () => viewport.removeEventListener('resize', handleResize);
+    return () => {
+      viewport.removeEventListener('resize', handleResize);
+      document.body.classList.remove('keyboard-open');
+    };
   }, []);
 
   // Transfer focus to weight input when panel opens (keyboard already open)
@@ -215,18 +225,53 @@ export default function FitnessApp() {
     if (!showSetPanel || !setPanelContentRef.current) return;
 
     const content = setPanelContentRef.current;
+    let scrollLockInterval: NodeJS.Timeout | null = null;
 
     const handleFocusIn = () => {
-      // Lock scroll to top when any input gets focus
+      // Lock scroll to top immediately
       content.scrollTop = 0;
-      // Also reset after a delay to catch iOS delayed scroll behavior
-      setTimeout(() => { content.scrollTop = 0; }, 50);
-      setTimeout(() => { content.scrollTop = 0; }, 100);
+
+      // Start an aggressive scroll lock for 300ms to prevent iOS delayed scroll
+      if (scrollLockInterval) clearInterval(scrollLockInterval);
+      scrollLockInterval = setInterval(() => {
+        content.scrollTop = 0;
+      }, 10);
+
+      // Stop the interval after 300ms
+      setTimeout(() => {
+        if (scrollLockInterval) {
+          clearInterval(scrollLockInterval);
+          scrollLockInterval = null;
+        }
+      }, 300);
+    };
+
+    // Also listen for scroll events and prevent them when keyboard is open
+    const handleScroll = (e: Event) => {
+      if (keyboardHeight > 0) {
+        e.preventDefault();
+        content.scrollTop = 0;
+      }
+    };
+
+    // Prevent touchmove scrolling when keyboard is open (iOS workaround)
+    const handleTouchMove = (e: TouchEvent) => {
+      if (keyboardHeight > 0) {
+        e.preventDefault();
+      }
     };
 
     content.addEventListener('focusin', handleFocusIn);
-    return () => content.removeEventListener('focusin', handleFocusIn);
-  }, [showSetPanel]);
+    content.addEventListener('scroll', handleScroll, { passive: false });
+    content.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      content.removeEventListener('focusin', handleFocusIn);
+      content.removeEventListener('scroll', handleScroll);
+      content.removeEventListener('touchmove', handleTouchMove);
+      if (scrollLockInterval) clearInterval(scrollLockInterval);
+    };
+  }, [showSetPanel, keyboardHeight]);
 
   // Show onboarding for new users
   useEffect(() => {
@@ -1564,6 +1609,17 @@ export default function FitnessApp() {
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
           padding: 16px;
+        }
+
+        /* Disable scrolling on set panel content when keyboard is open */
+        .keyboard-open .set-panel-content {
+          overflow-y: hidden;
+          touch-action: none;
+        }
+
+        .keyboard-open .set-panel {
+          overflow: hidden;
+          touch-action: none;
         }
 
         @media (min-width: 768px) {
