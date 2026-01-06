@@ -1626,18 +1626,12 @@ export default function FitnessApp() {
         /* Disable ALL scrolling when keyboard is open */
         .keyboard-open {
           overflow: hidden !important;
-          position: fixed !important;
-          width: 100% !important;
-          height: 100% !important;
           touch-action: none !important;
         }
 
         .keyboard-open html,
         .keyboard-open body {
           overflow: hidden !important;
-          position: fixed !important;
-          width: 100% !important;
-          height: 100% !important;
           touch-action: none !important;
         }
 
