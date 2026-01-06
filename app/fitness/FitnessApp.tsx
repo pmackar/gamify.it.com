@@ -5990,11 +5990,16 @@ export default function FitnessApp() {
 
         .summary-stats {
           display: flex;
-          justify-content: space-between;
+          justify-content: space-evenly;
+          align-items: center;
         }
 
         .summary-stat {
           text-align: center;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .summary-stat .stat-value {
@@ -6008,6 +6013,7 @@ export default function FitnessApp() {
           font-size: 8px;
           color: var(--text-tertiary);
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .analytics-section {
