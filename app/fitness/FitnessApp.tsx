@@ -220,70 +220,46 @@ export default function FitnessApp() {
   }, [showSetPanel]);
 
   // Prevent scroll jumps when switching between inputs in set panel
-  // Lock scroll at DOCUMENT level - iOS scrolls the whole page, not just the panel
+  // iOS Safari scrolls the window when focusing inputs - block at document level
   useEffect(() => {
     if (!showSetPanel) return;
 
-    let scrollLockInterval: NodeJS.Timeout | null = null;
-    const content = setPanelContentRef.current;
-
-    const resetAllScrolls = () => {
-      // Reset window scroll
+    // Simple scroll reset - window.scrollTo handles iOS scroll-into-view
+    const resetScroll = () => {
       window.scrollTo(0, 0);
-      // Reset document element scroll
-      document.documentElement.scrollTop = 0;
-      // Reset body scroll
-      document.body.scrollTop = 0;
-      // Reset panel content scroll
-      if (content) content.scrollTop = 0;
+      if (setPanelContentRef.current) {
+        setPanelContentRef.current.scrollTop = 0;
+      }
     };
 
+    // On focus change, reset scroll with delays for iOS timing
     const handleFocusIn = () => {
-      // Immediately reset all scrolls
-      resetAllScrolls();
-
-      // Start an aggressive scroll lock for 500ms
-      if (scrollLockInterval) clearInterval(scrollLockInterval);
-      scrollLockInterval = setInterval(resetAllScrolls, 16); // 60fps
-
-      setTimeout(() => {
-        if (scrollLockInterval) {
-          clearInterval(scrollLockInterval);
-          scrollLockInterval = null;
-        }
-      }, 500);
+      resetScroll();
+      setTimeout(resetScroll, 50);
+      setTimeout(resetScroll, 150);
     };
 
-    // Block scroll events at document level
-    const handleScroll = (e: Event) => {
-      if (keyboardHeight > 0) {
-        e.preventDefault();
-        e.stopPropagation();
-        resetAllScrolls();
-      }
-    };
+    // Reset on any window scroll
+    const handleScroll = () => resetScroll();
 
-    // Block touchmove at document level
+    // Block touchmove only within set panel
     const handleTouchMove = (e: TouchEvent) => {
-      if (keyboardHeight > 0) {
+      const panel = document.querySelector('.set-panel');
+      if (panel?.contains(e.target as Node)) {
         e.preventDefault();
       }
     };
 
-    // Listen on document/window level
     document.addEventListener('focusin', handleFocusIn);
-    document.addEventListener('scroll', handleScroll, { passive: false, capture: true });
-    window.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
       document.removeEventListener('focusin', handleFocusIn);
-      document.removeEventListener('scroll', handleScroll, { capture: true });
-      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('touchmove', handleTouchMove);
-      if (scrollLockInterval) clearInterval(scrollLockInterval);
     };
-  }, [showSetPanel, keyboardHeight]);
+  }, [showSetPanel]);
 
   // Show onboarding for new users
   useEffect(() => {
@@ -765,6 +741,9 @@ export default function FitnessApp() {
 
   const openSetPanel = (exerciseIdx?: number, setIdx?: number) => {
     if (!store.currentWorkout) return;
+    // Guard against rapid clicks - skip if panel already open or pending
+    if (showSetPanel || pendingPanelOpenRef.current) return;
+
     const exIdx = exerciseIdx ?? store.currentExerciseIndex;
     const currentEx = store.currentWorkout.exercises[exIdx];
     if (!currentEx) return;
@@ -1618,35 +1597,19 @@ export default function FitnessApp() {
         .set-panel-content {
           flex: 1;
           overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
           padding: 16px;
         }
 
-        /* Disable ALL scrolling when keyboard is open */
-        .keyboard-open {
-          overflow: hidden !important;
-          position: fixed !important;
-          width: 100% !important;
-          height: 100% !important;
-          touch-action: none !important;
-        }
-
-        .keyboard-open html,
+        /* Disable scrolling when keyboard is open */
+        .keyboard-open,
         .keyboard-open body {
-          overflow: hidden !important;
-          position: fixed !important;
-          width: 100% !important;
-          height: 100% !important;
-          touch-action: none !important;
-        }
-
-        .keyboard-open .set-panel-content {
-          overflow-y: hidden;
+          overflow: hidden;
           touch-action: none;
         }
 
-        .keyboard-open .set-panel {
+        .keyboard-open .set-panel,
+        .keyboard-open .set-panel-content {
           overflow: hidden;
           touch-action: none;
         }
@@ -1659,11 +1622,9 @@ export default function FitnessApp() {
             max-height: 85vh;
             left: 50%;
             transform: translateX(-50%);
-            border-radius: 20px 20px 0 0;
           }
           .set-panel-content {
             padding: 24px;
-            padding-bottom: 24px;
           }
         }
         @keyframes slideUp {
