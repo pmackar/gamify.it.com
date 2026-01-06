@@ -11033,11 +11033,17 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setWeight}
                     onChange={(e) => setSetWeight(Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Reset scroll after focus to prevent iOS scroll-into-view
+                      setTimeout(() => {
+                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
+                      }, 50);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        repsInputRef.current?.focus();
+                        repsInputRef.current?.focus({ preventScroll: true });
                         repsInputRef.current?.select();
                       }
                     }}
@@ -11065,11 +11071,17 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setReps}
                     onChange={(e) => setSetReps(Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Reset scroll after focus to prevent iOS scroll-into-view
+                      setTimeout(() => {
+                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
+                      }, 50);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        rpeInputRef.current?.focus();
+                        rpeInputRef.current?.focus({ preventScroll: true });
                         rpeInputRef.current?.select();
                       }
                     }}
@@ -11085,7 +11097,13 @@ gamify.it.com/fitness`;
                     value={setRpe || ''}
                     placeholder="–"
                     onChange={(e) => setSetRpe(e.target.value ? Number(e.target.value) : null)}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Reset scroll after focus to prevent iOS scroll-into-view
+                      setTimeout(() => {
+                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
+                      }, 50);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
