@@ -197,6 +197,27 @@ export default function FitnessApp() {
     }
   }, [showSetPanel]);
 
+  // Reset scroll position when keyboard opens to prevent content jumping past top
+  // iOS/Safari can scroll the content even after preventScroll focus, so we need to reset it
+  useEffect(() => {
+    if (keyboardHeight > 0 && showSetPanel) {
+      const resetScroll = () => {
+        const contentEl = document.querySelector('.set-panel-content');
+        if (contentEl) {
+          contentEl.scrollTop = 0;
+        }
+      };
+      // Reset immediately and after delays to catch browser's delayed scroll behavior
+      resetScroll();
+      const timer1 = setTimeout(resetScroll, 50);
+      const timer2 = setTimeout(resetScroll, 150);
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [keyboardHeight, showSetPanel]);
+
   // Show onboarding for new users
   useEffect(() => {
     if (mounted && !store.hasCompletedOnboarding && store.workouts.length === 0) {
