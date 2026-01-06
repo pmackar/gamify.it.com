@@ -209,6 +209,25 @@ export default function FitnessApp() {
     }
   }, [showSetPanel]);
 
+  // Prevent scroll jumps when switching between inputs in set panel
+  // This catches all focus changes: taps, keyboard toolbar arrows, Enter key
+  useEffect(() => {
+    if (!showSetPanel || !setPanelContentRef.current) return;
+
+    const content = setPanelContentRef.current;
+
+    const handleFocusIn = () => {
+      // Lock scroll to top when any input gets focus
+      content.scrollTop = 0;
+      // Also reset after a delay to catch iOS delayed scroll behavior
+      setTimeout(() => { content.scrollTop = 0; }, 50);
+      setTimeout(() => { content.scrollTop = 0; }, 100);
+    };
+
+    content.addEventListener('focusin', handleFocusIn);
+    return () => content.removeEventListener('focusin', handleFocusIn);
+  }, [showSetPanel]);
+
   // Show onboarding for new users
   useEffect(() => {
     if (mounted && !store.hasCompletedOnboarding && store.workouts.length === 0) {
@@ -11045,13 +11064,7 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setWeight}
                     onChange={(e) => setSetWeight(Number(e.target.value))}
-                    onFocus={(e) => {
-                      e.target.select();
-                      // Reset scroll after focus to prevent iOS scroll-into-view
-                      setTimeout(() => {
-                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
-                      }, 50);
-                    }}
+                    onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -11083,13 +11096,7 @@ gamify.it.com/fitness`;
                     type="number"
                     value={setReps}
                     onChange={(e) => setSetReps(Number(e.target.value))}
-                    onFocus={(e) => {
-                      e.target.select();
-                      // Reset scroll after focus to prevent iOS scroll-into-view
-                      setTimeout(() => {
-                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
-                      }, 50);
-                    }}
+                    onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -11109,13 +11116,7 @@ gamify.it.com/fitness`;
                     value={setRpe || ''}
                     placeholder="–"
                     onChange={(e) => setSetRpe(e.target.value ? Number(e.target.value) : null)}
-                    onFocus={(e) => {
-                      e.target.select();
-                      // Reset scroll after focus to prevent iOS scroll-into-view
-                      setTimeout(() => {
-                        if (setPanelContentRef.current) setPanelContentRef.current.scrollTop = 0;
-                      }, 50);
-                    }}
+                    onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
