@@ -220,55 +220,67 @@ export default function FitnessApp() {
   }, [showSetPanel]);
 
   // Prevent scroll jumps when switching between inputs in set panel
-  // This catches all focus changes: taps, keyboard toolbar arrows, Enter key
+  // Lock scroll at DOCUMENT level - iOS scrolls the whole page, not just the panel
   useEffect(() => {
-    if (!showSetPanel || !setPanelContentRef.current) return;
+    if (!showSetPanel) return;
 
-    const content = setPanelContentRef.current;
     let scrollLockInterval: NodeJS.Timeout | null = null;
+    const content = setPanelContentRef.current;
+
+    const resetAllScrolls = () => {
+      // Reset window scroll
+      window.scrollTo(0, 0);
+      // Reset document element scroll
+      document.documentElement.scrollTop = 0;
+      // Reset body scroll
+      document.body.scrollTop = 0;
+      // Reset panel content scroll
+      if (content) content.scrollTop = 0;
+    };
 
     const handleFocusIn = () => {
-      // Lock scroll to top immediately
-      content.scrollTop = 0;
+      // Immediately reset all scrolls
+      resetAllScrolls();
 
-      // Start an aggressive scroll lock for 300ms to prevent iOS delayed scroll
+      // Start an aggressive scroll lock for 500ms
       if (scrollLockInterval) clearInterval(scrollLockInterval);
-      scrollLockInterval = setInterval(() => {
-        content.scrollTop = 0;
-      }, 10);
+      scrollLockInterval = setInterval(resetAllScrolls, 16); // 60fps
 
-      // Stop the interval after 300ms
       setTimeout(() => {
         if (scrollLockInterval) {
           clearInterval(scrollLockInterval);
           scrollLockInterval = null;
         }
-      }, 300);
+      }, 500);
     };
 
-    // Also listen for scroll events and prevent them when keyboard is open
+    // Block scroll events at document level
     const handleScroll = (e: Event) => {
       if (keyboardHeight > 0) {
         e.preventDefault();
-        content.scrollTop = 0;
+        e.stopPropagation();
+        resetAllScrolls();
       }
     };
 
-    // Prevent touchmove scrolling when keyboard is open (iOS workaround)
+    // Block touchmove at document level
     const handleTouchMove = (e: TouchEvent) => {
       if (keyboardHeight > 0) {
         e.preventDefault();
       }
     };
 
-    content.addEventListener('focusin', handleFocusIn);
-    content.addEventListener('scroll', handleScroll, { passive: false });
-    content.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // Listen on document/window level
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    window.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
-      content.removeEventListener('focusin', handleFocusIn);
-      content.removeEventListener('scroll', handleScroll);
-      content.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      document.removeEventListener('touchmove', handleTouchMove);
       if (scrollLockInterval) clearInterval(scrollLockInterval);
     };
   }, [showSetPanel, keyboardHeight]);
@@ -1611,7 +1623,24 @@ export default function FitnessApp() {
           padding: 16px;
         }
 
-        /* Disable scrolling on set panel content when keyboard is open */
+        /* Disable ALL scrolling when keyboard is open */
+        .keyboard-open {
+          overflow: hidden !important;
+          position: fixed !important;
+          width: 100% !important;
+          height: 100% !important;
+          touch-action: none !important;
+        }
+
+        .keyboard-open html,
+        .keyboard-open body {
+          overflow: hidden !important;
+          position: fixed !important;
+          width: 100% !important;
+          height: 100% !important;
+          touch-action: none !important;
+        }
+
         .keyboard-open .set-panel-content {
           overflow-y: hidden;
           touch-action: none;
