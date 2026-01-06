@@ -10861,15 +10861,21 @@ gamify.it.com/fitness`;
         {/* Mobile Bottom Navigation */}
         <nav className="mobile-bottom-nav">
           <button
-            className={`mobile-nav-btn ${store.currentView === 'home' ? 'active' : ''}`}
-            onClick={() => store.setView('home')}
+            className={`mobile-nav-btn ${store.currentView === 'home' || store.currentView === 'workout' ? 'active' : ''}`}
+            onClick={() => store.setView(store.currentWorkout ? 'workout' : 'home')}
           >
             <span className="mobile-nav-icon">🏠</span>
             <span className="mobile-nav-label">Home</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'exercises' ? 'active' : ''}`}
-            onClick={() => store.setView('exercises')}
+            className={`mobile-nav-btn ${store.currentView === 'templates' ? 'active' : ''}`}
+            onClick={() => {
+              if (store.currentWorkout) {
+                setShowExercisePicker(true);
+              } else {
+                store.setView('templates');
+              }
+            }}
           >
             <span className="mobile-nav-icon">📚</span>
             <span className="mobile-nav-label">Exercises</span>
