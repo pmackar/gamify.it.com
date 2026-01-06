@@ -110,6 +110,7 @@ export default function FitnessApp() {
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
   const rpeInputRef = useRef<HTMLInputElement>(null);
+  const setPanelContentRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -171,24 +172,67 @@ export default function FitnessApp() {
     };
   }, []);
 
-  // Track keyboard height for modal positioning
+  // Track keyboard height and handle scroll position for set panel
+  // This effect manages keyboard detection and prevents iOS from scrolling content past top
   useEffect(() => {
     const viewport = window.visualViewport;
     if (!viewport) return;
 
+    let scrollLockTimeout: NodeJS.Timeout | null = null;
+    let isScrollLocked = false;
+
+    const lockScrollToTop = () => {
+      if (setPanelContentRef.current && showSetPanel) {
+        setPanelContentRef.current.scrollTop = 0;
+      }
+    };
+
+    const handleScrollDuringLock = () => {
+      if (isScrollLocked) {
+        lockScrollToTop();
+      }
+    };
+
     const handleResize = () => {
       const heightDiff = window.innerHeight - viewport.height;
-      setKeyboardHeight(heightDiff > 100 ? heightDiff : 0);
+      const newKeyboardHeight = heightDiff > 100 ? heightDiff : 0;
+      const wasKeyboardClosed = keyboardHeight === 0;
+      const isKeyboardOpening = newKeyboardHeight > 0 && wasKeyboardClosed;
+
+      setKeyboardHeight(newKeyboardHeight);
+
+      // When keyboard opens while set panel is visible, lock scroll to top
+      // This counteracts iOS's aggressive scroll-into-view behavior
+      if (isKeyboardOpening && showSetPanel && setPanelContentRef.current) {
+        isScrollLocked = true;
+        lockScrollToTop();
+
+        // Add scroll listener to keep resetting during keyboard animation
+        setPanelContentRef.current.addEventListener('scroll', handleScrollDuringLock);
+
+        // Release scroll lock after keyboard animation completes (~300ms)
+        scrollLockTimeout = setTimeout(() => {
+          isScrollLocked = false;
+          setPanelContentRef.current?.removeEventListener('scroll', handleScrollDuringLock);
+        }, 300);
+      }
     };
 
     viewport.addEventListener('resize', handleResize);
-    return () => viewport.removeEventListener('resize', handleResize);
-  }, []);
 
-  // Focus weight input when set panel opens (with preventScroll to avoid keyboard scroll issues)
+    return () => {
+      viewport.removeEventListener('resize', handleResize);
+      if (scrollLockTimeout) clearTimeout(scrollLockTimeout);
+      if (setPanelContentRef.current) {
+        setPanelContentRef.current.removeEventListener('scroll', handleScrollDuringLock);
+      }
+    };
+  }, [keyboardHeight, showSetPanel]);
+
+  // Focus weight input when set panel opens
   useEffect(() => {
     if (showSetPanel && weightInputRef.current) {
-      // Small delay to let the panel animate in
+      // Delay focus to let panel animate in, use preventScroll to avoid initial jump
       const timer = setTimeout(() => {
         weightInputRef.current?.focus({ preventScroll: true });
         weightInputRef.current?.select();
@@ -196,27 +240,6 @@ export default function FitnessApp() {
       return () => clearTimeout(timer);
     }
   }, [showSetPanel]);
-
-  // Reset scroll position when keyboard opens to prevent content jumping past top
-  // iOS/Safari can scroll the content even after preventScroll focus, so we need to reset it
-  useEffect(() => {
-    if (keyboardHeight > 0 && showSetPanel) {
-      const resetScroll = () => {
-        const contentEl = document.querySelector('.set-panel-content');
-        if (contentEl) {
-          contentEl.scrollTop = 0;
-        }
-      };
-      // Reset immediately and after delays to catch browser's delayed scroll behavior
-      resetScroll();
-      const timer1 = setTimeout(resetScroll, 50);
-      const timer2 = setTimeout(resetScroll, 150);
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
-    }
-  }, [keyboardHeight, showSetPanel]);
 
   // Show onboarding for new users
   useEffect(() => {
@@ -10900,7 +10923,7 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
-              <div className="set-panel-content">
+              <div className="set-panel-content" ref={setPanelContentRef}>
               {/* Target Prescription from Program/Template */}
               {currentEx && ((currentEx as { _targetWeight?: number })._targetWeight || (currentEx as { _targetReps?: string })._targetReps) && (
                 <div className="target-prescription">
