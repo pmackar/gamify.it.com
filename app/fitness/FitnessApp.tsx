@@ -93,6 +93,8 @@ export default function FitnessApp() {
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string; tier: number } | null>(null);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
+  const [substitutePickerOpen, setSubstitutePickerOpen] = useState(false);
+  const [substituteSearchQuery, setSubstituteSearchQuery] = useState('');
   const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
     name: string;
     muscle: string;
@@ -6963,6 +6965,63 @@ export default function FitnessApp() {
           color: var(--text-muted);
         }
 
+        /* Substitute Picker - appears above modal */
+        .substitute-picker-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.9);
+          z-index: 10001;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 60px 16px 16px;
+        }
+
+        .substitute-picker {
+          background: var(--bg-elevated);
+          border-radius: 16px;
+          width: 100%;
+          max-width: 400px;
+          max-height: 70vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .substitute-picker-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px;
+          border-bottom: 1px solid var(--border);
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .substitute-picker-search {
+          margin: 12px 16px;
+          padding: 12px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 16px;
+          outline: none;
+        }
+
+        .substitute-picker-search:focus {
+          border-color: var(--accent);
+        }
+
+        .substitute-picker-list {
+          flex: 1;
+          overflow-y: auto;
+          padding: 0 16px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
         /* ===== EDIT EXERCISE MODAL ===== */
         .edit-exercise-modal {
           width: 100%;
@@ -12383,37 +12442,93 @@ gamify.it.com/fitness`;
             .map(id => [...EXERCISES, ...store.customExercises].find(e => e.id === id))
             .filter(Boolean) as { id: string; name: string; muscle: string; equipment?: string }[];
 
+          // Get all exercises for the picker, filtered by search
+          const allExercises = [...EXERCISES, ...store.customExercises.map(ce => ({
+            id: ce.id,
+            name: ce.name,
+            muscle: ce.muscle,
+            equipment: 'custom',
+          }))].filter(ex =>
+            ex.id !== currentEx.id &&
+            (!substituteSearchQuery || ex.name.toLowerCase().includes(substituteSearchQuery.toLowerCase()))
+          );
+
           return (
-            <div className="modal-overlay" onClick={() => setShowSubstituteModal(false)}>
-              <div className="modal substitute-modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">Substitute Exercise</div>
-                <div className="modal-subtitle">Replace {currentEx.name} with:</div>
-
-                <div className="substitute-list">
-                  {substitutes.length > 0 ? (
-                    substitutes.map(sub => (
-                      <button
-                        key={sub.id}
-                        className="substitute-option"
-                        onClick={() => {
-                          store.substituteExercise(store.currentExerciseIndex, sub.id, sub.name);
-                          setShowSubstituteModal(false);
-                        }}
-                      >
-                        <span className="substitute-name">{sub.name}</span>
-                        <span className="substitute-info">{sub.equipment || sub.muscle}</span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="no-substitutes">No substitutes available for this exercise</div>
-                  )}
+            <>
+              {/* Exercise Picker Overlay - appears above modal */}
+              {substitutePickerOpen && (
+                <div className="substitute-picker-overlay" onClick={() => setSubstitutePickerOpen(false)}>
+                  <div className="substitute-picker" onClick={e => e.stopPropagation()}>
+                    <div className="substitute-picker-header">
+                      <span>Pick Substitute</span>
+                      <button className="close-btn" onClick={() => setSubstitutePickerOpen(false)}>×</button>
+                    </div>
+                    <input
+                      type="text"
+                      className="substitute-picker-search"
+                      placeholder="Search exercises..."
+                      value={substituteSearchQuery}
+                      onChange={(e) => setSubstituteSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                    <div className="substitute-picker-list">
+                      {allExercises.slice(0, 50).map(ex => (
+                        <button
+                          key={ex.id}
+                          className="substitute-option"
+                          onClick={() => {
+                            store.substituteExercise(store.currentExerciseIndex, ex.id, ex.name);
+                            setSubstitutePickerOpen(false);
+                            setSubstituteSearchQuery('');
+                            setShowSubstituteModal(false);
+                          }}
+                        >
+                          <span className="substitute-name">{ex.name}</span>
+                          <span className="substitute-info">{ex.muscle}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              )}
 
-                <button className="modal-btn secondary" onClick={() => setShowSubstituteModal(false)}>
-                  Cancel
-                </button>
+              <div className="modal-overlay" onClick={() => { setShowSubstituteModal(false); setSubstitutePickerOpen(false); setSubstituteSearchQuery(''); }}>
+                <div className="modal substitute-modal" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">Substitute Exercise</div>
+                  <div className="modal-subtitle">Replace {currentEx.name} with:</div>
+
+                  <div className="substitute-list">
+                    {substitutes.length > 0 ? (
+                      substitutes.map(sub => (
+                        <button
+                          key={sub.id}
+                          className="substitute-option"
+                          onClick={() => {
+                            store.substituteExercise(store.currentExerciseIndex, sub.id, sub.name);
+                            setShowSubstituteModal(false);
+                          }}
+                        >
+                          <span className="substitute-name">{sub.name}</span>
+                          <span className="substitute-info">{sub.equipment || sub.muscle}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="no-substitutes">No predefined substitutes available</div>
+                    )}
+                  </div>
+
+                  <button
+                    className="modal-btn primary"
+                    onClick={() => setSubstitutePickerOpen(true)}
+                  >
+                    Pick from Library
+                  </button>
+                  <button className="modal-btn secondary" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
+            </>
           );
         })()}
 
