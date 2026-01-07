@@ -335,12 +335,12 @@ export default function FitnessLandingPage() {
             </p>
 
             <div className="hero-cta">
-              <Link href="/fitness?try=true" className="cta-primary">
+              <button onClick={handleLogin} className="cta-primary">
                 Start Your Quest
-              </Link>
-              <button onClick={handleLogin} className="cta-secondary">
-                Sign Up Free
               </button>
+              <Link href="/fitness?try=true" className="cta-secondary">
+                Try Demo First
+              </Link>
             </div>
 
             <div className="scroll-indicator">
