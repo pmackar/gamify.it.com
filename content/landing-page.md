@@ -17,9 +17,9 @@
 **SectionTitle:** Choose Your Adventure
 **SectionSubtitle:** Each app gamifies a different aspect of your life. Complete quests, earn XP, and level up across all domains.
 
-### Iron Quest
-**Name:** IRON QUEST
-**Tagline:** Turn every rep into XP
+### Reptura
+**Name:** REPTURA
+**Tagline:** Every Rep is part of an Adventure
 **Domain:** /fitness
 **Badge:** TEST
 
@@ -134,7 +134,7 @@
 **SectionSubtitle:** We're building the ultimate life RPG — here's what's ahead
 
 ### Phase: Now (Foundation)
-- ✓ Iron Quest (Fitness Tracking)
+- ✓ Reptura (Fitness Tracking)
 - ✓ Day Quest (Daily Tasks)
 - ✓ Explorer (Travel Logging)
 - ✓ Friends & Social Features

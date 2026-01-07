@@ -1,5 +1,5 @@
 /**
- * Iron Quest - Type Definitions
+ * Reptura - Type Definitions
  */
 
 export interface Set {

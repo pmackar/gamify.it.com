@@ -1,6 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Custom Title Font - Modern Thrash Slant */
+@font-face {
+  font-family: 'Modern Thrash';
+  src: url('/Fonts/Modern%20Thrash%20Slant.woff2') format('woff2'),
+       url('/Fonts/Modern%20Thrash%20Slant.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ===== UNIVERSAL THEME SYSTEM ===== */
   /* Base semantic variables - use these in apps */
@@ -22,7 +32,7 @@
   /* ===== APP ACCENT COLORS ===== */
   /* Each app has a unique accent color for identity */
 
-  /* Iron Quest (Fitness) - Red */
+  /* Reptura (Fitness) - Red */
   --app-fitness: #FF6B6B;
   --app-fitness-dark: #CC5555;
   --app-fitness-darker: #993333;
@@ -104,6 +114,7 @@
   /* Font families */
   --font-pixel: 'Press Start 2P', monospace;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-title: 'Modern Thrash', 'Press Start 2P', monospace;
 
   /* ===== MOBILE VIEWPORT & LAYOUT ===== */
   --vh: 1vh;

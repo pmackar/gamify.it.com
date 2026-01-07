@@ -49,7 +49,18 @@ export function DailyChallengeCard() {
     fetchChallenges();
     // Refresh every 5 minutes to update progress
     const interval = setInterval(fetchChallenges, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    // Also refresh when a workout is completed
+    const handleWorkoutComplete = () => {
+      // Delay to allow server sync to complete
+      setTimeout(fetchChallenges, 2000);
+    };
+    window.addEventListener('workout-completed', handleWorkoutComplete);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('workout-completed', handleWorkoutComplete);
+    };
   }, []);
 
   if (loading || !data || data.challenges.length === 0) {

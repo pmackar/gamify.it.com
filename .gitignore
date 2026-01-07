@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Large source video files
+public/Assets/4k-thunderstorm-with-lightning-bolts-2025-12-17-04-18-08-utc.mp4
+public/Assets/thunder-2025-12-17-05-27-52-utc.mov
+public/Assets/upsidedown-waterfall-near-famous-trolltunga-cliff-2025-12-17-22-08-34-utc.mov

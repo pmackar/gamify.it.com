@@ -112,11 +112,11 @@ export default function AppLandingPage({
           <p className="hero-description">{description}</p>
 
           <div className="hero-cta">
-            <Link href={tryPath} className="cta-primary" style={{ '--accent-color': color, '--accent-glow': colorGlow } as React.CSSProperties}>
-              Try It Free
-            </Link>
+            <div className="cta-primary disabled" style={{ '--accent-color': color, '--accent-glow': colorGlow } as React.CSSProperties}>
+              Coming Soon
+            </div>
             <button onClick={handleLogin} className="cta-secondary">
-              Sign Up
+              Join the Waitlist
             </button>
           </div>
         </section>
@@ -311,6 +311,19 @@ export default function AppLandingPage({
         .cta-primary:active {
           transform: translateY(2px);
           box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+        }
+
+        .cta-primary.disabled {
+          background: var(--theme-bg-card);
+          color: var(--theme-text-muted);
+          border: 2px solid var(--theme-border);
+          cursor: not-allowed;
+          box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+
+        .cta-primary.disabled:hover {
+          transform: none;
+          box-shadow: 0 4px 0 rgba(0,0,0,0.2);
         }
 
         .cta-secondary {

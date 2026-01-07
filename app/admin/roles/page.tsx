@@ -43,7 +43,7 @@ const TIER_CONFIG: Record<string, { color: string; bg: string; icon: React.React
 
 const APP_LABELS: Record<string, string> = {
   global: "Global Platform",
-  fitness: "Iron Quest (Fitness)",
+  fitness: "Reptura (Fitness)",
   today: "Day Quest (Today)",
   travel: "Explorer (Travel)",
 };
@@ -309,7 +309,7 @@ export default function RolesPage() {
                 }}
               >
                 <option value="global">Global Platform</option>
-                <option value="fitness">Iron Quest (Fitness)</option>
+                <option value="fitness">Reptura (Fitness)</option>
                 <option value="today">Day Quest (Today)</option>
                 <option value="travel">Explorer (Travel)</option>
               </select>

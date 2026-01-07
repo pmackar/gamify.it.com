@@ -299,12 +299,23 @@ function updateChallengeProgress(challenges: Challenge[], todayWorkout: any): Ch
 }
 
 function getTodaysWorkout(workouts: any[]): any | null {
-  const today = new Date().toISOString().split('T')[0];
+  // Look for workouts in the last 24 hours to handle timezone differences
+  // This ensures a workout logged "today" in any timezone will be found
+  const now = Date.now();
+  const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
-  return workouts.find((w: any) => {
-    if (!w.startTime) return false;
-    return w.startTime.split('T')[0] === today;
-  });
+  // Find the most recent workout in the last 24 hours
+  const recentWorkouts = workouts
+    .filter((w: any) => {
+      if (!w.startTime) return false;
+      const workoutTime = new Date(w.startTime).getTime();
+      return workoutTime >= twentyFourHoursAgo && workoutTime <= now;
+    })
+    .sort((a: any, b: any) =>
+      new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    );
+
+  return recentWorkouts[0] || null;
 }
 
 function getEndOfDay(): string {

@@ -1,8 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import localFont from 'next/font/local';
+
+const modernThrash = localFont({
+  src: '../public/Fonts/Modern Thrash Slant.woff2',
+  display: 'swap',
+  variable: '--font-modern-thrash',
+});
 
 // Stats interface
 interface FitnessStats {
@@ -219,12 +226,38 @@ export default function FitnessLandingPage() {
     paragraphs: [
       "I've been lifting for years, but I kept falling off the wagon. Every fitness app felt like a chore—just another place to log data that nobody cared about.",
       "Then I realized: I never quit playing video games. The XP, the levels, the achievements—they kept me coming back. What if the gym felt the same way?",
-      "Iron Quest is the app I wished existed. Every PR feels like defeating a boss. Every workout streak is a combo multiplier. The gym isn't a chore anymore. It's the best game I've ever played."
+      "Reptura is the app I wished existed. Every PR feels like defeating a boss. Every workout streak is a combo multiplier. The gym isn't a chore anymore. It's the best game I've ever played."
     ],
     authorName: 'Pete',
-    authorTitle: 'Creator of Iron Quest',
+    authorTitle: 'Creator of Reptura',
     authorInitials: 'PM',
   });
+
+  // Video loop flash effect
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
+  const appNameRef = useRef<HTMLDivElement>(null);
+  const [loopFlash, setLoopFlash] = useState(false);
+
+  const triggerLoopFlash = useCallback(() => {
+    setLoopFlash(true);
+    setTimeout(() => setLoopFlash(false), 150);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleTimeUpdate = () => {
+      // Trigger flash when video is about to loop (last 0.15s)
+      if (video.duration - video.currentTime < 0.15) {
+        triggerLoopFlash();
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [triggerLoopFlash]);
 
   // Fetch real stats from API
   useEffect(() => {
@@ -264,39 +297,56 @@ export default function FitnessLandingPage() {
   };
 
   return (
-    <div className="landing-wrapper">
+    <div className={`landing-wrapper ${modernThrash.variable}`}>
       <PixelParticles />
 
       <div className="landing-content">
         {/* Hero Section */}
         <section className="hero-section">
-          <div className="hero-badge">
-            <span className="badge-icon">🎮</span>
-            <span className="badge-text">RPG FITNESS TRACKER</span>
+          {/* Video Background */}
+          <div className="hero-video-container">
+            <video
+              ref={videoRef}
+              className="hero-video"
+              autoPlay
+              loop
+              muted
+              playsInline
+            >
+              <source src="/Assets/waterfall-hero.mp4" type="video/mp4" />
+            </video>
+            <div className="hero-video-overlay" />
+            <div className="crt-scanlines" />
+            <div className="crt-vignette" />
+            <div className={`static-zap ${loopFlash ? 'active' : ''}`} />
+            <div className={`lightning-flash ${loopFlash ? 'loop-flash' : ''}`} ref={flashRef} />
           </div>
 
-          <h1 className="hero-title">
-            Your Gym is Now<br />
-            <span className="title-accent">a Dungeon.</span>
-          </h1>
+          <div className="hero-content">
+            <div className="hero-badge">
+              <span className="badge-icon">🎮</span>
+              <span className="badge-text">RPG FITNESS TRACKER</span>
+            </div>
 
-          <p className="hero-tagline">
-            Every rep is XP. Every workout is a quest.<br />
-            Every PR is a boss defeated.
-          </p>
+            <div className={`app-name ${loopFlash ? 'inverted' : ''}`} ref={appNameRef}>REPTURA</div>
 
-          <div className="hero-cta">
-            <Link href="/fitness?try=true" className="cta-primary">
-              Start Your Quest
-            </Link>
-            <button onClick={handleLogin} className="cta-secondary">
-              Sign Up Free
-            </button>
-          </div>
+            <p className="hero-tagline">
+              Every rep is part of your adventure.
+            </p>
 
-          <div className="scroll-indicator">
-            <span>See how it works</span>
-            <div className="scroll-arrow">↓</div>
+            <div className="hero-cta">
+              <Link href="/fitness?try=true" className="cta-primary">
+                Start Your Quest
+              </Link>
+              <button onClick={handleLogin} className="cta-secondary">
+                Sign Up Free
+              </button>
+            </div>
+
+            <div className="scroll-indicator">
+              <span>See how it works</span>
+              <div className="scroll-arrow">↓</div>
+            </div>
           </div>
         </section>
 
@@ -462,6 +512,69 @@ export default function FitnessLandingPage() {
           </div>
         </section>
 
+        {/* Roadmap Section */}
+        <section className="roadmap-section">
+          <div className="section-header">
+            <span className="section-label">// ROADMAP</span>
+            <h2 className="section-title">Built & Building</h2>
+            <p className="section-subtitle">What&apos;s done and what&apos;s coming next</p>
+          </div>
+
+          <div className="roadmap-timeline">
+            <div className="roadmap-phase current">
+              <div className="phase-marker">
+                <div className="phase-dot active"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">SHIPPED</div>
+                <h3 className="phase-title">Core Features</h3>
+                <ul className="phase-items">
+                  <li className="phase-item done">✓ Rest Timer & Warmup Sets</li>
+                  <li className="phase-item done">✓ Progress Charts & 1RM Tracking</li>
+                  <li className="phase-item done">✓ Supersets & Plate Calculator</li>
+                  <li className="phase-item done">✓ Program Builder</li>
+                  <li className="phase-item done">✓ Social Challenges & Leaderboards</li>
+                  <li className="phase-item done">✓ AI Coaching Tips</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">PHASE 5</div>
+                <h3 className="phase-title">Integrations</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">Strava Sync</li>
+                  <li className="phase-item">Fitbit Import</li>
+                  <li className="phase-item">Garmin Connect</li>
+                  <li className="phase-item">Apple Watch App</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">FUTURE</div>
+                <h3 className="phase-title">Exploring</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">Body Composition</li>
+                  <li className="phase-item">Nutrition Tracking</li>
+                  <li className="phase-item">Smart Equipment</li>
+                  <li className="phase-item">Music Integration</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Founder Story */}
         <section className="story-section">
           <div className="story-card">
@@ -503,7 +616,7 @@ export default function FitnessLandingPage() {
         </footer>
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         .landing-wrapper {
           min-height: 100vh;
           min-height: 100dvh;
@@ -529,6 +642,174 @@ export default function FitnessLandingPage() {
           text-align: center;
           padding: 6rem 1.5rem 4rem;
           position: relative;
+          overflow: hidden;
+        }
+
+        /* Video Background */
+        .hero-video-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+        }
+
+        .hero-video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .hero-video-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            180deg,
+            rgba(10, 10, 10, 0.7) 0%,
+            rgba(10, 10, 10, 0.5) 50%,
+            rgba(10, 10, 10, 0.9) 100%
+          );
+        }
+
+        /* CRT Scanlines */
+        .crt-scanlines {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.15) 0px,
+            rgba(0, 0, 0, 0.15) 1px,
+            transparent 1px,
+            transparent 2px
+          );
+          pointer-events: none;
+          z-index: 3;
+          animation: scanline-flicker 0.1s infinite;
+        }
+
+        @keyframes scanline-flicker {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.98; }
+        }
+
+        /* CRT Vignette */
+        .crt-vignette {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: radial-gradient(
+            ellipse at center,
+            transparent 0%,
+            transparent 60%,
+            rgba(0, 0, 0, 0.4) 100%
+          );
+          pointer-events: none;
+          z-index: 3;
+        }
+
+        /* CRT Screen Flicker */
+        .hero-video-container {
+          animation: crt-flicker 4s infinite;
+        }
+
+        @keyframes crt-flicker {
+          0%, 100% { filter: brightness(1) contrast(1); }
+          50% { filter: brightness(1.02) contrast(1.01); }
+          75% { filter: brightness(0.98) contrast(1); }
+        }
+
+        /* Static Zap Effect */
+        .static-zap {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 4;
+          background:
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 2px,
+              rgba(255, 255, 255, 0.03) 2px,
+              rgba(255, 255, 255, 0.03) 4px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 2px,
+              rgba(255, 255, 255, 0.03) 2px,
+              rgba(255, 255, 255, 0.03) 4px
+            );
+          background-size: 4px 4px;
+        }
+
+        .static-zap.active {
+          opacity: 1;
+          animation: static-noise 0.15s steps(4);
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes static-noise {
+          0% { background-position: 0 0; filter: contrast(2) brightness(1.5); }
+          25% { background-position: -2px 2px; filter: contrast(1.5) brightness(1.2); }
+          50% { background-position: 2px -2px; filter: contrast(2.5) brightness(1.8); }
+          75% { background-position: -1px -1px; filter: contrast(1.8) brightness(1.3); }
+          100% { background-position: 1px 1px; filter: contrast(2) brightness(1.5); }
+        }
+
+        /* Lightning Flash Effect */
+        .lightning-flash {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: white;
+          opacity: 0;
+          pointer-events: none;
+          animation: lightning 8s infinite;
+          z-index: 2;
+        }
+
+        .lightning-flash.loop-flash {
+          animation: none;
+          opacity: 0.4;
+        }
+
+        @keyframes lightning {
+          0%, 100% { opacity: 0; }
+          /* First strike */
+          20% { opacity: 0; }
+          20.5% { opacity: 0.25; }
+          21% { opacity: 0.05; }
+          21.5% { opacity: 0.3; }
+          22% { opacity: 0; }
+          /* Second strike */
+          60% { opacity: 0; }
+          60.3% { opacity: 0.2; }
+          60.6% { opacity: 0.03; }
+          61% { opacity: 0.28; }
+          61.3% { opacity: 0; }
+        }
+
+        .hero-content {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .hero-badge {
@@ -550,25 +831,66 @@ export default function FitnessLandingPage() {
           letter-spacing: 0.1em;
         }
 
-        .hero-title {
-          font-family: 'Press Start 2P', monospace;
-          font-size: clamp(1.5rem, 6vw, 3rem);
-          color: var(--theme-text-primary);
-          line-height: 1.4;
-          margin-bottom: 1.5rem;
+        .app-name {
+          font-family: var(--font-modern-thrash), 'Press Start 2P', monospace;
+          font-size: clamp(3rem, 12vw, 7rem);
+          color: var(--app-fitness);
+          line-height: 1;
+          margin-bottom: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
+          animation: lightning-text 8s infinite;
+          transition: color 0.05s, text-shadow 0.05s;
         }
 
-        .title-accent {
-          color: var(--app-fitness);
-          text-shadow: 0 0 40px var(--app-fitness-glow);
+        .app-name.inverted {
+          color: #fff;
+          text-shadow: 0 0 40px rgba(255,255,255,0.6), 0 4px 0 var(--app-fitness-darker);
+          animation: none;
+        }
+
+        @keyframes lightning-text {
+          0%, 100% {
+            color: var(--app-fitness);
+            text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
+          }
+          /* First strike - subtle flash */
+          20%, 22% {
+            color: var(--app-fitness);
+            text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
+          }
+          20.5%, 21.5% {
+            color: #fff;
+            text-shadow: 0 0 40px rgba(255,255,255,0.5), 0 4px 0 var(--app-fitness-darker);
+          }
+          21% {
+            color: var(--app-fitness);
+            text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
+          }
+          /* Second strike - subtle flash */
+          60%, 61.3% {
+            color: var(--app-fitness);
+            text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
+          }
+          60.3%, 61% {
+            color: #fff;
+            text-shadow: 0 0 40px rgba(255,255,255,0.5), 0 4px 0 var(--app-fitness-darker);
+          }
+          60.6% {
+            color: var(--app-fitness);
+            text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
+          }
         }
 
         .hero-tagline {
-          font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.55rem;
           color: var(--theme-text-secondary);
-          line-height: 1.8;
+          line-height: 2;
           margin-bottom: 3rem;
           max-width: 500px;
+          letter-spacing: 0.02em;
         }
 
         .hero-cta {
@@ -1319,6 +1641,97 @@ export default function FitnessLandingPage() {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.4rem;
           letter-spacing: 0.1em;
+        }
+
+        /* Roadmap Timeline */
+        .roadmap-section {
+          padding: 5rem 1.5rem;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+
+        .roadmap-timeline {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        .roadmap-phase {
+          display: flex;
+          gap: 1.5rem;
+          margin-bottom: 0;
+        }
+
+        .phase-marker {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 20px;
+          flex-shrink: 0;
+        }
+
+        .phase-dot {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: var(--theme-bg-elevated);
+          border: 2px solid var(--theme-border);
+          transition: all 0.3s ease;
+        }
+
+        .phase-dot.active {
+          background: var(--app-fitness);
+          border-color: var(--app-fitness);
+          box-shadow: 0 0 15px var(--app-fitness-glow);
+        }
+
+        .phase-line {
+          width: 2px;
+          flex: 1;
+          background: linear-gradient(180deg, var(--theme-border), var(--theme-border-light));
+          margin-top: 0.5rem;
+        }
+
+        .phase-content {
+          flex: 1;
+          padding-bottom: 2.5rem;
+        }
+
+        .phase-label {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: var(--app-fitness);
+          margin-bottom: 0.5rem;
+          letter-spacing: 0.1em;
+        }
+
+        .phase-title {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.65rem;
+          color: var(--theme-text-primary);
+          margin-bottom: 1rem;
+        }
+
+        .phase-items {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .phase-item {
+          font-size: 0.45rem;
+          color: var(--theme-text-muted);
+          font-family: 'Press Start 2P', monospace;
+          line-height: 2.2;
+          padding-left: 0.5rem;
+        }
+
+        .phase-item.done {
+          color: var(--color-success);
+        }
+
+        .roadmap-phase:hover .phase-dot:not(.active) {
+          border-color: var(--app-fitness);
+          background: var(--app-fitness-glow);
         }
 
         /* Story Section */

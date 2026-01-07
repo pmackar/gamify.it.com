@@ -1,5 +1,5 @@
 /**
- * Iron Quest - Data Layer
+ * Reptura - Data Layer
  * Exercise library, XP tables, and game data
  */
 

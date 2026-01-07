@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Iron Quest | gamify.it.com',
-  description: 'Level up your fitness journey. Track workouts, earn XP, unlock achievements.',
+  title: 'Reptura | gamify.it.com',
+  description: 'Every Rep is part of an Adventure. Track workouts, earn XP, unlock achievements.',
 };
 
 export default function FitnessLayout({

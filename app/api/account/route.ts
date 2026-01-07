@@ -33,7 +33,7 @@ export const GET = withAuth(async (_request, user) => {
     const appData = [
       {
         id: "fitness",
-        name: "Iron Quest",
+        name: "Reptura",
         icon: "💪",
         color: "#FF6B6B",
         url: "/fitness",

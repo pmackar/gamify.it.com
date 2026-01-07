@@ -1050,8 +1050,17 @@ export const useFitnessStore = create<FitnessStore>()(
               ? ` (${Math.round((data.streakMultiplier - 1) * 100)}% streak bonus!)`
               : '';
             get().showToast(`Workout complete! +${data.xpAwarded} XP${streakBonus}`);
+
+            // Dispatch workout-completed event for UI components to refresh
+            window.dispatchEvent(new CustomEvent('workout-completed', {
+              detail: { workoutId: completedWorkout.id, xp: data.xpAwarded }
+            }));
           } else {
             get().showToast(`Workout complete! +${completedWorkout.totalXP} XP`);
+            // Still dispatch event even if XP API failed
+            window.dispatchEvent(new CustomEvent('workout-completed', {
+              detail: { workoutId: completedWorkout.id, xp: completedWorkout.totalXP }
+            }));
           }
 
           // Roll for workout-level loot (guaranteed drop)

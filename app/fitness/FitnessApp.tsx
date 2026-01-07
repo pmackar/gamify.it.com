@@ -1,7 +1,14 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import localFont from 'next/font/local';
 import { useFitnessStore } from '@/lib/fitness/store';
+
+const modernThrash = localFont({
+  src: '../../public/Fonts/Modern Thrash Slant.woff2',
+  display: 'swap',
+  variable: '--font-modern-thrash',
+});
 import { EXERCISES, DEFAULT_COMMANDS, getExerciseById, MILESTONES, GENERAL_ACHIEVEMENTS, matchExerciseFromCSV, calculateSetXP, PREBUILT_PROGRAMS, getExerciseSubstitutes, getExerciseTier } from '@/lib/fitness/data';
 import { CommandSuggestion, Workout, WorkoutExercise, Set as SetType, TemplateExercise, Program, ProgramWeek, ProgramDay, ProgressionRule, ExerciseWeightConfig, WeightBasis } from '@/lib/fitness/types';
 import { useNavBar } from '@/components/NavBarContext';
@@ -1108,7 +1115,7 @@ export default function FitnessApp() {
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
 
         .fitness-app {
-          /* Iron Quest Theme - Uses universal theme system */
+          /* Reptura Theme - Uses universal theme system */
           /* App-specific accent from globals.css */
           --accent: var(--app-fitness);
           --accent-dark: var(--app-fitness-dark);
@@ -3256,15 +3263,20 @@ export default function FitnessApp() {
           filter: drop-shadow(0 4px 12px var(--app-fitness-glow));
         }
         .home-title {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: var(--theme-text-primary);
+          font-family: var(--font-modern-thrash), 'Press Start 2P', monospace;
+          font-size: 2.5rem;
+          font-weight: 400;
+          color: var(--app-fitness);
           margin-bottom: 0.5rem;
+          text-shadow: 0 0 20px var(--app-fitness-glow);
+          letter-spacing: 0.05em;
         }
         .home-subtitle {
-          font-size: 1rem;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
           color: var(--text-secondary);
           margin-bottom: 1.5rem;
+          letter-spacing: 0.02em;
         }
         .home-stats {
           display: grid;
@@ -7595,7 +7607,7 @@ export default function FitnessApp() {
         }
       `}</style>
 
-      <div className="fitness-app text-white" style={{ '--keyboard-height': `${keyboardHeight}px` } as React.CSSProperties}>
+      <div className={`fitness-app text-white ${modernThrash.variable}`} style={{ '--keyboard-height': `${keyboardHeight}px` } as React.CSSProperties}>
         {/* Hidden input to trigger keyboard before showing set panel */}
         <input
           ref={keyboardTriggerRef}
@@ -7766,7 +7778,7 @@ export default function FitnessApp() {
 
                 const handleShareSummary = async () => {
                   const periodLabel = summaryPeriod === 7 ? 'This Week' : 'This Month';
-                  const text = `Iron Quest - ${periodLabel}
+                  const text = `Reptura - ${periodLabel}
 
 📊 ${stats.workouts} workouts
 🏋️ ${stats.totalSets} sets
@@ -7991,7 +8003,7 @@ gamify.it.com/fitness`;
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `iron-quest-export-${new Date().toISOString().split('T')[0]}.csv`;
+                  a.download = `reptura-export-${new Date().toISOString().split('T')[0]}.csv`;
                   a.click();
                   URL.revokeObjectURL(url);
                   store.showToast('Workout history exported!');
@@ -10946,9 +10958,8 @@ gamify.it.com/fitness`;
 
               <div className="home-hero" onClick={() => store.setView('analytics')} style={{ cursor: 'pointer' }}>
                 <div className="hero-card">
-                  <div className="home-icon">🏋️</div>
-                  <h1 className="home-title">IRON QUEST</h1>
-                  <p className="home-subtitle">Turn every rep into XP</p>
+                  <div className="home-title">REPTURA</div>
+                  <p className="home-subtitle">Every rep is part of your adventure</p>
                   <div className="home-stats">
                     <div className="home-stat">
                       <div className="home-stat-value">{unifiedProfile?.level ?? store.profile.level}</div>
@@ -11908,7 +11919,7 @@ gamify.it.com/fitness`;
           const steps = [
             {
               icon: '⚔️',
-              title: 'Welcome to Iron Quest!',
+              title: 'Welcome to Reptura!',
               content: 'Turn your workouts into an RPG adventure. Track exercises, earn XP, level up, and conquer your fitness goals.',
             },
             {
@@ -14269,7 +14280,7 @@ function WorkoutDetailView({
               return `${ex.name}: ${bestSet?.weight || 0}×${bestSet?.reps || 0}`;
             }).join('\n');
 
-            const shareText = `Iron Quest Workout
+            const shareText = `Reptura Workout
 
 ${new Date(workout.startTime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
 ${workout.exercises.length} exercises · ${workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets · ${formatDuration(workout.duration)}

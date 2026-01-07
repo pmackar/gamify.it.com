@@ -140,8 +140,8 @@ function Dashboard({ user }: { user: User }) {
               <a href="/fitness" className="game-card fitness">
                 <span className="game-card-badge test">TEST</span>
                 <DumbbellIcon className="game-icon" />
-                <h3 className="game-name">IRON QUEST</h3>
-                <p className="game-tagline">Turn every rep into XP</p>
+                <h3 className="game-name">REPTURA</h3>
+                <p className="game-tagline">Every Rep is part of an Adventure</p>
                 <XPBar current={fitnessXP.xp} max={fitnessXP.xpToNext} color="#FF6B6B" />
                 <p className="game-domain">/fitness</p>
               </a>
@@ -278,8 +278,8 @@ function SplashIntro() {
             <a href="/fitness" className="game-card fitness">
               <span className="game-card-badge test">TEST</span>
               <DumbbellIcon className="game-icon" />
-              <h3 className="game-name">IRON QUEST</h3>
-              <p className="game-tagline">Turn every rep into XP</p>
+              <h3 className="game-name">REPTURA</h3>
+              <p className="game-tagline">Every Rep is part of an Adventure</p>
               <XPBar current={4250} max={5000} color="#FF6B6B" />
               <p className="game-domain">/fitness</p>
             </a>
@@ -401,7 +401,7 @@ function SplashIntro() {
             <div className="eco-apps-row">
               <div className="eco-app-bubble fitness">
                 <span className="eco-app-icon">&#x1F4AA;</span>
-                <span className="eco-app-name">Iron Quest</span>
+                <span className="eco-app-name">Reptura</span>
                 <span className="eco-app-xp">+50 XP/workout</span>
               </div>
               <div className="eco-app-bubble today">
@@ -460,7 +460,7 @@ function SplashIntro() {
                 <div className="phase-label">NOW</div>
                 <h3 className="phase-title">Foundation</h3>
                 <ul className="phase-items">
-                  <li className="phase-item done">&#x2713; Iron Quest (Fitness Tracking)</li>
+                  <li className="phase-item done">&#x2713; Reptura (Fitness Tracking)</li>
                   <li className="phase-item done">&#x2713; Day Quest (Daily Tasks)</li>
                   <li className="phase-item done">&#x2713; Explorer (Travel Logging)</li>
                   <li className="phase-item done">&#x2713; Friends & Social Features</li>

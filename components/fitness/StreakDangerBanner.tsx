@@ -42,9 +42,11 @@ export function StreakDangerBanner({ onStartWorkout }: { onStartWorkout?: () => 
       // Profile API returns data under 'character' key
       const char = data.character || data;
 
-      // Check if user has worked out today
-      const today = new Date().toISOString().split('T')[0];
-      const lastActivity = char.lastActivityDate?.split('T')[0];
+      // Check if user has worked out today (using local dates for accurate comparison)
+      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
+      const lastActivity = char.lastActivityDate
+        ? new Date(char.lastActivityDate).toLocaleDateString('en-CA')
+        : null;
       const hasWorkedOutToday = lastActivity === today;
 
       setStatus({
@@ -62,7 +64,18 @@ export function StreakDangerBanner({ onStartWorkout }: { onStartWorkout?: () => 
     fetchStatus();
     // Refresh every 5 minutes
     const interval = setInterval(fetchStatus, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    // Also refresh when a workout is completed
+    const handleWorkoutComplete = () => {
+      // Small delay to allow server to update
+      setTimeout(fetchStatus, 1000);
+    };
+    window.addEventListener('workout-completed', handleWorkoutComplete);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('workout-completed', handleWorkoutComplete);
+    };
   }, [fetchStatus]);
 
   // Don't show if:

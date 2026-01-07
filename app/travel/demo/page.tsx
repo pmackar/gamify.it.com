@@ -42,7 +42,7 @@ export default function TravelDemoPage() {
               border: "1px solid rgba(255, 255, 255, 0.3)",
             }}
           >
-            Sign up to start your journey
+            Join the waitlist
             <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -153,7 +153,7 @@ export default function TravelDemoPage() {
               </h2>
               <span className="text-sm flex items-center gap-1" style={{ color: "var(--rpg-muted)" }}>
                 <Lock className="w-3 h-3" />
-                Sign up
+                Join waitlist
               </span>
             </div>
             <div className="flex items-center gap-4">
@@ -196,7 +196,7 @@ export default function TravelDemoPage() {
               </h2>
               <span className="text-sm flex items-center gap-1" style={{ color: "var(--rpg-muted)" }}>
                 <Lock className="w-3 h-3" />
-                Sign up
+                Join waitlist
               </span>
             </div>
             <div className="space-y-3">
@@ -234,7 +234,7 @@ export default function TravelDemoPage() {
             Ready to start your adventure?
           </h3>
           <p className="text-sm mb-4" style={{ color: "var(--rpg-muted)" }}>
-            Sign up to track your travels, earn XP, and unlock achievements
+            Join the waitlist to track your travels, earn XP, and unlock achievements
           </p>
           <Link
             href="/login"

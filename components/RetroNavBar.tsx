@@ -867,7 +867,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
         /* ===== APP-SPECIFIC LOGO COLORS ===== */
         /* These override theme colors when in a specific app */
 
-        /* Fitness (Iron Quest) - Red gradient */
+        /* Fitness (Reptura) - Red gradient */
         .logo-app-fitness .logo-g-top { fill: #FF6B6B !important; }
         .logo-app-fitness .logo-g-mid { fill: #CC5555 !important; }
         .logo-app-fitness .logo-g-bottom { fill: #993333 !important; }
@@ -1971,7 +1971,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
                   </Link>
                   <Link href="/fitness" className={`nav-apps-dropdown-item ${isFitness ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
                     <span className="nav-apps-dropdown-icon"><DumbbellIcon active={isFitness} /></span>
-                    IRON QUEST
+                    REPTURA
                   </Link>
                   <Link href="/today" className={`nav-apps-dropdown-item ${isToday ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
                     <span className="nav-apps-dropdown-icon"><ChecklistIcon active={isToday} /></span>
