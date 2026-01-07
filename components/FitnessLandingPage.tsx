@@ -419,40 +419,56 @@ export default function FitnessLandingPage() {
         <section className="preview-section">
           <div className="section-header">
             <span className="section-label">// THE APP</span>
-            <h2 className="section-title">Built for Lifters</h2>
-            <p className="section-subtitle">Command palette interface. No tapping through menus.</p>
+            <h2 className="section-title">Track Sets. Earn XP.</h2>
+            <p className="section-subtitle">Pick an exercise. Log your sets. Watch yourself level up.</p>
           </div>
 
           <div className="preview-grid">
-            <PhoneMockup title="Command Input">
-              <div className="mock-workout">
-                <div className="mock-exercise-header">
-                  <span className="mock-exercise-name">BENCH PRESS</span>
-                  <span className="mock-pr-badge">PR: 225</span>
-                </div>
-                <div className="mock-sets">
-                  <div className="mock-set">135 × 10</div>
-                  <div className="mock-set">185 × 8</div>
-                  <div className="mock-set active">205 × 6 <span className="mock-xp">+62 XP</span></div>
-                </div>
-                <div className="mock-input">
-                  <span className="mock-cursor">|</span> 225 x 5
+            <PhoneMockup title="Browse Exercises">
+              <div className="mock-picker">
+                <div className="mock-picker-title">Add Exercise</div>
+                <div className="mock-category-grid">
+                  <div className="mock-category">
+                    <span className="mock-cat-icon">🫁</span>
+                    <span className="mock-cat-name">Chest</span>
+                  </div>
+                  <div className="mock-category">
+                    <span className="mock-cat-icon">🔙</span>
+                    <span className="mock-cat-name">Back</span>
+                  </div>
+                  <div className="mock-category active">
+                    <span className="mock-cat-icon">💪</span>
+                    <span className="mock-cat-name">Biceps</span>
+                  </div>
+                  <div className="mock-category">
+                    <span className="mock-cat-icon">🦵</span>
+                    <span className="mock-cat-name">Quads</span>
+                  </div>
                 </div>
               </div>
             </PhoneMockup>
 
-            <PhoneMockup title="Achievement Unlock">
-              <div className="mock-achievement">
-                <div className="mock-achievement-glow"></div>
-                <div className="mock-achievement-icon">🔥</div>
-                <div className="mock-achievement-title">TWO PLATE WARRIOR</div>
-                <div className="mock-achievement-desc">Bench Press 225 lbs</div>
-                <div className="mock-achievement-xp">+1,000 XP</div>
-                <div className="mock-achievement-tier">RARE</div>
+            <PhoneMockup title="Log Sets">
+              <div className="mock-set-panel">
+                <div className="mock-panel-exercise">BENCH PRESS</div>
+                <div className="mock-panel-pr">PR: 225 lbs</div>
+                <div className="mock-panel-inputs">
+                  <div className="mock-panel-input">
+                    <span className="mock-input-value">185</span>
+                    <span className="mock-input-label">lbs</span>
+                  </div>
+                  <span className="mock-panel-x">×</span>
+                  <div className="mock-panel-input">
+                    <span className="mock-input-value">8</span>
+                    <span className="mock-input-label">reps</span>
+                  </div>
+                </div>
+                <div className="mock-panel-btn">LOG SET</div>
+                <div className="mock-panel-xp">+44 XP</div>
               </div>
             </PhoneMockup>
 
-            <PhoneMockup title="Level Progress">
+            <PhoneMockup title="Level Up">
               <div className="mock-profile">
                 <div className="mock-level-badge">
                   <span className="mock-lvl">LVL</span>
@@ -1478,6 +1494,118 @@ export default function FitnessLandingPage() {
         @keyframes blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
+        }
+
+        /* Mock Exercise Picker */
+        .mock-picker {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .mock-picker-title {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.45rem;
+          color: var(--theme-text-primary);
+          text-align: center;
+          margin-bottom: 1rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid var(--theme-border);
+        }
+        .mock-category-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.5rem;
+          flex: 1;
+        }
+        .mock-category {
+          background: var(--theme-bg-elevated);
+          border: 1px solid var(--theme-border);
+          border-radius: 8px;
+          padding: 0.75rem 0.5rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+          transition: all 0.2s;
+        }
+        .mock-category.active {
+          border-color: var(--app-fitness);
+          background: var(--app-fitness-glow);
+        }
+        .mock-cat-icon {
+          font-size: 1.25rem;
+        }
+        .mock-cat-name {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.35rem;
+          color: var(--theme-text-secondary);
+        }
+        .mock-category.active .mock-cat-name {
+          color: var(--app-fitness);
+        }
+
+        /* Mock Set Panel */
+        .mock-set-panel {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.5rem;
+        }
+        .mock-panel-exercise {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.45rem;
+          color: var(--app-fitness);
+        }
+        .mock-panel-pr {
+          font-size: 0.5rem;
+          color: var(--color-legendary);
+          margin-bottom: 0.5rem;
+        }
+        .mock-panel-inputs {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .mock-panel-input {
+          background: var(--theme-bg-elevated);
+          border: 2px solid var(--app-fitness);
+          border-radius: 8px;
+          padding: 0.5rem 0.75rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .mock-input-value {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.7rem;
+          color: var(--theme-text-primary);
+        }
+        .mock-input-label {
+          font-size: 0.4rem;
+          color: var(--theme-text-muted);
+        }
+        .mock-panel-x {
+          font-size: 1rem;
+          color: var(--theme-text-muted);
+        }
+        .mock-panel-btn {
+          background: linear-gradient(180deg, var(--app-fitness) 0%, var(--app-fitness-dark) 100%);
+          border-radius: 6px;
+          padding: 0.5rem 1rem;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: var(--theme-text-primary);
+          margin-top: 0.5rem;
+          box-shadow: 0 2px 0 var(--app-fitness-darker);
+        }
+        .mock-panel-xp {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: var(--color-legendary);
+          margin-top: 0.25rem;
         }
 
         /* Mock Achievement Screen */
