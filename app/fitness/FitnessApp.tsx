@@ -131,6 +131,13 @@ export default function FitnessApp() {
   const [bodyWeight, setBodyWeight] = useState(0);
   const [unifiedProfile, setUnifiedProfile] = useState<{ level: number; xp: number; xpToNext: number } | null>(null);
 
+  // Touch drag state for mobile reordering
+  const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
+  const [touchDragOverIndex, setTouchDragOverIndex] = useState<number | null>(null);
+  const touchDragCloneRef = useRef<HTMLDivElement | null>(null);
+  const touchDragStartY = useRef<number>(0);
+  const exerciseListRef = useRef<HTMLDivElement | null>(null);
+
   // Program wizard - inline workout creation
   const [creatingWorkoutForDay, setCreatingWorkoutForDay] = useState<number | null>(null);
   const [editingWorkoutTemplateId, setEditingWorkoutTemplateId] = useState<string | null>(null); // Track if editing existing
@@ -872,6 +879,77 @@ export default function FitnessApp() {
     }
   };
 
+  // Touch drag handlers for mobile reordering
+  const handleTouchDragStart = (idx: number, e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchDragStartY.current = touch.clientY;
+    setTouchDragIndex(idx);
+    setTouchDragOverIndex(idx);
+
+    // Create visual clone
+    const target = e.currentTarget.closest('.exercise-pill') as HTMLElement;
+    if (target) {
+      const clone = target.cloneNode(true) as HTMLDivElement;
+      clone.classList.add('touch-drag-clone');
+      clone.style.position = 'fixed';
+      clone.style.left = `${target.getBoundingClientRect().left}px`;
+      clone.style.top = `${touch.clientY - 30}px`;
+      clone.style.width = `${target.offsetWidth}px`;
+      clone.style.zIndex = '9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.opacity = '0.9';
+      clone.style.transform = 'scale(1.02)';
+      clone.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
+      document.body.appendChild(clone);
+      touchDragCloneRef.current = clone;
+      target.classList.add('dragging');
+    }
+  };
+
+  const handleTouchDragMove = (e: React.TouchEvent) => {
+    if (touchDragIndex === null) return;
+    e.preventDefault();
+
+    const touch = e.touches[0];
+
+    // Move clone
+    if (touchDragCloneRef.current) {
+      touchDragCloneRef.current.style.top = `${touch.clientY - 30}px`;
+    }
+
+    // Find which exercise we're over
+    if (exerciseListRef.current) {
+      const pills = exerciseListRef.current.querySelectorAll('.exercise-pill');
+      pills.forEach((pill, idx) => {
+        const rect = pill.getBoundingClientRect();
+        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          setTouchDragOverIndex(idx);
+          pill.classList.add('drag-over');
+        } else {
+          pill.classList.remove('drag-over');
+        }
+      });
+    }
+  };
+
+  const handleTouchDragEnd = () => {
+    if (touchDragIndex !== null && touchDragOverIndex !== null && touchDragIndex !== touchDragOverIndex) {
+      store.reorderExercises(touchDragIndex, touchDragOverIndex);
+    }
+
+    // Cleanup
+    if (touchDragCloneRef.current) {
+      touchDragCloneRef.current.remove();
+      touchDragCloneRef.current = null;
+    }
+    document.querySelectorAll('.exercise-pill.dragging, .exercise-pill.drag-over').forEach(el => {
+      el.classList.remove('dragging', 'drag-over');
+    });
+    setTouchDragIndex(null);
+    setTouchDragOverIndex(null);
+  };
+
   const handleFinishWorkout = async (saveTemplate: boolean) => {
     if (saveTemplate && templateName.trim()) store.saveTemplate(templateName.trim());
     await store.finishWorkout();
@@ -1548,6 +1626,26 @@ export default function FitnessApp() {
         .exercise-pill.drag-over {
           border: 2px solid var(--accent);
           background: var(--bg-elevated);
+        }
+
+        /* Touch drag clone for mobile */
+        .touch-drag-clone {
+          background: var(--bg-secondary);
+          border: 2px solid var(--accent);
+          border-radius: 12px;
+        }
+        .touch-drag-clone .drag-handle {
+          opacity: 1;
+          color: var(--accent);
+        }
+
+        /* Make drag handle larger touch target on mobile */
+        @media (pointer: coarse) {
+          .drag-handle {
+            padding: 12px 8px;
+            margin: -8px 0;
+            touch-action: none;
+          }
         }
 
         /* RPE input styling */
@@ -7632,7 +7730,7 @@ export default function FitnessApp() {
 
           {/* Workout View */}
           {store.currentView === 'workout' && store.currentWorkout && (
-            <div className="exercises-container">
+            <div className="exercises-container" ref={exerciseListRef}>
               {store.currentWorkout.exercises.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">💪</div>
@@ -7682,7 +7780,13 @@ export default function FitnessApp() {
                       openSetPanel(idx);
                     }}
                   >
-                    <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
+                    <div
+                      className="drag-handle"
+                      title="Drag to reorder"
+                      onTouchStart={(e) => handleTouchDragStart(idx, e)}
+                      onTouchMove={handleTouchDragMove}
+                      onTouchEnd={handleTouchDragEnd}
+                    >⋮⋮</div>
                     <div className="exercise-number">{idx + 1}</div>
                     <div className="exercise-info">
                       <div className="exercise-name">
