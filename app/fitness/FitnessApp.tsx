@@ -131,6 +131,13 @@ export default function FitnessApp() {
   const [bodyWeight, setBodyWeight] = useState(0);
   const [unifiedProfile, setUnifiedProfile] = useState<{ level: number; xp: number; xpToNext: number } | null>(null);
 
+  // Touch drag state for mobile reordering
+  const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
+  const [touchDragOverIndex, setTouchDragOverIndex] = useState<number | null>(null);
+  const touchDragCloneRef = useRef<HTMLDivElement | null>(null);
+  const touchDragStartY = useRef<number>(0);
+  const exerciseListRef = useRef<HTMLDivElement | null>(null);
+
   // Program wizard - inline workout creation
   const [creatingWorkoutForDay, setCreatingWorkoutForDay] = useState<number | null>(null);
   const [editingWorkoutTemplateId, setEditingWorkoutTemplateId] = useState<string | null>(null); // Track if editing existing
@@ -872,6 +879,77 @@ export default function FitnessApp() {
     }
   };
 
+  // Touch drag handlers for mobile reordering
+  const handleTouchDragStart = (idx: number, e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchDragStartY.current = touch.clientY;
+    setTouchDragIndex(idx);
+    setTouchDragOverIndex(idx);
+
+    // Create visual clone
+    const target = e.currentTarget.closest('.exercise-pill') as HTMLElement;
+    if (target) {
+      const clone = target.cloneNode(true) as HTMLDivElement;
+      clone.classList.add('touch-drag-clone');
+      clone.style.position = 'fixed';
+      clone.style.left = `${target.getBoundingClientRect().left}px`;
+      clone.style.top = `${touch.clientY - 30}px`;
+      clone.style.width = `${target.offsetWidth}px`;
+      clone.style.zIndex = '9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.opacity = '0.9';
+      clone.style.transform = 'scale(1.02)';
+      clone.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
+      document.body.appendChild(clone);
+      touchDragCloneRef.current = clone;
+      target.classList.add('dragging');
+    }
+  };
+
+  const handleTouchDragMove = (e: React.TouchEvent) => {
+    if (touchDragIndex === null) return;
+    e.preventDefault();
+
+    const touch = e.touches[0];
+
+    // Move clone
+    if (touchDragCloneRef.current) {
+      touchDragCloneRef.current.style.top = `${touch.clientY - 30}px`;
+    }
+
+    // Find which exercise we're over
+    if (exerciseListRef.current) {
+      const pills = exerciseListRef.current.querySelectorAll('.exercise-pill');
+      pills.forEach((pill, idx) => {
+        const rect = pill.getBoundingClientRect();
+        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          setTouchDragOverIndex(idx);
+          pill.classList.add('drag-over');
+        } else {
+          pill.classList.remove('drag-over');
+        }
+      });
+    }
+  };
+
+  const handleTouchDragEnd = () => {
+    if (touchDragIndex !== null && touchDragOverIndex !== null && touchDragIndex !== touchDragOverIndex) {
+      store.reorderExercises(touchDragIndex, touchDragOverIndex);
+    }
+
+    // Cleanup
+    if (touchDragCloneRef.current) {
+      touchDragCloneRef.current.remove();
+      touchDragCloneRef.current = null;
+    }
+    document.querySelectorAll('.exercise-pill.dragging, .exercise-pill.drag-over').forEach(el => {
+      el.classList.remove('dragging', 'drag-over');
+    });
+    setTouchDragIndex(null);
+    setTouchDragOverIndex(null);
+  };
+
   const handleFinishWorkout = async (saveTemplate: boolean) => {
     if (saveTemplate && templateName.trim()) store.saveTemplate(templateName.trim());
     await store.finishWorkout();
@@ -1548,6 +1626,26 @@ export default function FitnessApp() {
         .exercise-pill.drag-over {
           border: 2px solid var(--accent);
           background: var(--bg-elevated);
+        }
+
+        /* Touch drag clone for mobile */
+        .touch-drag-clone {
+          background: var(--bg-secondary);
+          border: 2px solid var(--accent);
+          border-radius: 12px;
+        }
+        .touch-drag-clone .drag-handle {
+          opacity: 1;
+          color: var(--accent);
+        }
+
+        /* Make drag handle larger touch target on mobile */
+        @media (pointer: coarse) {
+          .drag-handle {
+            padding: 12px 8px;
+            margin: -8px 0;
+            touch-action: none;
+          }
         }
 
         /* RPE input styling */
@@ -3177,6 +3275,43 @@ export default function FitnessApp() {
         .workout-xp {
           color: var(--accent);
           font-weight: 600;
+        }
+        .workout-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+        .auto-complete-badge {
+          font-size: 10px;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          background: rgba(255, 255, 255, 0.1);
+          padding: 2px 8px;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .workout-exercises-list {
+          font-size: 13px;
+          color: var(--text-tertiary);
+          margin-top: 8px;
+          line-height: 1.4;
+        }
+        .workout-muscle-tags {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          margin-top: 10px;
+        }
+        .muscle-tag {
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--accent);
+          background: rgba(255, 107, 107, 0.15);
+          padding: 3px 10px;
+          border-radius: 12px;
+          text-transform: capitalize;
         }
 
         /* Achievement Cards */
@@ -7632,7 +7767,7 @@ export default function FitnessApp() {
 
           {/* Workout View */}
           {store.currentView === 'workout' && store.currentWorkout && (
-            <div className="exercises-container">
+            <div className="exercises-container" ref={exerciseListRef}>
               {store.currentWorkout.exercises.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">💪</div>
@@ -7682,7 +7817,13 @@ export default function FitnessApp() {
                       openSetPanel(idx);
                     }}
                   >
-                    <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
+                    <div
+                      className="drag-handle"
+                      title="Drag to reorder"
+                      onTouchStart={(e) => handleTouchDragStart(idx, e)}
+                      onTouchMove={handleTouchDragMove}
+                      onTouchEnd={handleTouchDragEnd}
+                    >⋮⋮</div>
                     <div className="exercise-number">{idx + 1}</div>
                     <div className="exercise-info">
                       <div className="exercise-name">
@@ -8029,19 +8170,43 @@ gamify.it.com/fitness`;
                   <div className="empty-subtitle">Complete your first workout to see it here</div>
                 </div>
               ) : (
-                store.workouts.slice(0, 20).map(workout => (
-                  <div
-                    key={workout.id}
-                    className="workout-card"
-                    onClick={() => store.showWorkoutDetail(workout.id)}
-                  >
-                    <div className="workout-date">{formatDate(workout.startTime)}</div>
-                    <div className="workout-summary">
-                      {workout.exercises.length} exercises · {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets
-                      <span className="workout-xp"> · +{workout.totalXP} XP</span>
+                store.workouts.slice(0, 20).map(workout => {
+                  // Get unique muscle groups from exercises
+                  const muscleGroups = [...new Set(workout.exercises.map(ex => {
+                    const exerciseData = getExerciseById(ex.id) || EXERCISES.find(e => e.name === ex.name);
+                    return exerciseData?.muscle || 'other';
+                  }))];
+                  // Get exercise names (limit to first 4)
+                  const exerciseNames = workout.exercises.slice(0, 4).map(ex => ex.name);
+                  const moreCount = workout.exercises.length - 4;
+
+                  return (
+                    <div
+                      key={workout.id}
+                      className="workout-card"
+                      onClick={() => store.showWorkoutDetail(workout.id)}
+                    >
+                      <div className="workout-card-header">
+                        <div className="workout-date">{formatDate(workout.startTime)}</div>
+                        {workout.autoCompleted && (
+                          <span className="auto-complete-badge" title="Auto-completed due to inactivity">Auto</span>
+                        )}
+                      </div>
+                      <div className="workout-summary">
+                        {workout.exercises.length} exercises · {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets
+                        <span className="workout-xp"> · +{workout.totalXP} XP</span>
+                      </div>
+                      <div className="workout-exercises-list">
+                        {exerciseNames.join(', ')}{moreCount > 0 ? ` +${moreCount} more` : ''}
+                      </div>
+                      <div className="workout-muscle-tags">
+                        {muscleGroups.map(muscle => (
+                          <span key={muscle} className="muscle-tag">{muscle}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
@@ -8056,6 +8221,7 @@ gamify.it.com/fitness`;
                 store.startWorkout();
                 workout.exercises.forEach(ex => store.addExerciseToWorkout(ex.id));
               }}
+              onEdit={(workoutId) => store.editWorkout(workoutId)}
               onDelete={(workoutId) => store.deleteWorkout(workoutId)}
               onUpdateTimes={(workoutId, startTime, endTime) => store.updateWorkoutTimes(workoutId, startTime, endTime)}
             />
@@ -14039,6 +14205,7 @@ function WorkoutDetailView({
   records,
   onBack,
   onRepeat,
+  onEdit,
   onDelete,
   onUpdateTimes
 }: {
@@ -14046,6 +14213,7 @@ function WorkoutDetailView({
   records: Record<string, number>;
   onBack: () => void;
   onRepeat: (workout: Workout) => void;
+  onEdit: (workoutId: string) => void;
   onDelete: (workoutId: string) => void;
   onUpdateTimes: (workoutId: string, startTime: string, endTime: string) => void;
 }) {
@@ -14267,6 +14435,24 @@ function WorkoutDetailView({
           }}
         >
           Repeat
+        </button>
+
+        <button
+          onClick={() => onEdit(workout.id)}
+          style={{
+            flex: 1,
+            padding: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--accent)',
+            borderRadius: '14px',
+            color: 'var(--accent)',
+            fontWeight: 600,
+            fontSize: '15px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Edit
         </button>
 
         <button
