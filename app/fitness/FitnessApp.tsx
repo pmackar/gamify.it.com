@@ -3276,6 +3276,43 @@ export default function FitnessApp() {
           color: var(--accent);
           font-weight: 600;
         }
+        .workout-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+        .auto-complete-badge {
+          font-size: 10px;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          background: rgba(255, 255, 255, 0.1);
+          padding: 2px 8px;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .workout-exercises-list {
+          font-size: 13px;
+          color: var(--text-tertiary);
+          margin-top: 8px;
+          line-height: 1.4;
+        }
+        .workout-muscle-tags {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          margin-top: 10px;
+        }
+        .muscle-tag {
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--accent);
+          background: rgba(255, 107, 107, 0.15);
+          padding: 3px 10px;
+          border-radius: 12px;
+          text-transform: capitalize;
+        }
 
         /* Achievement Cards */
         .achievement-card {
@@ -8133,19 +8170,43 @@ gamify.it.com/fitness`;
                   <div className="empty-subtitle">Complete your first workout to see it here</div>
                 </div>
               ) : (
-                store.workouts.slice(0, 20).map(workout => (
-                  <div
-                    key={workout.id}
-                    className="workout-card"
-                    onClick={() => store.showWorkoutDetail(workout.id)}
-                  >
-                    <div className="workout-date">{formatDate(workout.startTime)}</div>
-                    <div className="workout-summary">
-                      {workout.exercises.length} exercises · {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets
-                      <span className="workout-xp"> · +{workout.totalXP} XP</span>
+                store.workouts.slice(0, 20).map(workout => {
+                  // Get unique muscle groups from exercises
+                  const muscleGroups = [...new Set(workout.exercises.map(ex => {
+                    const exerciseData = getExerciseById(ex.id) || EXERCISES.find(e => e.name === ex.name);
+                    return exerciseData?.muscle || 'other';
+                  }))];
+                  // Get exercise names (limit to first 4)
+                  const exerciseNames = workout.exercises.slice(0, 4).map(ex => ex.name);
+                  const moreCount = workout.exercises.length - 4;
+
+                  return (
+                    <div
+                      key={workout.id}
+                      className="workout-card"
+                      onClick={() => store.showWorkoutDetail(workout.id)}
+                    >
+                      <div className="workout-card-header">
+                        <div className="workout-date">{formatDate(workout.startTime)}</div>
+                        {workout.autoCompleted && (
+                          <span className="auto-complete-badge" title="Auto-completed due to inactivity">Auto</span>
+                        )}
+                      </div>
+                      <div className="workout-summary">
+                        {workout.exercises.length} exercises · {workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)} sets
+                        <span className="workout-xp"> · +{workout.totalXP} XP</span>
+                      </div>
+                      <div className="workout-exercises-list">
+                        {exerciseNames.join(', ')}{moreCount > 0 ? ` +${moreCount} more` : ''}
+                      </div>
+                      <div className="workout-muscle-tags">
+                        {muscleGroups.map(muscle => (
+                          <span key={muscle} className="muscle-tag">{muscle}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
@@ -8160,6 +8221,7 @@ gamify.it.com/fitness`;
                 store.startWorkout();
                 workout.exercises.forEach(ex => store.addExerciseToWorkout(ex.id));
               }}
+              onEdit={(workoutId) => store.editWorkout(workoutId)}
               onDelete={(workoutId) => store.deleteWorkout(workoutId)}
               onUpdateTimes={(workoutId, startTime, endTime) => store.updateWorkoutTimes(workoutId, startTime, endTime)}
             />
@@ -14143,6 +14205,7 @@ function WorkoutDetailView({
   records,
   onBack,
   onRepeat,
+  onEdit,
   onDelete,
   onUpdateTimes
 }: {
@@ -14150,6 +14213,7 @@ function WorkoutDetailView({
   records: Record<string, number>;
   onBack: () => void;
   onRepeat: (workout: Workout) => void;
+  onEdit: (workoutId: string) => void;
   onDelete: (workoutId: string) => void;
   onUpdateTimes: (workoutId: string, startTime: string, endTime: string) => void;
 }) {
@@ -14371,6 +14435,24 @@ function WorkoutDetailView({
           }}
         >
           Repeat
+        </button>
+
+        <button
+          onClick={() => onEdit(workout.id)}
+          style={{
+            flex: 1,
+            padding: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--accent)',
+            borderRadius: '14px',
+            color: 'var(--accent)',
+            fontWeight: 600,
+            fontSize: '15px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Edit
         </button>
 
         <button

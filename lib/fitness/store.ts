@@ -230,6 +230,7 @@ interface FitnessStore extends FitnessState, SyncState {
   importWorkouts: (workouts: Workout[]) => Promise<void>;
   eraseAllData: () => void;
   deleteWorkout: (workoutId: string) => void;
+  editWorkout: (workoutId: string) => void;
   updateWorkoutTimes: (workoutId: string, startTime: string, endTime: string) => void;
 
   // Sync
@@ -1135,7 +1136,8 @@ export const useFitnessStore = create<FitnessStore>()(
           programDayInfo: programDayInfo ? {
             weekNumber: programDayInfo.weekNumber,
             dayNumber: programDayInfo.dayNumber
-          } : undefined
+          } : undefined,
+          autoCompleted: true
         };
 
         // Calculate total volume for this workout
@@ -2745,6 +2747,74 @@ export const useFitnessStore = create<FitnessStore>()(
         });
         queueSync(get);
         get().showToast('Workout deleted');
+      },
+
+      editWorkout: (workoutId: string) => {
+        const state = get();
+        const workout = state.workouts.find(w => w.id === workoutId);
+        if (!workout) return;
+
+        // Create a fresh workout with the same exercises/sets but reset metadata
+        const editableWorkout: Workout = {
+          id: 'workout-' + Date.now(),
+          exercises: workout.exercises.map(ex => ({
+            ...ex,
+            sets: ex.sets.map(s => ({ ...s }))
+          })),
+          startTime: new Date().toISOString(),
+          totalXP: 0, // Will be recalculated when finished
+        };
+
+        // Calculate stats to subtract from the original workout
+        const workoutVolume = workout.exercises.reduce((total, ex) => {
+          return total + ex.sets.reduce((setTotal, s) => setTotal + (s.weight * s.reps), 0);
+        }, 0);
+        const workoutSets = workout.exercises.reduce((total, ex) => total + ex.sets.length, 0);
+
+        set((state) => ({
+          // Remove original workout
+          workouts: state.workouts.filter(w => w.id !== workoutId),
+          // Subtract original workout stats
+          profile: {
+            ...state.profile,
+            xp: Math.max(0, state.profile.xp - workout.totalXP),
+            totalWorkouts: Math.max(0, state.profile.totalWorkouts - 1),
+            totalVolume: Math.max(0, state.profile.totalVolume - workoutVolume),
+            totalSets: Math.max(0, state.profile.totalSets - workoutSets),
+          },
+          // Set as current workout for editing
+          currentWorkout: editableWorkout,
+          currentExerciseIndex: 0,
+          workoutSeconds: 0,
+          workoutStartTime: Date.now(),
+          workoutPRsHit: 0,
+          lastActivityTime: Date.now(),
+          currentView: 'workout',
+          selectedWorkoutId: null,
+          pendingSync: true
+        }));
+
+        // Revoke XP from global profile for the deleted workout
+        fetch('/api/xp', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            appId: 'fitness',
+            xpAmount: workout.totalXP,
+            reason: 'workout_edited',
+          }),
+        }).catch(console.error);
+
+        // Save active workout to localStorage
+        const activeWorkout = {
+          workout: editableWorkout,
+          exerciseIndex: 0,
+          seconds: 0
+        };
+        localStorage.setItem(ACTIVE_WORKOUT_KEY, JSON.stringify(activeWorkout));
+
+        queueSync(get);
+        get().showToast('Editing workout - make your changes and finish when done');
       },
 
       updateWorkoutTimes: (workoutId: string, startTime: string, endTime: string) => {

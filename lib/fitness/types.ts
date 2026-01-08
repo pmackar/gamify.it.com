@@ -33,6 +33,7 @@ export interface Workout {
     weekNumber: number;
     dayNumber: number;
   };
+  autoCompleted?: boolean; // True if workout was auto-completed due to inactivity
 }
 
 export interface WeightEntry {
