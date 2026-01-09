@@ -546,9 +546,41 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'email' | 'sent' | 'code'>('email');
+  const [step, setStep] = useState<'email' | 'sent' | 'code' | 'sso-required'>('email');
   const [error, setError] = useState('');
+  const [ssoProviders, setSsoProviders] = useState<string[]>([]);
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
+
+  const getProviderDisplayName = (provider: string) => {
+    const names: Record<string, string> = {
+      google: 'Google',
+      github: 'GitHub',
+      apple: 'Apple',
+      facebook: 'Facebook',
+      twitter: 'Twitter',
+    };
+    return names[provider] || provider.charAt(0).toUpperCase() + provider.slice(1);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setError(error.message);
+      }
+    } catch (err) {
+      console.error('Google sign in error:', err);
+      setError(`Sign in error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    }
+    setLoading(false);
+  };
 
   const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -556,6 +588,22 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
     setLoading(true);
     setError('');
     try {
+      // First check if email is associated with SSO-only account
+      const checkRes = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+      const checkData = await checkRes.json();
+
+      if (checkData.exists && !checkData.canUseMagicLink && checkData.providers?.length > 0) {
+        // User signed up with SSO - guide them to use that instead
+        setSsoProviders(checkData.providers);
+        setStep('sso-required');
+        setLoading(false);
+        return;
+      }
+
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOtp({
         email: email.toLowerCase().trim(),
@@ -661,6 +709,53 @@ function PWALogin({ user, onContinue }: { user: User | null; onContinue: () => v
             </form>
             <button className="pwa-back-btn" onClick={() => { setStep('sent'); setCode(''); setError(''); }}>
               ← Back
+            </button>
+          </div>
+        ) : step === 'sso-required' ? (
+          <div className="pwa-login-form">
+            <div className="pwa-sent-header">
+              <div className="pwa-sent-icon">🔐</div>
+              <p className="pwa-sent-text" style={{ color: '#FFD700' }}>Account Found!</p>
+              <p className="pwa-sent-email">{email}</p>
+              <p className="pwa-sent-hint">
+                This account was created with {ssoProviders.map(getProviderDisplayName).join(' or ')}.
+                Please sign in using your original method.
+              </p>
+            </div>
+            {ssoProviders.includes('google') && (
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="pwa-google-btn"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  width: '100%',
+                  padding: '1rem',
+                  background: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                  color: '#333',
+                  cursor: loading ? 'wait' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  marginBottom: '1rem',
+                }}
+              >
+                <svg style={{ width: '20px', height: '20px' }} viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                {loading ? 'Signing in...' : 'Continue with Google'}
+              </button>
+            )}
+            <button className="pwa-back-btn" onClick={() => { setStep('email'); setError(''); setSsoProviders([]); }}>
+              ← Use different email
             </button>
           </div>
         ) : (
