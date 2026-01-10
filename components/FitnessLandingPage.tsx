@@ -591,6 +591,20 @@ export default function FitnessLandingPage() {
                   <span className="stage-label">The Return</span>
                 </div>
               </div>
+              <div className="narrative-details">
+                <div className="narrative-detail">
+                  <span className="detail-icon">🎭</span>
+                  <span className="detail-text">Personalized story beats based on your progress</span>
+                </div>
+                <div className="narrative-detail">
+                  <span className="detail-icon">⚡</span>
+                  <span className="detail-text">Dramatic moments when you hit PRs or milestones</span>
+                </div>
+                <div className="narrative-detail">
+                  <span className="detail-icon">🗡️</span>
+                  <span className="detail-text">Rival encounters woven into your journey</span>
+                </div>
+              </div>
               <div className="card-features">
                 <span className="feature-tag">Hero&apos;s Journey</span>
                 <span className="feature-tag">Story Beats</span>
@@ -652,6 +666,24 @@ export default function FitnessLandingPage() {
               </div>
               <div className="phase-content">
                 <div className="phase-label">PHASE 6</div>
+                <h3 className="phase-title">Coaching Platform</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">Coach Dashboard & Analytics</li>
+                  <li className="phase-item">Assign Programs to Athletes</li>
+                  <li className="phase-item">Real-time Workout Monitoring</li>
+                  <li className="phase-item">In-app Messaging</li>
+                  <li className="phase-item">Progress Reports & Insights</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">PHASE 7</div>
                 <h3 className="phase-title">Integrations</h3>
                 <ul className="phase-items">
                   <li className="phase-item">Strava Sync</li>
@@ -1933,6 +1965,35 @@ export default function FitnessLandingPage() {
         .journey-connector {
           color: var(--theme-border);
           font-size: 0.8rem;
+        }
+
+        /* Narrative Details */
+        .narrative-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          background: var(--theme-bg-elevated);
+          border: 1px solid var(--theme-border);
+          border-radius: 8px;
+        }
+
+        .narrative-detail {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .detail-icon {
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .detail-text {
+          font-size: 0.75rem;
+          color: var(--theme-text-secondary);
+          line-height: 1.4;
         }
 
         /* Feature Tags */

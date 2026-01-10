@@ -15,10 +15,10 @@ import { useTodayStore } from '@/lib/today/store';
 import XPBoostIndicator from './XPBoostIndicator';
 import localFont from 'next/font/local';
 
-const modernThrash = localFont({
-  src: '../public/Fonts/Modern Thrash Slant.woff2',
+const stormGust = localFont({
+  src: '../public/Fonts/Storm Gust.woff2',
   display: 'swap',
-  variable: '--font-modern-thrash',
+  variable: '--font-storm-gust',
 });
 
 // Sync indicator for Today app
@@ -2054,7 +2054,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
             {/* Reptura logo when in fitness app without active workout */}
             {isFitness && !contextContent && (
-              <Link href="/fitness" className={`nav-reptura-logo ${modernThrash.className}`}>
+              <Link href="/fitness" className={`nav-reptura-logo ${stormGust.className}`}>
                 REPTURA
               </Link>
             )}
