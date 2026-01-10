@@ -968,7 +968,7 @@ export default function FitnessLandingPage() {
 
         .app-name {
           font-family: var(--font-storm-gust), 'Press Start 2P', monospace;
-          font-size: clamp(3rem, 12vw, 7rem);
+          font-size: clamp(3.6rem, 14.4vw, 8.4rem);
           color: var(--app-fitness);
           line-height: 1;
           margin-bottom: 1rem;
