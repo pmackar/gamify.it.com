@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import type { NarrativeSettings, RivalRelationship, EncounterFrequency, PhantomPersonality } from '@/lib/fitness/types';
-import { RIVAL_CHARACTERS, getCharactersByPersonality, type RivalCharacter } from '@/lib/fitness/narrative/characters';
-import { getVictoryDescription } from '@/lib/fitness/narrative/victory-calculator';
+import { getCharacterForPersonality, type RivalCharacter } from '@/lib/fitness/narrative/characters';
 
 interface FriendSuggestion {
   id: string;
@@ -98,7 +97,7 @@ const PERSONALITY_INFO: Record<PhantomPersonality, {
   },
 };
 
-type AddRivalStep = 'choose-type' | 'choose-personality' | 'choose-character' | 'choose-friend-victory';
+type AddRivalStep = 'choose-type' | 'choose-personality' | 'choose-friend-victory';
 
 export function RivalSettingsPanel() {
   const store = useFitnessStore();
@@ -208,14 +207,10 @@ export function RivalSettingsPanel() {
     setSelectedFriendId(null);
   };
 
-  const handleSelectPersonality = (personality: PhantomPersonality) => {
-    setSelectedPersonality(personality);
-    setAddRivalStep('choose-character');
-  };
-
-  const handleBackToPersonality = () => {
-    setAddRivalStep('choose-personality');
-    setSelectedPersonality(null);
+  const handleSelectPersonality = async (personality: PhantomPersonality) => {
+    // Auto-assign the single character for this personality type
+    const character = getCharacterForPersonality(personality);
+    await handleAddPhantom(character);
   };
 
   const handleBackToType = () => {
@@ -463,13 +458,19 @@ export function RivalSettingsPanel() {
 
           {/* Add Rival Modal */}
           {showAddRival && (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto">
+            <div
+              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+              onClick={closeAddRivalModal}
+            >
+              <div
+                className="bg-gray-900 border border-gray-700 rounded-2xl p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-3">
-                    {addRivalStep !== 'choose-type' && (
+                    {(addRivalStep === 'choose-personality' || addRivalStep === 'choose-friend-victory') && (
                       <button
-                        onClick={addRivalStep === 'choose-character' ? handleBackToPersonality : () => setAddRivalStep('choose-type')}
+                        onClick={handleBackToType}
                         className="text-gray-400 hover:text-white"
                       >
                         ←
@@ -478,7 +479,7 @@ export function RivalSettingsPanel() {
                     <h3 className="text-base font-bold text-yellow-400">
                       {addRivalStep === 'choose-type' && 'Add Rival'}
                       {addRivalStep === 'choose-personality' && 'Choose Style'}
-                      {addRivalStep === 'choose-character' && 'Choose Character'}
+                      {addRivalStep === 'choose-friend-victory' && 'Victory Condition'}
                     </h3>
                   </div>
                   <button
@@ -548,22 +549,32 @@ export function RivalSettingsPanel() {
                     </p>
                     {(Object.keys(PERSONALITY_INFO) as PhantomPersonality[]).map((personality) => {
                       const info = PERSONALITY_INFO[personality];
+                      const character = getCharacterForPersonality(personality);
                       return (
                         <button
                           key={personality}
                           onClick={() => handleSelectPersonality(personality)}
-                          className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left"
+                          disabled={loading}
+                          className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <div className="flex items-center gap-3 mb-2">
-                            <div className="text-2xl">{info.icon}</div>
-                            <div className="text-sm font-medium text-white">{info.name}</div>
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                              style={{ backgroundColor: `${character.color}20` }}
+                            >
+                              {character.avatar}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-white">{character.name}</div>
+                              <div className="text-xs text-gray-500">{info.name} type</div>
+                            </div>
                           </div>
-                          <div className="ml-9 space-y-1">
+                          <div className="ml-13 space-y-1">
                             <div className="text-xs text-yellow-400 font-medium">
                               🎯 {info.victoryCondition}
                             </div>
                             <div className="text-xs text-gray-500 italic">
-                              "{info.tagline}"
+                              "{character.tagline}"
                             </div>
                           </div>
                         </button>
@@ -572,46 +583,9 @@ export function RivalSettingsPanel() {
                   </div>
                 )}
 
-                {/* Step 3: Choose Character */}
-                {addRivalStep === 'choose-character' && selectedPersonality && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-gray-400 mb-4">
-                      Pick your {PERSONALITY_INFO[selectedPersonality].name.toLowerCase()} rival:
-                    </p>
-                    {getCharactersByPersonality(selectedPersonality).map((character) => (
-                      <button
-                        key={character.id}
-                        onClick={() => handleAddPhantom(character)}
-                        disabled={loading}
-                        className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left flex items-center gap-4"
-                        style={{ borderLeftColor: character.color, borderLeftWidth: '4px' }}
-                      >
-                        <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-                          style={{ backgroundColor: `${character.color}20` }}
-                        >
-                          {character.avatar}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-white">{character.name}</div>
-                          <div className="text-xs text-gray-400 italic truncate">
-                            "{character.tagline}"
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
                 {/* Step: Choose Victory Condition for Friend */}
                 {addRivalStep === 'choose-friend-victory' && selectedFriendId && (
                   <div className="space-y-3">
-                    <button
-                      onClick={handleBackToType}
-                      className="text-sm text-gray-400 hover:text-white mb-2 flex items-center gap-1"
-                    >
-                      ← Back
-                    </button>
                     <p className="text-xs text-gray-400 mb-4">
                       How do you want to compete with{' '}
                       <span className="text-white font-medium">

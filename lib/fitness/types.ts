@@ -335,15 +335,18 @@ export interface RivalRelationship {
   rivalType: RivalType;
   friendId?: string;
   phantomConfig?: {
-    personality: PhantomPersonality;
-    rubberBandStrength: number;
-    volatility: number;
-    name: string;
-    archetype: string;
-    characterId: string;
-    avatar: string;
-    color: string;
-    tagline: string;
+    // AI phantom fields
+    personality?: PhantomPersonality;
+    rubberBandStrength?: number;
+    volatility?: number;
+    name?: string;
+    archetype?: string;
+    characterId?: string;
+    avatar?: string;
+    color?: string;
+    tagline?: string;
+    // Friend rival fields
+    victoryCondition?: 'rolling_average' | 'volume_growth' | 'consistency' | 'prs' | 'best_of_3';
   };
   respectLevel: number; // 1-5
   rivalryHeat: number; // 0-100
