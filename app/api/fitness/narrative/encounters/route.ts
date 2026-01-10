@@ -22,7 +22,11 @@ import {
   phantomStatsToSnapshot,
   type PhantomConfig,
 } from "@/lib/fitness/narrative/phantom-generator";
-import type { Workout, PhantomStats } from "@/lib/fitness/types";
+import {
+  calculateVictory,
+  type VictoryResult,
+} from "@/lib/fitness/narrative/victory-calculator";
+import type { Workout, PhantomStats, PhantomPersonality } from "@/lib/fitness/types";
 
 // Schema for triggering an encounter
 const triggerEncounterSchema = z.object({
@@ -225,8 +229,55 @@ export const POST = withAuth(async (request, user) => {
     };
   }
 
-  // Determine winner
-  const result = determineWinner(userScore, rivalScore);
+  // Determine winner using personality-specific victory conditions
+  let victoryResult: VictoryResult;
+
+  if (rival.rival_type === "AI_PHANTOM") {
+    // Get phantom personality for victory calculation
+    const phantomConfig = rival.phantom_config as unknown as PhantomConfig;
+    const personality = (phantomConfig?.personality || "rival") as PhantomPersonality;
+
+    // Build rival snapshot for victory calculation
+    const rivalSnapshotForVictory = {
+      volumeThisWeek: rivalMetrics.totalVolume,
+      volumeLastWeek: 0, // Will be calculated from previous stats
+      workoutsThisWeek: rivalMetrics.workoutCount,
+      workoutsLastWeek: 0,
+      prsThisWeek: rivalMetrics.prCount,
+      consistencyScore: (rivalMetrics.workoutCount / 4) * 100,
+      topExerciseGains: [],
+    };
+
+    victoryResult = calculateVictory(
+      personality,
+      userSnapshot,
+      rivalSnapshotForVictory
+    );
+  } else {
+    // Friend rivals use the standard "rival" victory condition (best 2 of 3)
+    const rivalSnapshotForVictory = {
+      volumeThisWeek: rivalMetrics.totalVolume,
+      volumeLastWeek: 0,
+      workoutsThisWeek: rivalMetrics.workoutCount,
+      workoutsLastWeek: 0,
+      prsThisWeek: rivalMetrics.prCount,
+      consistencyScore: (rivalMetrics.workoutCount / 4) * 100,
+      topExerciseGains: rivalMetrics.topExerciseGains || [],
+    };
+
+    victoryResult = calculateVictory(
+      "rival",
+      userSnapshot,
+      rivalSnapshotForVictory
+    );
+  }
+
+  // Map victory result to old format for compatibility
+  const result = {
+    winner: victoryResult.winner,
+    margin: victoryResult.winningMargin,
+    dominantFactor: victoryResult.dominantFactor,
+  };
 
   // Calculate state changes
   const respectDelta = calculateRespectDelta(result.winner, result.margin);
@@ -330,6 +381,8 @@ export const POST = withAuth(async (request, user) => {
     winner: result.winner,
     winningMargin: result.margin,
     dominantFactor: result.dominantFactor,
+    narrative: victoryResult.narrative,
+    breakdown: victoryResult.breakdown,
     userMetrics,
     userScore: {
       volumeChange: userScore.volumeChange,
