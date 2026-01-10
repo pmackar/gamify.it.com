@@ -254,7 +254,10 @@ export const POST = withAuth(async (request, user) => {
       rivalSnapshotForVictory
     );
   } else {
-    // Friend rivals use the standard "rival" victory condition (best 2 of 3)
+    // Friend rivals - use stored victory condition or default to "rival"
+    const friendConfig = rival.phantom_config as unknown as { personality?: PhantomPersonality } | null;
+    const friendPersonality = (friendConfig?.personality || "rival") as PhantomPersonality;
+
     const rivalSnapshotForVictory = {
       volumeThisWeek: rivalMetrics.totalVolume,
       volumeLastWeek: 0,
@@ -266,7 +269,7 @@ export const POST = withAuth(async (request, user) => {
     };
 
     victoryResult = calculateVictory(
-      "rival",
+      friendPersonality,
       userSnapshot,
       rivalSnapshotForVictory
     );

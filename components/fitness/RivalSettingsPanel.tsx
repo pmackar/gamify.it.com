@@ -57,7 +57,7 @@ const PERSONALITY_INFO: Record<PhantomPersonality, {
   },
 };
 
-type AddRivalStep = 'choose-type' | 'choose-personality' | 'choose-character';
+type AddRivalStep = 'choose-type' | 'choose-personality' | 'choose-character' | 'choose-friend-victory';
 
 export function RivalSettingsPanel() {
   const store = useFitnessStore();
@@ -66,9 +66,10 @@ export function RivalSettingsPanel() {
   const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>([]);
   const [showAddRival, setShowAddRival] = useState(false);
 
-  // Multi-step phantom selection
+  // Multi-step selection
   const [addRivalStep, setAddRivalStep] = useState<AddRivalStep>('choose-type');
   const [selectedPersonality, setSelectedPersonality] = useState<PhantomPersonality | null>(null);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
 
   // Fetch suggested friends when panel opens
   useEffect(() => {
@@ -163,6 +164,7 @@ export function RivalSettingsPanel() {
     setShowAddRival(false);
     setAddRivalStep('choose-type');
     setSelectedPersonality(null);
+    setSelectedFriendId(null);
   };
 
   const handleSelectPersonality = (personality: PhantomPersonality) => {
@@ -175,20 +177,39 @@ export function RivalSettingsPanel() {
     setSelectedPersonality(null);
   };
 
-  const handleAddFriend = async (friendId: string) => {
+  const handleBackToType = () => {
+    setAddRivalStep('choose-type');
+    setSelectedFriendId(null);
+    setSelectedPersonality(null);
+  };
+
+  // Step 1: Select a friend, then go to victory condition selection
+  const handleSelectFriend = (friendId: string) => {
+    setSelectedFriendId(friendId);
+    setAddRivalStep('choose-friend-victory');
+  };
+
+  // Step 2: Select victory condition and create the friend rival
+  const handleAddFriendWithVictory = async (personality: PhantomPersonality) => {
+    if (!selectedFriendId) return;
+
     setLoading(true);
     try {
       const res = await fetch('/api/fitness/narrative/rivals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rivalType: 'FRIEND', friendId }),
+        body: JSON.stringify({
+          rivalType: 'FRIEND',
+          friendId: selectedFriendId,
+          phantomConfig: { personality },
+        }),
       });
       if (res.ok) {
         const newRival = await res.json();
         store.addRival(newRival);
-        setShowAddRival(false);
+        closeAddRivalModal();
         // Remove from suggestions
-        setSuggestedFriends((prev) => prev.filter((f) => f.id !== friendId));
+        setSuggestedFriends((prev) => prev.filter((f) => f.id !== selectedFriendId));
       }
     } catch (error) {
       console.error('Failed to add friend rival:', error);
@@ -240,14 +261,15 @@ export function RivalSettingsPanel() {
   };
 
   const getRivalVictoryCondition = (rival: RivalRelationship): { condition: string; tagline: string } | null => {
-    if (rival.rivalType === 'ai_phantom' && rival.phantomConfig?.personality) {
+    // Both AI and friend rivals can have a personality/victory condition stored
+    if (rival.phantomConfig?.personality) {
       const personality = rival.phantomConfig.personality as PhantomPersonality;
       const info = PERSONALITY_INFO[personality];
       if (info) {
         return { condition: info.victoryCondition, tagline: info.tagline };
       }
     }
-    // Friend rivals use "rival" victory condition
+    // Fallback for friend rivals without stored victory condition
     if (rival.rivalType === 'friend') {
       return { condition: 'Win 2 of 3 categories', tagline: 'Every category is a battle' };
     }
@@ -442,14 +464,14 @@ export function RivalSettingsPanel() {
                         {suggestedFriends.map((friend) => (
                           <button
                             key={friend.id}
-                            onClick={() => handleAddFriend(friend.id)}
+                            onClick={() => handleSelectFriend(friend.id)}
                             disabled={loading}
                             className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-green-500/50 transition-colors flex items-center gap-4"
                           >
                             <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium">
                               {friend.displayName?.[0] || friend.username?.[0] || '?'}
                             </div>
-                            <div className="text-left">
+                            <div className="text-left flex-1">
                               <div className="text-sm font-medium text-white">
                                 {friend.displayName || friend.username}
                               </div>
@@ -457,6 +479,7 @@ export function RivalSettingsPanel() {
                                 Level {friend.level}
                               </div>
                             </div>
+                            <div className="text-gray-500 text-lg">›</div>
                           </button>
                         ))}
                       </div>
@@ -530,6 +553,51 @@ export function RivalSettingsPanel() {
                         </div>
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Step: Choose Victory Condition for Friend */}
+                {addRivalStep === 'choose-friend-victory' && selectedFriendId && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleBackToType}
+                      className="text-sm text-gray-400 hover:text-white mb-2 flex items-center gap-1"
+                    >
+                      ← Back
+                    </button>
+                    <p className="text-xs text-gray-400 mb-4">
+                      How do you want to compete with{' '}
+                      <span className="text-white font-medium">
+                        {suggestedFriends.find((f) => f.id === selectedFriendId)?.displayName ||
+                          suggestedFriends.find((f) => f.id === selectedFriendId)?.username ||
+                          'your friend'}
+                      </span>
+                      ?
+                    </p>
+                    {(Object.keys(PERSONALITY_INFO) as PhantomPersonality[]).map((personality) => {
+                      const info = PERSONALITY_INFO[personality];
+                      return (
+                        <button
+                          key={personality}
+                          onClick={() => handleAddFriendWithVictory(personality)}
+                          disabled={loading}
+                          className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-green-500/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="text-2xl">{info.icon}</div>
+                            <div className="text-sm font-medium text-white">{info.name}</div>
+                          </div>
+                          <div className="ml-9 space-y-1">
+                            <div className="text-xs text-green-400 font-medium">
+                              🎯 {info.victoryCondition}
+                            </div>
+                            <div className="text-xs text-gray-500 italic">
+                              "{info.tagline}"
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

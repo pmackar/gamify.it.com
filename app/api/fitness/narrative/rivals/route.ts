@@ -171,9 +171,17 @@ export const POST = withAuth(async (request, user) => {
     return Errors.invalidInput(`Maximum ${maxRivals} rivals allowed`);
   }
 
-  // Build phantom config for AI rivals
+  // Build config (phantom config for AI, victory config for friends)
   let phantomConfig: Record<string, unknown> | undefined = undefined;
-  if (body.rivalType === "AI_PHANTOM") {
+
+  if (body.rivalType === "FRIEND") {
+    // Store victory condition for friend rivals (defaults to "rival")
+    const victoryCondition = body.phantomConfig?.personality || "rival";
+    phantomConfig = {
+      personality: victoryCondition,
+      victoryCondition: true, // Flag to indicate this is a friend with custom victory condition
+    };
+  } else if (body.rivalType === "AI_PHANTOM") {
     const difficulty = getSuggestedPhantomDifficulty(userLevel);
     const defaultConfig = createDefaultPhantomConfig(difficulty.personality);
 
