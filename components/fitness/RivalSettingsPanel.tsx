@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
 import type { NarrativeSettings, RivalRelationship, EncounterFrequency, PhantomPersonality } from '@/lib/fitness/types';
 import { RIVAL_CHARACTERS, getCharactersByPersonality, type RivalCharacter } from '@/lib/fitness/narrative/characters';
+import { getVictoryDescription } from '@/lib/fitness/narrative/victory-calculator';
 
 interface FriendSuggestion {
   id: string;
@@ -13,27 +14,46 @@ interface FriendSuggestion {
   level: number;
 }
 
-// Personality descriptions for selection
-const PERSONALITY_INFO: Record<PhantomPersonality, { icon: string; name: string; description: string }> = {
+// Personality descriptions for selection with victory conditions
+const PERSONALITY_INFO: Record<PhantomPersonality, {
+  icon: string;
+  name: string;
+  description: string;
+  victoryCondition: string;
+  strategy: string;
+  tagline: string;
+}> = {
   mirror: {
     icon: '🪞',
     name: 'Mirror',
     description: 'Matches your performance closely',
+    victoryCondition: 'Beat your 4-week average',
+    strategy: 'Stay consistent and keep improving',
+    tagline: 'Can you beat who you were?',
   },
   rival: {
     icon: '⚔️',
     name: 'Rival',
     description: 'Slightly ahead, keeps you pushing',
+    victoryCondition: 'Win 2 of 3 categories',
+    strategy: 'Focus on winnable categories',
+    tagline: 'Every category is a battle',
   },
   mentor: {
     icon: '🧘',
     name: 'Mentor',
     description: 'Stronger but encouraging',
+    victoryCondition: 'Higher growth rate',
+    strategy: 'Focus on improvement %, not raw numbers',
+    tagline: 'Show me your growth',
   },
   nemesis: {
     icon: '💀',
     name: 'Nemesis',
     description: 'Volatile and intense rivalry',
+    victoryCondition: 'Composite score (with chaos)',
+    strategy: 'Stay consistent through wild swings',
+    tagline: 'Fortune favors the bold',
   },
 };
 
@@ -219,6 +239,21 @@ export function RivalSettingsPanel() {
     return null;
   };
 
+  const getRivalVictoryCondition = (rival: RivalRelationship): { condition: string; tagline: string } | null => {
+    if (rival.rivalType === 'ai_phantom' && rival.phantomConfig?.personality) {
+      const personality = rival.phantomConfig.personality as PhantomPersonality;
+      const info = PERSONALITY_INFO[personality];
+      if (info) {
+        return { condition: info.victoryCondition, tagline: info.tagline };
+      }
+    }
+    // Friend rivals use "rival" victory condition
+    if (rival.rivalType === 'friend') {
+      return { condition: 'Win 2 of 3 categories', tagline: 'Every category is a battle' };
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-5 p-5">
       {/* Enable Toggle */}
@@ -291,53 +326,68 @@ export function RivalSettingsPanel() {
               </div>
             ) : (
               <div className="space-y-3">
-                {rivals.map((rival) => (
-                  <div
-                    key={rival.id}
-                    className="flex items-center gap-4 p-4 bg-gray-800/50 rounded-xl"
-                    style={{ borderLeft: `4px solid ${getRivalColor(rival)}` }}
-                  >
-                    {/* Avatar */}
+                {rivals.map((rival) => {
+                  const victoryInfo = getRivalVictoryCondition(rival);
+                  return (
                     <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-                      style={{ backgroundColor: `${getRivalColor(rival)}20` }}
+                      key={rival.id}
+                      className="p-4 bg-gray-800/50 rounded-xl"
+                      style={{ borderLeft: `4px solid ${getRivalColor(rival)}` }}
                     >
-                      {getRivalAvatar(rival)}
-                    </div>
+                      <div className="flex items-center gap-4">
+                        {/* Avatar */}
+                        <div
+                          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+                          style={{ backgroundColor: `${getRivalColor(rival)}20` }}
+                        >
+                          {getRivalAvatar(rival)}
+                        </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white mb-0.5">
-                        {getRivalName(rival)}
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-white mb-0.5">
+                            {getRivalName(rival)}
+                          </div>
+                          {getRivalTagline(rival) && (
+                            <div className="text-xs italic text-gray-400 mb-1 truncate">
+                              "{getRivalTagline(rival)}"
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500">
+                            {rival.rivalType === 'ai_phantom' ? 'AI Phantom' : 'Friend'} •{' '}
+                            {rival.headToHead.userWins}W / {rival.headToHead.rivalWins}L
+                          </div>
+                        </div>
+
+                        {/* Stats & Actions */}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-center">
+                            <div className="text-base font-bold text-yellow-400">
+                              Lv.{rival.respectLevel}
+                            </div>
+                            <div className="text-xs text-gray-500">Respect</div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveRival(rival.id)}
+                            className="text-lg text-red-400 hover:text-red-300 p-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
-                      {getRivalTagline(rival) && (
-                        <div className="text-xs italic text-gray-400 mb-1 truncate">
-                          "{getRivalTagline(rival)}"
+
+                      {/* Victory Condition */}
+                      {victoryInfo && (
+                        <div className="mt-3 pt-3 border-t border-gray-700/50">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-500">To win:</span>
+                            <span className="text-yellow-400 font-medium">{victoryInfo.condition}</span>
+                          </div>
                         </div>
                       )}
-                      <div className="text-xs text-gray-500">
-                        {rival.rivalType === 'ai_phantom' ? 'AI Phantom' : 'Friend'} •{' '}
-                        {rival.headToHead.userWins}W / {rival.headToHead.rivalWins}L
-                      </div>
                     </div>
-
-                    {/* Stats & Actions */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="text-center">
-                        <div className="text-base font-bold text-yellow-400">
-                          Lv.{rival.respectLevel}
-                        </div>
-                        <div className="text-xs text-gray-500">Respect</div>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveRival(rival.id)}
-                        className="text-lg text-red-400 hover:text-red-300 p-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -424,7 +474,7 @@ export function RivalSettingsPanel() {
                 {addRivalStep === 'choose-personality' && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-400 mb-4">
-                      How do you want your rival to compete?
+                      Each style has different victory conditions:
                     </p>
                     {(Object.keys(PERSONALITY_INFO) as PhantomPersonality[]).map((personality) => {
                       const info = PERSONALITY_INFO[personality];
@@ -432,12 +482,19 @@ export function RivalSettingsPanel() {
                         <button
                           key={personality}
                           onClick={() => handleSelectPersonality(personality)}
-                          className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left flex items-center gap-4"
+                          className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left"
                         >
-                          <div className="text-2xl">{info.icon}</div>
-                          <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="text-2xl">{info.icon}</div>
                             <div className="text-sm font-medium text-white">{info.name}</div>
-                            <div className="text-xs text-gray-500">{info.description}</div>
+                          </div>
+                          <div className="ml-9 space-y-1">
+                            <div className="text-xs text-yellow-400 font-medium">
+                              🎯 {info.victoryCondition}
+                            </div>
+                            <div className="text-xs text-gray-500 italic">
+                              "{info.tagline}"
+                            </div>
                           </div>
                         </button>
                       );
