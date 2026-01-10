@@ -186,6 +186,12 @@ model profiles {
   group_messages_sent     coaching_group_messages[] @relation("GroupMessageSender")
   group_read_statuses     coaching_group_read_status[] @relation("GroupReadStatus")
 
+  // Narrative engine & rivals relations
+  narrative_settings      fitness_narrative_settings? @relation("NarrativeSettings")
+  rivals_as_user          fitness_rivals[]           @relation("UserRivals")
+  rivals_as_friend        fitness_rivals[]           @relation("FriendRivals")
+  encounters              fitness_encounters[]       @relation("UserEncounters")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
@@ -1350,6 +1356,68 @@ model coaching_group_read_status {
   @@unique([group_id, user_id])
   @@index([group_id])
   @@index([user_id])
+}
+
+// ============================================
+// FITNESS: NARRATIVE ENGINE & RIVALS
+// ============================================
+
+/// User's narrative engine settings
+model fitness_narrative_settings {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String   @unique @db.Uuid
+  user                 profiles @relation("NarrativeSettings", fields: [user_id], references: [id], onDelete: Cascade)
+  enabled              Boolean  @default(true)
+  encounter_frequency  String   @default("every_workout") // every_workout, daily, weekly
+  max_active_rivals    Int      @default(3)
+  notification_prefs   Json?    // { encounterPopups: true, weeklyShowdowns: true }
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+}
+
+/// User's rivals (AI phantoms or friends)
+model fitness_rivals {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String    @db.Uuid
+  user                profiles  @relation("UserRivals", fields: [user_id], references: [id], onDelete: Cascade)
+  rival_type          String    // AI_PHANTOM or FRIEND
+  friend_id           String?   @db.Uuid
+  friend              profiles? @relation("FriendRivals", fields: [friend_id], references: [id], onDelete: Cascade)
+  phantom_config      Json?     // { personality, name, avatar, color, tagline, victoryCondition, etc. }
+  respect_level       Int       @default(1)
+  rivalry_heat        Int       @default(50)
+  encounter_count     Int       @default(0)
+  win_streak          Int       @default(0)
+  longest_win_streak  Int       @default(0)
+  longest_lose_streak Int       @default(0)
+  user_wins           Int       @default(0)
+  rival_wins          Int       @default(0)
+  ties                Int       @default(0)
+  last_encounter      DateTime? @db.Timestamptz(6)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, friend_id])
+  @@index([user_id])
+  @@index([friend_id])
+}
+
+/// Encounter history with rivals
+model fitness_encounters {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String   @db.Uuid
+  user         profiles @relation("UserEncounters", fields: [user_id], references: [id], onDelete: Cascade)
+  rival_id     String   @db.Uuid
+  result       String   // WIN, LOSS, TIE
+  user_score   Float?
+  rival_score  Float?
+  metrics      Json?    // { volume, prs, consistency, etc. }
+  encounter_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+  @@index([rival_id])
+  @@index([encounter_at])
 }
 
 // ============================================
