@@ -21,6 +21,7 @@ import { AccountabilityCard } from '@/components/fitness/AccountabilityCard';
 import { DailyChallengeCard } from '@/components/fitness/DailyChallengeCard';
 import { NarrativeProvider } from '@/components/fitness/NarrativeProvider';
 import { RivalSettingsPanel } from '@/components/fitness/RivalSettingsPanel';
+import { FriendRivalryScoreboard } from '@/components/fitness/FriendRivalryScoreboard';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
 
@@ -11170,6 +11171,9 @@ gamify.it.com/fitness`;
                   <div className="hero-tap-hint">Tap for Profile</div>
                 </div>
               </div>
+
+              {/* Friend Rivalry Scoreboard */}
+              <FriendRivalryScoreboard />
 
               {/* Almost There - Achievement previews */}
               <AlmostThereCard />
