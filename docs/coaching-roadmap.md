@@ -22,12 +22,12 @@
 
 ---
 
-## Sprint 1: Communication + Oversight (IN PROGRESS)
+## Sprint 1: Communication + Oversight (COMPLETE)
 
 | Task | Status | Priority |
 |------|--------|----------|
 | In-app messaging (coach ↔ athlete) | ✅ Done | HIGH |
-| Notification infrastructure | 🔲 Todo | HIGH |
+| Notification infrastructure | ✅ Done | HIGH |
 | Enhanced athlete profile with progress charts | ✅ Done | HIGH |
 | Real-time activity feed | ✅ Done | MEDIUM |
 | Compliance heatmap visualization | ✅ Done | MEDIUM |
@@ -38,12 +38,12 @@
 - UI: ChatPanel component in athlete detail view
 - Features: Text messages, read receipts, message polling
 
-### Next Up
-1. **Notification System**
-   - Database: `coaching_notifications` table
-   - API: `/api/fitness/coach/notifications`
-   - Types: workout_reminder, program_updated, coach_message, pr_celebration
-   - Delivery: In-app + email (optional)
+### Completed: Notification System
+- Database: `coaching_notifications` table with 10 notification types
+- API: `/api/fitness/notifications`, `/api/fitness/coach/notifications`
+- UI: CoachNotificationBell component in coach dashboard
+- Triggers: Auto-notify on new messages (coach ↔ athlete)
+- Helper: `lib/notifications.ts` with templates for all event types
 
 ---
 

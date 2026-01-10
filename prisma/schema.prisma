@@ -174,6 +174,10 @@ model profiles {
   athlete_conversations   coaching_conversations[] @relation("AthleteConversations")
   messages_sent           coaching_messages[]      @relation("MessageSender")
 
+  // Coaching notification relations
+  notifications_received  coaching_notifications[] @relation("NotificationRecipient")
+  notifications_sent      coaching_notifications[] @relation("NotificationSender")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
@@ -1191,6 +1195,43 @@ model coaching_messages {
 
   @@index([conversation_id])
   @@index([sender_id])
+  @@index([created_at])
+}
+
+// ============================================
+// COACHING: NOTIFICATIONS
+// ============================================
+
+enum coaching_notification_type {
+  WORKOUT_REMINDER      // Remind athlete to work out
+  WORKOUT_COMPLETED     // Athlete completed a workout (for coach)
+  PROGRAM_UPDATED       // Coach updated the program
+  PROGRAM_ASSIGNED      // New program assigned to athlete
+  COACH_MESSAGE         // New message from coach
+  ATHLETE_MESSAGE       // New message from athlete (for coach)
+  PR_CELEBRATION        // Athlete hit a new PR
+  STREAK_WARNING        // Athlete about to lose streak
+  CHECK_IN_DUE          // Weekly check-in reminder
+  FORM_CHECK_READY      // Coach reviewed form check
+}
+
+/// Coaching notifications for coaches and athletes
+model coaching_notifications {
+  id           String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipient_id String                      @db.Uuid
+  recipient    profiles                    @relation("NotificationRecipient", fields: [recipient_id], references: [id], onDelete: Cascade)
+  sender_id    String?                     @db.Uuid  // null for system notifications
+  sender       profiles?                   @relation("NotificationSender", fields: [sender_id], references: [id], onDelete: SetNull)
+  type         coaching_notification_type
+  title        String
+  body         String
+  data         Json?                       // Additional context (athlete_id, workout_id, etc.)
+  read         Boolean                     @default(false)
+  read_at      DateTime?                   @db.Timestamptz(6)
+  created_at   DateTime                    @default(now()) @db.Timestamptz(6)
+
+  @@index([recipient_id])
+  @@index([recipient_id, read])
   @@index([created_at])
 }
 

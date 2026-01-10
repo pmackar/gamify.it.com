@@ -20,6 +20,7 @@ import {
   ShieldX,
 } from "lucide-react";
 import { usePermissionsStandalone } from "@/hooks/usePermissions";
+import CoachNotificationBell from "@/components/fitness/CoachNotificationBell";
 
 interface DashboardStats {
   total_athletes: number;
@@ -358,7 +359,8 @@ export default function CoachDashboard() {
               {coachProfile?.business_name || "Manage your athletes"}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <CoachNotificationBell />
             <Link
               href="/fitness/coach/programs"
               className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"

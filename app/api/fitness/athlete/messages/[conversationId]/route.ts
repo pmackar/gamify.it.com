@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { withAuthParams, Errors } from "@/lib/api";
+import { sendNotification, NotificationTemplates } from "@/lib/notifications";
 
 // GET /api/fitness/athlete/messages/[conversationId] - Get messages
 export const GET = withAuthParams<{ conversationId: string }>(
@@ -87,9 +88,17 @@ export const GET = withAuthParams<{ conversationId: string }>(
 // POST /api/fitness/athlete/messages/[conversationId] - Send message
 export const POST = withAuthParams<{ conversationId: string }>(
   async (request, user, { conversationId }) => {
-    // Verify conversation belongs to this athlete
+    // Verify conversation belongs to this athlete and get coach info
     const conversation = await prisma.coaching_conversations.findFirst({
       where: { id: conversationId, athlete_id: user.id },
+      include: {
+        coach: {
+          select: { user_id: true },
+        },
+        athlete: {
+          select: { display_name: true },
+        },
+      },
     });
 
     if (!conversation) {
@@ -130,6 +139,18 @@ export const POST = withAuthParams<{ conversationId: string }>(
         },
       }),
     ]);
+
+    // Send notification to coach (fire and forget)
+    const athleteName = conversation.athlete.display_name || "An athlete";
+    const template = NotificationTemplates.newMessage(athleteName, false);
+    sendNotification({
+      recipientId: conversation.coach.user_id,
+      senderId: user.id,
+      type: template.type,
+      title: template.title,
+      body: template.body,
+      data: { conversationId },
+    }).catch(console.error);
 
     return NextResponse.json({ message });
   }
