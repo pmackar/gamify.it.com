@@ -12841,27 +12841,36 @@ gamify.it.com/fitness`;
             : strengthProgressRange === '1y' ? new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
             : new Date(0);
 
+          // Epley formula for estimated 1RM: weight * (1 + reps / 30)
+          const calculateE1RM = (weight: number, reps: number) => Math.round(weight * (1 + reps / 30));
+
           // Get all sessions with this exercise
           const sessions = store.workouts
             .filter(w => new Date(w.startTime) >= cutoffDate)
             .filter(w => w.exercises.some(ex => ex.id === strengthProgressExercise))
             .map(w => {
               const ex = w.exercises.find(ex => ex.id === strengthProgressExercise)!;
-              const maxWeight = Math.max(...ex.sets.filter(s => !s.isWarmup).map(s => s.weight), 0);
-              const totalVolume = ex.sets.filter(s => !s.isWarmup).reduce((sum, s) => sum + s.weight * s.reps, 0);
+              const workingSets = ex.sets.filter(s => !s.isWarmup);
+              const maxWeight = Math.max(...workingSets.map(s => s.weight), 0);
+              // Calculate e1RM for each set and find the best
+              const e1RMs = workingSets.map(s => calculateE1RM(s.weight, s.reps));
+              const bestE1RM = Math.max(...e1RMs, 0);
+              const totalVolume = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
               return {
                 date: new Date(w.startTime),
                 maxWeight,
+                bestE1RM,
                 totalVolume,
-                sets: ex.sets.filter(s => !s.isWarmup).length
+                sets: workingSets.length
               };
             })
             .sort((a, b) => a.date.getTime() - b.date.getTime());
 
           const currentPR = store.records[strengthProgressExercise] || 0;
-          const startWeight = sessions[0]?.maxWeight || currentPR;
-          const improvement = currentPR - startWeight;
-          const maxChartWeight = Math.max(...sessions.map(s => s.maxWeight), currentPR);
+          const startE1RM = sessions[0]?.bestE1RM || currentPR;
+          const latestE1RM = sessions[sessions.length - 1]?.bestE1RM || currentPR;
+          const improvement = latestE1RM - startE1RM;
+          const maxChartE1RM = Math.max(...sessions.map(s => s.bestE1RM), currentPR);
 
           return (
             <div className="modal-overlay" onClick={() => setStrengthProgressExercise(null)}>
@@ -12886,8 +12895,8 @@ gamify.it.com/fitness`;
                 {/* Stats Summary */}
                 <div className="progress-stats">
                   <div className="progress-stat">
-                    <div className="progress-stat-value">{currentPR}</div>
-                    <div className="progress-stat-label">Current PR (lbs)</div>
+                    <div className="progress-stat-value">{latestE1RM}</div>
+                    <div className="progress-stat-label">Est. 1RM (lbs)</div>
                   </div>
                   <div className="progress-stat">
                     <div className="progress-stat-value">{sessions.length}</div>
@@ -12909,9 +12918,9 @@ gamify.it.com/fitness`;
                         <div key={idx} className="progress-bar-wrapper">
                           <div
                             className="progress-bar-fill"
-                            style={{ height: `${(session.maxWeight / maxChartWeight) * 100}%` }}
+                            style={{ height: `${(session.bestE1RM / maxChartE1RM) * 100}%` }}
                           >
-                            <span className="progress-bar-label">{session.maxWeight}</span>
+                            <span className="progress-bar-label">{session.bestE1RM}</span>
                           </div>
                           <div className="progress-bar-date">
                             {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -12919,7 +12928,7 @@ gamify.it.com/fitness`;
                         </div>
                       ))}
                     </div>
-                    <div className="chart-hint">Max weight per session (last {Math.min(sessions.length, 12)} shown)</div>
+                    <div className="chart-hint">Estimated 1RM per session (last {Math.min(sessions.length, 12)} shown)</div>
                   </div>
                 ) : (
                   <div className="no-sessions">
