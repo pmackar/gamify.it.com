@@ -47,14 +47,14 @@
 
 ---
 
-## Sprint 2: Group Coaching + Check-Ins (IN PROGRESS)
+## Sprint 2: Group Coaching + Check-Ins (COMPLETE)
 
 | Task | Status | Priority |
 |------|--------|----------|
 | Group creation and management | ✅ Done | HIGH |
-| Group chat | 🔲 Todo | MEDIUM |
+| Group chat | ✅ Done | MEDIUM |
 | Check-in system (weekly wellness surveys) | ✅ Done | HIGH |
-| Leaderboards (per-group and global) | 🔲 Todo | MEDIUM |
+| Leaderboards (per-group and global) | ✅ Done | MEDIUM |
 
 ### Completed: Group Management
 - Database: `coaching_groups`, `coaching_group_members` tables
@@ -70,9 +70,19 @@
 - Coach review with notes and feedback
 - Auto-notification to coach on submission
 
-### Remaining
-- Group chat (can reuse existing messaging infrastructure)
-- Leaderboards: volume, compliance %, PR count, XP, streaks
+### Completed: Group Chat
+- Database: `coaching_group_messages`, `coaching_group_read_status` tables
+- API: `/api/fitness/coach/groups/[groupId]/messages`, `/api/fitness/athlete/groups/[groupId]/messages`
+- UI: GroupChatPanel component with real-time polling
+- Chat button on each group card in Groups page
+- Notifications to group members on new messages
+
+### Completed: Leaderboards
+- API: `/api/fitness/coach/leaderboards` with multiple metrics
+- Metrics: Compliance %, XP, Streak, Workouts, Volume
+- Filters: By time period (week/month/all), by group
+- UI: Leaderboards component on coach dashboard
+- Gold/Silver/Bronze rank styling
 
 ---
 

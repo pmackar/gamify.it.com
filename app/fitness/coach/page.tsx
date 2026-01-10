@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { usePermissionsStandalone } from "@/hooks/usePermissions";
 import CoachNotificationBell from "@/components/fitness/CoachNotificationBell";
+import Leaderboards from "@/components/fitness/Leaderboards";
 
 interface DashboardStats {
   total_athletes: number;
@@ -535,9 +536,16 @@ export default function CoachDashboard() {
           </div>
         )}
 
+        {/* Leaderboards */}
+        {athletes.length > 0 && (
+          <div className="mt-6">
+            <Leaderboards />
+          </div>
+        )}
+
         {/* Athletes List */}
         <div
-          className="p-4 rounded-lg"
+          className="p-4 rounded-lg mt-6"
           style={{
             background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
             border: "1px solid #3d3d4d",

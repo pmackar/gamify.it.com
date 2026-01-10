@@ -11,7 +11,9 @@ import {
   Edit,
   UserPlus,
   UserMinus,
+  MessageCircle,
 } from "lucide-react";
+import GroupChatPanel from "@/components/fitness/GroupChatPanel";
 
 interface Athlete {
   id: string;
@@ -53,6 +55,8 @@ export default function GroupsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddMembersModal, setShowAddMembersModal] = useState<string | null>(null);
   const [allAthletes, setAllAthletes] = useState<Athlete[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [chatGroupId, setChatGroupId] = useState<string | null>(null);
 
   // Form state
   const [newGroupName, setNewGroupName] = useState("");
@@ -63,7 +67,20 @@ export default function GroupsPage() {
   useEffect(() => {
     loadGroups();
     loadAthletes();
+    loadCurrentUser();
   }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUserId(data.user?.id || null);
+      }
+    } catch (error) {
+      console.error("Error loading user:", error);
+    }
+  };
 
   const loadGroups = async () => {
     try {
@@ -249,6 +266,14 @@ export default function GroupsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => setChatGroupId(group.id)}
+                      className="p-2 hover:bg-white/10 rounded transition-colors"
+                      style={{ color: group.color || "#4ECDC4" }}
+                      title="Group chat"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => setShowAddMembersModal(group.id)}
                       className="p-2 hover:bg-white/10 rounded transition-colors text-[#4ECDC4]"
                       title="Add members"
@@ -399,6 +424,22 @@ export default function GroupsPage() {
           onClose={() => setShowAddMembersModal(null)}
           onAdd={handleAddMembers}
         />
+      )}
+
+      {/* Group Chat Modal */}
+      {chatGroupId && currentUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="w-full max-w-md">
+            <GroupChatPanel
+              groupId={chatGroupId}
+              groupName={groups.find((g) => g.id === chatGroupId)?.name || "Group"}
+              groupColor={groups.find((g) => g.id === chatGroupId)?.color}
+              currentUserId={currentUserId}
+              isCoach={true}
+              onClose={() => setChatGroupId(null)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
