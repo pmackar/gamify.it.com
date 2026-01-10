@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useFitnessStore } from '@/lib/fitness/store';
-import type { NarrativeSettings, RivalRelationship, EncounterFrequency } from '@/lib/fitness/types';
+import type { NarrativeSettings, RivalRelationship, EncounterFrequency, PhantomPersonality } from '@/lib/fitness/types';
+import { RIVAL_CHARACTERS, getCharactersByPersonality, type RivalCharacter } from '@/lib/fitness/narrative/characters';
 
 interface FriendSuggestion {
   id: string;
@@ -12,12 +13,42 @@ interface FriendSuggestion {
   level: number;
 }
 
+// Personality descriptions for selection
+const PERSONALITY_INFO: Record<PhantomPersonality, { icon: string; name: string; description: string }> = {
+  mirror: {
+    icon: '🪞',
+    name: 'Mirror',
+    description: 'Matches your performance closely',
+  },
+  rival: {
+    icon: '⚔️',
+    name: 'Rival',
+    description: 'Slightly ahead, keeps you pushing',
+  },
+  mentor: {
+    icon: '🧘',
+    name: 'Mentor',
+    description: 'Stronger but encouraging',
+  },
+  nemesis: {
+    icon: '💀',
+    name: 'Nemesis',
+    description: 'Volatile and intense rivalry',
+  },
+};
+
+type AddRivalStep = 'choose-type' | 'choose-personality' | 'choose-character';
+
 export function RivalSettingsPanel() {
   const store = useFitnessStore();
   const narrativeEngine = store.narrativeEngine;
   const [loading, setLoading] = useState(false);
   const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>([]);
   const [showAddRival, setShowAddRival] = useState(false);
+
+  // Multi-step phantom selection
+  const [addRivalStep, setAddRivalStep] = useState<AddRivalStep>('choose-type');
+  const [selectedPersonality, setSelectedPersonality] = useState<PhantomPersonality | null>(null);
 
   // Fetch suggested friends when panel opens
   useEffect(() => {
@@ -82,23 +113,46 @@ export function RivalSettingsPanel() {
     setLoading(false);
   };
 
-  const handleAddPhantom = async () => {
+  const handleAddPhantom = async (character: RivalCharacter) => {
     setLoading(true);
     try {
       const res = await fetch('/api/fitness/narrative/rivals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rivalType: 'AI_PHANTOM' }),
+        body: JSON.stringify({
+          rivalType: 'AI_PHANTOM',
+          phantomConfig: {
+            personality: character.personality,
+            name: character.name,
+            archetype: character.id,
+          },
+        }),
       });
       if (res.ok) {
         const newRival = await res.json();
         store.addRival(newRival);
-        setShowAddRival(false);
+        closeAddRivalModal();
       }
     } catch (error) {
       console.error('Failed to add phantom rival:', error);
     }
     setLoading(false);
+  };
+
+  const closeAddRivalModal = () => {
+    setShowAddRival(false);
+    setAddRivalStep('choose-type');
+    setSelectedPersonality(null);
+  };
+
+  const handleSelectPersonality = (personality: PhantomPersonality) => {
+    setSelectedPersonality(personality);
+    setAddRivalStep('choose-character');
+  };
+
+  const handleBackToPersonality = () => {
+    setAddRivalStep('choose-personality');
+    setSelectedPersonality(null);
   };
 
   const handleAddFriend = async (friendId: string) => {
@@ -291,61 +345,134 @@ export function RivalSettingsPanel() {
           {/* Add Rival Modal */}
           {showAddRival && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5 w-full max-w-sm">
+              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-base font-bold text-yellow-400">Add Rival</h3>
+                  <div className="flex items-center gap-3">
+                    {addRivalStep !== 'choose-type' && (
+                      <button
+                        onClick={addRivalStep === 'choose-character' ? handleBackToPersonality : () => setAddRivalStep('choose-type')}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        ←
+                      </button>
+                    )}
+                    <h3 className="text-base font-bold text-yellow-400">
+                      {addRivalStep === 'choose-type' && 'Add Rival'}
+                      {addRivalStep === 'choose-personality' && 'Choose Style'}
+                      {addRivalStep === 'choose-character' && 'Choose Character'}
+                    </h3>
+                  </div>
                   <button
-                    onClick={() => setShowAddRival(false)}
+                    onClick={closeAddRivalModal}
                     className="text-gray-500 hover:text-white text-xl"
                   >
                     ✕
                   </button>
                 </div>
 
-                {/* AI Phantom Option */}
-                <button
-                  onClick={handleAddPhantom}
-                  disabled={loading}
-                  className="w-full p-4 mb-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left"
-                >
-                  <div className="text-sm font-medium text-white mb-1">🤖 AI Phantom</div>
-                  <div className="text-xs text-gray-500">
-                    A virtual rival that adapts to your level
-                  </div>
-                </button>
+                {/* Step 1: Choose Type */}
+                {addRivalStep === 'choose-type' && (
+                  <>
+                    <button
+                      onClick={() => setAddRivalStep('choose-personality')}
+                      disabled={loading}
+                      className="w-full p-4 mb-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left"
+                    >
+                      <div className="text-sm font-medium text-white mb-1">🤖 AI Phantom</div>
+                      <div className="text-xs text-gray-500">
+                        A virtual rival that adapts to your level
+                      </div>
+                    </button>
 
-                {/* Friend Options */}
-                {suggestedFriends.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="text-xs text-gray-400 mb-3">
-                      Or challenge a friend:
-                    </div>
-                    {suggestedFriends.map((friend) => (
-                      <button
-                        key={friend.id}
-                        onClick={() => handleAddFriend(friend.id)}
-                        disabled={loading}
-                        className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-green-500/50 transition-colors flex items-center gap-4"
-                      >
-                        <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium">
-                          {friend.displayName?.[0] || friend.username?.[0] || '?'}
+                    {suggestedFriends.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="text-xs text-gray-400 mb-3">
+                          Or challenge a friend:
                         </div>
-                        <div className="text-left">
-                          <div className="text-sm font-medium text-white">
-                            {friend.displayName || friend.username}
+                        {suggestedFriends.map((friend) => (
+                          <button
+                            key={friend.id}
+                            onClick={() => handleAddFriend(friend.id)}
+                            disabled={loading}
+                            className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-green-500/50 transition-colors flex items-center gap-4"
+                          >
+                            <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium">
+                              {friend.displayName?.[0] || friend.username?.[0] || '?'}
+                            </div>
+                            <div className="text-left">
+                              <div className="text-sm font-medium text-white">
+                                {friend.displayName || friend.username}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Level {friend.level}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {suggestedFriends.length === 0 && (
+                      <div className="text-center text-sm text-gray-500 p-4">
+                        Add friends to challenge them as rivals
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Step 2: Choose Personality */}
+                {addRivalStep === 'choose-personality' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-400 mb-4">
+                      How do you want your rival to compete?
+                    </p>
+                    {(Object.keys(PERSONALITY_INFO) as PhantomPersonality[]).map((personality) => {
+                      const info = PERSONALITY_INFO[personality];
+                      return (
+                        <button
+                          key={personality}
+                          onClick={() => handleSelectPersonality(personality)}
+                          className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left flex items-center gap-4"
+                        >
+                          <div className="text-2xl">{info.icon}</div>
+                          <div>
+                            <div className="text-sm font-medium text-white">{info.name}</div>
+                            <div className="text-xs text-gray-500">{info.description}</div>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Level {friend.level}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Step 3: Choose Character */}
+                {addRivalStep === 'choose-character' && selectedPersonality && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-400 mb-4">
+                      Pick your {PERSONALITY_INFO[selectedPersonality].name.toLowerCase()} rival:
+                    </p>
+                    {getCharactersByPersonality(selectedPersonality).map((character) => (
+                      <button
+                        key={character.id}
+                        onClick={() => handleAddPhantom(character)}
+                        disabled={loading}
+                        className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-yellow-500/50 transition-colors text-left flex items-center gap-4"
+                        style={{ borderLeftColor: character.color, borderLeftWidth: '4px' }}
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+                          style={{ backgroundColor: `${character.color}20` }}
+                        >
+                          {character.avatar}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-white">{character.name}</div>
+                          <div className="text-xs text-gray-400 italic truncate">
+                            "{character.tagline}"
                           </div>
                         </div>
                       </button>
                     ))}
-                  </div>
-                )}
-
-                {suggestedFriends.length === 0 && (
-                  <div className="text-center text-sm text-gray-500 p-4">
-                    Add friends to challenge them as rivals
                   </div>
                 )}
               </div>

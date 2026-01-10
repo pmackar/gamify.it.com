@@ -180,18 +180,30 @@ export const POST = withAuth(async (request, user) => {
     const personality =
       body.phantomConfig?.personality || defaultConfig.personality;
 
-    // Assign a character based on personality (deterministic using a timestamp seed)
-    const character = assignCharacterToPhantom(
-      personality,
-      `${user.id}-${Date.now()}`
-    );
+    // Use provided archetype to find character, or assign one based on personality
+    let character;
+    if (body.phantomConfig?.archetype) {
+      // User selected a specific character - find it by ID
+      const { getCharacterById } = await import(
+        "@/lib/fitness/narrative/characters"
+      );
+      character = getCharacterById(body.phantomConfig.archetype);
+    }
+
+    // Fall back to auto-assignment if no character found
+    if (!character) {
+      character = assignCharacterToPhantom(
+        personality,
+        `${user.id}-${Date.now()}`
+      );
+    }
 
     phantomConfig = {
       personality,
       rubberBandStrength: difficulty.rubberBandStrength,
       volatility: difficulty.volatility,
       name: body.phantomConfig?.name || character.name,
-      archetype: body.phantomConfig?.archetype || defaultConfig.archetype,
+      archetype: character.id,
       // Character visual identity
       characterId: character.id,
       avatar: character.avatar,
