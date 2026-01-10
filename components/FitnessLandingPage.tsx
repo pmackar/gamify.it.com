@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import localFont from 'next/font/local';
 
-const modernThrash = localFont({
-  src: '../public/Fonts/Modern Thrash Slant.woff2',
+const stormGust = localFont({
+  src: '../public/Fonts/Storm Gust.woff2',
   display: 'swap',
-  variable: '--font-modern-thrash',
+  variable: '--font-storm-gust',
 });
 
 // Stats interface
@@ -297,7 +297,7 @@ export default function FitnessLandingPage() {
   };
 
   return (
-    <div className={`landing-wrapper ${modernThrash.variable}`}>
+    <div className={`landing-wrapper ${stormGust.variable}`}>
       <PixelParticles />
 
       <div className="landing-content">
@@ -328,7 +328,7 @@ export default function FitnessLandingPage() {
               <span className="badge-text">RPG FITNESS TRACKER</span>
             </div>
 
-            <div className={`app-name ${loopFlash ? 'inverted' : ''}`} ref={appNameRef}>REPTURA</div>
+            <div className={`app-name ${stormGust.className} ${loopFlash ? 'inverted' : ''}`} ref={appNameRef}>REPTURA</div>
 
             <p className="hero-tagline">
               Every rep is part of your adventure.
@@ -967,7 +967,7 @@ export default function FitnessLandingPage() {
         }
 
         .app-name {
-          font-family: var(--font-modern-thrash), 'Press Start 2P', monospace;
+          font-family: var(--font-storm-gust), 'Press Start 2P', monospace;
           font-size: clamp(3rem, 12vw, 7rem);
           color: var(--app-fitness);
           line-height: 1;
