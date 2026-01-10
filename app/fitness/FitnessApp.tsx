@@ -12970,10 +12970,10 @@ gamify.it.com/fitness`;
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '1rem',
+                padding: '1rem 1.25rem',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
               }}>
-                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.6rem', color: '#FFD700' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#FFD700' }}>
                   ⚔️ Rival System
                 </span>
                 <button
@@ -12982,7 +12982,7 @@ gamify.it.com/fitness`;
                     background: 'transparent',
                     border: 'none',
                     color: '#666',
-                    fontSize: '1.2rem',
+                    fontSize: '1.5rem',
                     cursor: 'pointer',
                   }}
                 >
