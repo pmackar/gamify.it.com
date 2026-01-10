@@ -461,12 +461,12 @@ export default function FitnessLandingPage() {
         <section className="preview-section">
           <div className="section-header">
             <span className="section-label">// THE APP</span>
-            <h2 className="section-title">Built for Lifters</h2>
-            <p className="section-subtitle">Command palette interface. No tapping through menus.</p>
+            <h2 className="section-title">The Gym, Gamified</h2>
+            <p className="section-subtitle">Log sets in seconds. Level up for life.</p>
           </div>
 
           <div className="preview-grid">
-            <PhoneMockup title="Command Input">
+            <PhoneMockup title="Instant Logging">
               <div className="mock-workout">
                 <div className="mock-exercise-header">
                   <span className="mock-exercise-name">BENCH PRESS</span>
@@ -483,18 +483,7 @@ export default function FitnessLandingPage() {
               </div>
             </PhoneMockup>
 
-            <PhoneMockup title="Achievement Unlock">
-              <div className="mock-achievement">
-                <div className="mock-achievement-glow"></div>
-                <div className="mock-achievement-icon">🔥</div>
-                <div className="mock-achievement-title">TWO PLATE WARRIOR</div>
-                <div className="mock-achievement-desc">Bench Press 225 lbs</div>
-                <div className="mock-achievement-xp">+1,000 XP</div>
-                <div className="mock-achievement-tier">RARE</div>
-              </div>
-            </PhoneMockup>
-
-            <PhoneMockup title="Level Progress">
+            <PhoneMockup title="Level Up">
               <div className="mock-profile">
                 <div className="mock-level-badge">
                   <span className="mock-lvl">LVL</span>
@@ -518,6 +507,37 @@ export default function FitnessLandingPage() {
                     <span className="mock-stat-label">Badges</span>
                   </div>
                 </div>
+              </div>
+            </PhoneMockup>
+
+            <PhoneMockup title="Earn Achievements">
+              <div className="mock-achievement">
+                <div className="mock-achievement-glow"></div>
+                <div className="mock-achievement-icon">🔥</div>
+                <div className="mock-achievement-title">TWO PLATE WARRIOR</div>
+                <div className="mock-achievement-desc">Bench Press 225 lbs</div>
+                <div className="mock-achievement-xp">+1,000 XP</div>
+                <div className="mock-achievement-tier">RARE</div>
+              </div>
+            </PhoneMockup>
+
+            <PhoneMockup title="Compete">
+              <div className="mock-rival">
+                <div className="mock-rival-header">⚔️ SHOWDOWN</div>
+                <div className="mock-rival-vs">
+                  <div className="mock-rival-player">
+                    <div className="mock-rival-avatar">YOU</div>
+                    <div className="mock-rival-score">12,450</div>
+                    <div className="mock-rival-label">XP This Week</div>
+                  </div>
+                  <div className="mock-rival-divider">VS</div>
+                  <div className="mock-rival-player">
+                    <div className="mock-rival-avatar rival">🤖</div>
+                    <div className="mock-rival-score">11,200</div>
+                    <div className="mock-rival-label">Phantom Rival</div>
+                  </div>
+                </div>
+                <div className="mock-rival-status winning">YOU&apos;RE WINNING</div>
               </div>
             </PhoneMockup>
           </div>
@@ -1820,6 +1840,88 @@ export default function FitnessLandingPage() {
         .mock-stat-label {
           font-size: 0.4rem;
           color: var(--theme-text-muted);
+        }
+
+        /* Mock Rival Screen */
+        .mock-rival {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem 0.5rem;
+        }
+
+        .mock-rival-header {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: var(--app-fitness);
+          letter-spacing: 0.1em;
+        }
+
+        .mock-rival-vs {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          width: 100%;
+        }
+
+        .mock-rival-player {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .mock-rival-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: var(--app-fitness);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.5rem;
+          font-family: 'Press Start 2P', monospace;
+          color: #1a1a1a;
+        }
+
+        .mock-rival-avatar.rival {
+          background: var(--theme-bg-elevated);
+          border: 2px solid var(--theme-border);
+          font-size: 1rem;
+        }
+
+        .mock-rival-score {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.55rem;
+          color: var(--theme-gold);
+        }
+
+        .mock-rival-label {
+          font-size: 0.35rem;
+          color: var(--theme-text-muted);
+        }
+
+        .mock-rival-divider {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: var(--theme-text-muted);
+        }
+
+        .mock-rival-status {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          padding: 0.4rem 0.75rem;
+          border-radius: 4px;
+          background: var(--theme-bg-elevated);
+          border: 1px solid var(--theme-border);
+        }
+
+        .mock-rival-status.winning {
+          color: #5fbf8a;
+          border-color: rgba(95, 191, 138, 0.3);
+          background: rgba(95, 191, 138, 0.1);
         }
 
         /* Achievements Section */
