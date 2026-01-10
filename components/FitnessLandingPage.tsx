@@ -569,8 +569,9 @@ export default function FitnessLandingPage() {
               <div className="card-icon">⚔️</div>
               <h3 className="card-title">Rival System</h3>
               <p className="card-desc">
-                Not against a leaderboard. Against rivals that know you.
+                Choose your competition: AI phantoms or real friends.
               </p>
+              <div className="rival-mode-label">🤖 AI Phantom Rivals</div>
               <div className="rival-types">
                 <div className="rival-type">
                   <span className="rival-icon">👤</span>
@@ -593,9 +594,9 @@ export default function FitnessLandingPage() {
                   <span className="rival-desc">Unpredictable chaos</span>
                 </div>
               </div>
+              <div className="rival-mode-label">👥 Friend Rivals</div>
               <div className="friend-rival-callout">
-                <span className="callout-icon">👥</span>
-                <span className="callout-text">Set any friend as your rival and compete head-to-head</span>
+                <span className="callout-text">Challenge any friend to head-to-head competition</span>
               </div>
               <div className="card-features">
                 <span className="feature-tag">AI Phantoms</span>
@@ -1990,6 +1991,14 @@ export default function FitnessLandingPage() {
           color: var(--theme-text-muted);
         }
 
+        .rival-mode-label {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.45rem;
+          color: var(--theme-text-secondary);
+          margin-bottom: 0.75rem;
+          letter-spacing: 0.05em;
+        }
+
         .friend-rival-callout {
           display: flex;
           align-items: center;
@@ -1999,10 +2008,6 @@ export default function FitnessLandingPage() {
           border: 1px solid rgba(255, 107, 107, 0.3);
           border-radius: 8px;
           margin-bottom: 1.5rem;
-        }
-
-        .callout-icon {
-          font-size: 1.25rem;
         }
 
         .callout-text {
