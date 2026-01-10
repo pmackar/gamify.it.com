@@ -88,6 +88,21 @@ export const POST = withAuth(async (request, user) => {
     return rivalry;
   });
 
+  // Notify the requester that their challenge was accepted
+  await prisma.activity_feed.create({
+    data: {
+      user_id: rivalryRequest.requester_id,
+      actor_id: user.id,
+      type: "RIVALRY_REQUEST_ACCEPTED",
+      entity_type: "rivalry",
+      entity_id: result.id,
+      metadata: {
+        accepterName: rivalryRequest.addressee.display_name || rivalryRequest.addressee.username || "Someone",
+        victoryCondition: rivalryRequest.victory_condition,
+      },
+    },
+  });
+
   // Return the rivalry from the accepter's perspective
   return NextResponse.json({
     type: "accepted",

@@ -288,6 +288,22 @@ export const POST = withAuth(async (request, user) => {
       },
     });
 
+    // Create notification for the recipient
+    await prisma.activity_feed.create({
+      data: {
+        user_id: body.friendId,
+        actor_id: user.id,
+        type: "RIVALRY_REQUEST_RECEIVED",
+        entity_type: "rivalry_request",
+        entity_id: rivalryRequest.id,
+        metadata: {
+          requesterName: userProfile?.display_name || userProfile?.username || "Someone",
+          victoryCondition,
+          message: body.message || null,
+        },
+      },
+    });
+
     return NextResponse.json({
       type: "request_sent",
       request: {

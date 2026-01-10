@@ -110,6 +110,23 @@ const typeConfig: Record<string, TypeConfigItem> = {
     },
     getLink: () => '/activity',
   },
+  RIVALRY_REQUEST_RECEIVED: {
+    icon: '⚔️',
+    getMessage: (n) => {
+      const requesterName = (n.metadata?.requesterName as string) || n.actor?.displayName || n.actor?.username || 'Someone';
+      return `${requesterName} challenges you to a fitness rivalry!`;
+    },
+    getLink: () => '/fitness',
+    hasActions: true,
+  },
+  RIVALRY_REQUEST_ACCEPTED: {
+    icon: '🤝',
+    getMessage: (n) => {
+      const accepterName = (n.metadata?.accepterName as string) || n.actor?.displayName || n.actor?.username || 'Someone';
+      return `${accepterName} accepted your rivalry challenge! Game on!`;
+    },
+    getLink: () => '/fitness',
+  },
 };
 
 const defaultConfig: TypeConfigItem = {
@@ -163,6 +180,33 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
     }
   };
 
+  const handleRivalryAction = async (action: 'accept' | 'decline', e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const requestId = notification.entityId;
+    if (!requestId) return;
+
+    setActionLoading(action);
+    try {
+      const res = await fetch('/api/fitness/narrative/rivals/requests/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action }),
+      });
+
+      if (res.ok) {
+        setActionTaken(action === 'accept' ? 'accepted' : 'declined');
+        onMarkRead(notification.id);
+        onUpdate?.();
+      }
+    } catch (err) {
+      console.error('Failed to respond to rivalry request:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleKudos = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -200,7 +244,8 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
   };
 
   const isPartyInvite = notification.type === 'PARTY_INVITE_RECEIVED';
-  const showActions = isPartyInvite && !notification.read && !actionTaken;
+  const isRivalryRequest = notification.type === 'RIVALRY_REQUEST_RECEIVED';
+  const showActions = (isPartyInvite || isRivalryRequest) && !notification.read && !actionTaken;
   // Show kudos button for completed activities (achievements, quest completions, etc.)
   const interactiveTypes = ['QUEST_ITEM_COMPLETED', 'QUEST_COMPLETED', 'PARTY_MEMBER_JOINED'];
   const showKudos = interactiveTypes.includes(notification.type);
@@ -269,7 +314,7 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
         </div>
 
         {/* Party invite action buttons */}
-        {showActions && (
+        {showActions && isPartyInvite && (
           <div className="flex gap-2 mt-2">
             <button
               onClick={(e) => handlePartyInviteAction('accept', e)}
@@ -290,13 +335,43 @@ export default function NotificationItem({ notification, onMarkRead, onClose, on
           </div>
         )}
 
+        {/* Rivalry request action buttons */}
+        {showActions && isRivalryRequest && (
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={(e) => handleRivalryAction('accept', e)}
+              disabled={actionLoading !== null}
+              className="px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+              style={{ background: 'var(--rpg-teal)', color: 'var(--rpg-bg-dark)' }}
+            >
+              {actionLoading === 'accept' ? '...' : '⚔️ Accept Challenge'}
+            </button>
+            <button
+              onClick={(e) => handleRivalryAction('decline', e)}
+              disabled={actionLoading !== null}
+              className="px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+              style={{ background: 'var(--rpg-border)', color: 'var(--rpg-text)' }}
+            >
+              {actionLoading === 'decline' ? '...' : 'Decline'}
+            </button>
+          </div>
+        )}
+
         {/* Action result */}
-        {actionTaken && (
+        {actionTaken && isPartyInvite && (
           <p
             className="text-xs mt-2"
             style={{ color: actionTaken === 'accepted' ? 'var(--rpg-teal)' : 'var(--rpg-muted)' }}
           >
             {actionTaken === 'accepted' ? 'Joined party!' : 'Invite declined'}
+          </p>
+        )}
+        {actionTaken && isRivalryRequest && (
+          <p
+            className="text-xs mt-2"
+            style={{ color: actionTaken === 'accepted' ? 'var(--rpg-teal)' : 'var(--rpg-muted)' }}
+          >
+            {actionTaken === 'accepted' ? '⚔️ Rivalry accepted! Game on!' : 'Challenge declined'}
           </p>
         )}
 

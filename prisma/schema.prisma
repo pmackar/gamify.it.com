@@ -727,6 +727,8 @@ enum activity_type {
   QUEST_COMPLETED
   COMMENT
   KUDOS
+  RIVALRY_REQUEST_RECEIVED
+  RIVALRY_REQUEST_ACCEPTED
 }
 
 /// Activity feed for social notifications
@@ -992,8 +994,34 @@ model coach_profiles {
   check_ins       coaching_check_ins[]
   form_checks     coaching_form_checks[]   @relation("CoachFormChecks")
   live_sessions   coaching_live_sessions[] @relation("CoachLiveSessions")
+  usage           coach_usage[]
 
   @@index([user_id])
+}
+
+/// Monthly usage tracking for coach tier limits
+model coach_usage {
+  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id              String         @db.Uuid
+  coach                 coach_profiles @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  period_start          DateTime       @db.Date  // First day of billing period
+  period_end            DateTime       @db.Date  // Last day of billing period
+
+  // Usage counters
+  form_checks_used      Int            @default(0)
+  messages_sent         Int            @default(0)
+  programs_created      Int            @default(0)
+  storage_bytes_used    BigInt         @default(0)
+
+  // Snapshots at period end
+  active_athletes       Int            @default(0)
+
+  created_at            DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime       @default(now()) @db.Timestamptz(6)
+
+  @@unique([coach_id, period_start])
+  @@index([coach_id])
+  @@index([period_start])
 }
 
 /// Coach-Athlete relationship
