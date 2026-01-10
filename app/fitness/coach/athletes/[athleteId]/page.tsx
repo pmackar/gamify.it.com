@@ -16,6 +16,7 @@ import {
   Edit,
   MessageSquare,
 } from "lucide-react";
+import ChatPanel from "@/components/fitness/ChatPanel";
 
 interface AthleteData {
   relationship: {
@@ -67,9 +68,15 @@ export default function AthleteDetailPage({
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadAthlete();
+    // Fetch current user ID for chat
+    fetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => data?.user?.id && setCurrentUserId(data.user.id))
+      .catch(() => {});
   }, [athleteId]);
 
   const loadAthlete = async () => {
@@ -457,6 +464,15 @@ export default function AthleteDetailPage({
           )}
         </div>
       </div>
+
+      {/* Chat Panel */}
+      {currentUserId && (
+        <ChatPanel
+          athleteId={athleteId}
+          currentUserId={currentUserId}
+          isCoach={true}
+        />
+      )}
 
       {/* Notes Modal */}
       {showNotesModal && (

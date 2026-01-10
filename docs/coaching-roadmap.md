@@ -26,20 +26,20 @@
 
 | Task | Status | Priority |
 |------|--------|----------|
-| In-app messaging (coach ↔ athlete) | 🔲 Todo | HIGH |
+| In-app messaging (coach ↔ athlete) | ✅ Done | HIGH |
 | Notification infrastructure | 🔲 Todo | HIGH |
 | Enhanced athlete profile with progress charts | ✅ Done | HIGH |
 | Real-time activity feed | ✅ Done | MEDIUM |
 | Compliance heatmap visualization | ✅ Done | MEDIUM |
 
-### Next Up
-1. **In-App Messaging System**
-   - Database: `coaching_conversations`, `coaching_messages` tables
-   - API: `/api/fitness/coach/messages/[conversationId]`
-   - UI: ChatPanel component in athlete detail view
-   - Features: Text messages, read receipts, typing indicators
+### Completed: In-App Messaging System
+- Database: `coaching_conversations`, `coaching_messages` tables
+- API: `/api/fitness/coach/messages`, `/api/fitness/athlete/messages`
+- UI: ChatPanel component in athlete detail view
+- Features: Text messages, read receipts, message polling
 
-2. **Notification System**
+### Next Up
+1. **Notification System**
    - Database: `coaching_notifications` table
    - API: `/api/fitness/coach/notifications`
    - Types: workout_reminder, program_updated, coach_message, pr_celebration
@@ -115,7 +115,7 @@
 | Program Builder | ✅ | ✅ | ✅ | ✅ |
 | Exercise Library | 1,300+ | 1,200+ | 2,000+ | 100+ |
 | Video Form Checks | ✅ | ✅ | ❌ | 🔲 Sprint 3 |
-| In-App Messaging | ✅ | ✅ | ✅ | 🔲 Sprint 1 |
+| In-App Messaging | ✅ | ✅ | ✅ | ✅ |
 | Compliance Dashboard | ✅ | ✅ | ✅ | ✅ |
 | Real-time Monitoring | ❌ | ❌ | ❌ | 🔲 Sprint 3 |
 | AI Program Generation | ❌ | ❌ | ✅ | ✅ |
