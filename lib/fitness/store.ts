@@ -2591,7 +2591,16 @@ export const useFitnessStore = create<FitnessStore>()(
             }
           });
 
-          const label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          // Create date range label (e.g., "Nov 4-10" or "Nov 27-Dec 3")
+          const endDay = new Date(weekEnd);
+          endDay.setDate(endDay.getDate() - 1); // Last day of week (not first day of next week)
+          const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
+          const endMonth = endDay.toLocaleDateString('en-US', { month: 'short' });
+          const startDay = weekStart.getDate();
+          const endDayNum = endDay.getDate();
+          const label = startMonth === endMonth
+            ? `${startMonth} ${startDay}-${endDayNum}`
+            : `${startMonth} ${startDay}-${endMonth} ${endDayNum}`;
           result.push({ week: label, volume: weekVolume });
         }
 

@@ -6332,9 +6332,12 @@ export default function FitnessApp() {
 
         .chart-label {
           flex: 1;
-          font-size: 10px;
+          font-size: 9px;
           color: var(--text-tertiary);
           text-align: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .chart-legend {
@@ -9456,7 +9459,7 @@ gamify.it.com/fitness`;
                     </div>
                     <div className="chart-labels">
                       {volumeByWeek.map((week, idx) => (
-                        <div key={idx} className="chart-label">{week.week.split(' ')[0]}</div>
+                        <div key={idx} className="chart-label">{week.week}</div>
                       ))}
                     </div>
                   </div>
