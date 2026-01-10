@@ -551,6 +551,10 @@ export default function FitnessLandingPage() {
                   <span className="rival-desc">Unpredictable chaos</span>
                 </div>
               </div>
+              <div className="friend-rival-callout">
+                <span className="callout-icon">👥</span>
+                <span className="callout-text">Set any friend as your rival and compete head-to-head</span>
+              </div>
               <div className="card-features">
                 <span className="feature-tag">AI Phantoms</span>
                 <span className="feature-tag">Friend Rivals</span>
@@ -1859,6 +1863,27 @@ export default function FitnessLandingPage() {
         .rival-desc {
           font-size: 0.65rem;
           color: var(--theme-text-muted);
+        }
+
+        .friend-rival-callout {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+          border: 1px solid rgba(255, 107, 107, 0.3);
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+        }
+
+        .callout-icon {
+          font-size: 1.25rem;
+        }
+
+        .callout-text {
+          font-size: 0.75rem;
+          color: var(--app-fitness);
+          font-weight: 500;
         }
 
         /* Journey Stages */
