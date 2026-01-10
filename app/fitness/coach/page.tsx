@@ -23,6 +23,8 @@ import {
 import { usePermissionsStandalone } from "@/hooks/usePermissions";
 import CoachNotificationBell from "@/components/fitness/CoachNotificationBell";
 import Leaderboards from "@/components/fitness/Leaderboards";
+import FormCheckReview from "@/components/fitness/FormCheckReview";
+import LiveSessionMonitor from "@/components/fitness/LiveSessionMonitor";
 
 interface DashboardStats {
   total_athletes: number;
@@ -440,6 +442,9 @@ export default function CoachDashboard() {
           />
         </div>
 
+        {/* Live Session Monitor */}
+        <LiveSessionMonitor />
+
         {/* Needing Attention */}
         {needingAttention.length > 0 && (
           <div
@@ -536,10 +541,11 @@ export default function CoachDashboard() {
           </div>
         )}
 
-        {/* Leaderboards */}
+        {/* Leaderboards & Form Checks */}
         {athletes.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Leaderboards />
+            <FormCheckReview />
           </div>
         )}
 

@@ -13,6 +13,15 @@ interface FriendSuggestion {
   level: number;
 }
 
+interface RivalryRequest {
+  id: string;
+  friendId: string;
+  friend: FriendSuggestion;
+  victoryCondition: string;
+  message: string | null;
+  createdAt: string;
+}
+
 // Friend-specific victory conditions (metric-based)
 type FriendVictoryCondition = 'rolling_average' | 'volume_growth' | 'consistency' | 'prs' | 'best_of_3';
 
@@ -105,28 +114,37 @@ export function RivalSettingsPanel() {
   const [loading, setLoading] = useState(false);
   const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>([]);
   const [showAddRival, setShowAddRival] = useState(false);
+  const [pendingReceived, setPendingReceived] = useState<RivalryRequest[]>([]);
+  const [pendingSent, setPendingSent] = useState<RivalryRequest[]>([]);
 
   // Multi-step selection
   const [addRivalStep, setAddRivalStep] = useState<AddRivalStep>('choose-type');
   const [selectedPersonality, setSelectedPersonality] = useState<PhantomPersonality | null>(null);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
 
-  // Fetch suggested friends when panel opens
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      try {
-        const res = await fetch('/api/fitness/narrative/rivals');
-        if (res.ok) {
-          const data = await res.json();
-          setSuggestedFriends(data.suggestedFriends || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch friend suggestions:', error);
+  // Fetch rivals data including pending requests
+  const fetchRivalsData = async () => {
+    try {
+      const res = await fetch('/api/fitness/narrative/rivals');
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestedFriends(data.suggestedFriends || []);
+        setPendingReceived(data.pendingRequests?.received || []);
+        setPendingSent(data.pendingRequests?.sent || []);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch rivals data:', error);
+    }
+  };
 
+  // Fetch on mount and when panel opens
+  useEffect(() => {
+    fetchRivalsData();
+  }, []);
+
+  useEffect(() => {
     if (showAddRival) {
-      fetchSuggestions();
+      fetchRivalsData();
     }
   }, [showAddRival]);
 
@@ -190,8 +208,10 @@ export function RivalSettingsPanel() {
         }),
       });
       if (res.ok) {
-        const newRival = await res.json();
-        store.addRival(newRival);
+        const data = await res.json();
+        if (data.type === 'rival_created' && data.rival) {
+          store.addRival(data.rival);
+        }
         closeAddRivalModal();
       }
     } catch (error) {
@@ -225,7 +245,7 @@ export function RivalSettingsPanel() {
     setAddRivalStep('choose-friend-victory');
   };
 
-  // Step 2: Select victory condition and create the friend rival
+  // Step 2: Select victory condition and send friend rivalry request
   const handleAddFriendWithVictory = async (victoryCondition: FriendVictoryCondition) => {
     if (!selectedFriendId) return;
 
@@ -241,14 +261,43 @@ export function RivalSettingsPanel() {
         }),
       });
       if (res.ok) {
-        const newRival = await res.json();
-        store.addRival(newRival);
+        const data = await res.json();
+        if (data.type === 'request_sent') {
+          // Add to pending sent requests
+          setPendingSent((prev) => [...prev, data.request]);
+        }
         closeAddRivalModal();
         // Remove from suggestions
         setSuggestedFriends((prev) => prev.filter((f) => f.id !== selectedFriendId));
       }
     } catch (error) {
-      console.error('Failed to add friend rival:', error);
+      console.error('Failed to send rivalry request:', error);
+    }
+    setLoading(false);
+  };
+
+  // Accept or decline a rivalry request
+  const handleRespondToRequest = async (requestId: string, action: 'accept' | 'decline') => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/fitness/narrative/rivals/requests/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Remove from pending received
+        setPendingReceived((prev) => prev.filter((r) => r.id !== requestId));
+        if (data.type === 'accepted') {
+          // Add the new rivalry to store
+          store.addRival(data.rivalry);
+        }
+        // Refresh data
+        fetchRivalsData();
+      }
+    } catch (error) {
+      console.error('Failed to respond to rivalry request:', error);
     }
     setLoading(false);
   };
@@ -362,6 +411,83 @@ export function RivalSettingsPanel() {
             </div>
           </div>
 
+          {/* Pending Rivalry Requests (Received) */}
+          {pendingReceived.length > 0 && (
+            <div className="space-y-3">
+              <label className="text-xs font-medium text-yellow-400 uppercase tracking-wide block">
+                ⚔️ Rivalry Challenges ({pendingReceived.length})
+              </label>
+              <div className="space-y-3">
+                {pendingReceived.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center text-sm font-bold text-yellow-400">
+                        {request.friend.displayName?.[0] || request.friend.username?.[0] || '?'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white">
+                          {request.friend.displayName || request.friend.username} challenges you!
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {FRIEND_VICTORY_CONDITIONS[request.victoryCondition as FriendVictoryCondition]?.name || 'Best of 3'} • Level {request.friend.level}
+                        </div>
+                      </div>
+                    </div>
+                    {request.message && (
+                      <p className="text-xs text-gray-400 italic mb-3">"{request.message}"</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRespondToRequest(request.id, 'accept')}
+                        disabled={loading}
+                        className="flex-1 py-2 text-sm font-medium rounded-lg bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 disabled:opacity-50"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleRespondToRequest(request.id, 'decline')}
+                        disabled={loading}
+                        className="flex-1 py-2 text-sm font-medium rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pending Sent Requests */}
+          {pendingSent.length > 0 && (
+            <div className="space-y-3">
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide block">
+                Awaiting Response ({pendingSent.length})
+              </label>
+              <div className="space-y-2">
+                {pendingSent.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-3 bg-gray-800/30 border border-gray-700 rounded-xl flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-xs font-medium">
+                      {request.friend.displayName?.[0] || request.friend.username?.[0] || '?'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm text-gray-300">
+                        {request.friend.displayName || request.friend.username}
+                      </div>
+                      <div className="text-xs text-gray-500">Waiting for response...</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Active Rivals */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -378,7 +504,7 @@ export function RivalSettingsPanel() {
               )}
             </div>
 
-            {rivals.length === 0 ? (
+            {rivals.length === 0 && pendingReceived.length === 0 && pendingSent.length === 0 ? (
               <div className="text-center p-6 bg-gray-800/30 rounded-xl">
                 <p className="text-sm text-gray-500 mb-3">No rivals yet</p>
                 <button
@@ -388,7 +514,7 @@ export function RivalSettingsPanel() {
                   Add your first rival
                 </button>
               </div>
-            ) : (
+            ) : rivals.length === 0 ? null : (
               <div className="space-y-3">
                 {rivals.map((rival) => {
                   const victoryInfo = getRivalVictoryCondition(rival);

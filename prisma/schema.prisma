@@ -186,11 +186,19 @@ model profiles {
   group_messages_sent     coaching_group_messages[] @relation("GroupMessageSender")
   group_read_statuses     coaching_group_read_status[] @relation("GroupReadStatus")
 
+  // Form checks and live sessions
+  form_checks             coaching_form_checks[]     @relation("AthleteFormChecks")
+  live_sessions           coaching_live_sessions[]   @relation("AthleteLiveSessions")
+
   // Narrative engine & rivals relations
   narrative_settings      fitness_narrative_settings? @relation("NarrativeSettings")
   rivals_as_user          fitness_rivals[]           @relation("UserRivals")
   rivals_as_friend        fitness_rivals[]           @relation("FriendRivals")
   encounters              fitness_encounters[]       @relation("UserEncounters")
+  rivalry_requests_sent   fitness_rivalry_requests[] @relation("RivalryRequester")
+  rivalry_requests_recv   fitness_rivalry_requests[] @relation("RivalryAddressee")
+  friend_rivalries_as_1   fitness_friend_rivalries[] @relation("FriendRivalry1")
+  friend_rivalries_as_2   fitness_friend_rivalries[] @relation("FriendRivalry2")
 
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
@@ -982,6 +990,8 @@ model coach_profiles {
   conversations   coaching_conversations[]
   groups          coaching_groups[]
   check_ins       coaching_check_ins[]
+  form_checks     coaching_form_checks[]   @relation("CoachFormChecks")
+  live_sessions   coaching_live_sessions[] @relation("CoachLiveSessions")
 
   @@index([user_id])
 }
@@ -1041,6 +1051,8 @@ model coaching_program_assignments {
   start_date      DateTime               @db.Date
   current_week    Int                    @default(1)
   status          String                 @default("active") // active, completed, paused
+  program_version Int?                   // Version of program athlete is synced to (null = always latest)
+  version_synced_at DateTime?            @db.Timestamptz(6) // When version was last synced
   created_at      DateTime               @default(now()) @db.Timestamptz(6)
   updated_at      DateTime               @default(now()) @db.Timestamptz(6)
 
@@ -1359,30 +1371,136 @@ model coaching_group_read_status {
 }
 
 // ============================================
+// COACHING: FORM CHECKS
+// ============================================
+
+enum form_check_status {
+  PENDING     // Submitted, awaiting review
+  REVIEWED    // Coach has reviewed
+  APPROVED    // Form is good
+  NEEDS_WORK  // Needs improvement
+}
+
+/// Video form check submissions from athletes
+model coaching_form_checks {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id          String            @db.Uuid
+  athlete             profiles          @relation("AthleteFormChecks", fields: [athlete_id], references: [id], onDelete: Cascade)
+  coach_id            String            @db.Uuid
+  coach               coach_profiles    @relation("CoachFormChecks", fields: [coach_id], references: [id], onDelete: Cascade)
+  exercise_name       String            // Name of exercise being checked
+  video_url           String            // URL to video (Cloudinary, YouTube, etc.)
+  thumbnail_url       String?           // Auto-generated or custom thumbnail
+  athlete_notes       String?           // Athlete's notes/questions about their form
+  status              form_check_status @default(PENDING)
+  coach_feedback      String?           // Coach's written feedback
+  feedback_video_url  String?           // Optional video response from coach
+  rating              Int?              // 1-5 form rating
+  reviewed_at         DateTime?         @db.Timestamptz(6)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@index([athlete_id])
+  @@index([coach_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+// ============================================
+// COACHING: LIVE SESSIONS
+// ============================================
+
+/// Track athletes currently working out for live monitoring
+model coaching_live_sessions {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id      String   @db.Uuid
+  athlete         profiles @relation("AthleteLiveSessions", fields: [athlete_id], references: [id], onDelete: Cascade)
+  coach_id        String   @db.Uuid
+  coach           coach_profiles @relation("CoachLiveSessions", fields: [coach_id], references: [id], onDelete: Cascade)
+  workout_name    String?         // Current workout name
+  started_at      DateTime        @default(now()) @db.Timestamptz(6)
+  last_activity   DateTime        @default(now()) @db.Timestamptz(6)
+  current_data    Json?           // { currentExercise, setsCompleted, totalExercises, etc. }
+  is_active       Boolean         @default(true)
+
+  @@unique([athlete_id, is_active]) // Only one active session per athlete
+  @@index([athlete_id])
+  @@index([coach_id])
+  @@index([is_active])
+}
+
+// ============================================
 // FITNESS: NARRATIVE ENGINE & RIVALS
 // ============================================
 
 /// User's narrative engine settings
 model fitness_narrative_settings {
-  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id              String   @unique @db.Uuid
-  user                 profiles @relation("NarrativeSettings", fields: [user_id], references: [id], onDelete: Cascade)
-  enabled              Boolean  @default(true)
-  encounter_frequency  String   @default("every_workout") // every_workout, daily, weekly
-  max_active_rivals    Int      @default(3)
-  notification_prefs   Json?    // { encounterPopups: true, weeklyShowdowns: true }
-  created_at           DateTime @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime @default(now()) @db.Timestamptz(6)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String   @unique @db.Uuid
+  user                  profiles @relation("NarrativeSettings", fields: [user_id], references: [id], onDelete: Cascade)
+  enabled               Boolean  @default(true)
+  encounter_frequency   String   @default("every_workout") // every_workout, daily, weekly, custom
+  custom_frequency_days Int?     // For custom frequency
+  ai_rivals_enabled     Boolean  @default(true)
+  friend_rivals_enabled Boolean  @default(true)
+  max_active_rivals     Int      @default(3)
+  showdown_day          Int      @default(0) // 0=Sunday, 6=Saturday
+  active_theme          String?  // Future: narrative themes
+  notification_prefs    Json?    // { encounterPopups: true, weeklyShowdowns: true, tauntNotifications: false }
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([user_id])
 }
 
-/// User's rivals (AI phantoms or friends)
+/// Pending rivalry requests between friends
+model fitness_rivalry_requests {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id      String   @db.Uuid
+  requester         profiles @relation("RivalryRequester", fields: [requester_id], references: [id], onDelete: Cascade)
+  addressee_id      String   @db.Uuid
+  addressee         profiles @relation("RivalryAddressee", fields: [addressee_id], references: [id], onDelete: Cascade)
+  victory_condition String   @default("best_of_3") // rolling_average, volume_growth, consistency, prs, best_of_3
+  message           String?  // Optional challenge message
+  status            String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  responded_at      DateTime? @db.Timestamptz(6)
+
+  @@unique([requester_id, addressee_id])
+  @@index([requester_id])
+  @@index([addressee_id])
+  @@index([status])
+}
+
+/// Shared rivalry between two friends (one record for both)
+model fitness_friend_rivalries {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user1_id            String    @db.Uuid
+  user1               profiles  @relation("FriendRivalry1", fields: [user1_id], references: [id], onDelete: Cascade)
+  user2_id            String    @db.Uuid
+  user2               profiles  @relation("FriendRivalry2", fields: [user2_id], references: [id], onDelete: Cascade)
+  victory_condition   String    @default("best_of_3")
+  user1_wins          Int       @default(0)
+  user2_wins          Int       @default(0)
+  ties                Int       @default(0)
+  current_week_user1  Json?     // { volume, workouts, prs } - this week's metrics
+  current_week_user2  Json?
+  last_showdown       DateTime? @db.Timestamptz(6)
+  streak_holder_id    String?   @db.Uuid // Who has the current winning streak
+  streak_count        Int       @default(0)
+  is_active           Boolean   @default(true)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([user1_id, user2_id])
+  @@index([user1_id])
+  @@index([user2_id])
+}
+
+/// User's rivals (AI phantoms only now - friends use fitness_friend_rivalries)
 model fitness_rivals {
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id             String    @db.Uuid
   user                profiles  @relation("UserRivals", fields: [user_id], references: [id], onDelete: Cascade)
-  rival_type          String    // AI_PHANTOM or FRIEND
+  rival_type          String    // AI_PHANTOM (friends now use fitness_friend_rivalries)
   friend_id           String?   @db.Uuid
   friend              profiles? @relation("FriendRivals", fields: [friend_id], references: [id], onDelete: Cascade)
   phantom_config      Json?     // { personality, name, avatar, color, tagline, victoryCondition, etc. }
