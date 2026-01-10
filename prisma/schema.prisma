@@ -182,6 +182,10 @@ model profiles {
   group_memberships       coaching_group_members[] @relation("GroupMembership")
   check_ins               coaching_check_ins[]     @relation("AthleteCheckIns")
 
+  // Group chat relations
+  group_messages_sent     coaching_group_messages[] @relation("GroupMessageSender")
+  group_read_statuses     coaching_group_read_status[] @relation("GroupReadStatus")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
@@ -1256,7 +1260,9 @@ model coaching_groups {
   created_at  DateTime @default(now()) @db.Timestamptz(6)
   updated_at  DateTime @default(now()) @db.Timestamptz(6)
 
-  members     coaching_group_members[]
+  members       coaching_group_members[]
+  messages      coaching_group_messages[]
+  read_statuses coaching_group_read_status[]
 
   @@index([coach_id])
 }
@@ -1310,6 +1316,40 @@ model coaching_check_ins {
   @@index([athlete_id])
   @@index([coach_id])
   @@index([week_of])
+}
+
+// ============================================
+// COACHING: GROUP CHAT
+// ============================================
+
+/// Messages in a coaching group chat
+model coaching_group_messages {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id   String   @db.Uuid
+  group      coaching_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  sender_id  String   @db.Uuid
+  sender     profiles @relation("GroupMessageSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  content    String
+  attachments Json?    // Array of { type: 'image'|'video', url: string }
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([group_id])
+  @@index([sender_id])
+  @@index([created_at])
+}
+
+/// Track last read message per user per group
+model coaching_group_read_status {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id        String   @db.Uuid
+  group           coaching_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  user_id         String   @db.Uuid
+  user            profiles @relation("GroupReadStatus", fields: [user_id], references: [id], onDelete: Cascade)
+  last_read_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([group_id, user_id])
+  @@index([group_id])
+  @@index([user_id])
 }
 
 // ============================================
