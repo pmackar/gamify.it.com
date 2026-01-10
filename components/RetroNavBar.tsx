@@ -1973,8 +1973,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
       <nav className={`global-nav ${theme === 'light' ? 'theme-light' : theme === 'terminal' ? 'theme-terminal' : theme === 'mario' ? 'theme-mario' : ''}`}>
         <div className="global-nav-inner">
-          {/* Left section: Logo with apps dropdown - hide on landing pages when not logged in */}
-          {authStatus === 'authenticated' && (
+          {/* Left section: Logo with apps dropdown */}
           <div className="nav-left">
             <div className="nav-brand-group">
               <div style={{ position: 'relative' }} className="nav-dropdown-zone">
@@ -2016,7 +2015,6 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
               </div>
             </div>
           </div>
-          )}
 
           {/* Center section: app content only */}
           <div className="nav-center">
