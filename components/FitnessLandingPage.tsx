@@ -239,6 +239,12 @@ export default function FitnessLandingPage() {
   const appNameRef = useRef<HTMLDivElement>(null);
   const [loopFlash, setLoopFlash] = useState(false);
 
+  // Magic link signup
+  const [showSignup, setShowSignup] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupSent, setSignupSent] = useState(false);
+
   const triggerLoopFlash = useCallback(() => {
     setLoopFlash(true);
     setTimeout(() => setLoopFlash(false), 150);
@@ -296,6 +302,23 @@ export default function FitnessLandingPage() {
     });
   };
 
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupEmail) return;
+    setSignupLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: signupEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/fitness`,
+      },
+    });
+    setSignupLoading(false);
+    if (!error) {
+      setSignupSent(true);
+    }
+  };
+
   return (
     <div className={`landing-wrapper ${stormGust.variable}`}>
       <PixelParticles />
@@ -335,12 +358,31 @@ export default function FitnessLandingPage() {
             </p>
 
             <div className="hero-cta">
-              <Link href="/fitness?try=true" className="cta-primary">
-                Start Your Quest
-              </Link>
-              <button onClick={handleLogin} className="cta-secondary">
-                Sign Up Free
-              </button>
+              {!showSignup ? (
+                <button onClick={() => setShowSignup(true)} className="cta-primary">
+                  Start Your Quest
+                </button>
+              ) : signupSent ? (
+                <div className="signup-success">
+                  <span className="success-icon">✉️</span>
+                  <span className="success-text">Check your email for the magic link!</span>
+                </div>
+              ) : (
+                <form onSubmit={handleMagicLink} className="signup-form">
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    className="signup-input"
+                    autoFocus
+                    required
+                  />
+                  <button type="submit" disabled={signupLoading} className="cta-primary">
+                    {signupLoading ? 'Sending...' : 'Send Magic Link'}
+                  </button>
+                </form>
+              )}
             </div>
 
             <div className="scroll-indicator">
@@ -1078,6 +1120,58 @@ export default function FitnessLandingPage() {
 
         .cta-primary.large { font-size: 0.65rem; padding: 1.5rem 3rem; }
         .cta-secondary.large { font-size: 0.55rem; padding: 1.25rem 2.5rem; }
+
+        .signup-form {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          width: 100%;
+          max-width: 400px;
+        }
+
+        .signup-input {
+          width: 100%;
+          padding: 1rem 1.5rem;
+          font-size: 1rem;
+          background: rgba(0, 0, 0, 0.5);
+          border: 2px solid var(--theme-border);
+          border-radius: 8px;
+          color: var(--theme-text-primary);
+          text-align: center;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+
+        .signup-input:focus {
+          border-color: var(--app-fitness);
+        }
+
+        .signup-input::placeholder {
+          color: var(--theme-text-muted);
+        }
+
+        .signup-success {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1.5rem 2rem;
+          background: rgba(95, 191, 138, 0.15);
+          border: 1px solid rgba(95, 191, 138, 0.3);
+          border-radius: 12px;
+        }
+
+        .success-icon {
+          font-size: 2rem;
+        }
+
+        .success-text {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: #5fbf8a;
+          text-align: center;
+        }
 
         .scroll-indicator {
           position: absolute;
