@@ -694,8 +694,8 @@ export default function FitnessLandingPage() {
                 <div className="phase-label">NEXT UP</div>
                 <h3 className="phase-title">Rivals & Narrative</h3>
                 <ul className="phase-items">
-                  <li className="phase-item">AI Phantom Rivals</li>
-                  <li className="phase-item">Friend Head-to-Head</li>
+                  <li className="phase-item done">✓ AI Phantom Rivals</li>
+                  <li className="phase-item done">✓ Friend Head-to-Head</li>
                   <li className="phase-item">Weekly Showdowns</li>
                   <li className="phase-item">Hero&apos;s Journey Story</li>
                 </ul>
