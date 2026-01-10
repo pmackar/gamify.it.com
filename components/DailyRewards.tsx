@@ -510,11 +510,10 @@ export function DailyRewardsProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       setRewardState(data);
 
-      // Auto-show modal if there's an unclaimed reward and user just authenticated
-      if (!data.claimedToday && isAuthenticated) {
-        // Small delay for better UX after login
-        setTimeout(() => setShowModal(true), 500);
-      }
+      // Auto-show modal disabled - can still be opened manually from menu
+      // if (!data.claimedToday && isAuthenticated) {
+      //   setTimeout(() => setShowModal(true), 500);
+      // }
     } catch (err) {
       console.error('Daily rewards fetch error:', err);
     } finally {
