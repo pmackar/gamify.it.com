@@ -955,7 +955,7 @@ export default function FitnessLandingPage() {
           border: 1px solid var(--app-fitness);
           border-radius: 20px;
           padding: 0.5rem 1rem;
-          margin-bottom: 2rem;
+          margin-bottom: 1rem;
         }
 
         .badge-icon { font-size: 1rem; }
@@ -971,7 +971,7 @@ export default function FitnessLandingPage() {
           font-size: clamp(4.3rem, 17.3vw, 10rem);
           color: var(--app-fitness);
           line-height: 1;
-          margin-bottom: 1rem;
+          margin-bottom: 0.5rem;
           text-transform: uppercase;
           letter-spacing: 0.02em;
           text-shadow: 0 0 60px var(--app-fitness-glow), 0 4px 0 var(--app-fitness-darker);
