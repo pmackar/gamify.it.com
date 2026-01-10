@@ -24,7 +24,9 @@ import {
 } from "@/lib/fitness/narrative/phantom-generator";
 import {
   calculateVictory,
+  calculateFriendVictory,
   type VictoryResult,
+  type FriendVictoryCondition,
 } from "@/lib/fitness/narrative/victory-calculator";
 import type { Workout, PhantomStats, PhantomPersonality } from "@/lib/fitness/types";
 
@@ -254,9 +256,9 @@ export const POST = withAuth(async (request, user) => {
       rivalSnapshotForVictory
     );
   } else {
-    // Friend rivals - use stored victory condition or default to "rival"
-    const friendConfig = rival.phantom_config as unknown as { personality?: PhantomPersonality } | null;
-    const friendPersonality = (friendConfig?.personality || "rival") as PhantomPersonality;
+    // Friend rivals - use stored victory condition or default to "best_of_3"
+    const friendConfig = rival.phantom_config as unknown as { victoryCondition?: FriendVictoryCondition } | null;
+    const victoryCondition = (friendConfig?.victoryCondition || "best_of_3") as FriendVictoryCondition;
 
     const rivalSnapshotForVictory = {
       volumeThisWeek: rivalMetrics.totalVolume,
@@ -268,8 +270,8 @@ export const POST = withAuth(async (request, user) => {
       topExerciseGains: rivalMetrics.topExerciseGains || [],
     };
 
-    victoryResult = calculateVictory(
-      friendPersonality,
+    victoryResult = calculateFriendVictory(
+      victoryCondition,
       userSnapshot,
       rivalSnapshotForVictory
     );

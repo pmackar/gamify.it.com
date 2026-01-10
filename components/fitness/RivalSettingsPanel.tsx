@@ -14,6 +14,47 @@ interface FriendSuggestion {
   level: number;
 }
 
+// Friend-specific victory conditions (metric-based)
+type FriendVictoryCondition = 'rolling_average' | 'volume_growth' | 'consistency' | 'prs' | 'best_of_3';
+
+const FRIEND_VICTORY_CONDITIONS: Record<FriendVictoryCondition, {
+  icon: string;
+  name: string;
+  description: string;
+  metric: string;
+}> = {
+  rolling_average: {
+    icon: '📊',
+    name: 'Beat Your Average',
+    description: 'Both compete against your own 4-week rolling average',
+    metric: 'Self-improvement focus',
+  },
+  volume_growth: {
+    icon: '📈',
+    name: 'Volume Growth',
+    description: 'Who improved their total volume % more this week',
+    metric: 'Weight × Reps improvement',
+  },
+  consistency: {
+    icon: '🔥',
+    name: 'Consistency',
+    description: 'Who completed more workouts this week',
+    metric: 'Workout count',
+  },
+  prs: {
+    icon: '🏆',
+    name: 'PR Race',
+    description: 'Who hit more personal records this week',
+    metric: 'New PRs',
+  },
+  best_of_3: {
+    icon: '⚔️',
+    name: 'Best of 3',
+    description: 'Win 2 of 3: volume, workouts, or PRs',
+    metric: 'All-around',
+  },
+};
+
 // Personality descriptions for selection with victory conditions
 const PERSONALITY_INFO: Record<PhantomPersonality, {
   icon: string;
@@ -190,7 +231,7 @@ export function RivalSettingsPanel() {
   };
 
   // Step 2: Select victory condition and create the friend rival
-  const handleAddFriendWithVictory = async (personality: PhantomPersonality) => {
+  const handleAddFriendWithVictory = async (victoryCondition: FriendVictoryCondition) => {
     if (!selectedFriendId) return;
 
     setLoading(true);
@@ -201,7 +242,7 @@ export function RivalSettingsPanel() {
         body: JSON.stringify({
           rivalType: 'FRIEND',
           friendId: selectedFriendId,
-          phantomConfig: { personality },
+          phantomConfig: { victoryCondition },
         }),
       });
       if (res.ok) {
@@ -261,17 +302,23 @@ export function RivalSettingsPanel() {
   };
 
   const getRivalVictoryCondition = (rival: RivalRelationship): { condition: string; tagline: string } | null => {
-    // Both AI and friend rivals can have a personality/victory condition stored
-    if (rival.phantomConfig?.personality) {
+    // AI phantoms use personality-based conditions
+    if (rival.rivalType === 'ai_phantom' && rival.phantomConfig?.personality) {
       const personality = rival.phantomConfig.personality as PhantomPersonality;
       const info = PERSONALITY_INFO[personality];
       if (info) {
         return { condition: info.victoryCondition, tagline: info.tagline };
       }
     }
-    // Fallback for friend rivals without stored victory condition
+    // Friend rivals use metric-based victory conditions
     if (rival.rivalType === 'friend') {
-      return { condition: 'Win 2 of 3 categories', tagline: 'Every category is a battle' };
+      const victoryCondition = rival.phantomConfig?.victoryCondition as FriendVictoryCondition | undefined;
+      if (victoryCondition && FRIEND_VICTORY_CONDITIONS[victoryCondition]) {
+        const info = FRIEND_VICTORY_CONDITIONS[victoryCondition];
+        return { condition: info.name, tagline: info.metric };
+      }
+      // Fallback for old friend rivals
+      return { condition: 'Best of 3', tagline: 'All-around' };
     }
     return null;
   };
@@ -574,25 +621,25 @@ export function RivalSettingsPanel() {
                       </span>
                       ?
                     </p>
-                    {(Object.keys(PERSONALITY_INFO) as PhantomPersonality[]).map((personality) => {
-                      const info = PERSONALITY_INFO[personality];
+                    {(Object.keys(FRIEND_VICTORY_CONDITIONS) as FriendVictoryCondition[]).map((condition) => {
+                      const info = FRIEND_VICTORY_CONDITIONS[condition];
                       return (
                         <button
-                          key={personality}
-                          onClick={() => handleAddFriendWithVictory(personality)}
+                          key={condition}
+                          onClick={() => handleAddFriendWithVictory(condition)}
                           disabled={loading}
                           className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-green-500/50 transition-colors text-left"
                         >
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3 mb-1">
                             <div className="text-2xl">{info.icon}</div>
                             <div className="text-sm font-medium text-white">{info.name}</div>
                           </div>
                           <div className="ml-9 space-y-1">
-                            <div className="text-xs text-green-400 font-medium">
-                              🎯 {info.victoryCondition}
+                            <div className="text-xs text-gray-400">
+                              {info.description}
                             </div>
-                            <div className="text-xs text-gray-500 italic">
-                              "{info.tagline}"
+                            <div className="text-xs text-green-400 font-medium">
+                              {info.metric}
                             </div>
                           </div>
                         </button>

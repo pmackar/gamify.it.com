@@ -23,6 +23,7 @@ const createRivalSchema = z.object({
   phantomConfig: z
     .object({
       personality: z.enum(["mirror", "rival", "mentor", "nemesis"]).optional(),
+      victoryCondition: z.enum(["rolling_average", "volume_growth", "consistency", "prs", "best_of_3"]).optional(),
       name: z.string().optional(),
       archetype: z.string().optional(),
     })
@@ -175,11 +176,10 @@ export const POST = withAuth(async (request, user) => {
   let phantomConfig: Record<string, unknown> | undefined = undefined;
 
   if (body.rivalType === "FRIEND") {
-    // Store victory condition for friend rivals (defaults to "rival")
-    const victoryCondition = body.phantomConfig?.personality || "rival";
+    // Store victory condition for friend rivals (defaults to "best_of_3")
+    const victoryCondition = body.phantomConfig?.victoryCondition || "best_of_3";
     phantomConfig = {
-      personality: victoryCondition,
-      victoryCondition: true, // Flag to indicate this is a friend with custom victory condition
+      victoryCondition,
     };
   } else if (body.rivalType === "AI_PHANTOM") {
     const difficulty = getSuggestedPhantomDifficulty(userLevel);

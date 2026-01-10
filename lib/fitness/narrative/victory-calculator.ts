@@ -421,3 +421,253 @@ export function getVictoryDescription(personality: PhantomPersonality): {
       };
   }
 }
+
+// Friend-specific victory conditions
+export type FriendVictoryCondition = 'rolling_average' | 'volume_growth' | 'consistency' | 'prs' | 'best_of_3';
+
+/**
+ * Calculate victory for friend rivalries based on specific metric
+ */
+export function calculateFriendVictory(
+  victoryCondition: FriendVictoryCondition,
+  userSnapshot: ImprovementSnapshot,
+  rivalSnapshot: ImprovementSnapshot,
+  userHistory?: UserHistoricalStats
+): VictoryResult {
+  switch (victoryCondition) {
+    case 'rolling_average':
+      // Both compete against their own average - who beat theirs by more?
+      return calculateRollingAverageVictory(userSnapshot, rivalSnapshot, userHistory);
+    case 'volume_growth':
+      return calculateVolumeGrowthVictory(userSnapshot, rivalSnapshot);
+    case 'consistency':
+      return calculateConsistencyVictory(userSnapshot, rivalSnapshot);
+    case 'prs':
+      return calculatePRsVictory(userSnapshot, rivalSnapshot);
+    case 'best_of_3':
+    default:
+      return calculateRivalVictory(userSnapshot, rivalSnapshot);
+  }
+}
+
+/**
+ * ROLLING_AVERAGE: Both compete against their own 4-week average
+ * Winner is whoever exceeded their average by more
+ */
+function calculateRollingAverageVictory(
+  userSnapshot: ImprovementSnapshot,
+  rivalSnapshot: ImprovementSnapshot,
+  userHistory?: UserHistoricalStats
+): VictoryResult {
+  // Use last week as baseline if no history
+  const userAvgVolume = userHistory?.avgVolume4Week || userSnapshot.volumeLastWeek || 1;
+  const userAvgWorkouts = userHistory?.avgWorkouts4Week || userSnapshot.workoutsLastWeek || 1;
+
+  // Rival's baseline is their previous week
+  const rivalAvgVolume = rivalSnapshot.volumeLastWeek || 1;
+  const rivalAvgWorkouts = rivalSnapshot.workoutsLastWeek || 1;
+
+  // Calculate how much each beat their average
+  const userVolumeRatio = userSnapshot.volumeThisWeek / Math.max(userAvgVolume, 1);
+  const userWorkoutRatio = userSnapshot.workoutsThisWeek / Math.max(userAvgWorkouts, 1);
+  const userScore = userVolumeRatio * 0.6 + userWorkoutRatio * 0.4;
+
+  const rivalVolumeRatio = rivalSnapshot.volumeThisWeek / Math.max(rivalAvgVolume, 1);
+  const rivalWorkoutRatio = rivalSnapshot.workoutsThisWeek / Math.max(rivalAvgWorkouts, 1);
+  const rivalScore = rivalVolumeRatio * 0.6 + rivalWorkoutRatio * 0.4;
+
+  const breakdown: CategoryBreakdown = {
+    volume: {
+      user: Math.round((userVolumeRatio - 1) * 100),
+      rival: Math.round((rivalVolumeRatio - 1) * 100),
+      winner: userVolumeRatio > rivalVolumeRatio + 0.05 ? 'user' : rivalVolumeRatio > userVolumeRatio + 0.05 ? 'rival' : 'tie',
+    },
+    workouts: {
+      user: userSnapshot.workoutsThisWeek,
+      rival: rivalSnapshot.workoutsThisWeek,
+      winner: userWorkoutRatio > rivalWorkoutRatio + 0.1 ? 'user' : rivalWorkoutRatio > userWorkoutRatio + 0.1 ? 'rival' : 'tie',
+    },
+    prs: {
+      user: userSnapshot.prsThisWeek,
+      rival: rivalSnapshot.prsThisWeek,
+      winner: userSnapshot.prsThisWeek > rivalSnapshot.prsThisWeek ? 'user' : rivalSnapshot.prsThisWeek > userSnapshot.prsThisWeek ? 'rival' : 'tie',
+    },
+  };
+
+  let winner: 'user' | 'rival' | 'tie';
+  let narrative: string;
+
+  if (userScore > rivalScore + 0.05) {
+    winner = 'user';
+    narrative = `You beat your average by more! (+${Math.round((userScore - 1) * 100)}% vs +${Math.round((rivalScore - 1) * 100)}%)`;
+  } else if (rivalScore > userScore + 0.05) {
+    winner = 'rival';
+    narrative = `Your friend had a bigger week relative to their average.`;
+  } else {
+    winner = 'tie';
+    narrative = 'Both improved at similar rates!';
+  }
+
+  return {
+    winner,
+    winningMargin: Math.abs(userScore - rivalScore) * 50,
+    dominantFactor: 'self-improvement',
+    breakdown,
+    narrative,
+  };
+}
+
+/**
+ * VOLUME_GROWTH: Who improved their volume percentage more
+ */
+function calculateVolumeGrowthVictory(
+  userSnapshot: ImprovementSnapshot,
+  rivalSnapshot: ImprovementSnapshot
+): VictoryResult {
+  const userGrowth = userSnapshot.volumeLastWeek > 0
+    ? ((userSnapshot.volumeThisWeek - userSnapshot.volumeLastWeek) / userSnapshot.volumeLastWeek) * 100
+    : userSnapshot.volumeThisWeek > 0 ? 100 : 0;
+
+  const rivalGrowth = rivalSnapshot.volumeLastWeek > 0
+    ? ((rivalSnapshot.volumeThisWeek - rivalSnapshot.volumeLastWeek) / rivalSnapshot.volumeLastWeek) * 100
+    : rivalSnapshot.volumeThisWeek > 0 ? 100 : 0;
+
+  const breakdown: CategoryBreakdown = {
+    volume: {
+      user: Math.round(userGrowth),
+      rival: Math.round(rivalGrowth),
+      winner: userGrowth > rivalGrowth + 2 ? 'user' : rivalGrowth > userGrowth + 2 ? 'rival' : 'tie',
+    },
+    workouts: {
+      user: userSnapshot.workoutsThisWeek,
+      rival: rivalSnapshot.workoutsThisWeek,
+      winner: userSnapshot.workoutsThisWeek > rivalSnapshot.workoutsThisWeek ? 'user' : rivalSnapshot.workoutsThisWeek > userSnapshot.workoutsThisWeek ? 'rival' : 'tie',
+    },
+    prs: {
+      user: userSnapshot.prsThisWeek,
+      rival: rivalSnapshot.prsThisWeek,
+      winner: userSnapshot.prsThisWeek > rivalSnapshot.prsThisWeek ? 'user' : rivalSnapshot.prsThisWeek > userSnapshot.prsThisWeek ? 'rival' : 'tie',
+    },
+  };
+
+  let winner: 'user' | 'rival' | 'tie';
+  let narrative: string;
+
+  if (userGrowth > rivalGrowth + 5) {
+    winner = 'user';
+    narrative = `Your volume grew ${Math.round(userGrowth)}% vs their ${Math.round(rivalGrowth)}%!`;
+  } else if (rivalGrowth > userGrowth + 5) {
+    winner = 'rival';
+    narrative = `Your friend's volume grew more this week.`;
+  } else {
+    winner = 'tie';
+    narrative = 'Similar volume growth this week!';
+  }
+
+  return {
+    winner,
+    winningMargin: Math.abs(userGrowth - rivalGrowth),
+    dominantFactor: 'volume',
+    breakdown,
+    narrative,
+  };
+}
+
+/**
+ * CONSISTENCY: Who completed more workouts this week
+ */
+function calculateConsistencyVictory(
+  userSnapshot: ImprovementSnapshot,
+  rivalSnapshot: ImprovementSnapshot
+): VictoryResult {
+  const breakdown: CategoryBreakdown = {
+    volume: {
+      user: userSnapshot.volumeThisWeek,
+      rival: rivalSnapshot.volumeThisWeek,
+      winner: userSnapshot.volumeThisWeek > rivalSnapshot.volumeThisWeek ? 'user' : rivalSnapshot.volumeThisWeek > userSnapshot.volumeThisWeek ? 'rival' : 'tie',
+    },
+    workouts: {
+      user: userSnapshot.workoutsThisWeek,
+      rival: rivalSnapshot.workoutsThisWeek,
+      winner: userSnapshot.workoutsThisWeek > rivalSnapshot.workoutsThisWeek ? 'user' : rivalSnapshot.workoutsThisWeek > userSnapshot.workoutsThisWeek ? 'rival' : 'tie',
+    },
+    prs: {
+      user: userSnapshot.prsThisWeek,
+      rival: rivalSnapshot.prsThisWeek,
+      winner: userSnapshot.prsThisWeek > rivalSnapshot.prsThisWeek ? 'user' : rivalSnapshot.prsThisWeek > userSnapshot.prsThisWeek ? 'rival' : 'tie',
+    },
+  };
+
+  let winner: 'user' | 'rival' | 'tie';
+  let narrative: string;
+
+  if (userSnapshot.workoutsThisWeek > rivalSnapshot.workoutsThisWeek) {
+    winner = 'user';
+    narrative = `You hit the gym ${userSnapshot.workoutsThisWeek} times vs their ${rivalSnapshot.workoutsThisWeek}!`;
+  } else if (rivalSnapshot.workoutsThisWeek > userSnapshot.workoutsThisWeek) {
+    winner = 'rival';
+    narrative = `Your friend was more consistent this week.`;
+  } else {
+    winner = 'tie';
+    narrative = `Both logged ${userSnapshot.workoutsThisWeek} workouts!`;
+  }
+
+  return {
+    winner,
+    winningMargin: Math.abs(userSnapshot.workoutsThisWeek - rivalSnapshot.workoutsThisWeek) * 20,
+    dominantFactor: 'consistency',
+    breakdown,
+    narrative,
+  };
+}
+
+/**
+ * PRS: Who hit more personal records this week
+ */
+function calculatePRsVictory(
+  userSnapshot: ImprovementSnapshot,
+  rivalSnapshot: ImprovementSnapshot
+): VictoryResult {
+  const breakdown: CategoryBreakdown = {
+    volume: {
+      user: userSnapshot.volumeThisWeek,
+      rival: rivalSnapshot.volumeThisWeek,
+      winner: userSnapshot.volumeThisWeek > rivalSnapshot.volumeThisWeek ? 'user' : rivalSnapshot.volumeThisWeek > userSnapshot.volumeThisWeek ? 'rival' : 'tie',
+    },
+    workouts: {
+      user: userSnapshot.workoutsThisWeek,
+      rival: rivalSnapshot.workoutsThisWeek,
+      winner: userSnapshot.workoutsThisWeek > rivalSnapshot.workoutsThisWeek ? 'user' : rivalSnapshot.workoutsThisWeek > userSnapshot.workoutsThisWeek ? 'rival' : 'tie',
+    },
+    prs: {
+      user: userSnapshot.prsThisWeek,
+      rival: rivalSnapshot.prsThisWeek,
+      winner: userSnapshot.prsThisWeek > rivalSnapshot.prsThisWeek ? 'user' : rivalSnapshot.prsThisWeek > userSnapshot.prsThisWeek ? 'rival' : 'tie',
+    },
+  };
+
+  let winner: 'user' | 'rival' | 'tie';
+  let narrative: string;
+
+  if (userSnapshot.prsThisWeek > rivalSnapshot.prsThisWeek) {
+    winner = 'user';
+    narrative = `You crushed ${userSnapshot.prsThisWeek} PR${userSnapshot.prsThisWeek > 1 ? 's' : ''} vs their ${rivalSnapshot.prsThisWeek}!`;
+  } else if (rivalSnapshot.prsThisWeek > userSnapshot.prsThisWeek) {
+    winner = 'rival';
+    narrative = `Your friend hit more PRs this week.`;
+  } else if (userSnapshot.prsThisWeek === 0 && rivalSnapshot.prsThisWeek === 0) {
+    winner = 'tie';
+    narrative = 'No PRs from either side this week!';
+  } else {
+    winner = 'tie';
+    narrative = `Both hit ${userSnapshot.prsThisWeek} PR${userSnapshot.prsThisWeek > 1 ? 's' : ''}!`;
+  }
+
+  return {
+    winner,
+    winningMargin: Math.abs(userSnapshot.prsThisWeek - rivalSnapshot.prsThisWeek) * 30,
+    dominantFactor: 'PRs',
+    breakdown,
+    narrative,
+  };
+}
