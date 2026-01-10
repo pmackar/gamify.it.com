@@ -13,6 +13,13 @@ import NotificationBell from './social/NotificationBell';
 import { useDailyRewards } from './DailyRewards';
 import { useTodayStore } from '@/lib/today/store';
 import XPBoostIndicator from './XPBoostIndicator';
+import localFont from 'next/font/local';
+
+const modernThrash = localFont({
+  src: '../public/Fonts/Modern Thrash Slant.woff2',
+  display: 'swap',
+  variable: '--font-modern-thrash',
+});
 
 // Sync indicator for Today app
 const SyncIndicator = () => {
@@ -1101,6 +1108,20 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           justify-content: center;
         }
 
+        .nav-reptura-logo {
+          font-size: 1.5rem;
+          color: #FF6B6B;
+          text-decoration: none;
+          letter-spacing: 0.05em;
+          text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+          transition: all 0.2s ease;
+        }
+
+        .nav-reptura-logo:hover {
+          text-shadow: 0 0 30px rgba(255, 107, 107, 0.7);
+          transform: scale(1.02);
+        }
+
         .nav-quick-actions {
           display: flex;
           align-items: center;
@@ -1772,6 +1793,10 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             font-size: 8px;
           }
 
+          .nav-reptura-logo {
+            font-size: 1.1rem;
+          }
+
           .nav-app-link {
             width: 40px;
             height: 40px;
@@ -2027,6 +2052,12 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
               </div>
             )}
 
+            {/* Reptura logo when in fitness app without active workout */}
+            {isFitness && !contextContent && (
+              <Link href="/fitness" className={`nav-reptura-logo ${modernThrash.className}`}>
+                REPTURA
+              </Link>
+            )}
 
             {/* App-specific content from context */}
             {contextContent && (
