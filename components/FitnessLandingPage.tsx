@@ -385,12 +385,10 @@ export default function FitnessLandingPage() {
               )}
             </div>
 
-            {!showSignup && (
-              <div className="scroll-indicator">
-                <span>See how it works</span>
-                <div className="scroll-arrow">↓</div>
-              </div>
-            )}
+            <div className="scroll-indicator">
+              <span>See how it works</span>
+              <div className="scroll-arrow">↓</div>
+            </div>
           </div>
         </section>
 
@@ -1176,12 +1174,11 @@ export default function FitnessLandingPage() {
         }
 
         .scroll-indicator {
-          position: absolute;
-          bottom: 2rem;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 0.5rem;
+          margin-top: 2rem;
           color: var(--theme-text-muted);
           font-size: 0.75rem;
           animation: bounce 2s ease-in-out infinite;
