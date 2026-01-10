@@ -385,10 +385,12 @@ export default function FitnessLandingPage() {
               )}
             </div>
 
-            <div className="scroll-indicator">
-              <span>See how it works</span>
-              <div className="scroll-arrow">↓</div>
-            </div>
+            {!showSignup && (
+              <div className="scroll-indicator">
+                <span>See how it works</span>
+                <div className="scroll-arrow">↓</div>
+              </div>
+            )}
           </div>
         </section>
 
