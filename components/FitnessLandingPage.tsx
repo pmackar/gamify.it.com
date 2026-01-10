@@ -512,6 +512,90 @@ export default function FitnessLandingPage() {
           </div>
         </section>
 
+        {/* Coming Soon - Rivals & Narrative */}
+        <section className="coming-soon-section">
+          <div className="section-header">
+            <span className="section-label">// COMING SOON</span>
+            <h2 className="section-title">The Next Chapter</h2>
+            <p className="section-subtitle">Rivals that adapt. Stories that unfold.</p>
+          </div>
+
+          <div className="coming-soon-grid">
+            {/* Rival System Card */}
+            <div className="coming-soon-card rival-card">
+              <div className="card-badge">IN DEVELOPMENT</div>
+              <div className="card-icon">⚔️</div>
+              <h3 className="card-title">Rival System</h3>
+              <p className="card-desc">
+                Not against a leaderboard. Against rivals that know you.
+              </p>
+              <div className="rival-types">
+                <div className="rival-type">
+                  <span className="rival-icon">👤</span>
+                  <span className="rival-name">Mirror</span>
+                  <span className="rival-desc">Matches your pace</span>
+                </div>
+                <div className="rival-type">
+                  <span className="rival-icon">🎯</span>
+                  <span className="rival-name">Rival</span>
+                  <span className="rival-desc">Always one step ahead</span>
+                </div>
+                <div className="rival-type">
+                  <span className="rival-icon">🏆</span>
+                  <span className="rival-name">Mentor</span>
+                  <span className="rival-desc">Shows what&apos;s possible</span>
+                </div>
+                <div className="rival-type">
+                  <span className="rival-icon">💀</span>
+                  <span className="rival-name">Nemesis</span>
+                  <span className="rival-desc">Unpredictable chaos</span>
+                </div>
+              </div>
+              <div className="card-features">
+                <span className="feature-tag">AI Phantoms</span>
+                <span className="feature-tag">Friend Rivals</span>
+                <span className="feature-tag">Weekly Showdowns</span>
+              </div>
+            </div>
+
+            {/* Narrative Card */}
+            <div className="coming-soon-card narrative-card">
+              <div className="card-badge">IN DEVELOPMENT</div>
+              <div className="card-icon">📖</div>
+              <h3 className="card-title">Your Story</h3>
+              <p className="card-desc">
+                Every workout writes the next chapter of your legend.
+              </p>
+              <div className="journey-stages">
+                <div className="journey-stage-item active">
+                  <span className="stage-marker">I</span>
+                  <span className="stage-label">The Calling</span>
+                </div>
+                <div className="journey-connector">→</div>
+                <div className="journey-stage-item">
+                  <span className="stage-marker">II</span>
+                  <span className="stage-label">The Tests</span>
+                </div>
+                <div className="journey-connector">→</div>
+                <div className="journey-stage-item">
+                  <span className="stage-marker">III</span>
+                  <span className="stage-label">The Ordeal</span>
+                </div>
+                <div className="journey-connector">→</div>
+                <div className="journey-stage-item">
+                  <span className="stage-marker">IV</span>
+                  <span className="stage-label">The Return</span>
+                </div>
+              </div>
+              <div className="card-features">
+                <span className="feature-tag">Hero&apos;s Journey</span>
+                <span className="feature-tag">Story Beats</span>
+                <span className="feature-tag">5 Chapters</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Roadmap Section */}
         <section className="roadmap-section">
           <div className="section-header">
@@ -546,11 +630,27 @@ export default function FitnessLandingPage() {
                 <div className="phase-line"></div>
               </div>
               <div className="phase-content">
-                <div className="phase-label">PHASE 5</div>
+                <div className="phase-label">NEXT UP</div>
+                <h3 className="phase-title">Rivals & Narrative</h3>
+                <ul className="phase-items">
+                  <li className="phase-item">AI Phantom Rivals</li>
+                  <li className="phase-item">Friend Head-to-Head</li>
+                  <li className="phase-item">Weekly Showdowns</li>
+                  <li className="phase-item">Hero&apos;s Journey Story</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="roadmap-phase">
+              <div className="phase-marker">
+                <div className="phase-dot"></div>
+                <div className="phase-line"></div>
+              </div>
+              <div className="phase-content">
+                <div className="phase-label">PHASE 6</div>
                 <h3 className="phase-title">Integrations</h3>
                 <ul className="phase-items">
                   <li className="phase-item">Strava Sync</li>
-                  <li className="phase-item">Fitbit Import</li>
                   <li className="phase-item">Garmin Connect</li>
                   <li className="phase-item">Apple Watch App</li>
                 </ul>
@@ -568,7 +668,6 @@ export default function FitnessLandingPage() {
                   <li className="phase-item">Body Composition</li>
                   <li className="phase-item">Nutrition Tracking</li>
                   <li className="phase-item">Smart Equipment</li>
-                  <li className="phase-item">Music Integration</li>
                 </ul>
               </div>
             </div>
@@ -1641,6 +1740,191 @@ export default function FitnessLandingPage() {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.4rem;
           letter-spacing: 0.1em;
+        }
+
+        /* Coming Soon Section */
+        .coming-soon-section {
+          padding: 5rem 1.5rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+
+        .coming-soon-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+          margin-top: 2rem;
+        }
+
+        @media (min-width: 768px) {
+          .coming-soon-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        .coming-soon-card {
+          background: var(--theme-bg-card);
+          border: 2px solid var(--theme-border);
+          border-radius: 16px;
+          padding: 2rem;
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .coming-soon-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, var(--app-fitness), var(--color-legendary));
+          opacity: 0.5;
+        }
+
+        .coming-soon-card:hover {
+          border-color: var(--app-fitness);
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(157, 78, 221, 0.2);
+        }
+
+        .card-badge {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.35rem;
+          color: var(--app-fitness);
+          background: var(--app-fitness-glow);
+          padding: 0.35rem 0.5rem;
+          border-radius: 4px;
+          border: 1px solid var(--app-fitness);
+          letter-spacing: 0.05em;
+        }
+
+        .card-icon {
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .card-title {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.7rem;
+          color: var(--theme-text-primary);
+          margin-bottom: 0.75rem;
+        }
+
+        .card-desc {
+          font-size: 0.9rem;
+          color: var(--theme-text-muted);
+          line-height: 1.6;
+          margin-bottom: 1.5rem;
+        }
+
+        /* Rival Types */
+        .rival-types {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .rival-type {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          padding: 0.75rem;
+          background: var(--theme-bg-elevated);
+          border: 1px solid var(--theme-border);
+          border-radius: 8px;
+          transition: all 0.2s ease;
+        }
+
+        .rival-type:hover {
+          border-color: var(--app-fitness);
+          background: var(--app-fitness-glow);
+        }
+
+        .rival-icon {
+          font-size: 1.25rem;
+        }
+
+        .rival-name {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.4rem;
+          color: var(--theme-text-primary);
+        }
+
+        .rival-desc {
+          font-size: 0.65rem;
+          color: var(--theme-text-muted);
+        }
+
+        /* Journey Stages */
+        .journey-stages {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          margin-bottom: 1.5rem;
+        }
+
+        .journey-stage-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.5rem 0.75rem;
+          background: var(--theme-bg-elevated);
+          border: 1px solid var(--theme-border);
+          border-radius: 8px;
+          transition: all 0.2s ease;
+        }
+
+        .journey-stage-item.active {
+          border-color: var(--app-fitness);
+          background: var(--app-fitness-glow);
+        }
+
+        .journey-stage-item.active .stage-marker {
+          color: var(--app-fitness);
+          text-shadow: 0 0 10px var(--app-fitness);
+        }
+
+        .stage-marker {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.5rem;
+          color: var(--theme-text-muted);
+        }
+
+        .stage-label {
+          font-size: 0.55rem;
+          color: var(--theme-text-muted);
+          white-space: nowrap;
+        }
+
+        .journey-connector {
+          color: var(--theme-border);
+          font-size: 0.8rem;
+        }
+
+        /* Feature Tags */
+        .card-features {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .feature-tag {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.35rem;
+          color: var(--theme-text-muted);
+          background: var(--theme-bg-elevated);
+          padding: 0.4rem 0.6rem;
+          border-radius: 4px;
+          border: 1px solid var(--theme-border);
         }
 
         /* Roadmap Timeline */
