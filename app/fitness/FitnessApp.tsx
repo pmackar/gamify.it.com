@@ -3410,7 +3410,7 @@ export default function FitnessApp() {
         }
         .home-subtitle {
           font-family: 'Press Start 2P', monospace;
-          font-size: 0.5rem;
+          font-size: 0.65rem;
           color: var(--text-secondary);
           margin-bottom: 1.5rem;
           letter-spacing: 0.02em;
@@ -11152,7 +11152,6 @@ gamify.it.com/fitness`;
             <>
               <div className="home-hero" onClick={() => store.setView('profile')} style={{ cursor: 'pointer' }}>
                 <div className="hero-card">
-                  <div className="home-title">REPTURA</div>
                   <p className="home-subtitle">Every rep is part of your adventure</p>
                   <div className="home-stats">
                     <div className="home-stat">
