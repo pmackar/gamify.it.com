@@ -9586,10 +9586,26 @@ gamify.it.com/fitness`;
                       <div className="strength-cards expanded">
                         {displayExercises.map(({ id: exId, tier, frequency }) => {
                           const exercise = EXERCISES.find(e => e.id === exId) || store.customExercises.find(e => e.id === exId);
-                          const currentPR = store.records[exId] || 0;
-                          const meta = store.recordsMeta[exId];
-                          const firstWeight = meta?.firstWeight || currentPR;
-                          const improvement = currentPR - firstWeight;
+
+                          // Calculate improvement within the selected time range
+                          // Find all sets for this exercise within the filtered workouts
+                          const exerciseSets: { weight: number; date: Date }[] = [];
+                          filteredWorkouts.forEach(w => {
+                            const ex = w.exercises.find(e => e.id === exId);
+                            if (ex) {
+                              ex.sets.forEach(s => {
+                                if (!s.isWarmup && s.weight > 0) {
+                                  exerciseSets.push({ weight: s.weight, date: new Date(w.startTime) });
+                                }
+                              });
+                            }
+                          });
+
+                          // Sort by date to find first and best in range
+                          exerciseSets.sort((a, b) => a.date.getTime() - b.date.getTime());
+                          const firstWeightInRange = exerciseSets[0]?.weight || 0;
+                          const bestWeightInRange = Math.max(...exerciseSets.map(s => s.weight), 0);
+                          const improvement = bestWeightInRange - firstWeightInRange;
 
                           return (
                             <div
@@ -9605,9 +9621,9 @@ gamify.it.com/fitness`;
                                 <div className="strength-meta">{frequency} sessions</div>
                               </div>
                               <div className="strength-stats">
-                                <div className="strength-pr">{currentPR} lbs</div>
+                                <div className="strength-pr">{bestWeightInRange} lbs</div>
                                 {improvement > 0 && (
-                                  <div className="strength-gain">+{improvement}</div>
+                                  <div className="strength-gain">+{improvement} lbs</div>
                                 )}
                               </div>
                               <div className="strength-arrow">›</div>
