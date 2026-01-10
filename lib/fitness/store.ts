@@ -192,6 +192,12 @@ interface FitnessStore extends FitnessState, SyncState {
   startProgramWorkout: () => void;
   startProgramWorkoutForDay: (weekNumber: number, dayNumber: number) => void;
   calculateSuggestedWeight: (exerciseId: string) => number | null;
+  calculateProgressionTarget: (exerciseId: string, templateReps?: string) => {
+    weight: number | null;
+    reps: string;
+    rpe: number | null;
+    progressionType: string | null;
+  };
   updateExerciseProgress: (exerciseId: string, weight: number, reps: number, rpe?: number) => void;
 
   // Program Wizard
@@ -2200,6 +2206,152 @@ export const useFitnessStore = create<FitnessStore>()(
 
           default:
             return progress.lastWeight;
+        }
+      },
+
+      calculateProgressionTarget: (exerciseId: string, templateReps?: string) => {
+        const state = get();
+        const defaultResult = {
+          weight: null as number | null,
+          reps: templateReps || '8-12',
+          rpe: null as number | null,
+          progressionType: null as string | null,
+        };
+
+        if (!state.activeProgram) {
+          // No active program - just use template values or last workout
+          const lastWorkout = state.getLastWorkoutForExercise(exerciseId);
+          const lastSet = lastWorkout?.sets[lastWorkout.sets.length - 1];
+          return {
+            weight: lastSet?.weight || state.records[exerciseId] || null,
+            reps: templateReps || (lastSet?.reps?.toString() || '8'),
+            rpe: lastSet?.rpe || null,
+            progressionType: null,
+          };
+        }
+
+        const program = state.programs.find(p => p.id === state.activeProgram!.programId);
+        if (!program) return defaultResult;
+
+        const progress = state.activeProgram.exerciseProgress[exerciseId];
+        const rule = program.progressionRules.find(r =>
+          r.exerciseId === exerciseId || !r.exerciseId
+        );
+
+        // Base values from last workout
+        const lastWeight = progress?.lastWeight || state.records[exerciseId] || null;
+        const lastReps = progress?.lastReps || 8;
+        const lastRpe = progress?.lastRpe;
+
+        if (!rule) {
+          return {
+            weight: lastWeight,
+            reps: templateReps || lastReps.toString(),
+            rpe: null,
+            progressionType: 'none',
+          };
+        }
+
+        const config = rule.config;
+
+        switch (config.type) {
+          case 'linear': {
+            // Linear: add weight each successful session
+            let targetWeight = lastWeight;
+            if (lastWeight && progress?.consecutiveSuccesses > 0) {
+              targetWeight = lastWeight + config.weightIncrement;
+            } else if (lastWeight && progress?.consecutiveFailures >= config.deloadThreshold) {
+              targetWeight = Math.round(lastWeight * (1 - config.deloadPercent));
+            }
+            return {
+              weight: targetWeight,
+              reps: templateReps || lastReps.toString(),
+              rpe: null,
+              progressionType: 'linear',
+            };
+          }
+
+          case 'double_progression': {
+            // Double progression: same weight until top of rep range, then increase
+            const [minReps, maxReps] = config.repRange;
+            let targetWeight = lastWeight;
+            let targetReps: string;
+
+            if (lastWeight && lastReps >= maxReps) {
+              // Hit top of range - increase weight, reset to min reps
+              targetWeight = lastWeight + config.weightIncrement;
+              targetReps = `${minReps}-${maxReps}`;
+            } else {
+              // Same weight, aim for more reps
+              const nextReps = Math.min(lastReps + 1, maxReps);
+              targetReps = `${nextReps}-${maxReps}`;
+            }
+            return {
+              weight: targetWeight,
+              reps: targetReps,
+              rpe: null,
+              progressionType: 'double_progression',
+            };
+          }
+
+          case 'rpe_based': {
+            // RPE-based: adjust weight to hit target RPE
+            let targetWeight = lastWeight;
+            if (lastWeight && lastRpe !== undefined) {
+              const rpeDiff = config.targetRpe - lastRpe;
+              targetWeight = Math.round(lastWeight + (rpeDiff * config.adjustmentPerPoint));
+            }
+            return {
+              weight: targetWeight,
+              reps: templateReps || lastReps.toString(),
+              rpe: config.targetRpe,
+              progressionType: 'rpe_based',
+            };
+          }
+
+          case 'percentage': {
+            // Percentage: increase by weekly percentage
+            const base = config.basedOn === '1rm'
+              ? (state.records[exerciseId] || lastWeight || 100)
+              : (lastWeight || 100);
+            const targetWeight = Math.round(base * (1 + config.weeklyIncrease));
+            return {
+              weight: targetWeight,
+              reps: templateReps || lastReps.toString(),
+              rpe: null,
+              progressionType: 'percentage',
+            };
+          }
+
+          case 'wave': {
+            // Wave: follow intensity pattern by week
+            const currentWeek = state.activeProgram!.currentWeek;
+            const waveConfig = config.waves.find(w => w.week === currentWeek);
+            if (waveConfig) {
+              const oneRM = state.records[exerciseId] || (lastWeight ? lastWeight * 1.3 : 100);
+              const targetWeight = Math.round(oneRM * (waveConfig.intensityPercent / 100));
+              return {
+                weight: targetWeight,
+                reps: waveConfig.reps.toString(),
+                rpe: null,
+                progressionType: 'wave',
+              };
+            }
+            return {
+              weight: lastWeight,
+              reps: templateReps || lastReps.toString(),
+              rpe: null,
+              progressionType: 'wave',
+            };
+          }
+
+          default:
+            return {
+              weight: lastWeight,
+              reps: templateReps || lastReps.toString(),
+              rpe: null,
+              progressionType: 'none',
+            };
         }
       },
 

@@ -774,7 +774,7 @@ export default function FitnessApp() {
     } else {
       // Adding new set - prioritize values in this order:
       // 1. Last set from current workout (for quick successive logging)
-      // 2. Program prescription (when workout is from a program/template)
+      // 2. Progression-aware target (calculates based on program rules + history)
       // 3. Previous workout for this exercise
       // 4. Personal record (for weight)
       // 5. Defaults
@@ -782,11 +782,10 @@ export default function FitnessApp() {
       const lastWorkoutEx = store.getLastWorkoutForExercise(currentEx.id);
       const lastWorkoutSet = lastWorkoutEx?.sets[lastWorkoutEx.sets.length - 1];
 
-      // Get program prescription from template data if available
-      const targetReps = (currentEx as { _targetReps?: string })._targetReps;
-      const targetRpe = (currentEx as { _targetRpe?: number })._targetRpe;
-      const targetWeight = (currentEx as { _targetWeight?: number })._targetWeight;
-      const hasPrescription = targetReps || targetRpe || targetWeight;
+      // Get progression-aware target from store (handles all progression types)
+      const templateReps = (currentEx as { _targetReps?: string })._targetReps;
+      const progressionTarget = store.calculateProgressionTarget(currentEx.id, templateReps);
+      const hasTarget = progressionTarget.weight || progressionTarget.reps;
 
       // Parse target reps (handles "8-12" format, takes lower bound)
       const parseTargetReps = (reps?: string): number | null => {
@@ -795,22 +794,22 @@ export default function FitnessApp() {
         return match ? parseInt(match[1], 10) : null;
       };
 
-      // Weight priority: current workout > prescription > previous workout > PR > default
+      // Weight priority: current workout > progression target > previous workout > PR > default
       const weight = lastSet?.weight
-        || (hasPrescription ? targetWeight : null)
+        || (hasTarget ? progressionTarget.weight : null)
         || lastWorkoutSet?.weight
         || store.records[currentEx.id]
         || 135;
 
-      // Reps priority: current workout > prescription > previous workout > default
+      // Reps priority: current workout > progression target > previous workout > default
       const reps = lastSet?.reps
-        || (hasPrescription ? parseTargetReps(targetReps) : null)
+        || (hasTarget ? parseTargetReps(progressionTarget.reps) : null)
         || lastWorkoutSet?.reps
         || 8;
 
-      // RPE priority: current workout > prescription > previous workout > null
+      // RPE priority: current workout > progression target > previous workout > null
       const rpe = lastSet?.rpe
-        || (hasPrescription ? targetRpe : null)
+        || (hasTarget ? progressionTarget.rpe : null)
         || lastWorkoutSet?.rpe
         || null;
 
@@ -11489,6 +11488,9 @@ gamify.it.com/fitness`;
           const currentIdx = store.currentExerciseIndex;
           const lastWorkoutEx = currentEx ? store.getLastWorkoutForExercise(currentEx.id) : null;
           const exerciseNote = currentEx ? store.exerciseNotes[currentEx.id] || '' : '';
+          // Calculate progression-aware target
+          const templateReps = (currentEx as { _targetReps?: string })?._targetReps;
+          const progressionTarget = currentEx ? store.calculateProgressionTarget(currentEx.id, templateReps) : null;
           const isInSuperset = !!currentEx?.supersetGroup;
           const canLinkToPrev = currentIdx > 0;
           return (
@@ -11538,20 +11540,20 @@ gamify.it.com/fitness`;
               </div>
 
               <div className="set-panel-content" ref={setPanelContentRef}>
-              {/* Target Prescription from Program/Template */}
-              {currentEx && ((currentEx as { _targetWeight?: number })._targetWeight || (currentEx as { _targetReps?: string })._targetReps) && (
+              {/* Target Prescription from Program/Template with Progression */}
+              {progressionTarget && (progressionTarget.weight || progressionTarget.reps) && (
                 <div className="target-prescription">
                   <span className="target-label">Target:</span>
                   <span className="target-values">
-                    {(currentEx as { _targetWeight?: number })._targetWeight && (
-                      <span className="target-weight">{(currentEx as { _targetWeight?: number })._targetWeight} lbs</span>
+                    {progressionTarget.weight && (
+                      <span className="target-weight">{progressionTarget.weight} lbs</span>
                     )}
-                    {(currentEx as { _targetWeight?: number })._targetWeight && (currentEx as { _targetReps?: string })._targetReps && ' × '}
-                    {(currentEx as { _targetReps?: string })._targetReps && (
-                      <span className="target-reps">{(currentEx as { _targetReps?: string })._targetReps} reps</span>
+                    {progressionTarget.weight && progressionTarget.reps && ' × '}
+                    {progressionTarget.reps && (
+                      <span className="target-reps">{progressionTarget.reps} reps</span>
                     )}
-                    {(currentEx as { _targetRpe?: number })._targetRpe && (
-                      <span className="target-rpe"> @RPE {(currentEx as { _targetRpe?: number })._targetRpe}</span>
+                    {progressionTarget.rpe && (
+                      <span className="target-rpe"> @RPE {progressionTarget.rpe}</span>
                     )}
                   </span>
                 </div>
