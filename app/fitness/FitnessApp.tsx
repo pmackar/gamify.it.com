@@ -11147,10 +11147,7 @@ gamify.it.com/fitness`;
           {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
-              {/* Streak Danger Banner - shows when user has streak but hasn't worked out today */}
-              <StreakDangerBanner onStartWorkout={() => store.setView('templates')} />
-
-              <div className="home-hero" onClick={() => store.setView('analytics')} style={{ cursor: 'pointer' }}>
+              <div className="home-hero" onClick={() => store.setView('profile')} style={{ cursor: 'pointer' }}>
                 <div className="hero-card">
                   <div className="home-title">REPTURA</div>
                   <p className="home-subtitle">Every rep is part of your adventure</p>
@@ -11168,7 +11165,7 @@ gamify.it.com/fitness`;
                       <div className="home-stat-label">XP</div>
                     </div>
                   </div>
-                  <div className="hero-tap-hint">Tap for Analytics</div>
+                  <div className="hero-tap-hint">Tap for Profile</div>
                 </div>
               </div>
 
