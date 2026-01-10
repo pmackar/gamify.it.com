@@ -29,19 +29,19 @@ ALTER TABLE public.fitness_friend_rivalries ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their own friend rivalries"
   ON public.fitness_friend_rivalries FOR SELECT
-  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+  USING (auth.uid() = user1_id OR auth.uid() = user2_id);
 
 CREATE POLICY "Users can create friend rivalries"
   ON public.fitness_friend_rivalries FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid() = user1_id);
 
 CREATE POLICY "Users can update their own friend rivalries"
   ON public.fitness_friend_rivalries FOR UPDATE
-  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+  USING (auth.uid() = user1_id OR auth.uid() = user2_id);
 
 CREATE POLICY "Users can delete their own friend rivalries"
   ON public.fitness_friend_rivalries FOR DELETE
-  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+  USING (auth.uid() = user1_id OR auth.uid() = user2_id);
 
 -- fitness_rivals
 ALTER TABLE public.fitness_rivals ENABLE ROW LEVEL SECURITY;
