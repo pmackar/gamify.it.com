@@ -178,6 +178,10 @@ model profiles {
   notifications_received  coaching_notifications[] @relation("NotificationRecipient")
   notifications_sent      coaching_notifications[] @relation("NotificationSender")
 
+  // Coaching group and check-in relations
+  group_memberships       coaching_group_members[] @relation("GroupMembership")
+  check_ins               coaching_check_ins[]     @relation("AthleteCheckIns")
+
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
 }
@@ -966,6 +970,8 @@ model coach_profiles {
   programs        coaching_programs[]
   templates       coaching_workout_templates[]
   conversations   coaching_conversations[]
+  groups          coaching_groups[]
+  check_ins       coaching_check_ins[]
 
   @@index([user_id])
 }
@@ -1233,6 +1239,77 @@ model coaching_notifications {
   @@index([recipient_id])
   @@index([recipient_id, read])
   @@index([created_at])
+}
+
+// ============================================
+// COACHING: GROUPS
+// ============================================
+
+/// Athlete groups for batch management
+model coaching_groups {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id    String   @db.Uuid
+  coach       coach_profiles @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  color       String?  // Hex color for UI display
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  members     coaching_group_members[]
+
+  @@index([coach_id])
+}
+
+/// Group membership (athlete can be in multiple groups)
+model coaching_group_members {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id   String   @db.Uuid
+  group      coaching_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  athlete_id String   @db.Uuid
+  athlete    profiles @relation("GroupMembership", fields: [athlete_id], references: [id], onDelete: Cascade)
+  joined_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([group_id, athlete_id])
+  @@index([group_id])
+  @@index([athlete_id])
+}
+
+// ============================================
+// COACHING: CHECK-INS
+// ============================================
+
+/// Weekly wellness check-ins from athletes
+model coaching_check_ins {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id   String   @db.Uuid
+  athlete      profiles @relation("AthleteCheckIns", fields: [athlete_id], references: [id], onDelete: Cascade)
+  coach_id     String   @db.Uuid
+  coach        coach_profiles @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  week_of      DateTime @db.Date  // Start of the week this check-in covers
+
+  // Wellness metrics (1-5 scale)
+  energy_level    Int?     // How energetic do you feel?
+  sleep_quality   Int?     // How well did you sleep this week?
+  stress_level    Int?     // How stressed are you? (inverted: 5=low stress)
+  soreness_level  Int?     // How sore are you? (inverted: 5=not sore)
+  motivation      Int?     // How motivated are you to train?
+
+  // Freeform
+  wins            String?  // What went well this week?
+  challenges      String?  // What was challenging?
+  questions       String?  // Questions for coach
+
+  // Coach response
+  coach_notes     String?
+  reviewed_at     DateTime? @db.Timestamptz(6)
+
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([athlete_id, coach_id, week_of])
+  @@index([athlete_id])
+  @@index([coach_id])
+  @@index([week_of])
 }
 
 // ============================================

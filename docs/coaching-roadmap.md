@@ -47,19 +47,31 @@
 
 ---
 
-## Sprint 2: Group Coaching + Check-Ins
+## Sprint 2: Group Coaching + Check-Ins (IN PROGRESS)
 
 | Task | Status | Priority |
 |------|--------|----------|
-| Group creation and management | 🔲 Todo | HIGH |
+| Group creation and management | ✅ Done | HIGH |
 | Group chat | 🔲 Todo | MEDIUM |
-| Check-in system (weekly wellness surveys) | 🔲 Todo | HIGH |
+| Check-in system (weekly wellness surveys) | ✅ Done | HIGH |
 | Leaderboards (per-group and global) | 🔲 Todo | MEDIUM |
 
-### Key Features
-- Create athlete groups ("Morning Crew", "Beginner Strength")
-- Assign programs to entire groups
-- Weekly check-in questionnaires (sleep, stress, pain, notes)
+### Completed: Group Management
+- Database: `coaching_groups`, `coaching_group_members` tables
+- API: `/api/fitness/coach/groups` (CRUD), `/groups/[id]/members` (add/remove)
+- UI: Groups page with create, edit, delete, add/remove members
+- Color-coded groups for easy identification
+
+### Completed: Check-In System
+- Database: `coaching_check_ins` table with wellness metrics
+- API: `/api/fitness/coach/check-ins`, `/api/fitness/athlete/check-ins`
+- Metrics: energy, sleep, stress, soreness, motivation (1-5 scale)
+- Freeform: wins, challenges, questions for coach
+- Coach review with notes and feedback
+- Auto-notification to coach on submission
+
+### Remaining
+- Group chat (can reuse existing messaging infrastructure)
 - Leaderboards: volume, compliance %, PR count, XP, streaks
 
 ---

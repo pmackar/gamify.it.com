@@ -2103,10 +2103,10 @@ export default function FitnessLandingPage() {
 
         .feature-tag {
           font-family: 'Press Start 2P', monospace;
-          font-size: 0.35rem;
+          font-size: 0.5rem;
           color: var(--theme-text-muted);
           background: var(--theme-bg-elevated);
-          padding: 0.4rem 0.6rem;
+          padding: 0.5rem 0.75rem;
           border-radius: 4px;
           border: 1px solid var(--theme-border);
         }

@@ -18,6 +18,7 @@ import {
   UserPlus,
   BookOpen,
   ShieldX,
+  FolderKanban,
 } from "lucide-react";
 import { usePermissionsStandalone } from "@/hooks/usePermissions";
 import CoachNotificationBell from "@/components/fitness/CoachNotificationBell";
@@ -361,6 +362,20 @@ export default function CoachDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <CoachNotificationBell />
+            <Link
+              href="/fitness/coach/groups"
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
+              style={{
+                background: "linear-gradient(180deg, #4ECDC4 0%, #3db3ab 100%)",
+                boxShadow: "0 3px 0 #2a8a84",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: "8px",
+                color: "white",
+              }}
+            >
+              <FolderKanban className="w-4 h-4" />
+              GROUPS
+            </Link>
             <Link
               href="/fitness/coach/programs"
               className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
