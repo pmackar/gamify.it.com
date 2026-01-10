@@ -100,10 +100,14 @@ export default async function TravelLayout({
           .travel-main-content {
             padding-top: var(--content-top);
             min-height: 100vh;
-            /* Left: clear sidebar (280px) + 16px gap */
-            padding-left: 296px;
             /* Right: match navbar outer padding */
             padding-right: 16px;
+          }
+
+          /* Only add left padding when sidebar is showing */
+          .travel-layout.has-sidebar .travel-main-content {
+            /* Left: clear sidebar (280px) + 16px gap */
+            padding-left: 296px;
           }
         }
 
@@ -124,7 +128,7 @@ export default async function TravelLayout({
         }
       `}</style>
 
-      <div className="travel-layout">
+      <div className={`travel-layout ${isLoggedIn ? 'has-sidebar' : ''}`}>
         {/* Desktop Sidebar - only for logged in users */}
         {isLoggedIn && stats && (
           <TravelSidebar
