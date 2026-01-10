@@ -340,6 +340,10 @@ export interface RivalRelationship {
     volatility: number;
     name: string;
     archetype: string;
+    characterId: string;
+    avatar: string;
+    color: string;
+    tagline: string;
   };
   respectLevel: number; // 1-5
   rivalryHeat: number; // 0-100

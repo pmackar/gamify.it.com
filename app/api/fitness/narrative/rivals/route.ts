@@ -14,6 +14,7 @@ import {
   createDefaultPhantomConfig,
   getSuggestedPhantomDifficulty,
 } from "@/lib/fitness/narrative/phantom-generator";
+import { assignCharacterToPhantom } from "@/lib/fitness/narrative/characters";
 
 // Schema for creating a new rival
 const createRivalSchema = z.object({
@@ -176,13 +177,26 @@ export const POST = withAuth(async (request, user) => {
     const difficulty = getSuggestedPhantomDifficulty(userLevel);
     const defaultConfig = createDefaultPhantomConfig(difficulty.personality);
 
+    const personality =
+      body.phantomConfig?.personality || defaultConfig.personality;
+
+    // Assign a character based on personality (deterministic using a timestamp seed)
+    const character = assignCharacterToPhantom(
+      personality,
+      `${user.id}-${Date.now()}`
+    );
+
     phantomConfig = {
-      personality:
-        body.phantomConfig?.personality || defaultConfig.personality,
+      personality,
       rubberBandStrength: difficulty.rubberBandStrength,
       volatility: difficulty.volatility,
-      name: body.phantomConfig?.name || defaultConfig.name,
+      name: body.phantomConfig?.name || character.name,
       archetype: body.phantomConfig?.archetype || defaultConfig.archetype,
+      // Character visual identity
+      characterId: character.id,
+      avatar: character.avatar,
+      color: character.color,
+      tagline: character.tagline,
     };
   }
 

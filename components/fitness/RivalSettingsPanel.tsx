@@ -144,6 +144,27 @@ export function RivalSettingsPanel() {
     return 'Friend Rival';
   };
 
+  const getRivalAvatar = (rival: RivalRelationship): string => {
+    if (rival.rivalType === 'ai_phantom' && rival.phantomConfig?.avatar) {
+      return rival.phantomConfig.avatar;
+    }
+    return '👤';
+  };
+
+  const getRivalColor = (rival: RivalRelationship): string => {
+    if (rival.rivalType === 'ai_phantom' && rival.phantomConfig?.color) {
+      return rival.phantomConfig.color;
+    }
+    return '#6366f1';
+  };
+
+  const getRivalTagline = (rival: RivalRelationship): string | null => {
+    if (rival.rivalType === 'ai_phantom' && rival.phantomConfig?.tagline) {
+      return rival.phantomConfig.tagline;
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-5 p-5">
       {/* Enable Toggle */}
@@ -219,18 +240,35 @@ export function RivalSettingsPanel() {
                 {rivals.map((rival) => (
                   <div
                     key={rival.id}
-                    className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl"
+                    className="flex items-center gap-4 p-4 bg-gray-800/50 rounded-xl"
+                    style={{ borderLeft: `4px solid ${getRivalColor(rival)}` }}
                   >
-                    <div>
-                      <div className="text-sm font-medium text-white mb-1">
+                    {/* Avatar */}
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+                      style={{ backgroundColor: `${getRivalColor(rival)}20` }}
+                    >
+                      {getRivalAvatar(rival)}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white mb-0.5">
                         {getRivalName(rival)}
                       </div>
+                      {getRivalTagline(rival) && (
+                        <div className="text-xs italic text-gray-400 mb-1 truncate">
+                          "{getRivalTagline(rival)}"
+                        </div>
+                      )}
                       <div className="text-xs text-gray-500">
                         {rival.rivalType === 'ai_phantom' ? 'AI Phantom' : 'Friend'} •{' '}
                         {rival.headToHead.userWins}W / {rival.headToHead.rivalWins}L
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+
+                    {/* Stats & Actions */}
+                    <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-center">
                         <div className="text-base font-bold text-yellow-400">
                           Lv.{rival.respectLevel}

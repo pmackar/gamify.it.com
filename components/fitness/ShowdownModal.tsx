@@ -9,6 +9,9 @@ export interface ShowdownResult {
   rivalId: string;
   rivalType: 'ai_phantom' | 'friend';
   rivalName: string;
+  rivalAvatar?: string;
+  rivalColor?: string;
+  rivalTagline?: string;
   winner: 'user' | 'rival' | 'tie';
   margin: number;
   dominantFactor: string;
@@ -213,12 +216,39 @@ function ShowdownNotification({ data, onClose }: ModalProps) {
           to { opacity: 1; transform: translateY(0); }
         }
 
+        .rival-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+
+        .rival-avatar {
+          font-size: 2.5rem;
+          width: 64px;
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          margin-bottom: 0.75rem;
+        }
+
         .rival-name {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.6rem;
           color: #fff;
           text-align: center;
-          margin-bottom: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .rival-tagline {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.35rem;
+          color: #888;
+          font-style: italic;
+          text-align: center;
+          margin-bottom: 0.5rem;
         }
 
         .rival-type {
@@ -226,7 +256,7 @@ function ShowdownNotification({ data, onClose }: ModalProps) {
           font-size: 0.35rem;
           color: #666;
           text-align: center;
-          margin-bottom: 1rem;
+          margin-bottom: 0.5rem;
         }
 
         .result-outcome {
@@ -418,9 +448,22 @@ function ShowdownNotification({ data, onClose }: ModalProps) {
           {/* Individual result slides */}
           {currentSlide < data.results.length && (
             <div className="result-card" key={currentSlide}>
-              <div className="rival-name">{data.results[currentSlide].rivalName}</div>
-              <div className="rival-type">
-                {data.results[currentSlide].rivalType === 'ai_phantom' ? 'AI Phantom' : 'Friend'}
+              <div className="rival-header">
+                <div
+                  className="rival-avatar"
+                  style={{
+                    background: `${data.results[currentSlide].rivalColor || '#6366f1'}30`,
+                  }}
+                >
+                  {data.results[currentSlide].rivalAvatar || '👤'}
+                </div>
+                <div className="rival-name">{data.results[currentSlide].rivalName}</div>
+                {data.results[currentSlide].rivalTagline && (
+                  <div className="rival-tagline">"{data.results[currentSlide].rivalTagline}"</div>
+                )}
+                <div className="rival-type">
+                  {data.results[currentSlide].rivalType === 'ai_phantom' ? 'AI Phantom' : 'Friend'}
+                </div>
               </div>
 
               <div

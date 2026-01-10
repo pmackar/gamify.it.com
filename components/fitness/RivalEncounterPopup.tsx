@@ -83,6 +83,11 @@ function RivalEncounterNotification({ data, onClose }: PopupProps) {
   const isTie = encounter.winner === 'tie';
   const message = getOutcomeMessage(encounter.winner);
 
+  // Get rival's visual identity
+  const rivalAvatar = rival.phantomConfig?.avatar || '👤';
+  const rivalColor = rival.phantomConfig?.color || '#6366f1';
+  const rivalTagline = rival.phantomConfig?.tagline;
+
   // Auto-dismiss after 8 seconds
   useEffect(() => {
     const timer = setTimeout(onClose, 8000);
@@ -198,6 +203,18 @@ function RivalEncounterNotification({ data, onClose }: PopupProps) {
           text-align: center;
         }
 
+        .vs-avatar {
+          font-size: 2.5rem;
+          margin-bottom: 0.5rem;
+          width: 60px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          margin: 0 auto 0.5rem;
+        }
+
         .vs-name {
           font-family: 'Press Start 2P', monospace;
           font-size: 0.5rem;
@@ -213,6 +230,18 @@ function RivalEncounterNotification({ data, onClose }: PopupProps) {
           font-family: 'Press Start 2P', monospace;
           font-size: 1.2rem;
           color: #fff;
+        }
+
+        .rival-tagline {
+          font-family: 'Press Start 2P', monospace;
+          font-size: 0.35rem;
+          color: #888;
+          font-style: italic;
+          margin-top: 0.25rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100px;
         }
 
         .vs-divider {
@@ -338,6 +367,9 @@ function RivalEncounterNotification({ data, onClose }: PopupProps) {
 
           <div className="vs-section">
             <div className="vs-player">
+              <div className="vs-avatar" style={{ background: `${colors.primary}20` }}>
+                💪
+              </div>
               <div className="vs-name">You</div>
               <div className="vs-score">
                 {encounter.userMetrics.workoutCount}
@@ -345,10 +377,16 @@ function RivalEncounterNotification({ data, onClose }: PopupProps) {
             </div>
             <div className="vs-divider">VS</div>
             <div className="vs-player">
+              <div className="vs-avatar" style={{ background: `${rivalColor}30` }}>
+                {rivalAvatar}
+              </div>
               <div className="vs-name">{rivalName}</div>
               <div className="vs-score">
                 {encounter.rivalMetrics.workoutCount}
               </div>
+              {rivalTagline && (
+                <div className="rival-tagline">"{rivalTagline}"</div>
+              )}
             </div>
           </div>
 
