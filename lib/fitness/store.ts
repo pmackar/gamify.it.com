@@ -20,9 +20,14 @@ import type {
   ProgressionConfig,
   ExerciseProgressEntry,
   ViewType,
-  SyncState
+  SyncState,
+  NarrativeEngineState,
+  RivalRelationship,
+  EncounterRecord,
+  NarrativeSettings,
+  ImprovementSnapshot,
 } from './types';
-import { isLegacyTemplate } from './types';
+import { isLegacyTemplate, DEFAULT_NARRATIVE_SETTINGS } from './types';
 import { dispatchXPUpdate } from '@/components/XPContext';
 import { flushXPGain } from '@/components/XPToast';
 import {
@@ -242,6 +247,17 @@ interface FitnessStore extends FitnessState, SyncState {
   // Sync
   syncToServer: () => Promise<void>;
   fetchFromServer: () => Promise<void>;
+
+  // Narrative Engine
+  narrativeEngine: NarrativeEngineState | null;
+  initNarrativeEngine: () => Promise<void>;
+  addRival: (rival: RivalRelationship) => void;
+  removeRival: (rivalId: string) => void;
+  updateRivalStats: (rivalId: string, updates: Partial<RivalRelationship>) => void;
+  recordEncounter: (encounter: EncounterRecord) => void;
+  updateNarrativeSettings: (settings: Partial<NarrativeSettings>) => void;
+  getUserImprovementSnapshot: () => ImprovementSnapshot;
+  shouldTriggerEncounter: () => boolean;
 }
 
 const defaultProfile: Profile = {
@@ -305,6 +321,9 @@ export const useFitnessStore = create<FitnessStore>()(
       pendingSync: false,
       syncStatus: 'idle',
       syncError: null,
+
+      // Narrative Engine state
+      narrativeEngine: null,
 
       loadState: () => {
         // Load active workout from separate storage
@@ -3070,6 +3089,205 @@ export const useFitnessStore = create<FitnessStore>()(
           // Otherwise: local wins (we have pending changes)
         } catch (error) {
           console.error('Failed to fetch from server:', error);
+        }
+      },
+
+      // ============================================
+      // Narrative Engine Actions
+      // ============================================
+
+      initNarrativeEngine: async () => {
+        try {
+          // Fetch rivals and settings from server
+          const [rivalsRes, settingsRes] = await Promise.all([
+            fetch('/api/fitness/narrative/rivals'),
+            fetch('/api/fitness/narrative/settings'),
+          ]);
+
+          const rivals = rivalsRes.ok ? (await rivalsRes.json()).rivals : [];
+          const settings = settingsRes.ok ? await settingsRes.json() : DEFAULT_NARRATIVE_SETTINGS;
+
+          set({
+            narrativeEngine: {
+              rivals,
+              recentEncounters: [],
+              settings,
+              phantomCache: {},
+              lastEncounterTime: null,
+            },
+          });
+        } catch (error) {
+          console.error('Failed to initialize narrative engine:', error);
+          // Initialize with defaults on error
+          set({
+            narrativeEngine: {
+              rivals: [],
+              recentEncounters: [],
+              settings: DEFAULT_NARRATIVE_SETTINGS,
+              phantomCache: {},
+              lastEncounterTime: null,
+            },
+          });
+        }
+      },
+
+      addRival: (rival: RivalRelationship) => {
+        const engine = get().narrativeEngine;
+        if (!engine) return;
+
+        set({
+          narrativeEngine: {
+            ...engine,
+            rivals: [...engine.rivals, rival],
+          },
+        });
+      },
+
+      removeRival: (rivalId: string) => {
+        const engine = get().narrativeEngine;
+        if (!engine) return;
+
+        set({
+          narrativeEngine: {
+            ...engine,
+            rivals: engine.rivals.filter((r) => r.id !== rivalId),
+          },
+        });
+      },
+
+      updateRivalStats: (rivalId: string, updates: Partial<RivalRelationship>) => {
+        const engine = get().narrativeEngine;
+        if (!engine) return;
+
+        set({
+          narrativeEngine: {
+            ...engine,
+            rivals: engine.rivals.map((r) =>
+              r.id === rivalId ? { ...r, ...updates } : r
+            ),
+          },
+        });
+      },
+
+      recordEncounter: (encounter: EncounterRecord) => {
+        const engine = get().narrativeEngine;
+        if (!engine) return;
+
+        // Keep only last 20 encounters
+        const recentEncounters = [encounter, ...engine.recentEncounters].slice(0, 20);
+
+        set({
+          narrativeEngine: {
+            ...engine,
+            recentEncounters,
+            lastEncounterTime: encounter.encounterDate,
+          },
+        });
+      },
+
+      updateNarrativeSettings: (settings: Partial<NarrativeSettings>) => {
+        const engine = get().narrativeEngine;
+        if (!engine) return;
+
+        set({
+          narrativeEngine: {
+            ...engine,
+            settings: { ...engine.settings, ...settings },
+          },
+        });
+      },
+
+      getUserImprovementSnapshot: (): ImprovementSnapshot => {
+        const state = get();
+        const workouts = state.workouts;
+        const records = state.records;
+
+        // Get current week start (Monday)
+        const now = new Date();
+        const day = now.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        const currentWeekStart = new Date(now);
+        currentWeekStart.setDate(now.getDate() + diff);
+        currentWeekStart.setHours(0, 0, 0, 0);
+
+        // Get previous week start
+        const previousWeekStart = new Date(currentWeekStart);
+        previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+
+        const currentWeekEnd = new Date(currentWeekStart);
+        currentWeekEnd.setDate(currentWeekStart.getDate() + 7);
+
+        // Filter workouts by week
+        const currentWeekWorkouts = workouts.filter((w) => {
+          const date = new Date(w.startTime);
+          return date >= currentWeekStart && date < currentWeekEnd;
+        });
+
+        const previousWeekWorkouts = workouts.filter((w) => {
+          const date = new Date(w.startTime);
+          return date >= previousWeekStart && date < currentWeekStart;
+        });
+
+        // Calculate volumes
+        const calculateVolume = (wks: Workout[]) =>
+          wks.reduce((total, w) =>
+            total + w.exercises.reduce((exTotal, ex) =>
+              exTotal + ex.sets.filter((s) => !s.isWarmup)
+                .reduce((setTotal, s) => setTotal + s.weight * s.reps, 0), 0), 0);
+
+        const volumeThisWeek = calculateVolume(currentWeekWorkouts);
+        const volumeLastWeek = calculateVolume(previousWeekWorkouts);
+
+        // Count PRs (approximation based on current records)
+        const prsThisWeek = currentWeekWorkouts.reduce((count, w) => {
+          return count + w.exercises.reduce((exCount, ex) => {
+            const maxWeight = Math.max(...ex.sets.filter((s) => !s.isWarmup).map((s) => s.weight), 0);
+            const record = records[ex.id] || 0;
+            return exCount + (maxWeight >= record && maxWeight > 0 ? 1 : 0);
+          }, 0);
+        }, 0);
+
+        // Consistency score (assuming 4 workouts/week target)
+        const consistencyScore = Math.min(100, (currentWeekWorkouts.length / 4) * 100);
+
+        return {
+          volumeThisWeek,
+          volumeLastWeek,
+          workoutsThisWeek: currentWeekWorkouts.length,
+          workoutsLastWeek: previousWeekWorkouts.length,
+          prsThisWeek,
+          consistencyScore,
+          topExerciseGains: [],
+        };
+      },
+
+      shouldTriggerEncounter: (): boolean => {
+        const engine = get().narrativeEngine;
+        if (!engine || !engine.settings.enabled || engine.rivals.length === 0) {
+          return false;
+        }
+
+        const { settings, lastEncounterTime } = engine;
+
+        if (!lastEncounterTime) {
+          return true; // First encounter
+        }
+
+        const lastEncounter = new Date(lastEncounterTime);
+        const now = new Date();
+        const hoursSince = (now.getTime() - lastEncounter.getTime()) / (1000 * 60 * 60);
+
+        switch (settings.encounterFrequency) {
+          case 'every_workout':
+            return true;
+          case 'daily':
+            return hoursSince >= 24;
+          case 'weekly':
+            return hoursSince >= 168; // 7 days
+          case 'custom':
+            return hoursSince >= (settings.customFrequencyDays || 1) * 24;
+          default:
+            return true;
         }
       }
     }),
