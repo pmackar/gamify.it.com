@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import { useNavBarContent, useNavBarTheme } from './NavBarContext';
+import { useNavBarContent, useNavBarTheme, useNavBarLogo } from './NavBarContext';
 import { useXP, XPState } from './XPContext';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { useTheme } from './ThemeContext';
@@ -201,6 +201,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
   // Get content from NavBarContext
   const contextContent = useNavBarContent();
+  const showNavLogo = useNavBarLogo();
 
   // Get theme from ThemeContext (universal theme system)
   const { resolvedTheme } = useTheme();
@@ -2052,8 +2053,8 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
               </div>
             )}
 
-            {/* Reptura logo when in fitness app without active workout */}
-            {isFitness && !contextContent && (
+            {/* Reptura logo when in fitness app without active workout, hidden until scroll on landing */}
+            {isFitness && !contextContent && showNavLogo && (
               <Link href="/fitness" className={`nav-reptura-logo ${stormGust.className}`}>
                 REPTURA
               </Link>

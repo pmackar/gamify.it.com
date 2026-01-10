@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import localFont from 'next/font/local';
+import { useNavBar } from './NavBarContext';
 
 const stormGust = localFont({
   src: '../public/Fonts/Storm Gust.woff2',
@@ -291,6 +292,30 @@ export default function FitnessLandingPage() {
       })
       .catch(err => console.error('Failed to fetch story:', err));
   }, []);
+
+  // Hide navbar logo until user scrolls past hero title
+  const { setShowLogo } = useNavBar();
+
+  useEffect(() => {
+    setShowLogo(false); // Hide logo initially on landing page
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Show logo when hero title scrolls out of view
+        setShowLogo(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    if (appNameRef.current) {
+      observer.observe(appNameRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      setShowLogo(true); // Reset when leaving page
+    };
+  }, [setShowLogo]);
 
   const handleLogin = async () => {
     const supabase = createClient();
