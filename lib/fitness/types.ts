@@ -313,3 +313,124 @@ export interface CommandSuggestion {
   reps?: number;
   rpe?: number;
 }
+
+// ============================================
+// Narrative Engine Types
+// ============================================
+
+export type RivalType = 'ai_phantom' | 'friend';
+export type PhantomPersonality = 'mirror' | 'rival' | 'mentor' | 'nemesis';
+export type EncounterFrequency = 'every_workout' | 'daily' | 'weekly' | 'custom';
+
+export interface PhantomStats {
+  weeklyVolume: number;
+  weeklyWorkouts: number;
+  weeklyConsistency: number;
+  weeklyPRs: number;
+  lastUpdated: string;
+}
+
+export interface RivalRelationship {
+  id: string;
+  rivalType: RivalType;
+  friendId?: string;
+  phantomConfig?: {
+    personality: PhantomPersonality;
+    rubberBandStrength: number;
+    volatility: number;
+    name: string;
+    archetype: string;
+  };
+  respectLevel: number; // 1-5
+  rivalryHeat: number; // 0-100
+  encounterCount: number;
+  winStreak: number;
+  longestWinStreak: number;
+  longestLoseStreak: number;
+  lastEncounterDate: string | null;
+  createdAt: string;
+  headToHead: {
+    userWins: number;
+    rivalWins: number;
+    ties: number;
+  };
+}
+
+export interface EncounterMetrics {
+  volumeChange: number;
+  consistencyChange: number;
+  prCount: number;
+  workoutCount: number;
+  totalVolume: number;
+  topExerciseGains: Array<{ exercise: string; gain: number }>;
+}
+
+export interface EncounterRecord {
+  id: string;
+  rivalId: string;
+  rivalType: RivalType;
+  winner: 'user' | 'rival' | 'tie';
+  winningMargin: number;
+  dominantFactor: string;
+  userMetrics: EncounterMetrics;
+  rivalMetrics: EncounterMetrics;
+  respectDelta: number;
+  heatDelta: number;
+  encounterDate: string;
+}
+
+export interface ImprovementSnapshot {
+  volumeThisWeek: number;
+  volumeLastWeek: number;
+  workoutsThisWeek: number;
+  workoutsLastWeek: number;
+  prsThisWeek: number;
+  consistencyScore: number;
+  topExerciseGains: Array<{ exercise: string; gain: number }>;
+}
+
+export interface ImprovementScore {
+  volumeChange: number;
+  consistencyScore: number;
+  prScore: number;
+  compositeScore: number;
+}
+
+export interface NarrativeSettings {
+  enabled: boolean;
+  encounterFrequency: EncounterFrequency;
+  customFrequencyDays?: number;
+  aiRivalsEnabled: boolean;
+  friendRivalsEnabled: boolean;
+  maxActiveRivals: number;
+  showdownDay: number; // 0-6 (Sunday = 0)
+  activeTheme: string | null;
+  notificationPreferences: {
+    encounterPopups: boolean;
+    weeklyShowdowns: boolean;
+    tauntNotifications: boolean;
+  };
+}
+
+export interface NarrativeEngineState {
+  rivals: RivalRelationship[];
+  recentEncounters: EncounterRecord[];
+  settings: NarrativeSettings;
+  phantomCache: Record<string, PhantomStats>;
+  lastEncounterTime: string | null;
+}
+
+export const DEFAULT_NARRATIVE_SETTINGS: NarrativeSettings = {
+  enabled: true,
+  encounterFrequency: 'every_workout',
+  aiRivalsEnabled: true,
+  friendRivalsEnabled: true,
+  maxActiveRivals: 3,
+  showdownDay: 0, // Sunday
+  activeTheme: null,
+  notificationPreferences: {
+    encounterPopups: true,
+    weeklyShowdowns: true,
+    tauntNotifications: false,
+  },
+};

@@ -19,6 +19,8 @@ import { WeeklyWinsModal } from '@/components/fitness/WeeklyWinsModal';
 import { AlmostThereCard } from '@/components/fitness/AlmostThereCard';
 import { AccountabilityCard } from '@/components/fitness/AccountabilityCard';
 import { DailyChallengeCard } from '@/components/fitness/DailyChallengeCard';
+import { NarrativeProvider } from '@/components/fitness/NarrativeProvider';
+import { RivalSettingsPanel } from '@/components/fitness/RivalSettingsPanel';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
 
@@ -125,6 +127,7 @@ export default function FitnessApp() {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, unmapped: [] as string[] });
   const [editingBodyStats, setEditingBodyStats] = useState(false);
+  const [showRivalSettings, setShowRivalSettings] = useState(false);
   const [heightFeet, setHeightFeet] = useState(5);
   const [heightInches, setHeightInches] = useState(10);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -1187,7 +1190,7 @@ export default function FitnessApp() {
   if (!mounted) return <div className="min-h-screen" style={{ background: 'var(--theme-bg-base)' }} />;
 
   return (
-    <>
+    <NarrativeProvider>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -8133,6 +8136,16 @@ gamify.it.com/fitness`;
                 <span className="profile-link-arrow">›</span>
               </button>
 
+              {/* Rival System Link */}
+              <button
+                className="profile-link-btn"
+                onClick={() => setShowRivalSettings(true)}
+              >
+                <span className="profile-link-icon">⚔️</span>
+                <span className="profile-link-text">Rival System</span>
+                <span className="profile-link-arrow">›</span>
+              </button>
+
               {/* Export Data */}
               <div className="section-title">Data</div>
               <button
@@ -12937,10 +12950,54 @@ gamify.it.com/fitness`;
           );
         })()}
 
+        {/* Rival Settings Modal */}
+        {showRivalSettings && (
+          <div className="modal-overlay" onClick={() => setShowRivalSettings(false)}>
+            <div
+              className="modal rival-settings-modal"
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'rgba(24, 24, 32, 0.98)',
+                border: '2px solid var(--accent)',
+                borderRadius: '20px',
+                maxWidth: '400px',
+                width: '95%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+              }}>
+                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.6rem', color: '#FFD700' }}>
+                  ⚔️ Rival System
+                </span>
+                <button
+                  onClick={() => setShowRivalSettings(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#666',
+                    fontSize: '1.2rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <RivalSettingsPanel />
+            </div>
+          </div>
+        )}
+
         {/* Weekly Wins Modal - Shows Sunday evening or Monday morning */}
         <WeeklyWinsModal />
       </div>
-    </>
+    </NarrativeProvider>
   );
 }
 
