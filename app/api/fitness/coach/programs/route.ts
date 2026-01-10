@@ -1,21 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { withCoachAuth, Errors } from "@/lib/api";
 
 // GET /api/fitness/coach/programs - List all programs for coach
-export async function GET(request: NextRequest) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withCoachAuth(async (request, user) => {
   // Get coach profile
   const coach = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
   });
 
   if (!coach) {
-    return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    return Errors.forbidden("Not registered as a coach");
   }
 
   // Get all programs with summary info
@@ -58,32 +53,24 @@ export async function GET(request: NextRequest) {
   }));
 
   return NextResponse.json({ programs: result });
-}
+});
 
 // POST /api/fitness/coach/programs - Create new program
-export async function POST(request: NextRequest) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withCoachAuth(async (request, user) => {
   // Get coach profile
   const coach = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
   });
 
   if (!coach) {
-    return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    return Errors.forbidden("Not registered as a coach");
   }
 
   const body = await request.json();
   const { name, description, duration_weeks, difficulty, goal, goalPriorities, is_template } = body;
 
   if (!name || !duration_weeks) {
-    return NextResponse.json(
-      { error: "Name and duration are required" },
-      { status: 400 }
-    );
+    return Errors.invalidInput("Name and duration are required");
   }
 
   // Support both legacy goal and new goalPriorities
@@ -127,4 +114,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({ program }, { status: 201 });
-}
+});

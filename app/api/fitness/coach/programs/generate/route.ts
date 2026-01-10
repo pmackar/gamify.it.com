@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { withCoachAuth, Errors } from "@/lib/api";
 import Anthropic from "@anthropic-ai/sdk";
 import { EXERCISES, EXERCISE_TIERS } from "@/lib/fitness/data";
 
@@ -20,18 +20,13 @@ interface GenerateRequest {
 }
 
 // POST /api/fitness/coach/programs/generate - Generate a program using AI
-export async function POST(request: NextRequest) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withCoachAuth(async (request, user) => {
   const coach = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
   });
 
   if (!coach) {
-    return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    return Errors.forbidden("Not registered as a coach");
   }
 
   const body: GenerateRequest = await request.json();
@@ -253,9 +248,6 @@ IMPORTANT:
     return NextResponse.json({ program, generated: programData }, { status: 201 });
   } catch (error: any) {
     console.error("Error generating program:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to generate program" },
-      { status: 500 }
-    );
+    return Errors.internal(error.message || "Failed to generate program");
   }
-}
+});

@@ -17,7 +17,9 @@ import {
   Check,
   UserPlus,
   BookOpen,
+  ShieldX,
 } from "lucide-react";
+import { usePermissionsStandalone } from "@/hooks/usePermissions";
 
 interface DashboardStats {
   total_athletes: number;
@@ -90,6 +92,7 @@ interface Athlete {
 
 export default function CoachDashboard() {
   const router = useRouter();
+  const { isCoach: hasCoachTier, isAdmin, loading: permissionsLoading } = usePermissionsStandalone();
   const [loading, setLoading] = useState(true);
   const [isCoach, setIsCoach] = useState(false);
   const [registering, setRegistering] = useState(false);
@@ -98,6 +101,9 @@ export default function CoachDashboard() {
   const [needingAttention, setNeedingAttention] = useState<AthleteNeedingAttention[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
+
+  // Check if user has permission to access coach features
+  const hasCoachPermission = hasCoachTier() || isAdmin();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
@@ -222,12 +228,58 @@ export default function CoachDashboard() {
     return `${hrs}h ${remainingMins}m`;
   };
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
       <div className="min-h-screen bg-[#1a1a2e] flex items-center justify-center">
         <div className="text-center">
           <Dumbbell className="w-12 h-12 text-[#FF6B6B] animate-pulse mx-auto mb-4" />
           <p className="text-gray-400 font-mono text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Access denied - user doesn't have coach tier or admin role
+  if (!hasCoachPermission) {
+    return (
+      <div className="min-h-screen bg-[#1a1a2e] navbar-offset px-4">
+        <div className="max-w-md mx-auto text-center">
+          <div
+            className="p-8 rounded-lg"
+            style={{
+              background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
+              border: "2px solid #3d3d4d",
+              boxShadow: "0 4px 0 rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <ShieldX className="w-16 h-16 text-red-500 mx-auto mb-6" />
+            <h1
+              className="text-xl mb-4"
+              style={{
+                fontFamily: "'Press Start 2P', monospace",
+                color: "#FF6B6B",
+              }}
+            >
+              ACCESS DENIED
+            </h1>
+            <p className="text-gray-400 mb-6 text-sm leading-relaxed">
+              Coach features are only available to users with Coach tier access.
+              Please upgrade your subscription to access this feature.
+            </p>
+            <Link
+              href="/fitness"
+              className="inline-block py-3 px-6 rounded-lg font-bold transition-all"
+              style={{
+                background: "linear-gradient(180deg, #FF6B6B 0%, #cc5555 100%)",
+                boxShadow: "0 4px 0 #992222",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: "10px",
+                color: "white",
+              }}
+            >
+              BACK TO FITNESS
+            </Link>
+          </div>
         </div>
       </div>
     );

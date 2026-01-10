@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withAuthParams, Errors } from "@/lib/api";
+import { withCoachAuthParams, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coach/athletes/[athleteId] - Get athlete details
-export const GET = withAuthParams<{ athleteId: string }>(
+export const GET = withCoachAuthParams<{ athleteId: string }>(
   async (_request, user, { athleteId }) => {
     const coachProfile = await prisma.coach_profiles.findUnique({
       where: { user_id: user.id },
@@ -96,7 +96,7 @@ export const GET = withAuthParams<{ athleteId: string }>(
 );
 
 // PUT /api/fitness/coach/athletes/[athleteId] - Update relationship (notes, status)
-export const PUT = withAuthParams<{ athleteId: string }>(
+export const PUT = withCoachAuthParams<{ athleteId: string }>(
   async (request, user, { athleteId }) => {
     const coachProfile = await prisma.coach_profiles.findUnique({
       where: { user_id: user.id },
@@ -152,7 +152,7 @@ export const PUT = withAuthParams<{ athleteId: string }>(
 );
 
 // DELETE /api/fitness/coach/athletes/[athleteId] - End coaching relationship
-export const DELETE = withAuthParams<{ athleteId: string }>(
+export const DELETE = withCoachAuthParams<{ athleteId: string }>(
   async (_request, user, { athleteId }) => {
     const coachProfile = await prisma.coach_profiles.findUnique({
       where: { user_id: user.id },

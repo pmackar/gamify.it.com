@@ -1,30 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { withCoachAuth, Errors } from "@/lib/api";
 
 // GET /api/fitness/coach/templates - List all templates for coach
-export async function GET(request: NextRequest) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withCoachAuth(async (request, user) => {
   // Get coach profile
   const coach = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
   });
 
   if (!coach) {
-    return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    return Errors.forbidden("Not registered as a coach");
   }
 
   // Get all templates (own + public ones)
   const templates = await prisma.coaching_workout_templates.findMany({
     where: {
-      OR: [
-        { coach_id: coach.id },
-        { is_public: true },
-      ],
+      OR: [{ coach_id: coach.id }, { is_public: true }],
     },
     include: {
       exercises: {
@@ -61,38 +53,31 @@ export async function GET(request: NextRequest) {
       rest_seconds: ex.rest_seconds,
       notes: ex.notes,
     })),
-    coach_name: t.coach.business_name || t.coach.user.display_name || "Unknown",
+    coach_name:
+      t.coach.business_name || t.coach.user.display_name || "Unknown",
     created_at: t.created_at,
     updated_at: t.updated_at,
   }));
 
   return NextResponse.json({ templates: result });
-}
+});
 
 // POST /api/fitness/coach/templates - Create new template
-export async function POST(request: NextRequest) {
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withCoachAuth(async (request, user) => {
   // Get coach profile
   const coach = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
   });
 
   if (!coach) {
-    return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    return Errors.forbidden("Not registered as a coach");
   }
 
   const body = await request.json();
   const { name, description, is_public, exercises } = body;
 
   if (!name) {
-    return NextResponse.json(
-      { error: "Template name is required" },
-      { status: 400 }
-    );
+    return Errors.invalidInput("Template name is required");
   }
 
   // Create template with exercises
@@ -126,4 +111,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({ template }, { status: 201 });
-}
+});

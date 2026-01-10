@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser, AuthUser } from "@/lib/auth";
 import { Errors, ApiErrorResponse } from "./errors";
+import { checkUserTier, checkUserIsAdmin } from "@/lib/permissions-server";
 
 /**
  * Handler function type that receives the authenticated user.
@@ -120,6 +121,80 @@ export function withOptionalAuth(
     try {
       const user = await getAuthUser();
       return await handler(request, user);
+    } catch (error) {
+      console.error("API route error:", error);
+      return Errors.internal();
+    }
+  };
+}
+
+/**
+ * Wrap an API route handler with coach-only authentication.
+ * Only allows users with COACH tier or ADMIN role.
+ *
+ * @example
+ * export const GET = withCoachAuth(async (request, user) => {
+ *   // user is guaranteed to be a coach or admin
+ *   return NextResponse.json({ athletes: [...] });
+ * });
+ */
+export function withCoachAuth(
+  handler: AuthenticatedHandler
+): (request: NextRequest) => Promise<NextResponse<ApiErrorResponse> | NextResponse> {
+  return async (request: NextRequest) => {
+    try {
+      const user = await getAuthUser();
+      if (!user) {
+        return Errors.unauthorized();
+      }
+      const [isAdmin, hasCoachTier] = await Promise.all([
+        checkUserIsAdmin(user.id),
+        checkUserTier(user.id, "fitness", "COACH"),
+      ]);
+      if (!isAdmin && !hasCoachTier) {
+        return Errors.forbidden("Coach or Admin access required");
+      }
+      return await handler(request, user);
+    } catch (error) {
+      console.error("API route error:", error);
+      return Errors.internal();
+    }
+  };
+}
+
+/**
+ * Wrap an API route handler with coach-only authentication and route params.
+ * Use for dynamic routes like [athleteId] or [programId].
+ *
+ * @example
+ * export const GET = withCoachAuthParams<{ athleteId: string }>(
+ *   async (request, user, { athleteId }) => {
+ *     const athlete = await prisma.users.findFirst({ where: { id: athleteId } });
+ *     return NextResponse.json(athlete);
+ *   }
+ * );
+ */
+export function withCoachAuthParams<P extends Record<string, string>>(
+  handler: AuthenticatedHandlerWithParams<P>
+): (
+  request: NextRequest,
+  context: { params: Promise<P> }
+) => Promise<NextResponse<ApiErrorResponse> | NextResponse> {
+  return async (request: NextRequest, context: { params: Promise<P> }) => {
+    try {
+      const user = await getAuthUser();
+      if (!user) {
+        return Errors.unauthorized();
+      }
+      const [isAdmin, hasCoachTier] = await Promise.all([
+        checkUserIsAdmin(user.id),
+        checkUserTier(user.id, "fitness", "COACH"),
+      ]);
+      if (!isAdmin && !hasCoachTier) {
+        return Errors.forbidden("Coach or Admin access required");
+      }
+      const params = await context.params;
+      return await handler(request, user, params);
     } catch (error) {
       console.error("API route error:", error);
       return Errors.internal();

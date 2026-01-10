@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withAuth, Errors } from "@/lib/api";
+import { withCoachAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
 
 // GET /api/fitness/coach/athletes - List coached athletes
-export const GET = withAuth(async (request, user) => {
+export const GET = withCoachAuth(async (request, user) => {
   const coachProfile = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
   });
@@ -89,7 +89,7 @@ export const GET = withAuth(async (request, user) => {
 });
 
 // POST /api/fitness/coach/athletes - Invite an athlete
-export const POST = withAuth(async (request, user) => {
+export const POST = withCoachAuth(async (request, user) => {
   const coachProfile = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
     include: {
