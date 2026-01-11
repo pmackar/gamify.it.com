@@ -217,6 +217,29 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
   const isTravel = pathname.startsWith('/travel');
   const isLife = pathname.startsWith('/life');
 
+  // Detect if running as standalone PWA (installed app)
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check if running as installed PWA
+    const checkStandalone = () => {
+      const isStandalonePWA =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true || // iOS Safari
+        document.referrer.includes('android-app://'); // Android TWA
+      setIsStandalone(isStandalonePWA);
+    };
+
+    checkStandalone();
+
+    // Listen for display mode changes
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', checkStandalone);
+    return () => mediaQuery.removeEventListener('change', checkStandalone);
+  }, []);
+
+  // In standalone mode on fitness, hide other apps
+  const isRepturaStandalone = isStandalone && isFitness;
 
   useEffect(() => {
     const supabase = createClient();
@@ -929,6 +952,25 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           display: flex;
           align-items: center;
           gap: 8px;
+        }
+
+        .nav-standalone-brand {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 6px;
+          border-radius: 10px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .nav-standalone-brand:hover {
+          background: rgba(255, 107, 107, 0.15);
+        }
+
+        .nav-standalone-brand svg {
+          width: 28px;
+          height: 28px;
         }
 
         .nav-separator {
@@ -1983,47 +2025,57 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
 
       <nav className={`global-nav ${theme === 'light' ? 'theme-light' : theme === 'terminal' ? 'theme-terminal' : theme === 'mario' ? 'theme-mario' : ''}`}>
         <div className="global-nav-inner">
-          {/* Left section: Logo with apps dropdown */}
+          {/* Left section: Logo with apps dropdown (or just Reptura branding in standalone) */}
           <div className="nav-left">
-            <div className="nav-brand-group">
-              <div style={{ position: 'relative' }} className="nav-dropdown-zone">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowAppsMenu(!showAppsMenu); }}
-                  className="nav-logo-btn"
-                  aria-label="Open apps menu"
-                >
-                  <AppLogoIcon className={`nav-logo-icon ${
-                    isFitness ? 'logo-app-fitness' :
-                    isToday ? 'logo-app-today' :
-                    isTravel ? 'logo-app-travel' : ''
-                  }`} />
-                </button>
-              {showAppsMenu && (
-                <div className="nav-apps-dropdown">
-                  <Link href="/account" className="nav-apps-dropdown-item" onClick={() => setShowAppsMenu(false)}>
-                    <span className="nav-apps-dropdown-icon">🏠</span>
-                    HOME
-                  </Link>
-                  <Link href="/fitness" className={`nav-apps-dropdown-item ${isFitness ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
-                    <span className="nav-apps-dropdown-icon"><DumbbellIcon active={isFitness} /></span>
-                    REPTURA
-                  </Link>
-                  <Link href="/today" className={`nav-apps-dropdown-item ${isToday ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
-                    <span className="nav-apps-dropdown-icon"><ChecklistIcon active={isToday} /></span>
-                    DAY QUEST
-                  </Link>
-                  <Link href="/travel" className={`nav-apps-dropdown-item ${isTravel ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
-                    <span className="nav-apps-dropdown-icon"><PlaneIcon active={isTravel} /></span>
-                    EXPLORER
-                  </Link>
-                  <Link href="/life" className={`nav-apps-dropdown-item ${isLife ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
-                    <span className="nav-apps-dropdown-icon"><LifeIcon active={isLife} /></span>
-                    LIFE QUESTS
-                  </Link>
-                </div>
-              )}
+            {isRepturaStandalone ? (
+              /* Standalone Reptura PWA - show dumbbell icon only, no dropdown */
+              <div className="nav-brand-group">
+                <Link href="/fitness" className="nav-standalone-brand">
+                  <DumbbellIcon active />
+                </Link>
               </div>
-            </div>
+            ) : (
+              /* Normal mode - show app switcher dropdown */
+              <div className="nav-brand-group">
+                <div style={{ position: 'relative' }} className="nav-dropdown-zone">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowAppsMenu(!showAppsMenu); }}
+                    className="nav-logo-btn"
+                    aria-label="Open apps menu"
+                  >
+                    <AppLogoIcon className={`nav-logo-icon ${
+                      isFitness ? 'logo-app-fitness' :
+                      isToday ? 'logo-app-today' :
+                      isTravel ? 'logo-app-travel' : ''
+                    }`} />
+                  </button>
+                {showAppsMenu && (
+                  <div className="nav-apps-dropdown">
+                    <Link href="/account" className="nav-apps-dropdown-item" onClick={() => setShowAppsMenu(false)}>
+                      <span className="nav-apps-dropdown-icon">🏠</span>
+                      HOME
+                    </Link>
+                    <Link href="/fitness" className={`nav-apps-dropdown-item ${isFitness ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                      <span className="nav-apps-dropdown-icon"><DumbbellIcon active={isFitness} /></span>
+                      REPTURA
+                    </Link>
+                    <Link href="/today" className={`nav-apps-dropdown-item ${isToday ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                      <span className="nav-apps-dropdown-icon"><ChecklistIcon active={isToday} /></span>
+                      DAY QUEST
+                    </Link>
+                    <Link href="/travel" className={`nav-apps-dropdown-item ${isTravel ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                      <span className="nav-apps-dropdown-icon"><PlaneIcon active={isTravel} /></span>
+                      EXPLORER
+                    </Link>
+                    <Link href="/life" className={`nav-apps-dropdown-item ${isLife ? 'active' : ''}`} onClick={() => setShowAppsMenu(false)}>
+                      <span className="nav-apps-dropdown-icon"><LifeIcon active={isLife} /></span>
+                      LIFE QUESTS
+                    </Link>
+                  </div>
+                )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Center section: app content only */}
