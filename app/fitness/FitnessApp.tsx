@@ -67,6 +67,8 @@ export default function FitnessApp() {
   const [inlineWeights, setInlineWeights] = useState<Record<string, number>>({});
   const [inlineReps, setInlineReps] = useState<Record<string, number>>({});
   const [inlineRpe, setInlineRpe] = useState<Record<string, number | null>>({});
+  const [inlineWarmup, setInlineWarmup] = useState<Record<string, boolean>>({});
+  const [isDarkMode, setIsDarkMode] = useState(true);
   // Voice logging state
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -180,6 +182,11 @@ export default function FitnessApp() {
   const touchDragCloneRef = useRef<HTMLDivElement | null>(null);
   const touchDragStartY = useRef<number>(0);
   const exerciseListRef = useRef<HTMLDivElement | null>(null);
+  const inlineWeightInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Swipe gesture hint state (first-time user education)
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const hasShownSwipeHint = useRef(false);
 
   // Touch drag state for program wizard goal priorities
   const [goalTouchDragIndex, setGoalTouchDragIndex] = useState<number | null>(null);
@@ -348,6 +355,32 @@ export default function FitnessApp() {
       return () => clearTimeout(timer);
     }
   }, [showSetPanel]);
+
+  // Auto-focus weight input when expanding inline editor
+  useEffect(() => {
+    if (expandedExerciseIdx !== null && inlineWeightInputRef.current) {
+      // Small delay to let the expanded view render
+      const timer = setTimeout(() => {
+        inlineWeightInputRef.current?.focus({ preventScroll: true });
+        // Show swipe hint on first expansion
+        if (!hasShownSwipeHint.current && store.currentWorkout?.exercises[expandedExerciseIdx]?.sets.length > 0) {
+          hasShownSwipeHint.current = true;
+          setShowSwipeHint(true);
+          setTimeout(() => setShowSwipeHint(false), 3000);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [expandedExerciseIdx]);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('reptura-theme');
+    if (savedTheme === 'light') {
+      document.documentElement.classList.add('light');
+      setIsDarkMode(false);
+    }
+  }, []);
 
   // Prevent scroll jumps when switching between inputs in set panel
   // iOS Safari scrolls the window when focusing inputs - block at document level
@@ -2298,11 +2331,11 @@ export default function FitnessApp() {
 
         .inline-set-header {
           display: grid;
-          grid-template-columns: 70px 36px 1fr 1fr 44px;
-          gap: 6px;
+          grid-template-columns: 60px 32px 1fr 1fr 50px 32px 40px;
+          gap: 4px;
           padding: 8px 12px;
           background: var(--bg-tertiary);
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -2319,8 +2352,8 @@ export default function FitnessApp() {
 
         .inline-set-row {
           display: grid;
-          grid-template-columns: 70px 36px 1fr 1fr 44px;
-          gap: 6px;
+          grid-template-columns: 60px 32px 1fr 1fr 50px 32px 40px;
+          gap: 4px;
           padding: 8px 12px;
           align-items: center;
           border-bottom: 1px solid var(--border-light);
@@ -2404,8 +2437,10 @@ export default function FitnessApp() {
         }
 
         .inline-check-btn {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2480,29 +2515,129 @@ export default function FitnessApp() {
 
         @media (max-width: 400px) {
           .inline-set-header {
-            grid-template-columns: 55px 30px 1fr 1fr 40px;
-            gap: 4px;
+            grid-template-columns: 48px 28px 1fr 1fr 42px 28px 36px;
+            gap: 3px;
             padding: 6px 8px;
-            font-size: 9px;
+            font-size: 8px;
           }
           .inline-set-row {
-            grid-template-columns: 55px 30px 1fr 1fr 40px;
-            gap: 4px;
+            grid-template-columns: 48px 28px 1fr 1fr 42px 28px 36px;
+            gap: 3px;
             padding: 6px 8px;
           }
           .inline-prev {
-            font-size: 11px;
-            padding: 4px 6px;
+            font-size: 10px;
+            padding: 4px 4px;
           }
           .inline-input {
-            padding: 8px 4px;
+            padding: 8px 2px;
             font-size: 14px;
+          }
+          .inline-input.inline-rpe {
+            font-size: 12px;
           }
           .inline-check-btn {
             width: 36px;
             height: 36px;
             font-size: 16px;
           }
+        }
+
+        /* Inline RPE input styling */
+        .inline-input.inline-rpe {
+          font-size: 14px;
+        }
+
+        /* Inline warmup checkbox */
+        .inline-warmup-check {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto;
+          cursor: pointer;
+        }
+        .inline-warmup-check input {
+          display: none;
+        }
+        .inline-warmup-indicator {
+          width: 24px;
+          height: 24px;
+          border: 2px solid var(--border);
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          color: transparent;
+          transition: all 0.15s;
+          background: var(--bg-card);
+        }
+        .inline-warmup-check input:checked + .inline-warmup-indicator {
+          border-color: var(--accent);
+          background: var(--accent-glow);
+          color: var(--accent);
+        }
+
+        /* Quick actions row */
+        .inline-quick-actions {
+          display: flex;
+          gap: 8px;
+          padding: 8px 12px;
+          border-top: 1px solid var(--border);
+        }
+        .inline-copy-last-btn {
+          flex: 1;
+          padding: 10px 16px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--accent);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          min-height: 44px;
+        }
+        .inline-copy-last-btn:hover {
+          background: var(--accent-glow);
+          border-color: var(--accent);
+        }
+        .inline-copy-last-btn:active {
+          transform: scale(0.98);
+        }
+
+        /* Swipe gesture hint animation */
+        .swipe-hint-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.7);
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          animation: fadeIn 0.3s ease;
+        }
+        .swipe-hint-hand {
+          font-size: 48px;
+          animation: swipeHintAnim 1.5s ease-in-out infinite;
+        }
+        .swipe-hint-text {
+          color: white;
+          font-size: 16px;
+          font-weight: 600;
+          margin-top: 16px;
+          text-align: center;
+        }
+        @keyframes swipeHintAnim {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(60px); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         /* Swipeable row (for inline set removal) */
@@ -4074,8 +4209,10 @@ export default function FitnessApp() {
           margin-bottom: 24px;
         }
         .back-btn {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -9672,7 +9809,8 @@ export default function FitnessApp() {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 12px 16px;
+            padding: 14px 18px;
+            min-height: 48px;
             background: var(--bg-secondary);
             border: 2px solid var(--border);
             border-radius: 12px;
@@ -9823,7 +9961,9 @@ export default function FitnessApp() {
             flex-direction: column;
             align-items: center;
             gap: 2px;
-            padding: 6px 12px;
+            padding: 8px 16px;
+            min-height: 48px;
+            min-width: 48px;
             background: transparent;
             border: none;
             color: var(--text-tertiary);
@@ -9900,7 +10040,21 @@ export default function FitnessApp() {
                   <span className="workout-stat-icon">📊</span>
                   <span className="workout-stat-value">{getWorkoutStats().sets} sets</span>
                 </div>
-                <div className="workout-stat xp-stat">
+                <div
+                  className="workout-stat xp-stat"
+                  onClick={() => {
+                    const stats = getWorkoutStats();
+                    const breakdown = [
+                      'XP Breakdown:',
+                      `• Base: ${stats.sets} sets × 10 = ${stats.sets * 10} XP`,
+                      `• Volume bonus: ${Math.floor(stats.volume / 1000)} × 5 = ${Math.floor(stats.volume / 1000) * 5} XP`,
+                      stats.xp > stats.sets * 10 + Math.floor(stats.volume / 1000) * 5 ? '• PR bonus included!' : '',
+                    ].filter(Boolean).join('\n');
+                    alert(breakdown);
+                  }}
+                  title="Tap for XP breakdown"
+                  style={{ cursor: 'pointer' }}
+                >
                   <span className="workout-stat-icon">✨</span>
                   <span className="workout-stat-value">{getWorkoutStats().xp} XP</span>
                 </div>
@@ -9985,6 +10139,8 @@ export default function FitnessApp() {
                             <span>SET</span>
                             <span>LBS</span>
                             <span>REPS</span>
+                            <span>@RPE</span>
+                            <span>W</span>
                             <span>✓</span>
                           </div>
 
@@ -10036,6 +10192,12 @@ export default function FitnessApp() {
                                   <div className="inline-set-num">{setIdx + 1}</div>
                                   <div style={{ textAlign: 'center', fontWeight: 600 }}>{existingSet.weight}</div>
                                   <div style={{ textAlign: 'center', fontWeight: 600 }}>{existingSet.reps}</div>
+                                  <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                                    {existingSet.rpe ? `@${existingSet.rpe}` : '—'}
+                                  </div>
+                                  <div style={{ textAlign: 'center', fontSize: 12, color: existingSet.isWarmup ? 'var(--accent)' : 'var(--text-quaternary)' }}>
+                                    {existingSet.isWarmup ? 'W' : '—'}
+                                  </div>
                                   <button
                                     className="inline-check-btn checked"
                                     onClick={() => {
@@ -10069,6 +10231,7 @@ export default function FitnessApp() {
                                 </div>
                                 <div className="inline-set-num">{setIdx + 1}</div>
                                 <input
+                                  ref={setIdx === existingSets ? inlineWeightInputRef : undefined}
                                   type="number"
                                   inputMode="decimal"
                                   className={`inline-input ${inlineWeights[inputKey] ? 'filled' : ''}`}
@@ -10084,14 +10247,35 @@ export default function FitnessApp() {
                                   placeholder={String(defaultReps)}
                                   onChange={(e) => setInlineReps(r => ({ ...r, [inputKey]: Number(e.target.value) }))}
                                 />
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  className={`inline-input inline-rpe ${inlineRpe[inputKey] ? 'filled' : ''}`}
+                                  value={inlineRpe[inputKey] ?? ''}
+                                  placeholder="—"
+                                  min={1}
+                                  max={10}
+                                  step={0.5}
+                                  onChange={(e) => setInlineRpe(r => ({ ...r, [inputKey]: e.target.value ? Number(e.target.value) : null }))}
+                                />
+                                <label className="inline-warmup-check">
+                                  <input
+                                    type="checkbox"
+                                    checked={inlineWarmup[inputKey] ?? false}
+                                    onChange={(e) => setInlineWarmup(w => ({ ...w, [inputKey]: e.target.checked }))}
+                                  />
+                                  <span className="inline-warmup-indicator">W</span>
+                                </label>
                                 <button
                                   className="inline-check-btn"
                                   onClick={() => {
                                     const weight = inlineWeights[inputKey] || defaultWeight;
                                     const reps = inlineReps[inputKey] || defaultReps;
+                                    const rpe = inlineRpe[inputKey] ?? undefined;
+                                    const isWarmup = inlineWarmup[inputKey] ?? false;
                                     // Select this exercise and log the set
                                     store.selectExercise(idx);
-                                    store.logSet(weight, reps, undefined, false);
+                                    store.logSet(weight, reps, rpe, isWarmup);
                                     // Clear inputs for this row
                                     setInlineWeights(w => {
                                       const next = { ...w };
@@ -10100,6 +10284,16 @@ export default function FitnessApp() {
                                     });
                                     setInlineReps(r => {
                                       const next = { ...r };
+                                      delete next[inputKey];
+                                      return next;
+                                    });
+                                    setInlineRpe(r => {
+                                      const next = { ...r };
+                                      delete next[inputKey];
+                                      return next;
+                                    });
+                                    setInlineWarmup(w => {
+                                      const next = { ...w };
                                       delete next[inputKey];
                                       return next;
                                     });
@@ -10125,6 +10319,25 @@ export default function FitnessApp() {
                             </div>
                           )}
                         </div>
+
+                        {/* Quick actions row */}
+                        {exercise.sets.length > 0 && (
+                          <div className="inline-quick-actions">
+                            <button
+                              className="inline-copy-last-btn"
+                              onClick={() => {
+                                const lastSet = exercise.sets[exercise.sets.length - 1];
+                                if (lastSet) {
+                                  store.selectExercise(idx);
+                                  store.logSet(lastSet.weight, lastSet.reps, lastSet.rpe, lastSet.isWarmup);
+                                  store.showToast(`Logged ${lastSet.weight}×${lastSet.reps}`);
+                                }
+                              }}
+                            >
+                              ↩ Copy Last ({exercise.sets[exercise.sets.length - 1].weight}×{exercise.sets[exercise.sets.length - 1].reps})
+                            </button>
+                          </div>
+                        )}
 
                         {/* Collapse button */}
                         <button
@@ -10516,6 +10729,26 @@ gamify.it.com/fitness`;
               >
                 <span className="profile-link-icon">⚔️</span>
                 <span className="profile-link-text">Rival System</span>
+                <span className="profile-link-arrow">›</span>
+              </button>
+
+              {/* Light Mode Toggle */}
+              <button
+                className="profile-link-btn theme-toggle"
+                onClick={() => {
+                  const newIsDark = !isDarkMode;
+                  setIsDarkMode(newIsDark);
+                  if (newIsDark) {
+                    document.documentElement.classList.remove('light');
+                    localStorage.setItem('reptura-theme', 'dark');
+                  } else {
+                    document.documentElement.classList.add('light');
+                    localStorage.setItem('reptura-theme', 'light');
+                  }
+                }}
+              >
+                <span className="profile-link-icon">{isDarkMode ? '☀️' : '🌙'}</span>
+                <span className="profile-link-text">{isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
                 <span className="profile-link-arrow">›</span>
               </button>
 
@@ -16124,6 +16357,14 @@ gamify.it.com/fitness`;
 
         {/* Weekly Wins Modal - Shows Sunday evening or Monday morning */}
         <WeeklyWinsModal />
+
+        {/* Swipe Gesture Hint Overlay */}
+        {showSwipeHint && (
+          <div className="swipe-hint-overlay" onClick={() => setShowSwipeHint(false)}>
+            <span className="swipe-hint-hand">👆</span>
+            <span className="swipe-hint-text">Swipe right on a set to remove it</span>
+          </div>
+        )}
       </div>
     </NarrativeProvider>
   );
