@@ -437,10 +437,10 @@ DROP POLICY IF EXISTS "System/admins can create challenges" ON public.challenges
 DROP POLICY IF EXISTS "Creators can update challenges" ON public.challenges;
 
 CREATE POLICY "System/admins can create challenges" ON public.challenges
-  FOR INSERT WITH CHECK (created_by = (select auth.uid()));
+  FOR INSERT WITH CHECK (creator_id = (select auth.uid()));
 
 CREATE POLICY "Creators can update challenges" ON public.challenges
-  FOR UPDATE USING (created_by = (select auth.uid()));
+  FOR UPDATE USING (creator_id = (select auth.uid()));
 
 -- ============================================
 -- CHALLENGE_PARTICIPANTS
