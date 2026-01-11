@@ -10711,6 +10711,91 @@ export default function FitnessApp() {
             background: var(--bg-primary);
           }
 
+          /* Blank Workout FAB Options */
+          .blank-workout-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .blank-workout-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            width: 100%;
+            text-align: left;
+          }
+
+          .blank-workout-option:active {
+            transform: scale(0.98);
+            background: var(--bg-primary);
+          }
+
+          .blank-workout-option.program-option {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+            border-color: rgba(99, 102, 241, 0.3);
+          }
+
+          .blank-workout-option.library-option {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
+            border-color: rgba(16, 185, 129, 0.3);
+          }
+
+          .blank-workout-option .option-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+          }
+
+          .blank-workout-option .option-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+          }
+
+          .blank-workout-option .option-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+          }
+
+          .blank-workout-option .option-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .blank-workout-option .option-arrow {
+            font-size: 18px;
+            color: var(--text-tertiary);
+            flex-shrink: 0;
+          }
+
+          .blank-workout-close-btn {
+            padding: 14px 16px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+          }
+
+          .blank-workout-close-btn:active {
+            background: var(--bg-tertiary);
+          }
+
           /* Mobile Bottom Navigation */
           .mobile-bottom-nav {
             display: flex;
@@ -15432,48 +15517,120 @@ gamify.it.com/fitness`;
         {mobileFabOpen && (
           <div className="mobile-command-bar">
             <div className="mobile-command-inner">
-              {suggestions.length > 0 && (
-                <div className="mobile-suggestions">
-                  {suggestions.slice(0, 5).map((suggestion, i) => (
-                    <div
-                      key={suggestion.id || i}
-                      className={`mobile-suggestion ${i === selectedSuggestion ? 'selected' : ''}`}
-                      onClick={() => { executeCommand(suggestion); setMobileFabOpen(false); setQuery(''); }}
-                    >
-                      <span className="mobile-suggestion-icon">{suggestion.icon}</span>
-                      <span className="mobile-suggestion-title">{suggestion.title}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="mobile-input-row">
-                <input
-                  ref={mobileInputRef}
-                  type="text"
-                  className="mobile-command-input"
-                  placeholder={(() => {
-                    if (store.currentWorkout && store.currentView === 'workout') {
-                      const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
-                      if (currentEx) {
-                        const lastSet = currentEx.sets[currentEx.sets.length - 1];
-                        const weight = lastSet?.weight || store.records[currentEx.id] || 135;
-                        const reps = lastSet?.reps || 8;
-                        return `Log: ${weight}x${reps}`;
-                      }
+              {/* Blank Workout Screen - Show special options */}
+              {store.currentWorkout && store.currentView === 'workout' && store.currentWorkout.exercises.length === 0 ? (
+                <div className="blank-workout-options">
+                  {/* Option 1: Continue from Program (if active program exists) */}
+                  {(() => {
+                    const upcomingWorkouts = store.getUpcomingWorkouts(14);
+                    const nextWorkout = upcomingWorkouts.find(w => !w.isCompleted && !w.isRest && w.template);
+                    if (nextWorkout && store.activeProgram) {
+                      return (
+                        <button
+                          className="blank-workout-option program-option"
+                          onClick={() => {
+                            store.startProgramWorkoutForDay(nextWorkout.weekNumber, nextWorkout.dayNumber);
+                            setMobileFabOpen(false);
+                          }}
+                        >
+                          <span className="option-icon">📅</span>
+                          <div className="option-content">
+                            <span className="option-title">Continue Program</span>
+                            <span className="option-subtitle">{nextWorkout.workoutName}</span>
+                          </div>
+                          <span className="option-arrow">→</span>
+                        </button>
+                      );
                     }
-                    return 'Search or command...';
+                    return null;
                   })()}
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
-                  onKeyDown={handleKeyDown}
-                />
-                <button
-                  className="mobile-close-btn"
-                  onClick={() => { setMobileFabOpen(false); setQuery(''); }}
-                >
-                  ✕
-                </button>
-              </div>
+
+                  {/* Option 2: Choose from Library */}
+                  <button
+                    className="blank-workout-option library-option"
+                    onClick={() => {
+                      store.cancelWorkout();
+                      store.setView('templates');
+                      setMobileFabOpen(false);
+                    }}
+                  >
+                    <span className="option-icon">📚</span>
+                    <div className="option-content">
+                      <span className="option-title">Choose from Library</span>
+                      <span className="option-subtitle">Pick a saved workout template</span>
+                    </div>
+                    <span className="option-arrow">→</span>
+                  </button>
+
+                  {/* Option 3: Add exercises manually */}
+                  <button
+                    className="blank-workout-option add-option"
+                    onClick={() => {
+                      setShowExercisePicker(true);
+                      setMobileFabOpen(false);
+                    }}
+                  >
+                    <span className="option-icon">➕</span>
+                    <div className="option-content">
+                      <span className="option-title">Add Exercises</span>
+                      <span className="option-subtitle">Build your workout from scratch</span>
+                    </div>
+                    <span className="option-arrow">→</span>
+                  </button>
+
+                  <button
+                    className="blank-workout-close-btn"
+                    onClick={() => { setMobileFabOpen(false); setQuery(''); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {suggestions.length > 0 && (
+                    <div className="mobile-suggestions">
+                      {suggestions.slice(0, 5).map((suggestion, i) => (
+                        <div
+                          key={suggestion.id || i}
+                          className={`mobile-suggestion ${i === selectedSuggestion ? 'selected' : ''}`}
+                          onClick={() => { executeCommand(suggestion); setMobileFabOpen(false); setQuery(''); }}
+                        >
+                          <span className="mobile-suggestion-icon">{suggestion.icon}</span>
+                          <span className="mobile-suggestion-title">{suggestion.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mobile-input-row">
+                    <input
+                      ref={mobileInputRef}
+                      type="text"
+                      className="mobile-command-input"
+                      placeholder={(() => {
+                        if (store.currentWorkout && store.currentView === 'workout') {
+                          const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
+                          if (currentEx) {
+                            const lastSet = currentEx.sets[currentEx.sets.length - 1];
+                            const weight = lastSet?.weight || store.records[currentEx.id] || 135;
+                            const reps = lastSet?.reps || 8;
+                            return `Log: ${weight}x${reps}`;
+                          }
+                        }
+                        return 'Search or command...';
+                      })()}
+                      value={query}
+                      onChange={(e) => { setQuery(e.target.value); setSelectedSuggestion(0); }}
+                      onKeyDown={handleKeyDown}
+                    />
+                    <button
+                      className="mobile-close-btn"
+                      onClick={() => { setMobileFabOpen(false); setQuery(''); }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
