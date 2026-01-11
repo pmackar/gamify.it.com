@@ -2,45 +2,52 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const [status, setStatus] = useState('Processing...');
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const handleAuth = async () => {
       const supabase = createClient();
 
-      // Check URL hash for tokens (implicit flow)
-      const hash = window.location.hash;
-      console.log('Auth callback - hash:', hash);
-      console.log('Auth callback - search:', window.location.search);
-
-      // Try to get session (handles both flows)
+      // Try to get session (handles both OAuth and magic link flows)
       const { data: { session }, error } = await supabase.auth.getSession();
-
-      console.log('Auth callback - session:', !!session, 'error:', error?.message);
 
       if (error) {
         setStatus(`Error: ${error.message}`);
-        setTimeout(() => router.push(`/?error=${encodeURIComponent(error.message)}`), 2000);
+        setTimeout(() => router.push(`/login?error=${encodeURIComponent(error.message)}`), 1500);
         return;
       }
 
       if (session) {
-        setStatus('Authenticated! Redirecting...');
+        setStatus('Success! Redirecting...');
         // Clear hash from URL
         window.history.replaceState({}, '', window.location.pathname);
-        router.push('/auth/transfer');
+
+        // Check if running as installed PWA (needs transfer code)
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches
+                   || (window.navigator as any).standalone === true;
+
+        if (isPWA) {
+          // PWA needs transfer code for cross-context auth
+          router.push('/auth/transfer');
+        } else {
+          // Web users go directly to their destination
+          const next = searchParams.get('next') || '/';
+          router.push(next);
+        }
       } else {
         setStatus('No session found. Redirecting...');
-        setTimeout(() => router.push('/'), 2000);
+        setTimeout(() => router.push('/login'), 1500);
       }
     };
 
     handleAuth();
-  }, [router]);
+  }, [router, searchParams]);
 
   return (
     <div className="min-h-screen-safe" style={{
@@ -65,5 +72,33 @@ export default function AuthCallback() {
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen-safe" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0a0a0a',
+          color: '#fff',
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #333',
+            borderTopColor: '#FFD700',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
