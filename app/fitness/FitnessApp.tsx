@@ -141,6 +141,7 @@ export default function FitnessApp() {
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string; tier: number } | null>(null);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
   const [substituteSearchQuery, setSubstituteSearchQuery] = useState('');
+  const [confirmDeleteExercise, setConfirmDeleteExercise] = useState<{ idx: number; name: string } | null>(null);
   const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
     name: string;
     muscle: string;
@@ -1106,6 +1107,19 @@ export default function FitnessApp() {
     const exercise = store.currentWorkout.exercises[idx];
     if (!exercise) return;
 
+    // Show confirmation dialog
+    setConfirmDeleteExercise({ idx, name: exercise.name });
+  };
+
+  const confirmRemoveExercise = () => {
+    if (!confirmDeleteExercise || !store.currentWorkout) return;
+    const { idx } = confirmDeleteExercise;
+    const exercise = store.currentWorkout.exercises[idx];
+    if (!exercise) {
+      setConfirmDeleteExercise(null);
+      return;
+    }
+
     // Save for undo
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
     setUndoItem({
@@ -1116,8 +1130,16 @@ export default function FitnessApp() {
     });
 
     store.removeExercise(idx);
+    setConfirmDeleteExercise(null);
 
-    // Auto-dismiss after 5 seconds
+    // If we had the expanded exercise, collapse it
+    if (expandedExerciseIdx === idx) {
+      setExpandedExerciseIdx(null);
+    } else if (expandedExerciseIdx !== null && expandedExerciseIdx > idx) {
+      setExpandedExerciseIdx(expandedExerciseIdx - 1);
+    }
+
+    // Auto-dismiss undo after 5 seconds
     undoTimeoutRef.current = setTimeout(() => {
       setUndoItem(null);
     }, 5000);
@@ -2483,6 +2505,35 @@ export default function FitnessApp() {
           }
         }
 
+        /* Swipeable row (for inline set removal) */
+        .inline-set-row.swipeable {
+          position: relative;
+          transition: transform 0.2s ease, opacity 0.2s ease;
+          touch-action: pan-y;
+        }
+
+        .inline-set-row.swipeable::before {
+          content: 'Remove';
+          position: absolute;
+          right: 100%;
+          top: 0;
+          bottom: 0;
+          width: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--danger);
+          color: white;
+          font-size: 12px;
+          font-weight: 600;
+          opacity: 0;
+          transition: opacity 0.15s;
+        }
+
+        .inline-set-row.swipeable:hover::before {
+          opacity: 0.3;
+        }
+
         /* Drag states */
         .exercise-pill.dragging {
           opacity: 0.5;
@@ -3764,6 +3815,29 @@ export default function FitnessApp() {
         }
         .modal-btn.primary:hover {
           filter: brightness(1.1);
+        }
+        .modal-btn.danger {
+          background: #ef4444;
+          color: white;
+        }
+        .modal-btn.danger:hover {
+          background: #dc2626;
+        }
+
+        /* Confirmation Modal */
+        .confirm-modal-icon {
+          font-size: 40px;
+          margin-bottom: 12px;
+        }
+        .confirm-modal-message {
+          font-size: 15px;
+          color: var(--text-secondary);
+          margin-bottom: 20px;
+          line-height: 1.5;
+        }
+        .confirm-modal-exercise-name {
+          font-weight: 600;
+          color: var(--text-primary);
         }
 
         /* Workout Summary Modal */
@@ -8952,7 +9026,82 @@ export default function FitnessApp() {
           margin: 4px 0;
         }
 
-        /* ===== SUBSTITUTE EXERCISE MODAL ===== */
+        /* ===== SUBSTITUTE EXERCISE MODAL (Full Screen) ===== */
+        .substitute-fullscreen {
+          position: fixed;
+          inset: 0;
+          background: var(--bg-base);
+          z-index: 10000;
+          display: flex;
+          flex-direction: column;
+          animation: slideInFromRight 0.25s ease-out;
+        }
+
+        @keyframes slideInFromRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+
+        .substitute-fullscreen-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px;
+          background: var(--bg-elevated);
+          border-bottom: 1px solid var(--border);
+          flex-shrink: 0;
+        }
+
+        .substitute-back-btn {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          font-size: 18px;
+          cursor: pointer;
+          transition: all 0.15s;
+          color: var(--text-secondary);
+        }
+
+        .substitute-back-btn:hover {
+          background: var(--bg-card-hover);
+          color: var(--text-primary);
+        }
+
+        .substitute-header-text {
+          flex: 1;
+        }
+
+        .substitute-header-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .substitute-header-subtitle {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+
+        .substitute-fullscreen-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+        }
+
+        .substitute-fullscreen-search {
+          position: sticky;
+          top: 0;
+          background: var(--bg-base);
+          padding-bottom: 12px;
+          z-index: 1;
+        }
+
         .substitute-modal {
           width: 100%;
           max-width: 360px;
@@ -9780,9 +9929,11 @@ export default function FitnessApp() {
 
                   // EXPANDED INLINE EDITING VIEW
                   if (expandedExerciseIdx === idx) {
-                    // Determine how many rows to show (existing sets + 1 new row)
+                    // Get prescribed sets count from template/program
+                    const targetSets = (exercise as { _targetSets?: number })?._targetSets || 3;
                     const existingSets = exercise.sets.length;
-                    const totalRows = existingSets + 1; // +1 for the new set row
+                    // Show max of: existing sets, or prescribed sets (with at least 1 empty row for input)
+                    const rowsToShow = Math.max(existingSets + 1, targetSets);
 
                     return (
                       <div key={exercise.id + idx} className="exercise-card-expanded">
@@ -9819,6 +9970,7 @@ export default function FitnessApp() {
                           <div className="exercise-card-target">
                             <span className="target-label">Target:</span>
                             <span className="target-value">
+                              {targetSets && `${targetSets} sets × `}
                               {progressionTarget.weight && `${progressionTarget.weight} lbs`}
                               {progressionTarget.weight && progressionTarget.reps && ' × '}
                               {progressionTarget.reps && `${progressionTarget.reps} reps`}
@@ -9836,41 +9988,72 @@ export default function FitnessApp() {
                             <span>✓</span>
                           </div>
 
-                          {/* Existing completed sets */}
-                          {exercise.sets.map((set, setIdx) => {
+                          {/* Render rows - completed sets + empty prescribed rows */}
+                          {Array.from({ length: rowsToShow }).map((_, setIdx) => {
+                            const existingSet = exercise.sets[setIdx];
                             const prevSet = lastWorkoutEx?.sets[setIdx];
-                            return (
-                              <div key={setIdx} className="inline-set-row completed">
+                            const inputKey = `${exercise.id}-${setIdx}`;
+                            const lastLoggedSet = exercise.sets[exercise.sets.length - 1];
+                            const defaultWeight = progressionTarget?.weight || prevSet?.weight || lastLoggedSet?.weight || 135;
+                            const defaultReps = parseInt(progressionTarget?.reps?.split('-')[0] || '') || prevSet?.reps || lastLoggedSet?.reps || 8;
+
+                            // Completed set row
+                            if (existingSet) {
+                              return (
                                 <div
-                                  className={`inline-prev ${prevSet ? '' : 'no-prev'}`}
-                                  onClick={() => {
-                                    if (prevSet) {
-                                      // Already logged, but allow re-editing
-                                      store.showToast(`Set ${setIdx + 1}: ${set.weight}×${set.reps}`);
+                                  key={setIdx}
+                                  className="inline-set-row completed swipeable"
+                                  onTouchStart={(e) => {
+                                    const touch = e.touches[0];
+                                    (e.currentTarget as HTMLElement).dataset.startX = String(touch.clientX);
+                                  }}
+                                  onTouchMove={(e) => {
+                                    const startX = parseFloat((e.currentTarget as HTMLElement).dataset.startX || '0');
+                                    const currentX = e.touches[0].clientX;
+                                    const diff = currentX - startX;
+                                    if (diff > 0) {
+                                      (e.currentTarget as HTMLElement).style.transform = `translateX(${Math.min(diff, 100)}px)`;
+                                      (e.currentTarget as HTMLElement).style.opacity = String(1 - diff / 150);
+                                    }
+                                  }}
+                                  onTouchEnd={(e) => {
+                                    const startX = parseFloat((e.currentTarget as HTMLElement).dataset.startX || '0');
+                                    const endX = e.changedTouches[0].clientX;
+                                    const diff = endX - startX;
+                                    if (diff > 80) {
+                                      // Swipe right detected - remove set
+                                      store.removeSet(idx, setIdx);
+                                      store.showToast('Set removed');
+                                    } else {
+                                      (e.currentTarget as HTMLElement).style.transform = '';
+                                      (e.currentTarget as HTMLElement).style.opacity = '';
                                     }
                                   }}
                                 >
-                                  {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
+                                  <div className={`inline-prev ${prevSet ? '' : 'no-prev'}`}>
+                                    {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
+                                  </div>
+                                  <div className="inline-set-num">{setIdx + 1}</div>
+                                  <div style={{ textAlign: 'center', fontWeight: 600 }}>{existingSet.weight}</div>
+                                  <div style={{ textAlign: 'center', fontWeight: 600 }}>{existingSet.reps}</div>
+                                  <button
+                                    className="inline-check-btn checked"
+                                    onClick={() => {
+                                      // Uncheck = remove this set
+                                      store.removeSet(idx, setIdx);
+                                      store.showToast('Set removed');
+                                    }}
+                                    title="Tap to remove set"
+                                  >
+                                    ✓
+                                  </button>
                                 </div>
-                                <div className="inline-set-num">{setIdx + 1}</div>
-                                <div style={{ textAlign: 'center', fontWeight: 600 }}>{set.weight}</div>
-                                <div style={{ textAlign: 'center', fontWeight: 600 }}>{set.reps}</div>
-                                <button className="inline-check-btn checked">✓</button>
-                              </div>
-                            );
-                          })}
+                              );
+                            }
 
-                          {/* New set row for input */}
-                          {(() => {
-                            const newSetIdx = exercise.sets.length;
-                            const prevSet = lastWorkoutEx?.sets[newSetIdx];
-                            const inputKey = `${exercise.id}-${newSetIdx}`;
-                            const lastSet = exercise.sets[exercise.sets.length - 1];
-                            const defaultWeight = inlineWeights[inputKey] ?? lastSet?.weight ?? prevSet?.weight ?? 135;
-                            const defaultReps = inlineReps[inputKey] ?? lastSet?.reps ?? prevSet?.reps ?? 8;
-
+                            // Empty row for input (prescribed or extra)
                             return (
-                              <div className="inline-set-row">
+                              <div key={setIdx} className="inline-set-row">
                                 <div
                                   className={`inline-prev ${prevSet ? '' : 'no-prev'}`}
                                   onClick={() => {
@@ -9884,7 +10067,7 @@ export default function FitnessApp() {
                                 >
                                   {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
                                 </div>
-                                <div className="inline-set-num">{newSetIdx + 1}</div>
+                                <div className="inline-set-num">{setIdx + 1}</div>
                                 <input
                                   type="number"
                                   inputMode="decimal"
@@ -9909,7 +10092,7 @@ export default function FitnessApp() {
                                     // Select this exercise and log the set
                                     store.selectExercise(idx);
                                     store.logSet(weight, reps, undefined, false);
-                                    // Clear inputs for next set
+                                    // Clear inputs for this row
                                     setInlineWeights(w => {
                                       const next = { ...w };
                                       delete next[inputKey];
@@ -9926,7 +10109,21 @@ export default function FitnessApp() {
                                 </button>
                               </div>
                             );
-                          })()}
+                          })}
+
+                          {/* Add more sets button if all prescribed are filled */}
+                          {existingSets >= targetSets && (
+                            <div className="inline-add-row">
+                              <button
+                                className="inline-add-set"
+                                onClick={() => {
+                                  // Focus will shift to the new empty row automatically
+                                }}
+                              >
+                                + Add Set
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Collapse button */}
@@ -15334,7 +15531,7 @@ gamify.it.com/fitness`;
           </div>
         )}
 
-        {/* Substitute Exercise Modal */}
+        {/* Substitute Exercise Modal (Full Screen) */}
         {showSubstituteModal && store.currentWorkout && (() => {
           const currentEx = store.currentWorkout.exercises[store.currentExerciseIndex];
           if (!currentEx) return null;
@@ -15351,16 +15548,41 @@ gamify.it.com/fitness`;
                 ex.id !== currentEx.id &&
                 !substituteIds.includes(ex.id) &&
                 ex.name.toLowerCase().includes(substituteSearchQuery.toLowerCase())
-              ).slice(0, 8)
+              ).slice(0, 20)
             : [];
 
           return (
-            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
-              <div className="modal substitute-modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">Substitute Exercise</div>
-                <div className="modal-subtitle">Replace {currentEx.name} with:</div>
+            <div className="substitute-fullscreen">
+              {/* Header */}
+              <div className="substitute-fullscreen-header">
+                <button
+                  className="substitute-back-btn"
+                  onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}
+                >
+                  ←
+                </button>
+                <div className="substitute-header-text">
+                  <div className="substitute-header-title">Substitute Exercise</div>
+                  <div className="substitute-header-subtitle">Replace {currentEx.name}</div>
+                </div>
+              </div>
 
-                {substitutes.length > 0 && (
+              {/* Content */}
+              <div className="substitute-fullscreen-content">
+                {/* Search - sticky at top */}
+                <div className="substitute-fullscreen-search">
+                  <input
+                    type="text"
+                    className="substitute-search-input"
+                    placeholder="Search exercises..."
+                    value={substituteSearchQuery}
+                    onChange={e => setSubstituteSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Suggested Substitutes */}
+                {substitutes.length > 0 && !substituteSearchQuery && (
                   <>
                     <div className="substitute-section-label">Suggested Substitutes</div>
                     <div className="substitute-list">
@@ -15382,37 +15604,30 @@ gamify.it.com/fitness`;
                   </>
                 )}
 
-                <div className="substitute-section-label">Search Exercise Library</div>
-                <div className="substitute-search-container">
-                  <input
-                    type="text"
-                    className="substitute-search-input"
-                    placeholder="Type to search exercises..."
-                    value={substituteSearchQuery}
-                    onChange={e => setSubstituteSearchQuery(e.target.value)}
-                    autoFocus={substitutes.length === 0}
-                  />
-                </div>
-
+                {/* Search Results */}
                 {searchResults.length > 0 && (
-                  <div className="substitute-list search-results">
-                    {searchResults.map(ex => (
-                      <button
-                        key={ex.id}
-                        className="substitute-option"
-                        onClick={() => {
-                          store.substituteExercise(store.currentExerciseIndex, ex.id, ex.name);
-                          setShowSubstituteModal(false);
-                          setSubstituteSearchQuery('');
-                        }}
-                      >
-                        <span className="substitute-name">{ex.name}</span>
-                        <span className="substitute-info">{ex.equipment || ex.muscle}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="substitute-section-label">Search Results</div>
+                    <div className="substitute-list">
+                      {searchResults.map(ex => (
+                        <button
+                          key={ex.id}
+                          className="substitute-option"
+                          onClick={() => {
+                            store.substituteExercise(store.currentExerciseIndex, ex.id, ex.name);
+                            setShowSubstituteModal(false);
+                            setSubstituteSearchQuery('');
+                          }}
+                        >
+                          <span className="substitute-name">{ex.name}</span>
+                          <span className="substitute-info">{ex.equipment || ex.muscle}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
 
+                {/* No results - offer to create */}
                 {substituteSearchQuery.trim().length >= 2 && searchResults.length === 0 && (
                   <div className="substitute-no-results">
                     <div className="no-substitutes">No exercises found matching "{substituteSearchQuery}"</div>
@@ -15435,7 +15650,7 @@ gamify.it.com/fitness`;
                   </div>
                 )}
 
-                {/* Always show option to add new when searching */}
+                {/* Create new option when results exist */}
                 {substituteSearchQuery.trim().length >= 2 && searchResults.length > 0 && (
                   <button
                     className="substitute-create-btn"
@@ -15455,9 +15670,12 @@ gamify.it.com/fitness`;
                   </button>
                 )}
 
-                <button className="modal-btn secondary" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
-                  Cancel
-                </button>
+                {/* Browse all when no search */}
+                {!substituteSearchQuery && substitutes.length === 0 && (
+                  <div className="no-substitutes">
+                    Type to search for an exercise to substitute
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -15677,6 +15895,32 @@ gamify.it.com/fitness`;
                   }}
                 >
                   Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Delete Exercise Modal */}
+        {confirmDeleteExercise && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setConfirmDeleteExercise(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: '320px' }}>
+              <div className="confirm-modal-icon">⚠️</div>
+              <div className="modal-header">Remove Exercise?</div>
+              <div className="confirm-modal-message">
+                Are you sure you want to remove <span className="confirm-modal-exercise-name">{confirmDeleteExercise.name}</span> from this workout?
+                {store.currentWorkout && store.currentWorkout.exercises[confirmDeleteExercise.idx]?.sets.length > 0 && (
+                  <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                    {store.currentWorkout.exercises[confirmDeleteExercise.idx].sets.length} logged set(s) will be removed.
+                  </div>
+                )}
+              </div>
+              <div className="modal-actions">
+                <button className="modal-btn secondary" onClick={() => setConfirmDeleteExercise(null)}>
+                  Cancel
+                </button>
+                <button className="modal-btn danger" onClick={confirmRemoveExercise}>
+                  Remove
                 </button>
               </div>
             </div>
