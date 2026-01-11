@@ -774,6 +774,11 @@ export const useFitnessStore = create<FitnessStore>()(
           }
         }
 
+        // Auto-start rest timer for working sets (if preset is configured)
+        if (!isWarmup && get().restTimerPreset > 0) {
+          get().startRestTimer();
+        }
+
         // Update last activity time for auto-complete tracking
         set({ lastActivityTime: Date.now() });
         get().saveState();

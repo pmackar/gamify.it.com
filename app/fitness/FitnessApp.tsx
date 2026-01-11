@@ -4151,6 +4151,232 @@ export default function FitnessApp() {
           filter: brightness(1.1);
         }
 
+        /* Quick Templates Section */
+        .quick-templates-section {
+          padding: 0 16px 16px;
+        }
+        .quick-templates-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .quick-template-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: left;
+          min-height: 48px;
+        }
+        .quick-template-card:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+        .quick-template-card:active {
+          transform: scale(0.98);
+        }
+        .template-icon {
+          font-size: 24px;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+        }
+        .template-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .template-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .template-meta {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          margin-top: 2px;
+        }
+        .template-arrow {
+          font-size: 18px;
+          color: var(--accent);
+          font-weight: 600;
+        }
+
+        /* Progressive Overload Indicator */
+        .overload-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 5px;
+          border-radius: 4px;
+          margin-left: 4px;
+        }
+        .overload-indicator.up {
+          color: #4ade80;
+          background: rgba(74, 222, 128, 0.15);
+        }
+        .overload-indicator.down {
+          color: #f87171;
+          background: rgba(248, 113, 113, 0.15);
+        }
+        .overload-indicator.pr {
+          color: #FFD700;
+          background: rgba(255, 215, 0, 0.15);
+        }
+
+        /* Exercise History Preview */
+        .exercise-history-preview {
+          padding: 10px 12px;
+          background: var(--bg-tertiary);
+          border-top: 1px solid var(--border);
+          border-bottom: 1px solid var(--border);
+        }
+        .history-preview-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        .history-preview-title {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .history-preview-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .history-preview-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 12px;
+        }
+        .history-preview-date {
+          color: var(--text-tertiary);
+        }
+        .history-preview-sets {
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+
+        /* Workout Notes */
+        .workout-note-input {
+          width: 100%;
+          padding: 10px 12px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-family: inherit;
+          resize: none;
+          min-height: 60px;
+          margin-top: 8px;
+        }
+        .workout-note-input::placeholder {
+          color: var(--text-quaternary);
+        }
+        .workout-note-input:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+        .exercise-note-btn {
+          padding: 6px 10px;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          color: var(--text-tertiary);
+          font-size: 12px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .exercise-note-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .exercise-note-btn.has-note {
+          border-color: var(--accent);
+          background: var(--accent-glow);
+          color: var(--accent);
+        }
+
+        /* Offline/Sync Indicator */
+        .sync-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+        .sync-indicator.syncing {
+          color: var(--accent);
+          border-color: var(--accent);
+        }
+        .sync-indicator.offline {
+          color: #f59e0b;
+          border-color: #f59e0b;
+          background: rgba(245, 158, 11, 0.1);
+        }
+        .sync-icon {
+          font-size: 12px;
+        }
+        .sync-icon.spinning {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        /* Superset Visual Improvements */
+        .superset-connector {
+          position: absolute;
+          left: 8px;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+          border-radius: 2px;
+        }
+        .exercise-pill.superset {
+          margin-left: 16px;
+          border-left: 3px solid var(--accent);
+        }
+        .superset-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 3px 8px;
+          background: var(--accent-glow);
+          border: 1px solid var(--accent);
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 600;
+          color: var(--accent);
+          margin-bottom: 6px;
+        }
+
         /* Quick Access Row */
         .quick-access-row {
           display: grid;
@@ -5479,6 +5705,58 @@ export default function FitnessApp() {
         }
         @keyframes toastIn {
           from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Undo Toast */
+        .undo-toast {
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: rgba(30, 30, 40, 0.95);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          z-index: 300;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          animation: undoToastIn 0.3s ease-out;
+          backdrop-filter: blur(8px);
+        }
+        .undo-toast-message {
+          font-size: 13px;
+          color: var(--text-primary);
+        }
+        .undo-toast-btn {
+          padding: 6px 12px;
+          background: var(--accent);
+          border: none;
+          border-radius: 6px;
+          color: #000;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .undo-toast-btn:hover {
+          filter: brightness(1.1);
+        }
+        .undo-toast-dismiss {
+          padding: 4px 8px;
+          background: transparent;
+          border: none;
+          color: var(--text-tertiary);
+          font-size: 16px;
+          cursor: pointer;
+        }
+        .undo-toast-dismiss:hover {
+          color: var(--text-secondary);
+        }
+        @keyframes undoToastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
           to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
 
@@ -10132,6 +10410,31 @@ export default function FitnessApp() {
                           </div>
                         )}
 
+                        {/* Exercise History Preview - last 3 sessions */}
+                        {(() => {
+                          const historyData = store.getExerciseProgressData(exercise.id).slice(-3).reverse();
+                          if (historyData.length === 0) return null;
+                          return (
+                            <div className="exercise-history-preview">
+                              <div className="history-preview-header">
+                                <span className="history-preview-title">Recent Sessions</span>
+                              </div>
+                              <div className="history-preview-list">
+                                {historyData.map((session, i) => (
+                                  <div key={i} className="history-preview-item">
+                                    <span className="history-preview-date">
+                                      {new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
+                                    <span className="history-preview-sets">
+                                      {session.maxWeight} lbs × {Math.round(session.totalVolume / session.maxWeight)} reps
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         {/* Set Table */}
                         <div className="inline-set-table">
                           <div className="inline-set-header">
@@ -10190,7 +10493,18 @@ export default function FitnessApp() {
                                     {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
                                   </div>
                                   <div className="inline-set-num">{setIdx + 1}</div>
-                                  <div style={{ textAlign: 'center', fontWeight: 600 }}>{existingSet.weight}</div>
+                                  <div style={{ textAlign: 'center', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                                    {existingSet.weight}
+                                    {/* Progressive Overload Indicator */}
+                                    {prevSet && existingSet.weight > prevSet.weight && (
+                                      <span className={`overload-indicator ${existingSet.weight >= (store.records[exercise.id] || 0) ? 'pr' : 'up'}`}>
+                                        {existingSet.weight >= (store.records[exercise.id] || 0) ? '🏆' : '↑'}
+                                      </span>
+                                    )}
+                                    {prevSet && existingSet.weight < prevSet.weight && (
+                                      <span className="overload-indicator down">↓</span>
+                                    )}
+                                  </div>
                                   <div style={{ textAlign: 'center', fontWeight: 600 }}>{existingSet.reps}</div>
                                   <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>
                                     {existingSet.rpe ? `@${existingSet.rpe}` : '—'}
@@ -10339,6 +10653,15 @@ export default function FitnessApp() {
                           </div>
                         )}
 
+                        {/* Workout Notes Field */}
+                        <textarea
+                          className="workout-note-input"
+                          placeholder="Add notes for this exercise... (form cues, feelings, etc.)"
+                          value={store.exerciseNotes?.[exercise.id] || ''}
+                          onChange={(e) => store.setExerciseNote(exercise.id, e.target.value)}
+                          rows={2}
+                        />
+
                         {/* Collapse button */}
                         <button
                           className="inline-collapse-btn"
@@ -10352,8 +10675,18 @@ export default function FitnessApp() {
 
                   // COLLAPSED PILL VIEW (existing)
                   return (
+                  <div key={exercise.id + idx} style={{ position: 'relative' }}>
+                    {/* Superset Label - show for first exercise in superset */}
+                    {isInSuperset && !prevInSameSuperset && (
+                      <div className="superset-label">
+                        🔗 Superset {exercise.supersetGroup}
+                      </div>
+                    )}
+                    {/* Superset Connector Line */}
+                    {isInSuperset && nextInSameSuperset && (
+                      <div className="superset-connector" />
+                    )}
                   <div
-                    key={exercise.id + idx}
                     className={`exercise-pill ${idx === store.currentExerciseIndex ? 'active' : ''} ${isInSuperset ? 'superset' : ''} ${prevInSameSuperset ? 'superset-cont' : ''}`}
                     draggable
                     onDragStart={(e) => {
@@ -10458,6 +10791,7 @@ export default function FitnessApp() {
                       ✕
                     </button>
                   </div>
+                  </div>
                   );
                 })
               )}
@@ -10482,6 +10816,15 @@ export default function FitnessApp() {
                 <div className="profile-xp">
                   <span>{(unifiedProfile?.xp ?? store.profile.xp).toLocaleString()}</span> XP
                   {unifiedProfile && <span style={{ opacity: 0.6 }}> / {unifiedProfile.xpToNext}</span>}
+                </div>
+                {/* Offline/Sync Indicator */}
+                <div className={`sync-indicator ${store.pendingSync ? 'syncing' : ''} ${!store.isOnline ? 'offline' : ''}`}>
+                  <span className={`sync-icon ${store.pendingSync && store.isOnline ? 'spinning' : ''}`}>
+                    {!store.isOnline ? '📴' : store.pendingSync ? '🔄' : '☁️'}
+                  </span>
+                  <span>
+                    {!store.isOnline ? 'Offline' : store.pendingSync ? 'Syncing...' : 'Synced'}
+                  </span>
                 </div>
               </div>
 
@@ -14388,6 +14731,50 @@ gamify.it.com/fitness`;
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Quick Templates Section */}
+              {store.templates.length > 0 && !store.activeProgram && (
+                <div className="quick-templates-section">
+                  <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p className="section-label">Quick Start</p>
+                      <h2 className="section-title">Your Templates</h2>
+                    </div>
+                    <button
+                      className="see-all-btn"
+                      onClick={() => store.setView('templates')}
+                    >
+                      See All
+                    </button>
+                  </div>
+                  <div className="quick-templates-grid">
+                    {store.templates.slice(0, 3).map(template => {
+                      const lastUsed = store.workouts.find(w =>
+                        w.exercises.length > 0 &&
+                        template.exercises.length > 0 &&
+                        w.exercises[0].id === template.exercises[0].exerciseId
+                      );
+                      return (
+                        <button
+                          key={template.id}
+                          className="quick-template-card"
+                          onClick={() => store.startWorkoutFromTemplate(template.id)}
+                        >
+                          <div className="template-icon">🏋️</div>
+                          <div className="template-info">
+                            <div className="template-name">{template.name}</div>
+                            <div className="template-meta">
+                              {template.exercises.length} exercises
+                              {lastUsed && ` · ${Math.floor((Date.now() - new Date(lastUsed.startTime).getTime()) / (1000 * 60 * 60 * 24))}d ago`}
+                            </div>
+                          </div>
+                          <span className="template-arrow">→</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
