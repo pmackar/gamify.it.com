@@ -330,10 +330,20 @@ export interface PhantomStats {
   lastUpdated: string;
 }
 
+export interface RivalFriendInfo {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  level: number;
+}
+
 export interface RivalRelationship {
   id: string;
   rivalType: RivalType;
   friendId?: string;
+  friend?: RivalFriendInfo; // Friend user info for friend rivalries
+  victoryCondition?: 'rolling_average' | 'volume_growth' | 'consistency' | 'prs' | 'best_of_3'; // For friend rivalries
   phantomConfig?: {
     // AI phantom fields
     personality?: PhantomPersonality;

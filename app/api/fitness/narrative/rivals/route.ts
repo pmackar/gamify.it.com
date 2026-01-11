@@ -79,6 +79,7 @@ export const GET = withAuth(async (_request, user) => {
     const friend = isUser1 ? rivalry.user2 : rivalry.user1;
     const myWins = isUser1 ? rivalry.user1_wins : rivalry.user2_wins;
     const theirWins = isUser1 ? rivalry.user2_wins : rivalry.user1_wins;
+    const totalEncounters = myWins + theirWins + rivalry.ties;
 
     return {
       id: rivalry.id,
@@ -92,9 +93,19 @@ export const GET = withAuth(async (_request, user) => {
         level: friend.main_level || 1,
       },
       victoryCondition: rivalry.victory_condition,
+      phantomConfig: {
+        victoryCondition: rivalry.victory_condition,
+      },
+      // Provide consistent fields with AI rivals
+      respectLevel: Math.min(5, 1 + Math.floor(totalEncounters / 5)), // Level up every 5 showdowns
+      rivalryHeat: 50 + (myWins - theirWins) * 5, // Heat based on win differential
+      encounterCount: totalEncounters,
+      winStreak: rivalry.streak_holder_id === user.id ? rivalry.streak_count : 0,
+      longestWinStreak: 0, // Not tracked for friend rivalries
+      longestLoseStreak: 0, // Not tracked for friend rivalries
+      lastEncounterDate: rivalry.last_showdown?.toISOString() || null,
       streakHolderId: rivalry.streak_holder_id,
       streakCount: rivalry.streak_count,
-      lastShowdown: rivalry.last_showdown?.toISOString() || null,
       createdAt: rivalry.created_at.toISOString(),
       headToHead: {
         userWins: myWins,
