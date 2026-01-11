@@ -25,6 +25,7 @@ import CoachNotificationBell from "@/components/fitness/CoachNotificationBell";
 import Leaderboards from "@/components/fitness/Leaderboards";
 import FormCheckReview from "@/components/fitness/FormCheckReview";
 import LiveSessionMonitor from "@/components/fitness/LiveSessionMonitor";
+import CoachSubscriptionPanel from "@/components/fitness/CoachSubscriptionPanel";
 
 interface DashboardStats {
   total_athletes: number;
@@ -440,6 +441,11 @@ export default function CoachDashboard() {
             subtext="invites"
             color="#FFD700"
           />
+        </div>
+
+        {/* Subscription & Usage */}
+        <div className="mb-6">
+          <CoachSubscriptionPanel />
         </div>
 
         {/* Live Session Monitor */}

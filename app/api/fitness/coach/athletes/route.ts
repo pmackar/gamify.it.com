@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withCoachAuth, Errors } from "@/lib/api";
 import prisma from "@/lib/db";
+import { canAddAthlete, updateAthleteCount } from "@/lib/coach-usage";
 
 // GET /api/fitness/coach/athletes - List coached athletes
 export const GET = withCoachAuth(async (request, user) => {
@@ -92,21 +93,24 @@ export const GET = withCoachAuth(async (request, user) => {
 export const POST = withCoachAuth(async (request, user) => {
   const coachProfile = await prisma.coach_profiles.findUnique({
     where: { user_id: user.id },
-    include: {
-      athletes: {
-        where: { status: "ACTIVE" },
-      },
-    },
   });
 
   if (!coachProfile) {
     return Errors.notFound("Not registered as a coach");
   }
 
-  // Check athlete limit
-  if (coachProfile.athletes.length >= coachProfile.max_athletes) {
-    return Errors.invalidInput(
-      `Maximum athlete limit (${coachProfile.max_athletes}) reached`
+  // Check athlete limit based on subscription tier
+  const athleteCheck = await canAddAthlete(user.id, coachProfile.id);
+  if (!athleteCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: athleteCheck.reason,
+        code: "ATHLETE_LIMIT_REACHED",
+        currentCount: athleteCheck.currentCount,
+        limit: athleteCheck.limit,
+        upgradeRequired: true,
+      },
+      { status: 403 }
     );
   }
 
@@ -233,6 +237,9 @@ export const POST = withCoachAuth(async (request, user) => {
       },
     },
   });
+
+  // Update usage tracking (fire and forget)
+  updateAthleteCount(coachProfile.id).catch(console.error);
 
   return NextResponse.json({
     success: true,

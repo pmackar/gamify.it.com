@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { withCoachAuthParams, Errors } from "@/lib/api";
 import { sendNotification } from "@/lib/notifications";
 import { form_check_status } from "@prisma/client";
+import { canReviewFormCheck, incrementFormCheckUsage } from "@/lib/coach-usage";
 
 // GET /api/fitness/coach/form-checks/[formCheckId] - Get single form check
 export const GET = withCoachAuthParams<{ formCheckId: string }>(
@@ -68,6 +69,24 @@ export const PUT = withCoachAuthParams<{ formCheckId: string }>(
       return Errors.invalidInput("Invalid status");
     }
 
+    // Check form check limit when reviewing for the first time
+    const isFirstReview = status && status !== "PENDING" && formCheck.status === "PENDING";
+    if (isFirstReview) {
+      const formCheckLimit = await canReviewFormCheck(user.id, coach.id);
+      if (!formCheckLimit.allowed) {
+        return NextResponse.json(
+          {
+            error: formCheckLimit.reason,
+            code: "FORM_CHECK_LIMIT_REACHED",
+            usedThisMonth: formCheckLimit.usedThisMonth,
+            limit: formCheckLimit.limit,
+            upgradeRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Validate rating
     if (rating !== undefined && (rating < 1 || rating > 5)) {
       return Errors.invalidInput("Rating must be between 1 and 5");
@@ -95,7 +114,10 @@ export const PUT = withCoachAuthParams<{ formCheckId: string }>(
     });
 
     // Notify athlete if status changed from pending
-    if (status && status !== "PENDING" && formCheck.status === "PENDING") {
+    if (isFirstReview) {
+      // Increment usage counter
+      incrementFormCheckUsage(coach.id).catch(console.error);
+
       const coachName = coach.business_name || coach.user.display_name || "Your coach";
       const statusLabel =
         status === "APPROVED"
