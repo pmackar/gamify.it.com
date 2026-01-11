@@ -2383,12 +2383,13 @@ export default function FitnessApp() {
         .inline-set-table {
           width: 100%;
           padding: 0;
+          overflow-x: hidden;
         }
 
         .inline-set-header {
           display: grid;
-          grid-template-columns: 60px 32px 1fr 1fr 50px 32px 40px;
-          gap: 4px;
+          grid-template-columns: 58px 28px minmax(100px, 1fr) minmax(48px, 1fr) 44px 28px 48px;
+          gap: 6px;
           padding: 8px 12px;
           background: var(--bg-tertiary);
           font-size: 9px;
@@ -2408,8 +2409,8 @@ export default function FitnessApp() {
 
         .inline-set-row {
           display: grid;
-          grid-template-columns: 60px 32px 1fr 1fr 50px 32px 40px;
-          gap: 4px;
+          grid-template-columns: 58px 28px minmax(100px, 1fr) minmax(48px, 1fr) 44px 28px 48px;
+          gap: 6px;
           padding: 8px 12px;
           align-items: center;
           border-bottom: 1px solid var(--border-light);
@@ -2425,13 +2426,16 @@ export default function FitnessApp() {
         }
 
         .inline-prev {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-tertiary);
           cursor: pointer;
-          padding: 6px 8px;
+          padding: 6px 4px;
           border-radius: 6px;
           transition: all 0.15s;
           text-align: left;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .inline-prev:hover {
@@ -2463,7 +2467,7 @@ export default function FitnessApp() {
 
         .inline-input {
           width: 100%;
-          padding: 10px 8px;
+          padding: 10px 4px;
           background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: 10px;
@@ -2475,6 +2479,8 @@ export default function FitnessApp() {
           transition: all 0.15s;
           -webkit-appearance: none;
           -moz-appearance: textfield;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
         .inline-input::-webkit-inner-spin-button,
@@ -2496,11 +2502,12 @@ export default function FitnessApp() {
         .weight-stepper-group {
           display: flex;
           align-items: center;
-          gap: 2px;
+          gap: 0;
+          min-width: 0;
         }
 
         .weight-stepper-btn {
-          width: 32px;
+          width: 28px;
           height: 40px;
           display: flex;
           align-items: center;
@@ -2508,7 +2515,7 @@ export default function FitnessApp() {
           background: var(--bg-tertiary);
           border: 1px solid var(--border);
           color: var(--text-secondary);
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.15s;
@@ -2537,8 +2544,9 @@ export default function FitnessApp() {
           border-radius: 0;
           border-left: none;
           border-right: none;
-          width: 60px;
-          min-width: 60px;
+          flex: 1;
+          min-width: 44px;
+          width: auto;
         }
 
         .inline-check-btn {
@@ -2620,31 +2628,40 @@ export default function FitnessApp() {
 
         @media (max-width: 400px) {
           .inline-set-header {
-            grid-template-columns: 48px 28px 1fr 1fr 42px 28px 36px;
-            gap: 3px;
+            grid-template-columns: 50px 24px minmax(80px, 1fr) minmax(40px, 1fr) 36px 24px 40px;
+            gap: 4px;
             padding: 6px 8px;
             font-size: 8px;
           }
           .inline-set-row {
-            grid-template-columns: 48px 28px 1fr 1fr 42px 28px 36px;
-            gap: 3px;
+            grid-template-columns: 50px 24px minmax(80px, 1fr) minmax(40px, 1fr) 36px 24px 40px;
+            gap: 4px;
             padding: 6px 8px;
           }
           .inline-prev {
-            font-size: 10px;
-            padding: 4px 4px;
+            font-size: 9px;
+            padding: 4px 2px;
           }
           .inline-input {
             padding: 8px 2px;
             font-size: 14px;
           }
           .inline-input.inline-rpe {
-            font-size: 12px;
+            font-size: 11px;
           }
           .inline-check-btn {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
             font-size: 16px;
+          }
+          .weight-stepper-btn {
+            width: 24px;
+            font-size: 9px;
+          }
+          .weight-stepper-group .inline-input.weight-input {
+            min-width: 36px;
           }
         }
 
