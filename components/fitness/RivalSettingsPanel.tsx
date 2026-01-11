@@ -122,6 +122,9 @@ export function RivalSettingsPanel() {
   const [selectedPersonality, setSelectedPersonality] = useState<PhantomPersonality | null>(null);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
 
+  // Confirmation dialog for removing rivals
+  const [rivalToRemove, setRivalToRemove] = useState<RivalRelationship | null>(null);
+
   // Fetch rivals data including pending requests
   const fetchRivalsData = async () => {
     try {
@@ -356,6 +359,7 @@ export function RivalSettingsPanel() {
       console.error('Failed to remove rival:', error);
     }
     setLoading(false);
+    setRivalToRemove(null);
   };
 
   const getRivalName = (rival: RivalRelationship): string => {
@@ -617,7 +621,7 @@ export function RivalSettingsPanel() {
                             <div className="text-xs text-gray-500">Respect</div>
                           </div>
                           <button
-                            onClick={() => handleRemoveRival(rival.id)}
+                            onClick={() => setRivalToRemove(rival)}
                             className="text-lg text-red-400 hover:text-red-300 p-2"
                           >
                             ✕
@@ -806,6 +810,45 @@ export function RivalSettingsPanel() {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Remove Rival Confirmation Dialog */}
+          {rivalToRemove && (
+            <div
+              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+              onClick={() => setRivalToRemove(null)}
+            >
+              <div
+                className="bg-gray-900 border border-gray-700 rounded-2xl p-5 w-full max-w-xs"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-base font-bold text-white mb-3">Remove Rival?</h3>
+                <p className="text-sm text-gray-400 mb-5">
+                  Are you sure you want to end your rivalry with{' '}
+                  <span className="text-white font-medium">{getRivalName(rivalToRemove)}</span>?
+                  {rivalToRemove.rivalType === 'friend' && (
+                    <span className="block mt-2 text-xs text-gray-500">
+                      Your win/loss record will be lost.
+                    </span>
+                  )}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setRivalToRemove(null)}
+                    className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleRemoveRival(rivalToRemove.id)}
+                    disabled={loading}
+                    className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Removing...' : 'Remove'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
