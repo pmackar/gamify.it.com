@@ -168,31 +168,48 @@ export const DELETE = withAuthParams<{ rivalId: string }>(
   async (_request, user, params) => {
     const { rivalId } = params;
 
-    // Find and delete
-    const rival = await prisma.fitness_rivals.findFirst({
+    // First check if it's an AI phantom rival
+    const aiRival = await prisma.fitness_rivals.findFirst({
       where: {
         id: rivalId,
         user_id: user.id,
       },
     });
 
-    if (!rival) {
-      return Errors.notFound("Rival not found");
+    if (aiRival) {
+      // Delete associated encounters
+      await prisma.fitness_encounters.deleteMany({
+        where: {
+          user_id: user.id,
+          rival_id: rivalId,
+        },
+      });
+
+      // Delete the AI rival
+      await prisma.fitness_rivals.delete({
+        where: { id: rivalId },
+      });
+
+      return NextResponse.json({ success: true });
     }
 
-    // Delete associated encounters
-    await prisma.fitness_encounters.deleteMany({
+    // Check if it's a friend rivalry
+    const friendRivalry = await prisma.fitness_friend_rivalries.findFirst({
       where: {
-        user_id: user.id,
-        rival_id: rivalId,
+        id: rivalId,
+        OR: [{ user1_id: user.id }, { user2_id: user.id }],
       },
     });
 
-    // Delete the rival
-    await prisma.fitness_rivals.delete({
-      where: { id: rivalId },
-    });
+    if (friendRivalry) {
+      // Delete the friend rivalry (soft delete by setting is_active to false, or hard delete)
+      await prisma.fitness_friend_rivalries.delete({
+        where: { id: rivalId },
+      });
 
-    return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true });
+    }
+
+    return Errors.notFound("Rival not found");
   }
 );
