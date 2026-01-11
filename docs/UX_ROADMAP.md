@@ -1,39 +1,63 @@
 # Reptura UX/UI Roadmap
 
-> Last Updated: 2026-01-10
+> Last Updated: 2026-01-10 (Post-Sprint 3 Completion)
 > Status: Active Development
 
 ## Executive Summary
 
-Reptura is a feature-rich fitness RPG with ~15,000 lines of UI code. This document tracks the UX/UI improvement roadmap to achieve the goal of becoming the **most usable and powerful fitness app on the market**.
+Reptura is a feature-rich fitness RPG with **16,226 lines** of UI code in the main component. After completing Sprint 1 (Critical) and Sprint 2 (Important) improvements, this document reflects a comprehensive re-analysis to achieve the goal of becoming the **most usable and powerful fitness app on the market**.
 
-**Overall App Grade: B (83.75/100)**
+**Overall App Grade: A- (88.5/100)** *(improved from B+/86.5)*
+
+### Grade Improvement Summary (Post-Sprint 3)
+| Area | Sprint 2 | Sprint 3 | Change |
+|------|----------|----------|--------|
+| Home View | B+ | B+ | - |
+| Workout View | A- | **A** | +0.5 |
+| History View | B+ | **A-** | +0.5 |
+| Navigation | B+ | B+ | - |
+| Set Logging | A | A | - |
+| Achievements | B | **B+** | +0.5 |
+| Accessibility | C | **B+** | +1.5 |
+| Overall | B+ (86.5) | **A- (88.5)** | +2.0 |
 
 ---
 
 ## Current Architecture
 
-### Navigation Structure (16 Views)
+### Navigation Structure (17 Views)
 
-| View | Purpose | Grade |
-|------|---------|-------|
-| `home` | Primary landing | B |
-| `workout` | Active workout logging | B+ |
-| `profile` | User stats & PRs | B- |
-| `history` | Past workouts | B |
-| `workout-detail` | Single workout view | B |
-| `achievements` | Badges & milestones | B |
-| `campaigns` | Goal setting | C+ |
-| `social` | Friends feed | B- |
-| `coach` | AI coaching | TBD |
-| `exercises` | Exercise library | B+ |
-| `exercise-detail` | Single exercise view | B |
-| `templates` | Workout templates | B- |
-| `template-editor` | Template editing | B |
-| `programs` | Training programs | B- |
-| `program-wizard` | Program builder | C+ |
-| `program-detail` | Active program view | B |
-| `analytics` | Stats dashboard | B |
+| View | Purpose | Grade | Priority |
+|------|---------|-------|----------|
+| `home` | Primary dashboard & workout start | **B+** | Core |
+| `workout` | Active workout logging | **A-** | Core |
+| `profile` | User stats, PRs, body tracking | B | Core |
+| `history` | Past workouts with filtering | **B+** | Core |
+| `workout-detail` | Single workout breakdown | B | Core |
+| `achievements` | Badges & milestones | B | Engagement |
+| `campaigns` | Goal setting & tracking | C+ | Engagement |
+| `social` | Friends feed & rivalries | B- | Social |
+| `coach` | AI coaching (placeholder) | TBD | Future |
+| `exercises` | Exercise library | B+ | Core |
+| `exercise-detail` | Exercise stats & history | B+ | Core |
+| `templates` | Workout templates | B | Library |
+| `template-editor` | Template creation/editing | B | Library |
+| `programs` | Training programs | B | Library |
+| `program-wizard` | Multi-step program builder | B- | Library |
+| `program-detail` | Active program tracking | B | Library |
+| `analytics` | Stats dashboard | B+ | Insights |
+
+### Mobile Navigation (4-Tab Structure)
+```
+🏠 Home/Workout | 📚 Library | 📋 History | 👤 Profile
+     ↓               ↓            ↓           ↓
+  Start workout   Exercises    Workouts    Stats
+  Active program  Templates    Search      Achievements
+  Daily challenge Programs     Filter      Analytics
+  Quick access                 Date range  Campaigns
+```
+
+**Navigation Grade: B+** *(improved from B-)*
 
 ---
 
@@ -56,405 +80,649 @@ Reptura is a feature-rich fitness RPG with ~15,000 lines of UI code. This docume
 - [ ] Add a 30-second video showing real app usage
 - [ ] Move interactive demo above the fold
 - [ ] Add testimonials from real users
-- [ ] Add "Try Demo" button that launches ?try=true mode immediately
+- [ ] Add "Try Demo" button that launches ?try=true mode
 
 ---
 
-### 2. Home View (Grade: B)
+### 2. Home View (Grade: B+ ↑)
 
 **Strengths:**
-- Shows level, XP, recent activity
-- FriendRivalryScoreboard, DailyChallengeCard are motivating
+- ✅ Prominent "Start Workout" button in hero area
+- ✅ Quick access row for Social, Achievements, Analytics
+- ✅ Simplified to 4 key cards (from 6+)
+- Shows level, XP, active program progress
+- Daily Challenge Card provides motivation
+- Active program widget shows today's session
 
 **Issues:**
-- [x] Hero card leads to Profile (should start workout) - **FIXED**
-- [ ] "Almost There" milestones only show ≥95% progress
-- [ ] 6+ cards on home competing for attention
-- [x] No clear "Start Workout" button visible - **FIXED**
+- [ ] "Almost There" milestones only show ≥95% progress (too restrictive)
+- [ ] Active program widget doesn't show exercise preview
+- [ ] No "last workout" quick resume option
+- [ ] Daily challenges not personalized to user's training
 
 **Recommendations:**
-- [x] Add prominent "START WORKOUT" button in hero area - **IMPLEMENTED**
-- [ ] Reduce home to 3-4 key cards maximum
-- [ ] Progressive disclosure: show more cards as user progresses
-- [x] Stats now navigate to profile, hero area has Start Workout button - **IMPLEMENTED**
+- [ ] Lower "Almost There" threshold to 80%
+- [ ] Add exercise preview to active program widget
+- [ ] Add "Continue Last Workout" for incomplete sessions
+- [ ] Personalize daily challenges based on weak points
 
 ---
 
-### 3. Workout View (Grade: B+)
+### 3. Workout View (Grade: A ↑)
 
 **Strengths:**
-- Excellent command-based entry ("135 x 8")
+- ✅ Inline "+ Log Set" button on each exercise pill
+- ✅ Touch targets meet 44x44px minimum
+- ✅ Voice logging with pattern recognition ("135 x 8")
+- ✅ Floating workout stats (timer, volume, sets, XP)
+- ✅ Undo toast for deleted sets/exercises
+- Excellent command-based entry
 - Inline set badges are scannable
 - Gold highlighting for PRs is satisfying
+- Drag-to-reorder exercises works on mobile
 
 **Issues:**
-- [x] Exercise pills require tap to log sets (additional step) - **FIXED**
-- [ ] Timer in navbar is easy to miss
-- [ ] No visual indicator of total volume/XP during workout
-- [x] Remove exercise button (✕) is very small - **FIXED**
-- [ ] Superset badge "SS" is cryptic
+- [ ] Superset badge "SS" is cryptic for new users
+- [ ] No rest timer auto-start after logging set
+- [ ] Exercise notes not visible without opening panel
 
 **Recommendations:**
-- [x] Add inline "+Set" button on each exercise pill - **IMPLEMENTED**
-- [ ] Show running total XP prominently during workout
-- [ ] Add volume meter or "workout intensity" indicator
-- [x] Increase touch target sizes for mobile - **IMPLEMENTED (44x44px min)**
-- [ ] Add haptic feedback on set logging
+- [ ] Auto-start rest timer after set log (configurable)
+- [ ] Expand "SS" to "Superset" on first occurrence
+- [ ] Show exercise note preview on pill (if exists)
+- [ ] Add workout intensity meter (volume vs target)
 
 ---
 
-### 4. Set Logging Panel (Grade: A-)
+### 4. Set Logging Panel (Grade: A ↑)
 
 **Strengths:**
+- ✅ Voice input button with listening animation
 - Weight/Reps/RPE layout is intuitive
-- "Last time" and "This time" badges excellent
-- Progression target shown clearly
-- "Repeat Last" button is useful
+- "Last time" reference shows previous performance
+- Progression target shown when from program/template
+- "Repeat Last" button enables quick logging
+- Keyboard-aware positioning (adjusts for mobile keyboard)
 
 **Issues:**
-- [ ] Panel covers content, no preview of what you're logging for
-- [ ] Warmup checkbox is easy to miss
-- [ ] RPE optional but takes visual space
+- [ ] Panel covers workout content (no transparency)
+- [ ] Warmup checkbox at bottom is easy to miss
+- [ ] No quick weight adjustment buttons (+5/-5 lbs)
+- [ ] Plate calculator requires separate action
+- [ ] Can't see other exercises while panel is open
 
 **Recommendations:**
-- [ ] Show exercise name more prominently in panel header
-- [ ] Add quick weight adjustment buttons (+5, -5)
-- [ ] Make plate calculator more discoverable
-- [ ] Add voice logging option
+- [ ] Add +5/-5 lb quick adjustment buttons
+- [ ] Move warmup toggle to more prominent position
+- [ ] Add "peek" mode to see workout behind panel
+- [ ] Integrate plate calculator inline (show plates needed)
+- [ ] Add haptic feedback on successful set log
 
 ---
 
-### 5. Profile View (Grade: B-)
+### 5. Profile View (Grade: B)
 
 **Strengths:**
-- Clear level/XP/workouts display
+- Clear level/XP/workouts display in hero
+- Body stats editor with height/weight inputs
+- Weight history tracking available
 
 **Issues:**
-- [ ] Too many PRs displayed (12) without filtering
+- [ ] Too many PRs displayed without filtering (12+)
 - [ ] Edit/delete PR buttons are emoji-only (accessibility)
-- [ ] Body stats section uses non-standard input pattern
-- [ ] Weight history chart not visible
-- [ ] Summary share is easy to miss
+- [ ] Weight history chart hidden by default
+- [ ] No profile photo/avatar customization
+- [ ] Summary share button is hard to find
 
 **Recommendations:**
 - [ ] Add tabs: Overview | PRs | Body | Settings
 - [ ] Make weight history chart visible by default
-- [ ] Add goal-setting for body composition
-- [ ] Improve PR filtering (by muscle, by recency)
-- [ ] Add profile photo/avatar customization
+- [ ] Add PR filtering (by muscle group, by recency)
+- [ ] Add profile photo/avatar with RPG-themed frames
+- [ ] Add "Share Profile Card" with stats summary
 
 ---
 
-### 6. History View (Grade: B)
+### 6. History View (Grade: A- ↑)
 
 **Strengths:**
+- ✅ Search by exercise name
+- ✅ Date filter tabs (All, 7d, 30d, 90d)
+- ✅ Muscle group filter chips
+- ✅ Load more pagination
+- ✅ Calendar heatmap view (12-week GitHub-style)
+- ✅ View toggle between list and calendar
 - Good information density on workout cards
-- Muscle tags help categorization
+- Muscle tags visible on cards
 
 **Issues:**
-- [ ] No search or filter capability
-- [ ] Only shows 20 workouts, no pagination
-- [ ] No calendar view option
-- [ ] Can't compare two workouts
+- [ ] Can't compare two workouts side-by-side
+- [ ] No "duplicate workout" action
+- [ ] Deleted workouts can't be recovered
 
 **Recommendations:**
-- [ ] Add calendar view toggle
-- [ ] Add filter by muscle group
-- [ ] Add search by exercise name
-- [ ] Implement infinite scroll or "load more"
-- [ ] Add workout comparison feature
+- [ ] Add workout comparison feature (select 2)
+- [ ] Add "Repeat This Workout" button
+- [ ] Add soft-delete with 30-day recovery
 
 ---
 
-### 7. Exercise Library (Grade: B+)
+### 7. Workout Summary Modal (Grade: A- ✨NEW)
 
 **Strengths:**
-- Real-time filtering works well
+- ✅ Animated XP earned display
+- ✅ PRs section with gold highlighting
+- ✅ Volume comparison vs similar workout
+- ✅ Share button with native share / clipboard fallback
+
+**Issues:**
+- [ ] No workout rating (how did it feel?)
+- [ ] No comparison to program target
+- [ ] No suggested next workout
+
+**Recommendations:**
+- [ ] Add "Rate Your Workout" (1-5 difficulty)
+- [ ] Show program compliance (vs target sets/reps)
+- [ ] Suggest next workout or rest day
+
+---
+
+### 8. Exercise Library (Grade: B+)
+
+**Strengths:**
+- Real-time filtering by muscle group
 - Horizontal scroll chips are intuitive
-- PR display is useful
+- PR display per exercise
+- Custom exercises supported
 
 **Issues:**
 - [ ] No exercise preview (form tips, video)
-- [ ] Custom exercises mixed with built-in without distinction
+- [ ] Custom exercises mixed with built-in
 - [ ] No "recently used" or "favorites" section
 - [ ] No equipment filter
+- [ ] Can't add exercise to workout from library
 
 **Recommendations:**
-- [ ] Add exercise demo videos/GIFs
-- [ ] Add "Favorites" quick access section
-- [ ] Add equipment filter
-- [ ] Show form tips in preview card
-- [ ] Add "Add to Workout" button directly in library
+- [ ] Add "Recently Used" section at top
+- [ ] Add "Favorites" with star toggle
+- [ ] Add equipment filter (barbell, dumbbell, machine, bodyweight)
+- [ ] Add "Add to Current Workout" button
+- [ ] Visual distinction for custom exercises
 
 ---
 
-### 8. Templates View (Grade: B-)
+### 9. Exercise Detail View (Grade: B+)
+
+**Strengths:**
+- Comprehensive stats (PR, estimated 1RM, total volume)
+- Progress chart with time range options
+- Form tips and common mistakes
+- User-editable exercise notes
+
+**Issues:**
+- [ ] No video/GIF demonstration
+- [ ] No alternative exercise suggestions
+- [ ] Can't see workout history for this exercise
+- [ ] 1RM chart could show trend line
+
+**Recommendations:**
+- [ ] Add workout history list for this exercise
+- [ ] Add "Similar Exercises" recommendations
+- [ ] Add trend line to 1RM progression chart
+- [ ] Add "Set a Goal" for this exercise
+
+---
+
+### 10. Templates View (Grade: B)
+
+**Strengths:**
+- Card-based layout with key info
+- Quick actions (Start, Edit, Duplicate, Delete)
+- Muscle group tags visible
 
 **Issues:**
 - [ ] No template preview before starting
 - [ ] Can't reorder templates
-- [ ] No folders/categories
+- [ ] No folders/categories for organization
 - [ ] Duplicate button (⧉) is cryptic
+- [ ] No estimated duration shown
 
 **Recommendations:**
-- [ ] Add template preview modal
-- [ ] Allow template grouping/folders
-- [ ] Add estimated duration per template
-- [ ] Add "Popular Templates" from community
-- [ ] Import/export templates
+- [ ] Add template preview modal (show exercises)
+- [ ] Add drag-to-reorder templates
+- [ ] Add folder/category support
+- [ ] Show estimated duration on card
+- [ ] Add "Share Template" feature
 
 ---
 
-### 9. Programs View (Grade: B-)
-
-**Issues:**
-- [ ] Programs vs Templates distinction unclear
-- [ ] Program wizard is complex (~500 lines of state)
-- [ ] No program calendar visualization
-- [ ] Can't preview program before starting
-
-**Recommendations:**
-- [ ] Clarify Templates = single workout, Programs = multi-week plan
-- [ ] Add visual program calendar (week view)
-- [ ] Simplify wizard to 3 steps max
-- [ ] Add "Clone and Modify" for existing programs
-- [ ] Show estimated completion date
-
----
-
-### 10. Analytics View (Grade: B)
+### 11. Template Editor (Grade: B)
 
 **Strengths:**
-- Volume by week, muscle, strength progress available
-- Date filtering options
+- Full exercise configuration (sets, reps, rest)
+- Superset grouping supported
+- Drag-to-reorder exercises
+- Notes per exercise
+
+**Issues:**
+- [ ] Complex UI for beginners
+- [ ] No template validation warnings
+- [ ] Can't preview template before saving
+- [ ] No undo/redo for edits
+
+**Recommendations:**
+- [ ] Add "Template Looks Good" validation feedback
+- [ ] Add preview mode before save
+- [ ] Add undo/redo capability
+- [ ] Simplify UI with progressive disclosure
+
+---
+
+### 12. Programs View (Grade: B)
+
+**Strengths:**
+- "My Programs" vs "Library" tab separation
+- Active program status visible
+- Progress bar on active programs
+
+**Issues:**
+- [ ] Programs vs Templates distinction unclear to new users
+- [ ] No program calendar visualization
+- [ ] Can't preview program structure before starting
+- [ ] No estimated completion date shown
+
+**Recommendations:**
+- [ ] Add explainer: "Templates = 1 workout, Programs = multi-week plan"
+- [ ] Add visual calendar view of program
+- [ ] Show estimated completion date
+- [ ] Add program preview modal
+
+---
+
+### 13. Program Wizard (Grade: B-)
+
+**Strengths:**
+- 4-step structured flow
+- Goal priority with drag-to-reorder
+- Multiple progression rule types
+- Deload configuration
+
+**Issues:**
+- [ ] 4 steps may be too many (wizard fatigue)
+- [ ] No progress indicator showing current step
+- [ ] Can't go back to edit previous steps easily
+- [ ] Complex progression options may overwhelm beginners
+- [ ] No "Quick Setup" option for common programs
+
+**Recommendations:**
+- [ ] Add step progress indicator (1/4, 2/4, etc.)
+- [ ] Add "Quick Setup" for PPL, Upper/Lower, Full Body
+- [ ] Allow editing any step from review screen
+- [ ] Add "Beginner Mode" hiding advanced options
+- [ ] Show live preview of program structure
+
+---
+
+### 14. Program Detail View (Grade: B)
+
+**Strengths:**
+- Week navigator for program structure
+- Day status indicators (completed, current, upcoming)
+- Start/Skip workout options
+
+**Issues:**
+- [ ] No visual calendar view
+- [ ] Can't see exercise list without drilling down
+- [ ] No program adjustment options (swap day, modify)
+- [ ] Compliance tracking not visible
+
+**Recommendations:**
+- [ ] Add calendar view toggle
+- [ ] Show exercise preview for each day
+- [ ] Add "Swap Days" for schedule flexibility
+- [ ] Add program compliance percentage
+
+---
+
+### 15. Analytics View (Grade: B+)
+
+**Strengths:**
+- Volume trend (8-week bar chart)
+- Muscle distribution (horizontal bars)
+- Strength progress for top exercises
+- Date range selection (YTD, 90d, 365d, All)
+- Estimated 1RM calculations
 
 **Issues:**
 - [ ] No AI-generated insights
-- [ ] Charts need styling review
+- [ ] No comparison to previous periods
+- [ ] No workout frequency heatmap
+- [ ] Charts could use better styling
+- [ ] No export option for data
 
 **Recommendations:**
-- [ ] Add "You lifted X% more than last month" insights
+- [ ] Add auto-generated insights ("You're 15% stronger than last month")
+- [ ] Add comparison mode (this month vs last month)
+- [ ] Add GitHub-style workout heatmap
 - [ ] Add muscle balance radar chart
-- [ ] Add workout frequency heatmap (GitHub-style)
-- [ ] Add 1RM progression over time
-- [ ] Add body composition trends
+- [ ] Add data export (CSV/PDF)
 
 ---
 
-### 11. Campaigns/Goals View (Grade: C+)
+### 16. Campaigns/Goals View (Grade: C+)
 
 **Issues:**
 - [ ] Adding goals requires command bar (not discoverable)
 - [ ] No suggested goals based on current PRs
 - [ ] No milestone breakdown for large goals
 - [ ] No celebration on goal completion
+- [ ] Confusing relationship with Achievements
 
 **Recommendations:**
-- [ ] Add "Suggested Goals" based on user's data
-- [ ] Add mini-goal milestones (25%, 50%, 75%)
-- [ ] Add celebration animation on goal completion
-- [ ] Consider merging with Achievements
+- [ ] Add prominent "Create Goal" button
+- [ ] Add "Suggested Goals" based on user's PRs (+5%, +10%)
+- [ ] Add milestone progress (25%, 50%, 75%)
+- [ ] Add celebration animation on completion
+- [ ] Clarify: Campaigns = user goals, Achievements = app milestones
 
 ---
 
-### 12. Social View (Grade: B-)
+### 17. Social View (Grade: B-)
+
+**Strengths:**
+- Friend activity feed
+- Rival system (AI phantoms + friends)
+- Props/kudos on workouts
+- Accountability partners
 
 **Issues:**
-- [ ] No way to find/add friends easily
+- [ ] No friend search/discovery
+- [ ] No invite via link/QR code
+- [ ] No group/gym communities
+- [ ] Friend rivalries require existing friends
 
 **Recommendations:**
-- [ ] Add friend search/invite flow
-- [ ] Add friend activity notifications
-- [ ] Add workout challenges between friends
-- [ ] Add gym/group communities
+- [ ] Add friend search by username
+- [ ] Add invite link generation
+- [ ] Add leaderboards (weekly/monthly)
+- [ ] Add group challenges (gym, friend group)
 
 ---
 
-### 13. Achievements View (Grade: B)
+### 18. Achievements View (Grade: B+ ↑)
+
+**Strengths:**
+- General achievements visible
+- Milestone achievements per exercise
+- XP rewards shown
+- Unlocked state with checkmark
+- ✅ Progress bars for locked milestone achievements
+- ✅ Shows current PR vs. target weight
 
 **Issues:**
-- [ ] No progress bar for unearned achievements
 - [ ] Mixed general and exercise-specific without grouping
 - [ ] No rarity indicators
+- [ ] Can't share individual achievements
 
 **Recommendations:**
-- [ ] Add progress bars for unearned achievements
-- [ ] Group by category (Strength, Consistency, Social)
+- [ ] Group by category (Strength, Consistency, Social, Milestones)
 - [ ] Add rarity indicators (% of users earned)
 - [ ] Add shareable achievement cards
 
 ---
 
-## Mobile Navigation Analysis
+## Cross-Cutting UX Issues
 
-### Current Bottom Nav (UPDATED)
-```
-🏠 Home | 📚 Library | 📋 History | 👤 Profile
-```
+### 1. Monolithic Component
+- **Issue:** 16,226 lines in single FitnessApp.tsx file
+- **Impact:** Potential re-render performance issues, harder to maintain
+- **Recommendation:** Extract into feature-based components (Workout, Library, Analytics, etc.)
 
-**Grade: B+ (improved from B-)**
+### 2. List Virtualization
+- **Issue:** History, achievements, exercises rendered without virtualization
+- **Impact:** Performance degradation with large data sets
+- **Recommendation:** Implement react-window or similar for long lists
 
-**Changes Made:**
-- ✅ Reduced from 5 tabs to 4 tabs
-- ✅ Created unified "Library" tab containing Exercises, Templates, Programs
-- ✅ Added library section tabs within Library views
-- ✅ Profile now includes Achievements, Analytics, Campaigns, Social
+### 3. Offline Support
+- **Issue:** Limited functionality when offline
+- **Impact:** Users in gyms with poor signal can't log workouts reliably
+- **Recommendation:** Full offline-first architecture with background sync
 
-**Previous Issues (Now Fixed):**
-- ~~5 tabs is at the limit~~ → Now 4 tabs
-- ~~Many features not accessible~~ → Now accessible via Library/Profile tabs
+### 4. Undo/Redo ✅ ADDRESSED
+- **Issue:** No undo capability for workout edits
+- **Impact:** Accidental deletions are permanent
+- **Solution:** ✅ Added undo toast for set/exercise deletions with 5-second window
+
+### 5. Accessibility ✅ ADDRESSED
+- **Issue:** Some buttons use emoji-only labels, charts lack screen reader support
+- **Impact:** Reduced usability for assistive technology users
+- **Solution:** ✅ Added ARIA labels, roles, aria-live regions, aria-pressed states
 
 ---
 
 ## Priority Implementation Roadmap
 
-### 🔴 Critical (Sprint 1)
+### ✅ Sprint 1 - Critical (COMPLETED)
 
-| Task | Status | Owner | Notes |
-|------|--------|-------|-------|
-| Add prominent "Start Workout" button | ✅ DONE | - | Large gradient button on home hero |
-| Simplify navigation (16 → 4 tabs) | ✅ DONE | - | Home, Library, History, Profile + Library tabs |
-| Improve mobile touch targets (44x44px min) | ✅ DONE | - | Remove buttons, set badges improved |
-| Add inline set logging | ✅ DONE | - | "+ Log Set" button on exercise pills |
+| Task | Status | Notes |
+|------|--------|-------|
+| Add prominent "Start Workout" button | ✅ DONE | Large gradient button on home hero |
+| Simplify navigation (16 → 4 tabs) | ✅ DONE | Home, Library, History, Profile + sub-tabs |
+| Improve mobile touch targets (44x44px min) | ✅ DONE | Remove buttons, set badges improved |
+| Add inline set logging | ✅ DONE | "+ Log Set" button on exercise pills |
 
-### 🟡 Important (Sprint 2)
+### ✅ Sprint 2 - Important (COMPLETED)
 
-| Task | Status | Owner | Notes |
-|------|--------|-------|-------|
-| Add workout summary view | ✅ DONE | - | XP animation, PRs, volume comparison, share |
-| Improve history filtering | ✅ DONE | - | Date tabs, muscle chips, search, load more |
-| Reduce home view complexity | ✅ DONE | - | Simplified to 4 cards + quick access row |
-| Add voice logging | ✅ DONE | - | Web Speech API, "135 times 8" pattern |
+| Task | Status | Notes |
+|------|--------|-------|
+| Add workout summary view | ✅ DONE | XP animation, PRs, volume comparison, share |
+| Improve history filtering | ✅ DONE | Date tabs, muscle chips, search, load more |
+| Reduce home view complexity | ✅ DONE | Simplified to 4 cards + quick access row |
+| Add voice logging | ✅ DONE | Web Speech API, "135 times 8" pattern |
 
-### 🟢 Nice to Have (Sprint 3+)
+### ✅ Sprint 3 - High Priority (COMPLETED)
 
-| Task | Status | Owner | Notes |
-|------|--------|-------|-------|
-| Add dark/light theme toggle | 🔲 TODO | - | Currently dark-only |
-| Add iOS/Android widget | 🔲 TODO | - | Streak, next workout |
-| Add Apple Watch companion | 🔲 TODO | - | Quick set logging |
+| Task | Status | Notes |
+|------|--------|-------|
+| Add floating workout timer + volume counter | ✅ DONE | Shows time, volume, sets, XP during workout |
+| Add "Recently Used" exercises section | ✅ DONE | Quick access section in exercise library |
+| Add calendar heatmap to History | ✅ DONE | 12-week GitHub-style heatmap with toggle |
+| Add achievement progress bars | ✅ DONE | Progress bars for locked milestone achievements |
+| Add accessibility improvements (ARIA labels) | ✅ DONE | ARIA labels, roles, live regions added |
+| Add undo for set/exercise deletions | ✅ DONE | Toast with 5-second undo window |
+
+### 🔴 Sprint 4 - Medium Priority (NEXT)
+
+| Task | Status | Impact | Effort |
+|------|--------|--------|--------|
+| Add AI-generated insights to Analytics | 🔲 TODO | High | Medium |
+| Add workout comparison feature | 🔲 TODO | Medium | Medium |
+| Add template preview modal | 🔲 TODO | Medium | Low |
+| Add "Repeat This Workout" button | 🔲 TODO | Medium | Low |
+| Add friend search/invite | 🔲 TODO | Medium | Medium |
+| Simplify Program Wizard (add Quick Setup) | 🔲 TODO | Medium | High |
+
+### 🟢 Sprint 5+ - Lower Priority
+
+| Task | Status | Impact | Effort |
+|------|--------|--------|--------|
+| Add dark/light theme toggle | 🔲 TODO | Low | Medium |
+| Add profile photo/avatar | 🔲 TODO | Low | Low |
+| Add data export (CSV/PDF) | 🔲 TODO | Low | Medium |
+| Component modularization | 🔲 TODO | Technical | High |
+| List virtualization | 🔲 TODO | Technical | Medium |
+| Full offline-first support | 🔲 TODO | Medium | High |
 
 ### 🅿️ Parking Lot (Deferred)
 
 | Task | Notes | Reason |
 |------|-------|--------|
-| Add exercise videos | Demo videos for form | Requires content creation, CDN setup, significant effort |
+| Add exercise videos | Demo videos for form | Requires content creation, CDN setup |
+| Apple Watch companion | Quick set logging | Native development required |
+| iOS/Android widgets | Streak display | Native development required |
+| +5/-5 quick weight adjustment | Speed up weight entry | Risk of panel clutter; explore swipe gestures or smart defaults instead |
 
 ---
 
 ## Metrics to Track
 
-> **Dashboard:** These metrics are now tracked in the admin panel at `/admin/fitness`
+> **Dashboard:** Tracked in admin panel at `/admin/fitness`
 
 ### Acquisition & Activation
-| Metric | Target | Current | Notes |
-|--------|--------|---------|-------|
-| Landing → Sign Up | >15% | TBD | - |
-| Sign Up → First Workout | >60% | TBD | Critical for retention |
-| Onboarding Completion | >80% | TBD | - |
-| Try Mode → Sign Up | >25% | TBD | Demo conversion |
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| Landing → Sign Up | >15% | TBD | 🔘 |
+| Sign Up → First Workout | >60% | Live | 📊 |
+| Onboarding Completion | >80% | TBD | 🔘 |
+| Try Mode → Sign Up | >25% | TBD | 🔘 |
 
 ### Engagement
-| Metric | Target | Current | Notes |
-|--------|--------|---------|-------|
-| Weekly Active Users (WAU) | - | TBD | Core health metric |
-| Workouts per User per Week | >2.5 | TBD | - |
-| Average Workout Duration | 30-60 min | TBD | - |
-| Sets Logged per Workout | >15 | TBD | - |
-| Command Bar Usage Rate | - | TBD | Power user indicator |
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| Weekly Active Users (WAU) | - | Live | 📊 |
+| Workouts per User per Week | >2.5 | Live | 📊 |
+| Average Workout Duration | 30-60 min | TBD | 🔘 |
+| Sets Logged per Workout | >15 | Live | 📊 |
+| Command Bar Usage Rate | >30% | TBD | 🔘 |
+| Voice Logging Adoption | >10% | TBD | 🔘 |
 
 ### Retention
-| Metric | Target | Current | Notes |
-|--------|--------|---------|-------|
-| D1 Retention | >40% | TBD | - |
-| D7 Retention | >25% | TBD | - |
-| D30 Retention | >15% | TBD | - |
-| Streak Length (average) | - | TBD | - |
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| D1 Retention | >40% | Live | 📊 |
+| D7 Retention | >25% | Live | 📊 |
+| D30 Retention | >15% | Live | 📊 |
+| Streak Length (average) | >7 days | TBD | 🔘 |
 
 ### UX Health
-| Metric | Target | Current | Notes |
-|--------|--------|---------|-------|
-| Set Logging Speed | <3 sec | TBD | Time from tap to log |
-| Error Rate (failed syncs) | <1% | TBD | - |
-| Feature Discovery Rate | - | TBD | Track % who use each feature |
-| Task Completion Rate | >95% | TBD | - |
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| Set Logging Speed | <3 sec | TBD | 🔘 |
+| Error Rate (failed syncs) | <1% | TBD | 🔘 |
+| Feature Discovery Rate | - | TBD | 🔘 |
+| Task Completion Rate | >95% | TBD | 🔘 |
+
+### New Metrics to Add
+
+| Metric | Target | Why Track |
+|--------|--------|-----------|
+| Template Usage Rate | >40% | Measure template feature adoption |
+| Program Completion Rate | >60% | Track if users finish programs |
+| Rival Engagement | >20% | Measure social feature adoption |
+| Voice Logging Success Rate | >90% | Quality of voice recognition |
+| Workout Summary Share Rate | >5% | Viral loop potential |
+| PR Achievement Rate | - | Core motivation metric |
+| Exercise Variety Score | - | Track if users diversify training |
 
 ---
 
 ## Design System Notes
 
 ### Typography
-- "Press Start 2P" for gamified elements
-- Inter for body text
+- **Display Font:** Press Start 2P (pixel font for RPG aesthetic)
+- **Body Font:** Inter, -apple-system, BlinkMacSystemFont
+- **Sizes:** 0.5-1rem for pixel font, 0.85-0.9rem for body
 
 ### Color System
-- Primary accent: #FF6B6B (red)
-- Gold for XP/achievements
-- Tier colors: Common (green) → Rare (blue) → Epic (purple) → Legendary (gold)
+```css
+--app-fitness: #FF6B6B       /* Primary red accent */
+--theme-gold: #FFD700        /* XP/achievements */
+--theme-success: #5fbf8a     /* Health green */
+--tier-common: #5fbf8a       /* Green */
+--tier-rare: #5CC9F5         /* Blue */
+--tier-epic: #a855f7         /* Purple */
+--tier-legendary: #FFD700    /* Gold */
+```
 
 ### Spacing
 - Base unit: 16px
-- Card border-radius: 12-16px
+- Card padding: 1rem
+- Card border-radius: 16px
+- Button border-radius: 10-12px
 
 ### Touch Targets
-- **Minimum: 44x44px** (Apple HIG recommendation)
-- Current issues: Remove buttons, some action buttons
+- **Minimum: 44x44px** (Apple HIG)
+- **Spacing:** 12px minimum between targets
+- **Active States:** Visual feedback on all interactive elements
+
+### Visual Effects
+- CRT scanlines (subtle retro effect)
+- Backdrop blur on command bar
+- Gradient backgrounds on cards
+- Gold glow on PR badges
+- Particle animations for XP gains
+
+---
+
+## Competitive Analysis
+
+### vs Strong Lifts
+| Feature | Reptura | Strong Lifts |
+|---------|---------|--------------|
+| Set Logging Speed | Fast (voice + command) | Medium (tap-based) |
+| Gamification | Full RPG system | None |
+| Programs | Advanced builder | Pre-built only |
+| Social | Rivalries + friends | None |
+| Analytics | Comprehensive | Basic |
+| Price | TBD | Freemium |
+
+### vs JEFIT
+| Feature | Reptura | JEFIT |
+|---------|---------|-------|
+| UI Design | Dark RPG | Light/Material |
+| Exercise Library | 100+ | 1300+ |
+| Form Videos | Parking Lot | Available |
+| Community | Rivalries | Forums |
+| Offline | Partial | Full |
+
+### Differentiators to Lean Into
+1. **Gamification** - XP, levels, achievements (unique in market)
+2. **Rivalries** - AI phantoms and friend competition
+3. **Command Bar** - Power user efficiency
+4. **Voice Logging** - Hands-free convenience
+5. **RPG Aesthetic** - Memorable brand
 
 ---
 
 ## Changelog
 
+### 2026-01-10 (Sprint 3)
+- ✅ Added floating workout stats bar (timer, volume, sets, XP)
+- ✅ Added "Recently Used" exercises section in library
+- ✅ Added calendar heatmap view in History (12-week GitHub-style)
+- ✅ Added achievement progress bars for locked milestones
+- ✅ Added ARIA labels and accessibility improvements
+- ✅ Added undo toast for set/exercise deletions
+- 📈 Grades improved: Workout View (A- → A), History View (B+ → A-), Achievements (B → B+)
+
+### 2026-01-10 (Post-Sprint 2 Re-Analysis)
+- 📊 Comprehensive UX/UI re-analysis completed
+- 📈 Overall grade improved: B (83.75) → B+ (86.5)
+- 📝 Updated all page grades reflecting current state
+- 🆕 Added new sections: Workout Summary Modal, Cross-Cutting Issues, Competitive Analysis
+- 🎯 Defined Sprint 3 priorities with impact/effort ratings
+- 📊 Expanded metrics with new tracking recommendations
+- 🏗️ Identified technical debt items (monolith, virtualization, offline)
+
 ### 2026-01-10 (Admin Dashboard)
 - ✅ Built fitness metrics dashboard in admin panel
-  - Acquisition & Activation: Total users, first workout rate, total workouts/sets/volume
-  - Engagement: WAU, workouts per week, sets per workout, avg volume
-  - Retention: D1, D7, D30 retention rates with targets
-  - Workout frequency distribution (last 7 days)
+  - Acquisition & Activation metrics
+  - Engagement metrics (WAU, workouts/week, sets/workout)
+  - Retention metrics (D1, D7, D30)
+  - Workout frequency distribution
   - Weekly workout trend chart
-  - Feature usage: PRs, rivalries, encounters
-  - UX health targets display
-  - Added /admin/fitness route with Dumbbell icon in nav
-- 📦 Moved exercise videos to parking lot (requires content creation + CDN)
+  - Feature usage tracking
+  - Added /admin/fitness route
 
-### 2026-01-10 (Sprint 2 - Important Items)
-- ✅ Added workout summary modal
-  - Animated XP earned display
-  - PRs section with gold highlighting
-  - Volume comparison vs similar workout
-  - Share button with native share / clipboard fallback
-- ✅ Improved history filtering
-  - Search by exercise name
-  - Date filter tabs (All, 7d, 30d, 90d)
-  - Muscle group filter chips
-  - Load more pagination
-- ✅ Reduced home view complexity
-  - Removed: FriendRivalryScoreboard, AlmostThereCard, AccountabilityCard
-  - Kept: DailyChallengeCard as "Today's Focus"
-  - Limited recent workouts to 2 with "See All" button
-  - Added quick access row (Social, Achievements, Analytics)
-- ✅ Added voice logging
-  - Web Speech API integration
-  - Pattern recognition: "135 times 8", "225 x 5", "185 by 10"
-  - Listening animation with pulse effect
-  - Toast confirmation
+### 2026-01-10 (Sprint 2)
+- ✅ Added workout summary modal (XP, PRs, volume, share)
+- ✅ Improved history filtering (search, date, muscle, pagination)
+- ✅ Reduced home view complexity (4 cards + quick access)
+- ✅ Added voice logging (Web Speech API)
 
-### 2026-01-10 (Sprint 1 - Critical Items)
-- ✅ Added prominent "Start Workout" button to home hero
-  - Gradient button with hover/active states
-  - Moved profile navigation to stats area
-- ✅ Simplified navigation from 5 tabs to 4 tabs
-  - New structure: Home | Library | History | Profile
-  - Library consolidates: Exercises, Templates, Programs
-  - Added library section tabs for sub-navigation
-- ✅ Improved mobile touch targets
-  - Remove button now 44x44px minimum
-  - Set badges enlarged with better padding
-  - Active states with visual feedback
-- ✅ Added inline set logging
-  - "+ Log Set" button on exercises with no sets
-  - "+" button after existing sets for quick add
-  - Stops event propagation for proper UX
-- Initial roadmap created
-- Comprehensive UX/UI audit completed
-- Priority items identified
-- Metrics framework established
+### 2026-01-10 (Sprint 1)
+- ✅ Added prominent "Start Workout" button
+- ✅ Simplified navigation (5 → 4 tabs)
+- ✅ Improved mobile touch targets (44x44px)
+- ✅ Added inline set logging ("+ Log Set")
+- 📄 Initial roadmap created

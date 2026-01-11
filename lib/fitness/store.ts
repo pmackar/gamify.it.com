@@ -116,6 +116,8 @@ interface FitnessStore extends FitnessState, SyncState {
   updateSet: (setIndex: number, weight: number, reps: number, rpe?: number, isWarmup?: boolean) => void;
   removeSet: (exerciseIndex: number, setIndex: number) => void;
   removeExercise: (exerciseIndex: number) => void;
+  restoreSet: (exerciseIndex: number, setIndex: number, setData: Set) => void;
+  restoreExercise: (exerciseIndex: number, exerciseData: WorkoutExercise) => void;
   substituteExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
   reorderExercises: (fromIndex: number, toIndex: number) => void;
   linkSuperset: (exerciseIndex: number) => void;  // Link exercise to previous exercise's superset
@@ -858,6 +860,50 @@ export const useFitnessStore = create<FitnessStore>()(
 
         get().saveState();
         get().showToast(`${exercise.name} removed`);
+      },
+
+      restoreSet: (exerciseIndex: number, setIndex: number, setData: Set) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        const exercise = state.currentWorkout.exercises[exerciseIndex];
+        if (!exercise) return;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          const sets = [...exercises[exerciseIndex].sets];
+          sets.splice(setIndex, 0, setData);
+          exercises[exerciseIndex] = { ...exercises[exerciseIndex], sets };
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises },
+          };
+        });
+
+        get().saveState();
+        get().showToast(`Set restored`);
+      },
+
+      restoreExercise: (exerciseIndex: number, exerciseData: WorkoutExercise) => {
+        const state = get();
+        if (!state.currentWorkout) return;
+
+        set((state) => {
+          if (!state.currentWorkout) return state;
+
+          const exercises = [...state.currentWorkout.exercises];
+          exercises.splice(exerciseIndex, 0, exerciseData);
+
+          return {
+            currentWorkout: { ...state.currentWorkout, exercises },
+            currentExerciseIndex: exerciseIndex,
+          };
+        });
+
+        get().saveState();
+        get().showToast(`${exerciseData.name} restored`);
       },
 
       substituteExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => {

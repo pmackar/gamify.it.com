@@ -102,6 +102,18 @@ export default function FitnessApp() {
   const [historyDateFilter, setHistoryDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [historyShowCount, setHistoryShowCount] = useState(20);
+  const [historyViewMode, setHistoryViewMode] = useState<'list' | 'calendar'>('list');
+
+  // Undo stack for set/exercise deletions
+  const [undoItem, setUndoItem] = useState<{
+    type: 'set' | 'exercise';
+    exerciseIdx: number;
+    setIdx?: number;
+    data: unknown;
+    exerciseName: string;
+  } | null>(null);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [campaignForm, setCampaignForm] = useState({ title: '', description: '', targetDate: '' });
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -550,6 +562,98 @@ export default function FitnessApp() {
     return store.currentWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
   };
 
+  // Calculate current workout stats for floating display
+  const getWorkoutStats = useCallback(() => {
+    if (!store.currentWorkout) return { volume: 0, sets: 0, xp: 0 };
+    const exercises = store.currentWorkout.exercises;
+    let volume = 0;
+    let sets = 0;
+    let xp = 0;
+    for (const ex of exercises) {
+      for (const set of ex.sets) {
+        if (!set.isWarmup) {
+          volume += set.weight * set.reps;
+        }
+        sets++;
+        xp += set.xp || 0;
+      }
+    }
+    return { volume, sets, xp };
+  }, [store.currentWorkout]);
+
+  // Generate calendar heatmap data for last 12 weeks
+  const getCalendarHeatmapData = useCallback(() => {
+    const workouts = store.workouts || [];
+    const today = new Date();
+    const weeks: { date: Date; count: number; volume: number }[][] = [];
+
+    // Go back 12 weeks (84 days)
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 83);
+    // Adjust to start on Sunday
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+
+    // Create a map of date string -> workout count and volume
+    const workoutMap = new Map<string, { count: number; volume: number }>();
+    for (const workout of workouts) {
+      const date = new Date(workout.startTime);
+      const dateKey = date.toISOString().split('T')[0];
+      const existing = workoutMap.get(dateKey) || { count: 0, volume: 0 };
+      const volume = workout.exercises.reduce((sum, ex) =>
+        sum + ex.sets.reduce((s, set) => s + (set.weight * set.reps), 0), 0
+      );
+      workoutMap.set(dateKey, {
+        count: existing.count + 1,
+        volume: existing.volume + volume
+      });
+    }
+
+    // Build 12 weeks of data (7 days each)
+    let currentDate = new Date(startDate);
+    for (let week = 0; week < 12; week++) {
+      const weekData: { date: Date; count: number; volume: number }[] = [];
+      for (let day = 0; day < 7; day++) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const data = workoutMap.get(dateKey) || { count: 0, volume: 0 };
+        weekData.push({
+          date: new Date(currentDate),
+          count: data.count,
+          volume: data.volume
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      weeks.push(weekData);
+    }
+
+    return weeks;
+  }, [store.workouts]);
+
+  // Get recently used exercises from workout history
+  const getRecentlyUsedExercises = useCallback(() => {
+    const workouts = store.profile.workouts || [];
+    const exerciseLastUsed = new Map<string, Date>();
+
+    // Get the last 20 workouts to find recently used exercises
+    const recentWorkouts = workouts.slice(-20);
+    for (const workout of recentWorkouts) {
+      const workoutDate = new Date(workout.date || workout.startTime);
+      for (const ex of workout.exercises || []) {
+        const existing = exerciseLastUsed.get(ex.name);
+        if (!existing || workoutDate > existing) {
+          exerciseLastUsed.set(ex.name, workoutDate);
+        }
+      }
+    }
+
+    // Sort by most recent and take top 8
+    const sorted = Array.from(exerciseLastUsed.entries())
+      .sort((a, b) => b[1].getTime() - a[1].getTime())
+      .slice(0, 8)
+      .map(([name]) => name);
+
+    return sorted;
+  }, [store.profile.workouts]);
+
   const getSuggestions = useCallback((): CommandSuggestion[] => {
     const q = query.toLowerCase().trim();
     const results: CommandSuggestion[] = [];
@@ -960,14 +1064,72 @@ export default function FitnessApp() {
   };
 
   const handleRemoveSet = (exerciseIdx: number, setIdx: number) => {
+    if (!store.currentWorkout) return;
+    const exercise = store.currentWorkout.exercises[exerciseIdx];
+    if (!exercise) return;
+
+    const deletedSet = exercise.sets[setIdx];
+    const exerciseName = exercise.name;
+
+    // Save for undo
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    setUndoItem({
+      type: 'set',
+      exerciseIdx,
+      setIdx,
+      data: { ...deletedSet },
+      exerciseName,
+    });
+
     store.removeSet(exerciseIdx, setIdx);
     setShowSetPanel(false);
+
+    // Auto-dismiss after 5 seconds
+    undoTimeoutRef.current = setTimeout(() => {
+      setUndoItem(null);
+    }, 5000);
   };
 
   const handleRemoveExercise = (idx: number) => {
-    if (confirm(`Remove ${store.currentWorkout?.exercises[idx]?.name} from this workout?`)) {
-      store.removeExercise(idx);
+    if (!store.currentWorkout) return;
+    const exercise = store.currentWorkout.exercises[idx];
+    if (!exercise) return;
+
+    // Save for undo
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    setUndoItem({
+      type: 'exercise',
+      exerciseIdx: idx,
+      data: { ...exercise, sets: [...exercise.sets] },
+      exerciseName: exercise.name,
+    });
+
+    store.removeExercise(idx);
+
+    // Auto-dismiss after 5 seconds
+    undoTimeoutRef.current = setTimeout(() => {
+      setUndoItem(null);
+    }, 5000);
+  };
+
+  const handleUndo = () => {
+    if (!undoItem || !store.currentWorkout) return;
+
+    if (undoItem.type === 'set') {
+      // Restore set
+      store.restoreSet(undoItem.exerciseIdx, undoItem.setIdx!, undoItem.data as SetType);
+    } else {
+      // Restore exercise
+      store.restoreExercise(undoItem.exerciseIdx, undoItem.data as WorkoutExercise);
     }
+
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    setUndoItem(null);
+  };
+
+  const dismissUndo = () => {
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    setUndoItem(null);
   };
 
   // Touch drag handlers for mobile reordering
@@ -1650,6 +1812,109 @@ export default function FitnessApp() {
         .desktop-menu-text {
           flex: 1;
           font-weight: 400;
+        }
+
+        /* Floating Workout Stats */
+        .floating-workout-stats {
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+          padding: 12px 16px;
+          margin: 0 16px 12px 16px;
+          background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+          border: 1px solid rgba(255, 107, 107, 0.3);
+          border-radius: 12px;
+          backdrop-filter: blur(8px);
+        }
+        .workout-stat {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .workout-stat-icon {
+          font-size: 14px;
+        }
+        .workout-stat-value {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        .workout-stat.xp-stat .workout-stat-value {
+          color: var(--gold);
+        }
+        @media (max-width: 400px) {
+          .floating-workout-stats {
+            padding: 10px 12px;
+            margin: 0 12px 10px 12px;
+          }
+          .workout-stat-value {
+            font-size: 12px;
+          }
+        }
+
+        /* Undo Toast */
+        .undo-toast {
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: rgba(40, 40, 45, 0.95);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+          z-index: 1000;
+          animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+        .undo-toast-message {
+          font-size: 13px;
+          color: var(--text);
+        }
+        .undo-toast-btn {
+          padding: 6px 14px;
+          background: var(--xp-color);
+          border: none;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          color: white;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .undo-toast-btn:hover {
+          background: var(--gold);
+        }
+        .undo-toast-dismiss {
+          padding: 4px 8px;
+          background: transparent;
+          border: none;
+          font-size: 18px;
+          color: var(--text-dim);
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .undo-toast-dismiss:hover {
+          color: var(--text);
+        }
+        @media (max-width: 500px) {
+          .undo-toast {
+            bottom: 140px;
+            width: calc(100% - 32px);
+            max-width: 320px;
+          }
         }
 
         /* Exercise Pills */
@@ -3714,11 +3979,146 @@ export default function FitnessApp() {
 
         /* Workout Cards */
         /* History Filters */
-        .history-count {
+        .history-header-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
           margin-left: auto;
+        }
+        .history-count {
           font-size: 13px;
           color: var(--text-tertiary);
         }
+        .history-view-toggle {
+          display: flex;
+          gap: 4px;
+          background: var(--bg-card);
+          padding: 4px;
+          border-radius: 8px;
+        }
+        .view-toggle-btn {
+          width: 32px;
+          height: 28px;
+          border: none;
+          background: transparent;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.15s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .view-toggle-btn:hover {
+          background: var(--surface-hover);
+        }
+        .view-toggle-btn.active {
+          background: var(--accent);
+        }
+
+        /* Calendar Heatmap */
+        .calendar-heatmap-container {
+          padding: 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+        }
+        .calendar-heatmap-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .calendar-heatmap-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        .calendar-heatmap-legend {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .legend-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+        .legend-cell {
+          width: 12px;
+          height: 12px;
+          border-radius: 3px;
+        }
+        .calendar-heatmap {
+          display: flex;
+          gap: 4px;
+        }
+        .calendar-day-labels {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-right: 4px;
+        }
+        .calendar-day-labels span {
+          height: 16px;
+          font-size: 10px;
+          color: var(--text-tertiary);
+          display: flex;
+          align-items: center;
+        }
+        .calendar-weeks {
+          display: flex;
+          gap: 4px;
+          flex: 1;
+          overflow-x: auto;
+        }
+        .calendar-week {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .calendar-day {
+          width: 16px;
+          height: 16px;
+          border-radius: 3px;
+          border: 1px solid transparent;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .calendar-day:hover {
+          border-color: var(--text);
+          transform: scale(1.1);
+        }
+        .calendar-day.today {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 1px var(--accent);
+        }
+        .calendar-day.future {
+          opacity: 0.3;
+          cursor: default;
+        }
+        .calendar-stats {
+          display: flex;
+          justify-content: space-around;
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid var(--border);
+        }
+        .calendar-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+        .calendar-stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--accent);
+        }
+        .calendar-stat-label {
+          font-size: 12px;
+          color: var(--text-secondary);
+        }
+
         .history-filters {
           margin-bottom: 20px;
         }
@@ -3902,9 +4302,6 @@ export default function FitnessApp() {
           background: rgba(255,215,0,0.05);
           border-color: rgba(255,215,0,0.2);
         }
-        .achievement-card.locked {
-          opacity: 0.5;
-        }
         .achievement-icon {
           font-size: 32px;
           flex-shrink: 0;
@@ -3923,6 +4320,32 @@ export default function FitnessApp() {
         .achievement-check {
           color: var(--success);
           font-size: 18px;
+        }
+        .achievement-progress {
+          margin-top: 8px;
+        }
+        .achievement-progress-bar {
+          height: 6px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+        .achievement-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--xp-color), var(--gold));
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+        .achievement-progress-text {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+        .achievement-card.locked {
+          opacity: 0.7;
+        }
+        .achievement-card.locked:hover {
+          opacity: 0.85;
         }
 
         /* Empty State */
@@ -7612,6 +8035,54 @@ export default function FitnessApp() {
           color: white;
         }
 
+        /* Recently Used Section */
+        .recently-used-section {
+          margin-bottom: 16px;
+          padding: 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+        }
+        .recently-used-header {
+          margin-bottom: 10px;
+        }
+        .recently-used-title {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .recently-used-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .recently-used-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .recently-used-item:hover {
+          border-color: var(--accent);
+          background: var(--accent-glow);
+        }
+        .recently-used-name {
+          font-size: 13px;
+          color: var(--text);
+        }
+        .recently-used-pr {
+          font-size: 11px;
+          color: var(--gold);
+          font-weight: 600;
+        }
+
         .exercise-library-list {
           display: flex;
           flex-direction: column;
@@ -8850,6 +9321,32 @@ export default function FitnessApp() {
 
           {/* Workout View */}
           {store.currentView === 'workout' && store.currentWorkout && (
+            <>
+            {/* Floating Workout Stats */}
+            {store.currentWorkout.exercises.length > 0 && (
+              <div className="floating-workout-stats" role="status" aria-live="polite" aria-label="Workout statistics">
+                <div className="workout-stat">
+                  <span className="workout-stat-icon" aria-hidden="true">⏱</span>
+                  <span className="workout-stat-value">{formatTime(store.workoutSeconds)}</span>
+                </div>
+                <div className="workout-stat">
+                  <span className="workout-stat-icon">🏋️</span>
+                  <span className="workout-stat-value">
+                    {getWorkoutStats().volume >= 1000
+                      ? `${(getWorkoutStats().volume / 1000).toFixed(1)}k`
+                      : getWorkoutStats().volume} lbs
+                  </span>
+                </div>
+                <div className="workout-stat">
+                  <span className="workout-stat-icon">📊</span>
+                  <span className="workout-stat-value">{getWorkoutStats().sets} sets</span>
+                </div>
+                <div className="workout-stat xp-stat">
+                  <span className="workout-stat-icon">✨</span>
+                  <span className="workout-stat-value">{getWorkoutStats().xp} XP</span>
+                </div>
+              </div>
+            )}
             <div className="exercises-container" ref={exerciseListRef}>
               {store.currentWorkout.exercises.length === 0 ? (
                 <div className="empty-state">
@@ -8979,13 +9476,14 @@ export default function FitnessApp() {
                 })
               )}
             </div>
+            </>
           )}
 
           {/* Profile View */}
           {store.currentView === 'profile' && (
             <div className="view-content">
               <div className="view-header">
-                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                 <span className="view-title">Profile</span>
               </div>
 
@@ -9273,9 +9771,31 @@ gamify.it.com/fitness`;
           {store.currentView === 'history' && (
             <div className="view-content">
               <div className="view-header">
-                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                 <span className="view-title">History</span>
-                <span className="history-count">{store.workouts.length} workouts</span>
+                <div className="history-header-right">
+                  <span className="history-count">{store.workouts.length} workouts</span>
+                  <div className="history-view-toggle" role="group" aria-label="View type">
+                    <button
+                      className={`view-toggle-btn ${historyViewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setHistoryViewMode('list')}
+                      title="List view"
+                      aria-label="Show list view"
+                      aria-pressed={historyViewMode === 'list'}
+                    >
+                      ☰
+                    </button>
+                    <button
+                      className={`view-toggle-btn ${historyViewMode === 'calendar' ? 'active' : ''}`}
+                      onClick={() => setHistoryViewMode('calendar')}
+                      title="Calendar view"
+                      aria-label="Show calendar heatmap view"
+                      aria-pressed={historyViewMode === 'calendar'}
+                    >
+                      📅
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* History Filters */}
@@ -9288,15 +9808,17 @@ gamify.it.com/fitness`;
                     placeholder="Search exercises..."
                     value={historySearchQuery}
                     onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    aria-label="Search workout history by exercise name"
                   />
 
                   {/* Date Filter Tabs */}
-                  <div className="history-date-tabs">
+                  <div className="history-date-tabs" role="group" aria-label="Filter by time period">
                     {(['all', '7d', '30d', '90d'] as const).map(period => (
                       <button
                         key={period}
                         className={`history-date-tab ${historyDateFilter === period ? 'active' : ''}`}
                         onClick={() => setHistoryDateFilter(period)}
+                        aria-pressed={historyDateFilter === period}
                       >
                         {period === 'all' ? 'All' : period}
                       </button>
@@ -9329,6 +9851,100 @@ gamify.it.com/fitness`;
                   <div className="empty-icon">📋</div>
                   <div className="empty-title">No workouts yet</div>
                   <div className="empty-subtitle">Complete your first workout to see it here</div>
+                </div>
+              ) : historyViewMode === 'calendar' ? (
+                /* Calendar Heatmap View */
+                <div className="calendar-heatmap-container">
+                  <div className="calendar-heatmap-header">
+                    <span className="calendar-heatmap-title">Last 12 Weeks</span>
+                    <div className="calendar-heatmap-legend">
+                      <span className="legend-label">Less</span>
+                      <span className="legend-cell" style={{ background: 'var(--bg-card)' }}></span>
+                      <span className="legend-cell" style={{ background: 'rgba(255, 107, 107, 0.3)' }}></span>
+                      <span className="legend-cell" style={{ background: 'rgba(255, 107, 107, 0.5)' }}></span>
+                      <span className="legend-cell" style={{ background: 'rgba(255, 107, 107, 0.7)' }}></span>
+                      <span className="legend-cell" style={{ background: 'var(--accent)' }}></span>
+                      <span className="legend-label">More</span>
+                    </div>
+                  </div>
+                  <div className="calendar-heatmap">
+                    <div className="calendar-day-labels">
+                      <span></span>
+                      <span>Mon</span>
+                      <span></span>
+                      <span>Wed</span>
+                      <span></span>
+                      <span>Fri</span>
+                      <span></span>
+                    </div>
+                    <div className="calendar-weeks">
+                      {getCalendarHeatmapData().map((week, weekIdx) => (
+                        <div key={weekIdx} className="calendar-week">
+                          {week.map((day, dayIdx) => {
+                            const intensity = day.count === 0 ? 0 :
+                              day.count === 1 ? 1 :
+                              day.count === 2 ? 2 :
+                              day.count >= 3 ? 3 : 0;
+                            const isToday = day.date.toDateString() === new Date().toDateString();
+                            const isFuture = day.date > new Date();
+                            return (
+                              <div
+                                key={dayIdx}
+                                className={`calendar-day ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}`}
+                                style={{
+                                  background: isFuture ? 'transparent' :
+                                    intensity === 0 ? 'var(--bg-card)' :
+                                    intensity === 1 ? 'rgba(255, 107, 107, 0.3)' :
+                                    intensity === 2 ? 'rgba(255, 107, 107, 0.6)' :
+                                    'var(--accent)'
+                                }}
+                                title={`${day.date.toLocaleDateString()}: ${day.count} workout${day.count !== 1 ? 's' : ''}${day.volume ? ` (${Math.round(day.volume / 1000)}k lbs)` : ''}`}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="calendar-stats">
+                    <div className="calendar-stat">
+                      <span className="calendar-stat-value">
+                        {store.workouts.filter(w => {
+                          const date = new Date(w.startTime);
+                          const cutoff = new Date();
+                          cutoff.setDate(cutoff.getDate() - 84);
+                          return date >= cutoff;
+                        }).length}
+                      </span>
+                      <span className="calendar-stat-label">workouts</span>
+                    </div>
+                    <div className="calendar-stat">
+                      <span className="calendar-stat-value">
+                        {(() => {
+                          const workouts = store.workouts.filter(w => {
+                            const date = new Date(w.startTime);
+                            const cutoff = new Date();
+                            cutoff.setDate(cutoff.getDate() - 84);
+                            return date >= cutoff;
+                          });
+                          const uniqueDays = new Set(workouts.map(w => new Date(w.startTime).toDateString()));
+                          return uniqueDays.size;
+                        })()}
+                      </span>
+                      <span className="calendar-stat-label">active days</span>
+                    </div>
+                    <div className="calendar-stat">
+                      <span className="calendar-stat-value">
+                        {Math.round(store.workouts.filter(w => {
+                          const date = new Date(w.startTime);
+                          const cutoff = new Date();
+                          cutoff.setDate(cutoff.getDate() - 84);
+                          return date >= cutoff;
+                        }).length / 12 * 10) / 10}
+                      </span>
+                      <span className="calendar-stat-label">per week avg</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 (() => {
@@ -9449,7 +10065,7 @@ gamify.it.com/fitness`;
           {store.currentView === 'achievements' && (
             <div className="view-content">
               <div className="view-header">
-                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                 <span className="view-title">Achievements</span>
               </div>
 
@@ -9473,12 +10089,18 @@ gamify.it.com/fitness`;
                 );
               })}
 
+              {/* Milestone Achievements Section Title */}
+              <div className="section-title" style={{ marginTop: '24px', marginBottom: '12px' }}>Strength Milestones</div>
+
               {/* Milestone Achievements */}
               {Object.entries(MILESTONES).flatMap(([exerciseId, milestones]) =>
                 milestones.map(milestone => {
                   const key = `${exerciseId}_${milestone.weight}`;
                   const unlocked = store.achievements.includes(key);
                   const exercise = getExerciseById(exerciseId);
+                  const currentPR = store.records[exerciseId] || 0;
+                  const progressPercent = Math.min((currentPR / milestone.weight) * 100, 100);
+                  const remaining = milestone.weight - currentPR;
                   return (
                     <div
                       key={key}
@@ -9490,6 +10112,22 @@ gamify.it.com/fitness`;
                         <div className="achievement-desc">
                           {exercise?.name} · {milestone.weight} lbs · +{milestone.xp} XP
                         </div>
+                        {!unlocked && (
+                          <div className="achievement-progress">
+                            <div className="achievement-progress-bar">
+                              <div
+                                className="achievement-progress-fill"
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                            <div className="achievement-progress-text">
+                              {currentPR > 0
+                                ? `${currentPR} / ${milestone.weight} lbs (${remaining} to go)`
+                                : `0 / ${milestone.weight} lbs`
+                              }
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {unlocked && <span className="achievement-check">✓</span>}
                     </div>
@@ -9503,7 +10141,7 @@ gamify.it.com/fitness`;
           {store.currentView === 'campaigns' && (
             <div className="view-content">
               <div className="view-header">
-                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                 <span className="view-title">Campaigns</span>
               </div>
 
@@ -9627,6 +10265,36 @@ gamify.it.com/fitness`;
                   </button>
                 ))}
               </div>
+
+              {/* Recently Used Section */}
+              {!pickerSearchQuery && !selectedCategory && getRecentlyUsedExercises().length > 0 && (
+                <div className="recently-used-section">
+                  <div className="recently-used-header">
+                    <span className="recently-used-title">Recently Used</span>
+                  </div>
+                  <div className="recently-used-list">
+                    {getRecentlyUsedExercises().map(name => {
+                      const exercise = EXERCISES.find(e => e.name === name) ||
+                        store.customExercises.find(e => e.name === name);
+                      if (!exercise) return null;
+                      const pr = store.records[exercise.id];
+                      return (
+                        <div
+                          key={exercise.id}
+                          className="recently-used-item"
+                          onClick={() => {
+                            setSelectedExerciseId(exercise.id);
+                            store.setView('exercise-detail');
+                          }}
+                        >
+                          <span className="recently-used-name">{exercise.name}</span>
+                          {pr && <span className="recently-used-pr">{pr} lbs</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Exercise List */}
               <div className="exercise-library-list">
@@ -9923,7 +10591,7 @@ gamify.it.com/fitness`;
 
           {/* Add Exercise to Template Modal */}
           {addingExerciseToTemplate && store.editingTemplateId && (
-            <div className="modal-overlay" onClick={() => setAddingExerciseToTemplate(false)}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setAddingExerciseToTemplate(false)}>
               <div className="modal exercise-picker-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">Add Exercise</div>
                 <input
@@ -9992,7 +10660,7 @@ gamify.it.com/fitness`;
 
           {/* Inline Workout Builder Modal (for Program Wizard) */}
           {creatingWorkoutForDay !== null && (
-            <div className="modal-overlay" onClick={() => {
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => {
               setCreatingWorkoutForDay(null);
               setEditingWorkoutTemplateId(null);
               setNewWorkoutName('');
@@ -10010,7 +10678,7 @@ gamify.it.com/fitness`;
                     setNewWorkoutExercises([]);
                     setNewWorkoutMuscleGroups([]);
                     setShowWorkoutAdvancedMode(false);
-                  }}>✕</button>
+                  }} aria-label="Close modal">✕</button>
                 </div>
 
                 <div className="workout-builder-content">
@@ -10375,7 +11043,7 @@ gamify.it.com/fitness`;
 
           {/* Add Exercise to New Workout Modal */}
           {addingExerciseToNewWorkout && (
-            <div className="modal-overlay" onClick={() => setAddingExerciseToNewWorkout(false)}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setAddingExerciseToNewWorkout(false)}>
               <div className="modal exercise-picker-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">Add Exercise</div>
                 <input
@@ -10657,7 +11325,7 @@ gamify.it.com/fitness`;
             return (
               <div className="view-content program-detail-view">
                 <div className="view-header">
-                  <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                  <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                   <span className="view-title">{program.name}</span>
                 </div>
 
@@ -10785,7 +11453,7 @@ gamify.it.com/fitness`;
             return (
               <div className="view-content analytics-view">
                 <div className="view-header">
-                  <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                  <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                   <span className="view-title">Analytics</span>
                 </div>
 
@@ -12297,7 +12965,7 @@ gamify.it.com/fitness`;
 
           {/* Campaign Detail Modal */}
           {selectedCampaignId && !creatingCampaign && (
-            <div className="modal-overlay" onClick={() => { setSelectedCampaignId(null); setEditingCampaignId(null); setConfirmDeleteCampaign(false); }}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => { setSelectedCampaignId(null); setEditingCampaignId(null); setConfirmDeleteCampaign(false); }}>
               <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
                 {(() => {
                   const campaign = store.campaigns.find(c => c.id === selectedCampaignId);
@@ -12492,7 +13160,7 @@ gamify.it.com/fitness`;
 
           {/* Create Campaign Modal */}
           {creatingCampaign && (
-            <div className="modal-overlay" onClick={() => setCreatingCampaign(false)}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setCreatingCampaign(false)}>
               <div className="modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">New Campaign</div>
                 <div className="modal-subtitle">Set a goal with a deadline to stay motivated</div>
@@ -12786,6 +13454,7 @@ gamify.it.com/fitness`;
                 ref={inputRef}
                 type="text"
                 className="command-input"
+                aria-label="Command input - log sets, search exercises, or navigate"
                 placeholder={(() => {
                   if (addingGoal) return 'Search exercise for goal...';
                   if (searchingExercises) return 'Search exercises...';
@@ -13054,18 +13723,6 @@ gamify.it.com/fitness`;
                 )}
               </div>
 
-              {/* Voice Input Button */}
-              {voiceSupported && (
-                <button
-                  className={`voice-input-btn ${isListening ? 'listening' : ''}`}
-                  onClick={() => isListening ? stopVoiceRecognition() : startVoiceRecognition()}
-                  title={isListening ? 'Stop listening' : 'Voice input (say "135 times 8")'}
-                >
-                  <span className="voice-icon">{isListening ? '🔴' : '🎤'}</span>
-                  <span className="voice-label">{isListening ? 'Listening...' : 'Voice Input'}</span>
-                </button>
-              )}
-
               <div className="set-inputs">
                 <div className="input-group">
                   <input
@@ -13241,7 +13898,7 @@ gamify.it.com/fitness`;
 
         {/* Save Template Modal */}
         {showSaveModal && (
-          <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowSaveModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">Save as Template?</div>
               <div className="modal-subtitle">Save this workout to quickly start it again later.</div>
@@ -13264,7 +13921,7 @@ gamify.it.com/fitness`;
 
         {/* Workout Summary Modal */}
         {showWorkoutSummary && workoutSummaryData && (
-          <div className="modal-overlay" onClick={() => setShowWorkoutSummary(false)}>
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowWorkoutSummary(false)}>
             <div className="modal workout-summary-modal" onClick={(e) => e.stopPropagation()}>
               <div className="summary-celebration">
                 {workoutSummaryData.prsHit.length > 0 ? '🏆' : '💪'}
@@ -13401,7 +14058,7 @@ gamify.it.com/fitness`;
           };
 
           return (
-            <div className="modal-overlay" onClick={() => setShowProgressChart(false)}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowProgressChart(false)}>
               <div className="modal chart-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">{exerciseName}</div>
                 <div className="modal-subtitle">
@@ -13539,7 +14196,7 @@ gamify.it.com/fitness`;
           const isValid = remaining === 0 && weightPerSide >= 0;
 
           return (
-            <div className="modal-overlay" onClick={() => setShowPlateCalc(false)}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowPlateCalc(false)}>
               <div className="modal plate-calc-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">Plate Calculator</div>
                 <div className="modal-subtitle">Calculate plates needed per side</div>
@@ -13941,7 +14598,7 @@ gamify.it.com/fitness`;
 
         {/* Import Progress Overlay */}
         {importing && (
-          <div className="modal-overlay">
+          <div className="modal-overlay" role="dialog" aria-modal="true">
             <div className="modal" style={{ textAlign: 'center' }}>
               <div className="modal-header">Importing Workouts...</div>
               <div className="modal-subtitle">
@@ -14028,7 +14685,7 @@ gamify.it.com/fitness`;
 
         {/* Muscle Group Exercises Modal */}
         {viewingMuscleGroup && (
-          <div className="modal-overlay" onClick={() => setViewingMuscleGroup(null)}>
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setViewingMuscleGroup(null)}>
             <div className="modal muscle-group-modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <span>{MUSCLE_CATEGORIES.find(c => c.id === viewingMuscleGroup)?.icon || '💪'} </span>
@@ -14119,7 +14776,7 @@ gamify.it.com/fitness`;
             : [];
 
           return (
-            <div className="modal-overlay" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
               <div className="modal substitute-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">Substitute Exercise</div>
                 <div className="modal-subtitle">Replace {currentEx.name} with:</div>
@@ -14229,7 +14886,7 @@ gamify.it.com/fitness`;
 
         {/* Edit Custom Exercise Modal */}
         {editingCustomExercise && (
-          <div className="modal-overlay" onClick={() => setEditingCustomExercise(null)}>
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setEditingCustomExercise(null)}>
             <div className="modal edit-exercise-modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">Edit Exercise</div>
               <div className="modal-subtitle">{editingCustomExercise.name}</div>
@@ -14310,7 +14967,7 @@ gamify.it.com/fitness`;
 
         {/* Create Custom Exercise Modal */}
         {creatingCustomExercise && (
-          <div className="modal-overlay" onClick={() => setCreatingCustomExercise(null)}>
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setCreatingCustomExercise(null)}>
             <div className="modal edit-exercise-modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">Create Custom Exercise</div>
               <div className="modal-subtitle">{creatingCustomExercise.name}</div>
@@ -14491,7 +15148,7 @@ gamify.it.com/fitness`;
           const maxChartE1RM = Math.max(...sessions.map(s => s.bestE1RM), currentPR);
 
           return (
-            <div className="modal-overlay" onClick={() => setStrengthProgressExercise(null)}>
+            <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setStrengthProgressExercise(null)}>
               <div className="modal strength-progress-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                   {exercise?.name || strengthProgressExercise}
@@ -14582,7 +15239,7 @@ gamify.it.com/fitness`;
 
         {/* Rival Settings Modal */}
         {showRivalSettings && (
-          <div className="modal-overlay" onClick={() => setShowRivalSettings(false)}>
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowRivalSettings(false)}>
             <div
               className="modal rival-settings-modal"
               onClick={e => e.stopPropagation()}
@@ -14621,6 +15278,24 @@ gamify.it.com/fitness`;
               </div>
               <RivalSettingsPanel />
             </div>
+          </div>
+        )}
+
+        {/* Undo Toast */}
+        {undoItem && (
+          <div className="undo-toast" role="alert" aria-live="assertive">
+            <span className="undo-toast-message">
+              {undoItem.type === 'set'
+                ? `Set removed from ${undoItem.exerciseName}`
+                : `${undoItem.exerciseName} removed`
+              }
+            </span>
+            <button className="undo-toast-btn" onClick={handleUndo}>
+              Undo
+            </button>
+            <button className="undo-toast-dismiss" onClick={dismissUndo} aria-label="Dismiss">
+              ×
+            </button>
           </div>
         )}
 
@@ -15629,7 +16304,7 @@ function CoachView({ onBack }: { onBack: () => void }) {
 
       {/* Exercise Tips Modal */}
       {selectedExercise && exerciseData && (
-        <div className="modal-overlay" onClick={() => setSelectedExercise(null)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setSelectedExercise(null)}>
           <div className="modal coach-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">Form Tips</div>
             <div className="modal-subtitle">
