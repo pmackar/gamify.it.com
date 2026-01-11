@@ -62,6 +62,10 @@ export default function FitnessApp() {
   const [query, setQuery] = useState('');
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [showSetPanel, setShowSetPanel] = useState(false);
+  // Voice logging state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [setWeight, setSetWeight] = useState(135);
   const [setReps, setSetReps] = useState(8);
   const [setRpe, setSetRpe] = useState<number | null>(null);
@@ -81,7 +85,23 @@ export default function FitnessApp() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [addingExerciseToTemplate, setAddingExerciseToTemplate] = useState(false);
+  // Workout Summary Modal state
+  const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
+  const [workoutSummaryData, setWorkoutSummaryData] = useState<{
+    totalXP: number;
+    totalSets: number;
+    totalVolume: number;
+    duration: number;
+    prsHit: Array<{ exerciseName: string; weight: number; reps: number }>;
+    exercises: Array<{ name: string; sets: number; volume: number }>;
+    previousVolume?: number;
+  } | null>(null);
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  // History filtering state
+  const [historyMuscleFilter, setHistoryMuscleFilter] = useState<string | null>(null);
+  const [historyDateFilter, setHistoryDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all');
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyShowCount, setHistoryShowCount] = useState(20);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [campaignForm, setCampaignForm] = useState({ title: '', description: '', targetDate: '' });
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -192,6 +212,73 @@ export default function FitnessApp() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Voice recognition setup
+  useEffect(() => {
+    const SpeechRecognition = (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
+                              (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setVoiceSupported(true);
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        // Parse weight x reps patterns like "135 times 8", "225 by 5", "185 x 10"
+        const patterns = [
+          /(\d+)\s*(?:times|x|by)\s*(\d+)/,
+          /(\d+)\s+(\d+)/,
+        ];
+        for (const pattern of patterns) {
+          const match = transcript.match(pattern);
+          if (match) {
+            const weight = parseInt(match[1]);
+            const reps = parseInt(match[2]);
+            if (weight > 0 && weight < 2000 && reps > 0 && reps < 100) {
+              setSetWeight(weight);
+              setSetReps(reps);
+              store.showToast(`Got it: ${weight} × ${reps}`);
+              break;
+            }
+          }
+        }
+        setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+        store.showToast('Voice not recognized. Try again.');
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const startVoiceRecognition = () => {
+    if (recognitionRef.current && !isListening) {
+      setIsListening(true);
+      recognitionRef.current.start();
+    }
+  };
+
+  const stopVoiceRecognition = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
 
   // Track keyboard height for modal positioning
   // When keyboard opens and we have a pending panel open, show the panel
@@ -956,9 +1043,76 @@ export default function FitnessApp() {
 
   const handleFinishWorkout = async (saveTemplate: boolean) => {
     if (saveTemplate && templateName.trim()) store.saveTemplate(templateName.trim());
+
+    // Capture workout summary data BEFORE finishing
+    const workout = store.currentWorkout;
+    if (workout) {
+      const startTime = new Date(workout.startTime).getTime();
+      const duration = Math.floor((Date.now() - startTime) / 1000);
+
+      // Calculate PRs hit during this workout
+      const prsHit: Array<{ exerciseName: string; weight: number; reps: number }> = [];
+      workout.exercises.forEach(ex => {
+        const previousPR = store.records[ex.id] || 0;
+        ex.sets.forEach(set => {
+          if (!set.isWarmup && set.weight > previousPR) {
+            // Check if we already have a higher PR for this exercise in prsHit
+            const existingIdx = prsHit.findIndex(p => p.exerciseName === ex.name);
+            if (existingIdx === -1 || prsHit[existingIdx].weight < set.weight) {
+              if (existingIdx !== -1) prsHit.splice(existingIdx, 1);
+              prsHit.push({ exerciseName: ex.name, weight: set.weight, reps: set.reps });
+            }
+          }
+        });
+      });
+
+      // Calculate exercise-level stats
+      const exercises = workout.exercises.map(ex => ({
+        name: ex.name,
+        sets: ex.sets.filter(s => !s.isWarmup).length,
+        volume: ex.sets.filter(s => !s.isWarmup).reduce((sum, s) => sum + s.weight * s.reps, 0)
+      }));
+
+      // Calculate total volume
+      const totalVolume = exercises.reduce((sum, ex) => sum + ex.volume, 0);
+      const totalSets = exercises.reduce((sum, ex) => sum + ex.sets, 0);
+
+      // Get previous similar workout volume for comparison
+      const muscleGroups = [...new Set(workout.exercises.map(ex => {
+        const exerciseData = getExerciseById(ex.id);
+        return exerciseData?.muscle || 'other';
+      }))];
+      const recentWorkouts = store.workouts.slice(0, 20);
+      const similarWorkout = recentWorkouts.find(w => {
+        const wMuscles = [...new Set(w.exercises.map(ex => {
+          const exerciseData = getExerciseById(ex.id);
+          return exerciseData?.muscle || 'other';
+        }))];
+        return muscleGroups.some(m => wMuscles.includes(m));
+      });
+      const previousVolume = similarWorkout
+        ? similarWorkout.exercises.reduce((sum, ex) =>
+            sum + ex.sets.filter(s => !s.isWarmup).reduce((s, set) => s + set.weight * set.reps, 0), 0)
+        : undefined;
+
+      setWorkoutSummaryData({
+        totalXP: workout.totalXP,
+        totalSets,
+        totalVolume,
+        duration,
+        prsHit,
+        exercises,
+        previousVolume
+      });
+    }
+
     await store.finishWorkout();
     setShowSaveModal(false);
     setTemplateName('');
+
+    // Show workout summary modal
+    setShowWorkoutSummary(true);
+
     // Refresh unified profile to show updated level/XP
     fetch('/api/profile')
       .then(res => res.ok ? res.json() : null)
@@ -1569,12 +1723,15 @@ export default function FitnessApp() {
           flex-wrap: wrap;
         }
         .set-badge {
-          padding: 4px 10px;
+          padding: 6px 12px;
           background: var(--bg-tertiary);
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 500;
           color: var(--text-secondary);
+          min-height: 32px;
+          display: inline-flex;
+          align-items: center;
         }
         .set-badge.pr {
           background: rgba(255,215,0,0.15);
@@ -1587,10 +1744,38 @@ export default function FitnessApp() {
         .set-badge.clickable {
           cursor: pointer;
           transition: all 0.15s ease;
+          min-height: 36px;
+          padding: 8px 14px;
         }
         .set-badge.clickable:hover {
           background: var(--bg-elevated);
-          transform: scale(1.05);
+          transform: scale(1.02);
+        }
+        .set-badge.clickable:active {
+          transform: scale(0.98);
+        }
+        /* Inline add set button */
+        .inline-add-set-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 14px;
+          min-height: 36px;
+          background: var(--accent-glow);
+          border: 1px dashed var(--accent);
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--accent);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .inline-add-set-btn:hover {
+          background: rgba(255, 107, 107, 0.2);
+          border-style: solid;
+        }
+        .inline-add-set-btn:active {
+          transform: scale(0.98);
         }
 
         /* Drag handle */
@@ -1608,19 +1793,33 @@ export default function FitnessApp() {
         .drag-handle:hover { opacity: 1; }
         .drag-handle:active { cursor: grabbing; }
 
-        /* Remove exercise button */
+        /* Remove exercise button - min 44x44 touch target */
         .exercise-remove-btn {
           background: none;
           border: none;
-          padding: 8px;
-          font-size: 14px;
+          min-width: 44px;
+          min-height: 44px;
+          padding: 12px;
+          font-size: 16px;
           cursor: pointer;
-          opacity: 0.3;
+          opacity: 0.4;
           color: var(--error);
-          transition: opacity 0.15s;
+          transition: all 0.15s;
           flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          margin: -8px -4px -8px 0;
         }
-        .exercise-remove-btn:hover { opacity: 1; }
+        .exercise-remove-btn:hover {
+          opacity: 1;
+          background: rgba(255, 107, 107, 0.1);
+        }
+        .exercise-remove-btn:active {
+          transform: scale(0.95);
+          background: rgba(255, 107, 107, 0.2);
+        }
 
         /* Drag states */
         .exercise-pill.dragging {
@@ -2382,6 +2581,47 @@ export default function FitnessApp() {
         .plate-calc-btn:hover {
           opacity: 1;
         }
+
+        /* Voice Input Button */
+        .voice-input-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 12px;
+          margin-bottom: 16px;
+          background: var(--bg-card);
+          border: 1px dashed var(--border);
+          border-radius: 10px;
+          color: var(--text-secondary);
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .voice-input-btn:hover {
+          border-color: var(--accent);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
+        }
+        .voice-input-btn.listening {
+          border-color: #ef4444;
+          border-style: solid;
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          animation: voicePulse 1.5s ease-in-out infinite;
+        }
+        @keyframes voicePulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+        .voice-icon {
+          font-size: 16px;
+        }
+        .voice-label {
+          font-weight: 500;
+        }
+
         .plate-calc-modal {
           max-width: 340px;
         }
@@ -2864,6 +3104,230 @@ export default function FitnessApp() {
           filter: brightness(1.1);
         }
 
+        /* Workout Summary Modal */
+        .workout-summary-modal {
+          text-align: center;
+          max-width: 420px;
+        }
+        .summary-celebration {
+          font-size: 48px;
+          margin-bottom: 8px;
+          animation: celebrationBounce 0.6s ease-out;
+        }
+        @keyframes celebrationBounce {
+          0% { transform: scale(0.3); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .summary-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 4px;
+        }
+        .summary-subtitle {
+          font-size: 14px;
+          color: var(--text-secondary);
+          margin-bottom: 24px;
+        }
+        .summary-xp-container {
+          background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 107, 107, 0.1));
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        .summary-xp-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 4px;
+        }
+        .summary-xp-value {
+          font-size: 48px;
+          font-weight: 800;
+          color: #FFD700;
+          line-height: 1;
+          animation: xpCountUp 1s ease-out;
+        }
+        @keyframes xpCountUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .summary-xp-suffix {
+          font-size: 20px;
+          font-weight: 600;
+          color: #FFD700;
+          margin-left: 4px;
+        }
+        .summary-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+        .summary-stat {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 14px 8px;
+        }
+        .summary-stat-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .summary-stat-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-top: 2px;
+        }
+        .summary-prs-section {
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.1));
+          border: 1px solid rgba(168, 85, 247, 0.3);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 20px;
+          text-align: left;
+        }
+        .summary-prs-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .summary-pr-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .summary-pr-item:last-child {
+          border-bottom: none;
+        }
+        .summary-pr-name {
+          font-size: 14px;
+          color: var(--text-secondary);
+        }
+        .summary-pr-value {
+          font-size: 14px;
+          font-weight: 700;
+          color: #FFD700;
+        }
+        .summary-volume-comparison {
+          background: var(--bg-card);
+          border-radius: 12px;
+          padding: 14px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .volume-comparison-label {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .volume-comparison-change {
+          font-size: 15px;
+          font-weight: 700;
+        }
+        .volume-comparison-change.positive {
+          color: #4ade80;
+        }
+        .volume-comparison-change.negative {
+          color: #f87171;
+        }
+        .summary-share-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        .summary-share-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+        .summary-done-btn {
+          width: 100%;
+          padding: 16px;
+          background: var(--accent);
+          border: none;
+          border-radius: 12px;
+          color: #000;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .summary-done-btn:hover {
+          filter: brightness(1.1);
+        }
+
+        /* Quick Access Row */
+        .quick-access-row {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          padding: 0 16px 24px;
+        }
+        .quick-access-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          padding: 16px 12px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .quick-access-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+          transform: translateY(-2px);
+        }
+        .quick-access-icon {
+          font-size: 24px;
+        }
+        .quick-access-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .see-all-btn {
+          padding: 8px 14px;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .see-all-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
         /* View Content */
         .view-content { padding: 16px; }
 
@@ -3249,6 +3713,110 @@ export default function FitnessApp() {
         }
 
         /* Workout Cards */
+        /* History Filters */
+        .history-count {
+          margin-left: auto;
+          font-size: 13px;
+          color: var(--text-tertiary);
+        }
+        .history-filters {
+          margin-bottom: 20px;
+        }
+        .history-search {
+          width: 100%;
+          padding: 12px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 15px;
+          margin-bottom: 12px;
+          outline: none;
+        }
+        .history-search:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .history-search::placeholder {
+          color: var(--text-tertiary);
+        }
+        .history-date-tabs {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 12px;
+          background: var(--bg-card);
+          border-radius: 10px;
+          padding: 4px;
+        }
+        .history-date-tab {
+          flex: 1;
+          padding: 8px 12px;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .history-date-tab:hover {
+          color: var(--text-primary);
+        }
+        .history-date-tab.active {
+          background: var(--accent);
+          color: #000;
+        }
+        .history-muscle-chips {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          scrollbar-width: none;
+        }
+        .history-muscle-chips::-webkit-scrollbar {
+          display: none;
+        }
+        .muscle-filter-chip {
+          flex-shrink: 0;
+          padding: 8px 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+          text-transform: capitalize;
+        }
+        .muscle-filter-chip:hover {
+          border-color: var(--accent);
+          color: var(--text-primary);
+        }
+        .muscle-filter-chip.active {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+        .load-more-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          margin-top: 8px;
+        }
+        .load-more-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent);
+        }
+
         .workout-card {
           background: rgba(30, 30, 40, 0.6);
           backdrop-filter: blur(10px);
@@ -3448,14 +4016,67 @@ export default function FitnessApp() {
           color: var(--text-tertiary);
           margin-top: 16px;
           opacity: 0.6;
+          transition: opacity 0.15s, color 0.15s;
         }
 
-        .home-hero:hover .hero-tap-hint {
+        .hero-tap-hint:hover {
+          opacity: 1;
+          color: var(--accent);
+        }
+
+        /* Start Workout Button - Primary CTA */
+        .start-workout-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          width: 100%;
+          padding: 18px 24px;
+          margin: 20px 0 24px;
+          background: linear-gradient(135deg, var(--accent) 0%, #ff8a8a 100%);
+          border: none;
+          border-radius: 16px;
+          color: #000;
+          font-size: 18px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4), 0 0 0 0 rgba(255, 107, 107, 0);
+          position: relative;
+          overflow: hidden;
+        }
+        .start-workout-btn::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .start-workout-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 30px rgba(255, 107, 107, 0.5), 0 0 0 4px rgba(255, 107, 107, 0.15);
+        }
+        .start-workout-btn:hover::before {
           opacity: 1;
         }
-
-        .home-hero:active .hero-card {
-          transform: scale(0.98);
+        .start-workout-btn:active {
+          transform: translateY(0) scale(0.98);
+        }
+        .start-workout-icon {
+          font-size: 24px;
+          font-weight: 300;
+          line-height: 1;
+        }
+        .start-workout-text {
+          letter-spacing: 0.02em;
+        }
+        @media (min-width: 768px) {
+          .start-workout-btn {
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+          }
         }
 
         /* Section Headers */
@@ -6411,10 +7032,40 @@ export default function FitnessApp() {
         }
 
         /* ===== PROGRAMS TABS & LIBRARY ===== */
+        /* Library Section Tabs (Exercises/Templates/Programs) */
+        .library-tabs {
+          display: flex;
+          gap: 0;
+          margin: 0 16px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 4px;
+        }
+        .library-tab {
+          flex: 1;
+          padding: 12px 16px;
+          border: none;
+          background: transparent;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .library-tab:hover {
+          color: var(--text-primary);
+        }
+        .library-tab.active {
+          background: var(--accent);
+          color: #000;
+        }
+
         .programs-tabs {
           display: flex;
           gap: 4px;
-          margin: 16px;
+          margin: 0 16px 16px;
           background: var(--surface);
           border-radius: 10px;
           padding: 4px;
@@ -8271,21 +8922,42 @@ export default function FitnessApp() {
                       </div>
                       <div className="exercise-sets">
                         {exercise.sets.length === 0 ? (
-                          <span className="set-badge empty">No sets yet</span>
+                          <button
+                            className="inline-add-set-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              store.selectExercise(idx);
+                              openSetPanel(idx);
+                            }}
+                          >
+                            + Log Set
+                          </button>
                         ) : (
-                          exercise.sets.map((set, setIdx) => (
-                            <span
-                              key={setIdx}
-                              className={`set-badge clickable ${set.isWarmup ? 'warmup' : ''} ${!set.isWarmup && set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
+                          <>
+                            {exercise.sets.map((set, setIdx) => (
+                              <span
+                                key={setIdx}
+                                className={`set-badge clickable ${set.isWarmup ? 'warmup' : ''} ${!set.isWarmup && set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openSetPanel(idx, setIdx);
+                                }}
+                              >
+                                {set.isWarmup && <span className="warmup-indicator">W</span>}
+                                {set.weight}×{set.reps}{set.rpe ? ` @${set.rpe}` : ''}
+                              </span>
+                            ))}
+                            <button
+                              className="inline-add-set-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openSetPanel(idx, setIdx);
+                                store.selectExercise(idx);
+                                openSetPanel(idx);
                               }}
                             >
-                              {set.isWarmup && <span className="warmup-indicator">W</span>}
-                              {set.weight}×{set.reps}{set.rpe ? ` @${set.rpe}` : ''}
-                            </span>
-                          ))
+                              +
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -8603,7 +9275,54 @@ gamify.it.com/fitness`;
               <div className="view-header">
                 <button className="back-btn" onClick={() => store.setView('home')}>←</button>
                 <span className="view-title">History</span>
+                <span className="history-count">{store.workouts.length} workouts</span>
               </div>
+
+              {/* History Filters */}
+              {store.workouts.length > 0 && (
+                <div className="history-filters">
+                  {/* Search */}
+                  <input
+                    type="text"
+                    className="history-search"
+                    placeholder="Search exercises..."
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                  />
+
+                  {/* Date Filter Tabs */}
+                  <div className="history-date-tabs">
+                    {(['all', '7d', '30d', '90d'] as const).map(period => (
+                      <button
+                        key={period}
+                        className={`history-date-tab ${historyDateFilter === period ? 'active' : ''}`}
+                        onClick={() => setHistoryDateFilter(period)}
+                      >
+                        {period === 'all' ? 'All' : period}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Muscle Filter Chips */}
+                  <div className="history-muscle-chips">
+                    <button
+                      className={`muscle-filter-chip ${historyMuscleFilter === null ? 'active' : ''}`}
+                      onClick={() => setHistoryMuscleFilter(null)}
+                    >
+                      All
+                    </button>
+                    {['chest', 'back', 'shoulders', 'arms', 'legs', 'core'].map(muscle => (
+                      <button
+                        key={muscle}
+                        className={`muscle-filter-chip ${historyMuscleFilter === muscle ? 'active' : ''}`}
+                        onClick={() => setHistoryMuscleFilter(historyMuscleFilter === muscle ? null : muscle)}
+                      >
+                        {muscle}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {store.workouts.length === 0 ? (
                 <div className="empty-state">
@@ -8612,7 +9331,52 @@ gamify.it.com/fitness`;
                   <div className="empty-subtitle">Complete your first workout to see it here</div>
                 </div>
               ) : (
-                store.workouts.slice(0, 20).map(workout => {
+                (() => {
+                  // Apply filters
+                  let filtered = store.workouts;
+
+                  // Date filter
+                  if (historyDateFilter !== 'all') {
+                    const days = parseInt(historyDateFilter);
+                    const cutoff = new Date();
+                    cutoff.setDate(cutoff.getDate() - days);
+                    filtered = filtered.filter(w => new Date(w.startTime) >= cutoff);
+                  }
+
+                  // Muscle filter
+                  if (historyMuscleFilter) {
+                    filtered = filtered.filter(w =>
+                      w.exercises.some(ex => {
+                        const exerciseData = getExerciseById(ex.id) || EXERCISES.find(e => e.name === ex.name);
+                        return exerciseData?.muscle === historyMuscleFilter;
+                      })
+                    );
+                  }
+
+                  // Search filter
+                  if (historySearchQuery.trim()) {
+                    const query = historySearchQuery.toLowerCase();
+                    filtered = filtered.filter(w =>
+                      w.exercises.some(ex => ex.name.toLowerCase().includes(query))
+                    );
+                  }
+
+                  const displayed = filtered.slice(0, historyShowCount);
+                  const hasMore = filtered.length > historyShowCount;
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="empty-state">
+                        <div className="empty-icon">🔍</div>
+                        <div className="empty-title">No matching workouts</div>
+                        <div className="empty-subtitle">Try adjusting your filters</div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {displayed.map(workout => {
                   // Get unique muscle groups from exercises
                   const muscleGroups = [...new Set(workout.exercises.map(ex => {
                     const exerciseData = getExerciseById(ex.id) || EXERCISES.find(e => e.name === ex.name);
@@ -8648,7 +9412,19 @@ gamify.it.com/fitness`;
                       </div>
                     </div>
                   );
-                })
+                })}
+                      {/* Load More Button */}
+                      {hasMore && (
+                        <button
+                          className="load-more-btn"
+                          onClick={() => setHistoryShowCount(prev => prev + 20)}
+                        >
+                          Load More ({filtered.length - historyShowCount} remaining)
+                        </button>
+                      )}
+                    </>
+                  );
+                })()
               )}
             </div>
           )}
@@ -8793,11 +9569,33 @@ gamify.it.com/fitness`;
             <CoachView onBack={() => store.setView('home')} />
           )}
 
-          {/* Exercise Library View */}
+          {/* Exercise Library View (part of Library section) */}
           {store.currentView === 'exercises' && (
             <div className="view-content exercises-library-view">
               <div className="view-header">
-                <span className="view-title">Exercise Library</span>
+                <span className="view-title">Library</span>
+              </div>
+
+              {/* Library Section Tabs */}
+              <div className="library-tabs">
+                <button
+                  className="library-tab active"
+                  onClick={() => store.setView('exercises')}
+                >
+                  Exercises
+                </button>
+                <button
+                  className="library-tab"
+                  onClick={() => store.setView('templates')}
+                >
+                  Templates
+                </button>
+                <button
+                  className="library-tab"
+                  onClick={() => store.setView('programs')}
+                >
+                  Programs
+                </button>
               </div>
 
               {/* Search */}
@@ -8893,12 +9691,33 @@ gamify.it.com/fitness`;
             </div>
           )}
 
-          {/* Templates View */}
+          {/* Templates View (part of Library section) */}
           {store.currentView === 'templates' && (
             <div className="view-content">
               <div className="view-header">
-                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
-                <span className="view-title">Workout Templates</span>
+                <span className="view-title">Library</span>
+              </div>
+
+              {/* Library Section Tabs */}
+              <div className="library-tabs">
+                <button
+                  className="library-tab"
+                  onClick={() => store.setView('exercises')}
+                >
+                  Exercises
+                </button>
+                <button
+                  className="library-tab active"
+                  onClick={() => store.setView('templates')}
+                >
+                  Templates
+                </button>
+                <button
+                  className="library-tab"
+                  onClick={() => store.setView('programs')}
+                >
+                  Programs
+                </button>
               </div>
 
               <button
@@ -9617,15 +10436,36 @@ gamify.it.com/fitness`;
             </div>
           )}
 
-          {/* Programs View */}
+          {/* Programs View (part of Library section) */}
           {store.currentView === 'programs' && (
             <div className="view-content">
               <div className="view-header">
-                <button className="back-btn" onClick={() => store.setView('home')}>←</button>
-                <span className="view-title">Programs</span>
+                <span className="view-title">Library</span>
               </div>
 
-              {/* Tabs */}
+              {/* Library Section Tabs */}
+              <div className="library-tabs">
+                <button
+                  className="library-tab"
+                  onClick={() => store.setView('exercises')}
+                >
+                  Exercises
+                </button>
+                <button
+                  className="library-tab"
+                  onClick={() => store.setView('templates')}
+                >
+                  Templates
+                </button>
+                <button
+                  className="library-tab active"
+                  onClick={() => store.setView('programs')}
+                >
+                  Programs
+                </button>
+              </div>
+
+              {/* My Programs / Library Tabs */}
               <div className="programs-tabs">
                 <button
                   className={`programs-tab ${programsTab === 'my' ? 'active' : ''}`}
@@ -11695,10 +12535,20 @@ gamify.it.com/fitness`;
           {/* Home View */}
           {store.currentView === 'home' && !store.currentWorkout && (
             <>
-              <div className="home-hero" onClick={() => store.setView('profile')} style={{ cursor: 'pointer' }}>
+              <div className="home-hero">
                 <div className="hero-card">
                   <p className="home-subtitle">Every rep is part of your adventure</p>
-                  <div className="home-stats">
+
+                  {/* Primary CTA - Start Workout */}
+                  <button
+                    className="start-workout-btn"
+                    onClick={() => store.startWorkout()}
+                  >
+                    <span className="start-workout-icon">+</span>
+                    <span className="start-workout-text">Start Workout</span>
+                  </button>
+
+                  <div className="home-stats" onClick={() => store.setView('profile')} style={{ cursor: 'pointer' }}>
                     <div className="home-stat">
                       <div className="home-stat-value">{unifiedProfile?.level ?? store.profile.level}</div>
                       <div className="home-stat-label">LEVEL</div>
@@ -11712,20 +12562,11 @@ gamify.it.com/fitness`;
                       <div className="home-stat-label">XP</div>
                     </div>
                   </div>
-                  <div className="hero-tap-hint">Tap for Profile</div>
+                  <div className="hero-tap-hint" onClick={() => store.setView('profile')} style={{ cursor: 'pointer' }}>View Profile</div>
                 </div>
               </div>
 
-              {/* Friend Rivalry Scoreboard */}
-              <FriendRivalryScoreboard />
-
-              {/* Almost There - Achievement previews */}
-              <AlmostThereCard />
-
-              {/* Accountability Partners */}
-              <AccountabilityCard />
-
-              {/* Daily Challenges */}
+              {/* Today's Focus - Show ONE engaging card (Daily Challenge or Almost There) */}
               <DailyChallengeCard />
 
               {/* Active Program Widget - Compact */}
@@ -11845,11 +12686,19 @@ gamify.it.com/fitness`;
 
               {store.workouts.length > 0 && (
                 <div className="recent-section">
-                  <div className="section-header">
-                    <p className="section-label">Recent Activity</p>
-                    <h2 className="section-title">Your Workouts</h2>
+                  <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p className="section-label">Recent Activity</p>
+                      <h2 className="section-title">Your Workouts</h2>
+                    </div>
+                    <button
+                      className="see-all-btn"
+                      onClick={() => store.setView('history')}
+                    >
+                      See All
+                    </button>
                   </div>
-                  {store.workouts.slice(0, 3).map(workout => (
+                  {store.workouts.slice(0, 2).map(workout => (
                     <div
                       key={workout.id}
                       className="workout-card"
@@ -11865,12 +12714,20 @@ gamify.it.com/fitness`;
                 </div>
               )}
 
-              {/* Friends Section */}
-              <div className="friends-section">
-                <FriendsWorkoutFeed />
-                <div style={{ marginTop: '16px' }}>
-                  <FitnessLeaderboard />
-                </div>
+              {/* Quick Access Row */}
+              <div className="quick-access-row">
+                <button className="quick-access-btn" onClick={() => store.setView('social')}>
+                  <span className="quick-access-icon">👥</span>
+                  <span className="quick-access-label">Social</span>
+                </button>
+                <button className="quick-access-btn" onClick={() => store.setView('achievements')}>
+                  <span className="quick-access-icon">🏆</span>
+                  <span className="quick-access-label">Achievements</span>
+                </button>
+                <button className="quick-access-btn" onClick={() => store.setView('analytics')}>
+                  <span className="quick-access-icon">📊</span>
+                  <span className="quick-access-label">Analytics</span>
+                </button>
               </div>
             </>
           )}
@@ -12021,7 +12878,7 @@ gamify.it.com/fitness`;
           </button>
         </div>
 
-        {/* Mobile Bottom Navigation */}
+        {/* Mobile Bottom Navigation - Simplified 4-tab structure */}
         <nav className="mobile-bottom-nav">
           <button
             className={`mobile-nav-btn ${store.currentView === 'home' || store.currentView === 'workout' ? 'active' : ''}`}
@@ -12031,7 +12888,7 @@ gamify.it.com/fitness`;
             <span className="mobile-nav-label">Home</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'exercises' || store.currentView === 'exercise-detail' ? 'active' : ''}`}
+            className={`mobile-nav-btn ${['exercises', 'exercise-detail', 'templates', 'template-editor', 'programs', 'program-wizard', 'program-detail'].includes(store.currentView) ? 'active' : ''}`}
             onClick={() => {
               if (store.currentWorkout) {
                 setShowExercisePicker(true);
@@ -12040,25 +12897,18 @@ gamify.it.com/fitness`;
               }
             }}
           >
-            <span className="mobile-nav-icon">💪</span>
-            <span className="mobile-nav-label">Exercises</span>
+            <span className="mobile-nav-icon">📚</span>
+            <span className="mobile-nav-label">Library</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'history' ? 'active' : ''}`}
+            className={`mobile-nav-btn ${store.currentView === 'history' || store.currentView === 'workout-detail' ? 'active' : ''}`}
             onClick={() => store.setView('history')}
           >
             <span className="mobile-nav-icon">📋</span>
             <span className="mobile-nav-label">History</span>
           </button>
           <button
-            className={`mobile-nav-btn ${store.currentView === 'templates' ? 'active' : ''}`}
-            onClick={() => store.setView('templates')}
-          >
-            <span className="mobile-nav-icon">📚</span>
-            <span className="mobile-nav-label">Templates</span>
-          </button>
-          <button
-            className={`mobile-nav-btn ${store.currentView === 'profile' ? 'active' : ''}`}
+            className={`mobile-nav-btn ${['profile', 'achievements', 'analytics', 'campaigns', 'social'].includes(store.currentView) ? 'active' : ''}`}
             onClick={() => store.setView('profile')}
           >
             <span className="mobile-nav-icon">👤</span>
@@ -12203,6 +13053,18 @@ gamify.it.com/fitness`;
                   />
                 )}
               </div>
+
+              {/* Voice Input Button */}
+              {voiceSupported && (
+                <button
+                  className={`voice-input-btn ${isListening ? 'listening' : ''}`}
+                  onClick={() => isListening ? stopVoiceRecognition() : startVoiceRecognition()}
+                  title={isListening ? 'Stop listening' : 'Voice input (say "135 times 8")'}
+                >
+                  <span className="voice-icon">{isListening ? '🔴' : '🎤'}</span>
+                  <span className="voice-label">{isListening ? 'Listening...' : 'Voice Input'}</span>
+                </button>
+              )}
 
               <div className="set-inputs">
                 <div className="input-group">
@@ -12396,6 +13258,106 @@ gamify.it.com/fitness`;
                 <button className="modal-btn secondary" onClick={() => handleFinishWorkout(false)}>Skip</button>
                 <button className="modal-btn primary" onClick={() => handleFinishWorkout(true)}>Save</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Workout Summary Modal */}
+        {showWorkoutSummary && workoutSummaryData && (
+          <div className="modal-overlay" onClick={() => setShowWorkoutSummary(false)}>
+            <div className="modal workout-summary-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="summary-celebration">
+                {workoutSummaryData.prsHit.length > 0 ? '🏆' : '💪'}
+              </div>
+              <div className="summary-title">
+                {workoutSummaryData.prsHit.length > 0 ? 'New PR!' : 'Workout Complete!'}
+              </div>
+              <div className="summary-subtitle">
+                {Math.floor(workoutSummaryData.duration / 60)} min · {workoutSummaryData.exercises.length} exercises
+              </div>
+
+              {/* XP Earned */}
+              <div className="summary-xp-container">
+                <div className="summary-xp-label">XP Earned</div>
+                <div>
+                  <span className="summary-xp-value">+{workoutSummaryData.totalXP.toLocaleString()}</span>
+                  <span className="summary-xp-suffix">XP</span>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="summary-stats-grid">
+                <div className="summary-stat">
+                  <div className="summary-stat-value">{workoutSummaryData.totalSets}</div>
+                  <div className="summary-stat-label">Sets</div>
+                </div>
+                <div className="summary-stat">
+                  <div className="summary-stat-value">{(workoutSummaryData.totalVolume / 1000).toFixed(1)}k</div>
+                  <div className="summary-stat-label">Volume (lbs)</div>
+                </div>
+                <div className="summary-stat">
+                  <div className="summary-stat-value">{workoutSummaryData.prsHit.length}</div>
+                  <div className="summary-stat-label">PRs</div>
+                </div>
+              </div>
+
+              {/* PRs Section */}
+              {workoutSummaryData.prsHit.length > 0 && (
+                <div className="summary-prs-section">
+                  <div className="summary-prs-title">
+                    <span>🥇</span> Personal Records
+                  </div>
+                  {workoutSummaryData.prsHit.map((pr, i) => (
+                    <div key={i} className="summary-pr-item">
+                      <span className="summary-pr-name">{pr.exerciseName}</span>
+                      <span className="summary-pr-value">{pr.weight} × {pr.reps}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Volume Comparison */}
+              {workoutSummaryData.previousVolume && workoutSummaryData.previousVolume > 0 && (
+                <div className="summary-volume-comparison">
+                  <span className="volume-comparison-label">vs. similar workout</span>
+                  {(() => {
+                    const change = ((workoutSummaryData.totalVolume - workoutSummaryData.previousVolume) / workoutSummaryData.previousVolume) * 100;
+                    const isPositive = change >= 0;
+                    return (
+                      <span className={`volume-comparison-change ${isPositive ? 'positive' : 'negative'}`}>
+                        {isPositive ? '+' : ''}{change.toFixed(0)}% volume
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Share Button */}
+              <button
+                className="summary-share-btn"
+                onClick={() => {
+                  const text = `Just crushed a ${Math.floor(workoutSummaryData.duration / 60)} min workout!\n\n💪 ${workoutSummaryData.totalSets} sets\n⚡ ${workoutSummaryData.totalXP.toLocaleString()} XP earned\n${workoutSummaryData.prsHit.length > 0 ? `🏆 ${workoutSummaryData.prsHit.length} new PR${workoutSummaryData.prsHit.length > 1 ? 's' : ''}!\n` : ''}\n#Reptura`;
+                  if (navigator.share) {
+                    navigator.share({ text });
+                  } else {
+                    navigator.clipboard.writeText(text);
+                    store.showToast('Copied to clipboard!');
+                  }
+                }}
+              >
+                <span>📤</span> Share Workout
+              </button>
+
+              {/* Done Button */}
+              <button
+                className="summary-done-btn"
+                onClick={() => {
+                  setShowWorkoutSummary(false);
+                  setWorkoutSummaryData(null);
+                }}
+              >
+                Done
+              </button>
             </div>
           </div>
         )}

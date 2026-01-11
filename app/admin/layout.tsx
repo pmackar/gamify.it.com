@@ -13,6 +13,7 @@ import {
   Bell,
   Backpack,
   Key,
+  Dumbbell,
 } from "lucide-react";
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/roles", label: "Roles & Permissions", icon: Key },
   { href: "/admin/metrics", label: "Metrics", icon: BarChart3 },
+  { href: "/admin/fitness", label: "Fitness", icon: Dumbbell },
   { href: "/admin/moderation", label: "Moderation", icon: Shield },
 ];
 
