@@ -13,12 +13,12 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [step, setStep] = useState<"email" | "sent" | "code">("email");
   const [formError, setFormError] = useState("");
 
   const handleGoogleLogin = async () => {
-    setSocialLoading("google");
+    setGoogleLoading(true);
     setFormError("");
     try {
       const supabase = createClient();
@@ -34,32 +34,11 @@ function LoginContent() {
       });
       if (error) {
         setFormError(error.message);
-        setSocialLoading(null);
+        setGoogleLoading(false);
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Failed to connect to Google");
-      setSocialLoading(null);
-    }
-  };
-
-  const handleAppleLogin = async () => {
-    setSocialLoading("apple");
-    setFormError("");
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "apple",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`,
-        },
-      });
-      if (error) {
-        setFormError(error.message);
-        setSocialLoading(null);
-      }
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to connect to Apple");
-      setSocialLoading(null);
+      setGoogleLoading(false);
     }
   };
 
@@ -175,10 +154,10 @@ function LoginContent() {
             <>
               <button
                 onClick={handleGoogleLogin}
-                disabled={socialLoading !== null || loading}
-                className="w-full px-6 py-4 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-colors flex items-center justify-center gap-3 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={googleLoading || loading}
+                className="w-full px-6 py-4 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-colors flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {socialLoading === "google" ? (
+                {googleLoading ? (
                   <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
                 ) : (
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -191,18 +170,7 @@ function LoginContent() {
                 Continue with Google
               </button>
 
-              <button
-                disabled
-                className="w-full px-6 py-4 bg-black/50 text-white/50 font-medium rounded-xl flex items-center justify-center gap-3 mb-6 border border-gray-700/50 cursor-not-allowed relative"
-              >
-                <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                </svg>
-                Continue with Apple
-                <span className="absolute right-4 text-xs text-yellow-500/80 font-normal">Coming Soon</span>
-              </button>
-
-              <div className="relative mb-6">
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-700"></div>
                 </div>
