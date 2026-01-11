@@ -75,6 +75,7 @@ async function getFitnessMetrics() {
     // Check weekly activity
     const recentWorkouts = workouts.filter((w) => {
       const workoutDate = new Date(w.date);
+      if (isNaN(workoutDate.getTime())) return false;
       return workoutDate >= sevenDaysAgo;
     });
 
@@ -151,6 +152,9 @@ async function getFitnessMetrics() {
 
     for (const workout of data.workouts) {
       const date = new Date(workout.date);
+      // Skip invalid dates
+      if (isNaN(date.getTime())) continue;
+
       // Get week start (Monday)
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay() + 1);
@@ -188,6 +192,7 @@ async function getFitnessMetrics() {
     // Count workouts in last 7 days
     const recentCount = data.workouts.filter((w) => {
       const workoutDate = new Date(w.date);
+      if (isNaN(workoutDate.getTime())) return false;
       return workoutDate >= sevenDaysAgo;
     }).length;
 
