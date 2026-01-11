@@ -9,6 +9,8 @@ interface NavBarContextValue {
   setTheme: (theme: 'dark' | 'light') => void;
   showLogo: boolean;
   setShowLogo: (show: boolean) => void;
+  onLogoClick: (() => void) | null;
+  setOnLogoClick: (handler: (() => void) | null) => void;
 }
 
 const NavBarContext = createContext<NavBarContextValue | null>(null);
@@ -17,9 +19,10 @@ export function NavBarProvider({ children }: { children: ReactNode }) {
   const [centerContent, setCenterContent] = useState<ReactNode | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showLogo, setShowLogo] = useState(true);
+  const [onLogoClick, setOnLogoClick] = useState<(() => void) | null>(null);
 
   return (
-    <NavBarContext.Provider value={{ centerContent, setCenterContent, theme, setTheme, showLogo, setShowLogo }}>
+    <NavBarContext.Provider value={{ centerContent, setCenterContent, theme, setTheme, showLogo, setShowLogo, onLogoClick, setOnLogoClick }}>
       {children}
     </NavBarContext.Provider>
   );
@@ -46,4 +49,9 @@ export function useNavBarTheme() {
 export function useNavBarLogo() {
   const context = useContext(NavBarContext);
   return context?.showLogo ?? true;
+}
+
+export function useNavBarLogoClick() {
+  const context = useContext(NavBarContext);
+  return context?.onLogoClick ?? null;
 }

@@ -58,7 +58,7 @@ const MUSCLE_CATEGORIES = [
 export default function FitnessApp() {
   const store = useFitnessStore();
   const [mounted, setMounted] = useState(false);
-  const { setCenterContent } = useNavBar();
+  const { setCenterContent, setOnLogoClick } = useNavBar();
   const [query, setQuery] = useState('');
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [showSetPanel, setShowSetPanel] = useState(false);
@@ -296,6 +296,16 @@ export default function FitnessApp() {
       }
     };
   }, []);
+
+  // Set logo click handler to navigate to home view
+  useEffect(() => {
+    setOnLogoClick(() => () => {
+      store.setView('home');
+    });
+    return () => {
+      setOnLogoClick(null);
+    };
+  }, [setOnLogoClick, store]);
 
   const startVoiceRecognition = () => {
     if (recognitionRef.current && !isListening) {
@@ -9445,12 +9455,31 @@ export default function FitnessApp() {
         .substitute-fullscreen {
           position: fixed;
           inset: 0;
-          background: var(--bg-base);
+          background: linear-gradient(
+            135deg,
+            rgba(20, 20, 30, 0.95) 0%,
+            rgba(30, 25, 40, 0.92) 50%,
+            rgba(20, 20, 30, 0.95) 100%
+          );
+          backdrop-filter: blur(24px) saturate(1.4);
+          -webkit-backdrop-filter: blur(24px) saturate(1.4);
           z-index: 10000;
           display: flex;
           flex-direction: column;
           animation: slideInFromRight 0.25s ease-out;
           padding-top: env(safe-area-inset-top, 0px);
+        }
+
+        .substitute-fullscreen::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(
+            ellipse 80% 50% at 50% 0%,
+            rgba(255, 107, 107, 0.08) 0%,
+            transparent 60%
+          );
+          pointer-events: none;
         }
 
         @keyframes slideInFromRight {
@@ -11561,6 +11590,7 @@ gamify.it.com/fitness`;
           {store.currentView === 'exercises' && (
             <div className="view-content exercises-library-view">
               <div className="view-header">
+                <button className="back-btn" onClick={() => store.setView('home')} aria-label="Go back to home">←</button>
                 <span className="view-title">Library</span>
               </div>
 
