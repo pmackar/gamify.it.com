@@ -28,18 +28,8 @@ function AuthCallbackContent() {
         // Clear hash from URL
         window.history.replaceState({}, '', window.location.pathname);
 
-        // Check if running as installed PWA (needs transfer code)
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches
-                   || (window.navigator as any).standalone === true;
-
-        if (isPWA) {
-          // PWA needs transfer code for cross-context auth
-          router.push('/auth/transfer');
-        } else {
-          // Web users go directly to their destination
-          const next = searchParams.get('next') || '/';
-          router.push(next);
-        }
+        const next = searchParams.get('next') || '/';
+        router.push(next);
       } else {
         setStatus('No session found. Redirecting...');
         setTimeout(() => router.push('/login'), 1500);
