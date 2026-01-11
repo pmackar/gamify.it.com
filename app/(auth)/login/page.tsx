@@ -11,10 +11,9 @@ function LoginContent() {
   const error = searchParams.get("error");
 
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [step, setStep] = useState<"email" | "sent" | "code">("email");
+  const [step, setStep] = useState<"email" | "sent">("email");
   const [formError, setFormError] = useState("");
 
   const handleGoogleLogin = async () => {
@@ -66,38 +65,6 @@ function LoginContent() {
       }
     } catch (err) {
       console.error("sendLink catch:", err);
-      setFormError(
-        `Network error: ${err instanceof Error ? err.message : "Unknown"}`
-      );
-    }
-    setLoading(false);
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code || code.length !== 6) return;
-    setLoading(true);
-    setFormError("");
-    try {
-      const res = await fetch(`/api/auth/transfer-code?code=${code}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setFormError(data.error || "Invalid code");
-        setCode("");
-      } else {
-        const supabase = createClient();
-        const { error } = await supabase.auth.setSession({
-          access_token: data.accessToken,
-          refresh_token: data.refreshToken,
-        });
-        if (error) {
-          setFormError(error.message);
-        } else {
-          window.location.href = callbackUrl;
-        }
-      }
-    } catch (err) {
-      console.error("verifyCode catch:", err);
       setFormError(
         `Network error: ${err instanceof Error ? err.message : "Unknown"}`
       );
@@ -192,14 +159,8 @@ function LoginContent() {
               </p>
               <p className="text-yellow-400 text-sm mb-4 break-all">{email}</p>
               <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                Click the link in your email, then enter the 6-digit code shown on the page.
+                Click the link in your email to sign in.
               </p>
-              <button
-                onClick={() => setStep("code")}
-                className="w-full px-6 py-4 bg-transparent border border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-400 font-medium rounded-xl transition-colors mb-4"
-              >
-                I have a code
-              </button>
               <button
                 onClick={() => {
                   setStep("email");
@@ -208,48 +169,6 @@ function LoginContent() {
                 className="text-gray-500 hover:text-gray-400 text-sm"
               >
                 ← Use different email
-              </button>
-            </div>
-          ) : step === "code" ? (
-            <div>
-              <p className="text-gray-400 text-sm text-center mb-4">
-                Enter the 6-digit code:
-              </p>
-              <form onSubmit={handleVerifyCode}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  className="w-full px-6 py-4 bg-gray-800/50 border border-gray-700 rounded-xl text-white text-center text-2xl tracking-[0.5rem] font-mono focus:outline-none focus:border-yellow-500 mb-4"
-                  placeholder="000000"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                  autoFocus
-                />
-                {formError && (
-                  <p className="text-red-400 text-sm text-center mb-4">
-                    {formError}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading || code.length !== 6}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-gray-900 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4"
-                  style={{ fontFamily: "'Press Start 2P', monospace", fontSize: "0.5rem" }}
-                >
-                  {loading ? "Verifying..." : "Verify Code"}
-                </button>
-              </form>
-              <button
-                onClick={() => {
-                  setStep("sent");
-                  setCode("");
-                  setFormError("");
-                }}
-                className="w-full text-gray-500 hover:text-gray-400 text-sm"
-              >
-                ← Back
               </button>
             </div>
           ) : (
@@ -278,12 +197,6 @@ function LoginContent() {
                   {loading ? "Sending..." : "Send Magic Link"}
                 </button>
               </form>
-              <button
-                onClick={() => setStep("code")}
-                className="w-full mt-4 px-6 py-3 bg-transparent border border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-400 text-sm rounded-xl transition-colors"
-              >
-                I already have a code
-              </button>
             </div>
           )}
 
