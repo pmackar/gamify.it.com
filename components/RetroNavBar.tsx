@@ -1795,7 +1795,7 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
           }
 
           .nav-reptura-logo {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
           }
 
           .nav-app-link {
@@ -1863,10 +1863,17 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             height: 3px;
           }
 
-          /* App content on mobile */
+          /* App content on mobile - take up available center space */
           .nav-app-content {
             flex: 1;
-            max-width: 55%;
+            max-width: none;
+            min-width: 0;
+          }
+
+          .nav-center {
+            flex: 1;
+            min-width: 0;
+            max-width: calc(100% - 120px); /* Leave space for logo + avatar only */
           }
 
           .nav-menu-link {
@@ -1951,23 +1958,25 @@ export function RetroNavBar({ appMenuItems, quickActions, children, theme: theme
             padding: 2px 5px;
           }
 
-          /* Mobile workout header */
+          /* Mobile workout header - larger for better visibility */
           .nav-workout-status {
-            padding: 3px 8px;
-            gap: 6px;
+            padding: 6px 14px;
+            gap: 10px;
+            flex: 1;
+            justify-content: center;
           }
 
           .nav-workout-timer {
-            font-size: 6px;
+            font-size: 9px;
           }
 
           .nav-workout-sets {
-            font-size: 5px;
+            font-size: 7px;
           }
 
           .nav-workout-finish {
-            font-size: 5px;
-            padding: 3px 6px;
+            font-size: 7px;
+            padding: 6px 12px;
           }
         }
       `}</style>

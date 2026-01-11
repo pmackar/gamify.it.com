@@ -197,11 +197,15 @@ function calculateUserStats(workouts: any[]) {
   const experience = avgWorkoutsPerWeek >= 4 ? 'advanced' :
                      avgWorkoutsPerWeek >= 2 ? 'intermediate' : 'beginner';
 
+  // Cap average duration at 90 minutes to avoid unrealistic challenges
+  const rawAvgDuration = workouts.length > 0 ? Math.round(totalDuration / workouts.length / 60) : 30;
+  const avgDuration = Math.min(rawAvgDuration, 90);
+
   return {
     avgWorkoutsPerWeek,
     avgSetsPerWorkout: workouts.length > 0 ? Math.round(totalSets / workouts.length) : 10,
     avgVolumePerWorkout: workouts.length > 0 ? Math.round(totalVolume / workouts.length) : 5000,
-    avgDuration: workouts.length > 0 ? Math.round(totalDuration / workouts.length / 60) : 30,
+    avgDuration,
     mostUsedExercises,
     experience,
   };
@@ -244,7 +248,10 @@ function generateChallenges(
   });
 
   // Hard challenge: Duration-based (works for any workout type)
-  const durationTarget = Math.max(30, Math.round(stats.avgDuration * 1.2));
+  // Use additive target (avg + 10-15 min) like Duolingo - push slightly beyond norm
+  // Cap at 75 minutes max for reasonable challenges
+  const durationBonus = stats.experience === 'advanced' ? 15 : stats.experience === 'intermediate' ? 10 : 5;
+  const durationTarget = Math.min(75, Math.max(30, stats.avgDuration + durationBonus));
   challenges.push({
     id: `${dateKey}-duration`,
     type: 'duration',

@@ -190,6 +190,9 @@ model profiles {
   form_checks             coaching_form_checks[]     @relation("AthleteFormChecks")
   live_sessions           coaching_live_sessions[]   @relation("AthleteLiveSessions")
 
+  // Athlete billing subscriptions
+  coaching_subscriptions  athlete_coaching_subscriptions[] @relation("AthleteCoachingSubscriptions")
+
   // Narrative engine & rivals relations
   narrative_settings      fitness_narrative_settings? @relation("NarrativeSettings")
   rivals_as_user          fitness_rivals[]           @relation("UserRivals")
@@ -995,6 +998,7 @@ model coach_profiles {
   form_checks     coaching_form_checks[]   @relation("CoachFormChecks")
   live_sessions   coaching_live_sessions[] @relation("CoachLiveSessions")
   usage           coach_usage[]
+  stripe_account  coach_stripe_accounts?
 
   @@index([user_id])
 }
@@ -1454,6 +1458,115 @@ model coaching_live_sessions {
   @@index([athlete_id])
   @@index([coach_id])
   @@index([is_active])
+}
+
+// ============================================
+// COACHING: BILLING (Stripe Connect)
+// ============================================
+
+enum coach_payout_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum athlete_subscription_status {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+  TRIALING
+}
+
+/// Coach's Stripe Connect account for receiving payments
+model coach_stripe_accounts {
+  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id                String         @unique @db.Uuid
+  coach                   coach_profiles @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+  stripe_account_id       String         @unique  // acct_xxx from Stripe Connect
+  charges_enabled         Boolean        @default(false)
+  payouts_enabled         Boolean        @default(false)
+  details_submitted       Boolean        @default(false)
+  onboarding_complete     Boolean        @default(false)
+  default_currency        String         @default("usd")
+  country                 String?
+  business_type           String?        // individual, company
+  created_at              DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime       @default(now()) @db.Timestamptz(6)
+
+  pricing_plans           coach_pricing_plans[]
+  payouts                 coach_payouts[]
+
+  @@index([stripe_account_id])
+}
+
+/// Pricing plans coaches offer to athletes
+model coach_pricing_plans {
+  id                      String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id                String                @db.Uuid
+  stripe_account          coach_stripe_accounts @relation(fields: [coach_id], references: [coach_id], onDelete: Cascade)
+  name                    String                // "Monthly Coaching", "Premium Package"
+  description             String?
+  price_cents             Int                   // Price in cents (e.g., 9900 = $99)
+  currency                String                @default("usd")
+  interval                String                @default("month") // month, year, week
+  interval_count          Int                   @default(1)       // Every X intervals
+  trial_days              Int?                  // Free trial period
+  stripe_price_id         String?               // Stripe Price ID
+  stripe_product_id       String?               // Stripe Product ID
+  features                String[]              // ["Personalized programs", "Weekly check-ins"]
+  is_active               Boolean               @default(true)
+  max_athletes            Int?                  // Limit for this plan
+  created_at              DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime              @default(now()) @db.Timestamptz(6)
+
+  subscriptions           athlete_coaching_subscriptions[]
+
+  @@index([coach_id])
+  @@index([is_active])
+}
+
+/// Athlete subscriptions to coaches (payments)
+model athlete_coaching_subscriptions {
+  id                      String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id              String                       @db.Uuid
+  athlete                 profiles                     @relation("AthleteCoachingSubscriptions", fields: [athlete_id], references: [id], onDelete: Cascade)
+  plan_id                 String                       @db.Uuid
+  plan                    coach_pricing_plans          @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  stripe_subscription_id  String?                      // Stripe Subscription ID
+  stripe_customer_id      String?                      // Athlete's Stripe Customer ID
+  status                  athlete_subscription_status  @default(ACTIVE)
+  current_period_start    DateTime?                    @db.Timestamptz(6)
+  current_period_end      DateTime?                    @db.Timestamptz(6)
+  cancel_at_period_end    Boolean                      @default(false)
+  cancelled_at            DateTime?                    @db.Timestamptz(6)
+  trial_end               DateTime?                    @db.Timestamptz(6)
+  created_at              DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                     @default(now()) @db.Timestamptz(6)
+
+  @@unique([athlete_id, plan_id])
+  @@index([athlete_id])
+  @@index([plan_id])
+  @@index([status])
+  @@index([stripe_subscription_id])
+}
+
+/// Track payouts to coaches
+model coach_payouts {
+  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stripe_account_id       String               @db.Uuid
+  stripe_account          coach_stripe_accounts @relation(fields: [stripe_account_id], references: [id], onDelete: Cascade)
+  stripe_payout_id        String?              // Stripe Payout ID
+  amount_cents            Int                  // Amount in cents
+  currency                String               @default("usd")
+  status                  coach_payout_status  @default(PENDING)
+  arrival_date            DateTime?            @db.Date
+  failure_message         String?
+  created_at              DateTime             @default(now()) @db.Timestamptz(6)
+
+  @@index([stripe_account_id])
+  @@index([status])
 }
 
 // ============================================

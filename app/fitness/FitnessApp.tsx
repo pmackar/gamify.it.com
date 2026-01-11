@@ -103,11 +103,12 @@ export default function FitnessApp() {
   const [viewingMuscleGroup, setViewingMuscleGroup] = useState<string | null>(null);
   const [editingCustomExercise, setEditingCustomExercise] = useState<{ id: string; name: string; muscle: string; tier: number } | null>(null);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
+  const [substituteSearchQuery, setSubstituteSearchQuery] = useState('');
   const [creatingCustomExercise, setCreatingCustomExercise] = useState<{
     name: string;
     muscle: string;
     tier: number;
-    context: 'workout' | 'template' | 'program' | 'picker';
+    context: 'workout' | 'template' | 'program' | 'picker' | 'substitute';
   } | null>(null);
   const [strengthProgressExercise, setStrengthProgressExercise] = useState<string | null>(null);
   const [strengthProgressRange, setStrengthProgressRange] = useState<'30d' | '90d' | '1y' | 'all'>('all');
@@ -4456,6 +4457,251 @@ export default function FitnessApp() {
           border-color: #ef4444;
         }
 
+        /* ===== PROGRAM DETAIL VIEW ===== */
+        .program-detail-view {
+          padding: 16px;
+        }
+
+        .program-detail-summary {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+
+        .program-detail-summary .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+
+        .program-detail-summary .summary-label {
+          color: var(--text-secondary);
+          font-size: 13px;
+        }
+
+        .program-detail-summary .summary-value {
+          color: var(--accent);
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .program-detail-summary .program-progress-bar {
+          height: 8px;
+          background: var(--surface-hover);
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 8px;
+        }
+
+        .program-detail-summary .progress-fill {
+          height: 100%;
+          background: var(--accent);
+          border-radius: 4px;
+        }
+
+        .program-detail-summary .summary-meta {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        .program-schedule {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .program-week {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .program-week.current {
+          border-color: var(--accent);
+          border-width: 2px;
+        }
+
+        .program-week.past {
+          opacity: 0.6;
+        }
+
+        .week-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          background: var(--surface-hover);
+          border-bottom: 1px solid var(--border);
+        }
+
+        .week-label {
+          font-weight: 600;
+          color: var(--text-primary);
+          font-size: 14px;
+        }
+
+        .current-badge {
+          background: var(--accent);
+          color: #000;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 10px;
+          text-transform: uppercase;
+        }
+
+        .completed-badge {
+          color: var(--success, #4ECDC4);
+          font-size: 14px;
+        }
+
+        .week-days {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 8px;
+          padding: 12px;
+        }
+
+        .day-card {
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .day-card:hover:not(:disabled) {
+          border-color: var(--accent);
+          background: rgba(255, 215, 0, 0.05);
+        }
+
+        .day-card:disabled {
+          cursor: default;
+          opacity: 0.5;
+        }
+
+        .day-card.rest {
+          opacity: 0.5;
+        }
+
+        .day-card.completed {
+          background: rgba(78, 205, 196, 0.1);
+          border-color: var(--success, #4ECDC4);
+        }
+
+        .day-card.today {
+          border-color: var(--accent);
+          border-width: 2px;
+          background: rgba(255, 215, 0, 0.15);
+        }
+
+        .day-card .day-number {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          margin-bottom: 4px;
+        }
+
+        .day-card .day-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .day-card .check {
+          color: var(--success, #4ECDC4);
+        }
+
+        .day-card .today-label {
+          font-size: 9px;
+          color: var(--accent);
+          font-weight: 700;
+          text-transform: uppercase;
+          margin-top: 4px;
+        }
+
+        .day-card .start-hint {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          margin-top: 6px;
+        }
+
+        .day-actions {
+          display: flex;
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .day-action-btn {
+          flex: 1;
+          padding: 6px 8px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: all 0.15s ease;
+        }
+
+        .day-action-btn.start {
+          background: var(--accent);
+          color: #000;
+        }
+
+        .day-action-btn.start:hover {
+          filter: brightness(1.1);
+        }
+
+        .day-action-btn.skip {
+          background: var(--surface-hover);
+          color: var(--text-secondary);
+          border: 1px solid var(--border);
+        }
+
+        .day-action-btn.skip:hover {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          border-color: #ef4444;
+        }
+
+        .program-detail-actions {
+          display: flex;
+          gap: 12px;
+          padding: 16px 0;
+        }
+
+        .program-detail-actions .action-btn {
+          flex: 1;
+          padding: 12px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text-primary);
+        }
+
+        .program-detail-actions .action-btn.secondary:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        .program-detail-actions .action-btn.danger {
+          color: #ef4444;
+        }
+
+        .program-detail-actions .action-btn.danger:hover {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: #ef4444;
+        }
+
         /* ===== PROGRAM WIZARD ===== */
         .program-wizard {
           padding: 16px;
@@ -5864,6 +6110,112 @@ export default function FitnessApp() {
           margin: 16px;
         }
 
+        .active-program-widget.compact {
+          padding: 12px;
+        }
+
+        .widget-header-compact {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .widget-header-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .widget-icon {
+          font-size: 1.5rem;
+        }
+
+        .widget-title-compact {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .widget-subtitle-compact {
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+
+        .view-program-btn {
+          background: var(--surface-hover);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--accent);
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .view-program-btn:hover {
+          background: var(--surface);
+          border-color: var(--accent);
+        }
+
+        .todays-session {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          margin-top: 12px;
+          padding: 12px;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          cursor: pointer;
+          text-align: left;
+        }
+
+        .todays-session:not(:disabled):hover {
+          border-color: var(--accent);
+          background: rgba(var(--accent-rgb), 0.1);
+        }
+
+        .todays-session.rest {
+          cursor: default;
+        }
+
+        .todays-session.completed {
+          opacity: 0.7;
+          cursor: default;
+        }
+
+        .session-info {
+          flex: 1;
+        }
+
+        .session-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          color: var(--text-secondary);
+          letter-spacing: 0.5px;
+          margin-bottom: 2px;
+        }
+
+        .session-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .session-start {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--accent);
+        }
+
+        .session-done {
+          font-size: 12px;
+          color: var(--success, #4ECDC4);
+        }
+
         .widget-header {
           display: flex;
           justify-content: space-between;
@@ -7114,6 +7466,80 @@ export default function FitnessApp() {
           padding: 20px;
           text-align: center;
           color: var(--text-muted);
+        }
+
+        .substitute-section-label {
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--text-muted);
+          margin: 16px 0 8px 0;
+        }
+
+        .substitute-search-container {
+          margin-bottom: 8px;
+        }
+
+        .substitute-search-input {
+          width: 100%;
+          padding: 12px 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+
+        .substitute-search-input:focus {
+          border-color: var(--accent);
+        }
+
+        .substitute-search-input::placeholder {
+          color: var(--text-muted);
+        }
+
+        .substitute-list.search-results {
+          max-height: 200px;
+          overflow-y: auto;
+          margin-top: 0;
+        }
+
+        .substitute-no-results {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .substitute-create-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 14px 16px;
+          background: rgba(95, 191, 138, 0.15);
+          border: 1px dashed rgba(95, 191, 138, 0.4);
+          border-radius: 10px;
+          color: #5fbf8a;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          margin-top: 8px;
+        }
+
+        .substitute-create-btn:hover {
+          background: rgba(95, 191, 138, 0.25);
+          border-color: #5fbf8a;
+        }
+
+        .substitute-create-icon {
+          font-size: 16px;
+          font-weight: 700;
         }
 
         /* ===== EDIT EXERCISE MODAL ===== */
@@ -9374,6 +9800,124 @@ gamify.it.com/fitness`;
             </div>
           )}
 
+          {/* Program Detail View - Full Schedule */}
+          {store.currentView === 'program-detail' && store.activeProgram && (() => {
+            const program = store.programs.find(p => p.id === store.activeProgram?.programId);
+            if (!program) return null;
+
+            const completedWorkouts = store.activeProgram.completedWorkouts || [];
+            const currentWeek = store.activeProgram.currentWeek;
+            const currentDay = store.activeProgram.currentDay;
+            const totalDays = program.durationWeeks * (program.cycleLengthDays || 7);
+            const completedDays = ((currentWeek - 1) * (program.cycleLengthDays || 7)) + currentDay - 1;
+            const progress = Math.round((completedDays / totalDays) * 100);
+            const isMicrocycle = program.cycleType === 'microcycle';
+            const cycleLabel = isMicrocycle ? 'Microcycle' : 'Week';
+
+            return (
+              <div className="view-content program-detail-view">
+                <div className="view-header">
+                  <button className="back-btn" onClick={() => store.setView('home')}>←</button>
+                  <span className="view-title">{program.name}</span>
+                </div>
+
+                {/* Progress Summary */}
+                <div className="program-detail-summary">
+                  <div className="summary-row">
+                    <span className="summary-label">Progress</span>
+                    <span className="summary-value">{cycleLabel} {currentWeek}, Day {currentDay}</span>
+                  </div>
+                  <div className="program-progress-bar">
+                    <div className="progress-fill" style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="summary-meta">{progress}% complete • {program.durationWeeks} {isMicrocycle ? 'microcycles' : 'weeks'} total</div>
+                </div>
+
+                {/* Week-by-Week Schedule */}
+                <div className="program-schedule">
+                  {program.weeks.map((week, weekIdx) => {
+                    const isCurrentWeek = week.weekNumber === currentWeek;
+                    const isPastWeek = week.weekNumber < currentWeek;
+
+                    return (
+                      <div key={week.weekNumber} className={`program-week ${isCurrentWeek ? 'current' : ''} ${isPastWeek ? 'past' : ''}`}>
+                        <div className="week-header">
+                          <span className="week-label">{cycleLabel} {week.weekNumber}</span>
+                          {isCurrentWeek && <span className="current-badge">Current</span>}
+                          {isPastWeek && <span className="completed-badge">✓</span>}
+                        </div>
+                        <div className="week-days">
+                          {week.days.map((day) => {
+                            const template = day.templateId ? store.getTemplateById(day.templateId) : null;
+                            const workoutKey = `${week.weekNumber}-${day.dayNumber}`;
+                            const isCompleted = completedWorkouts.includes(workoutKey);
+                            const isToday = isCurrentWeek && day.dayNumber === currentDay;
+                            const canStart = !day.isRest && template && !isCompleted;
+
+                            return (
+                              <div
+                                key={day.dayNumber}
+                                className={`day-card ${day.isRest ? 'rest' : ''} ${isCompleted ? 'completed' : ''} ${isToday ? 'today' : ''}`}
+                              >
+                                <div className="day-number">Day {day.dayNumber}</div>
+                                <div className="day-name">
+                                  {isCompleted && <span className="check">✓ </span>}
+                                  {day.isRest ? '😴 Rest' : (template?.name || day.name)}
+                                </div>
+                                {isToday && !isCompleted && <div className="today-label">Today</div>}
+                                {canStart && (
+                                  <div className="day-actions">
+                                    <button
+                                      className="day-action-btn start"
+                                      onClick={() => store.startProgramWorkoutForDay(week.weekNumber, day.dayNumber)}
+                                    >
+                                      Start
+                                    </button>
+                                    <button
+                                      className="day-action-btn skip"
+                                      onClick={() => {
+                                        if (confirm('Skip this workout?')) {
+                                          store.skipProgramWorkout(week.weekNumber, day.dayNumber);
+                                        }
+                                      }}
+                                    >
+                                      Skip
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Actions */}
+                <div className="program-detail-actions">
+                  <button
+                    className="action-btn secondary"
+                    onClick={() => store.setView('programs')}
+                  >
+                    All Programs
+                  </button>
+                  <button
+                    className="action-btn danger"
+                    onClick={() => {
+                      if (confirm('Stop this program? Your progress will be saved.')) {
+                        store.stopProgram();
+                        store.setView('home');
+                      }
+                    }}
+                  >
+                    Stop Program
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Analytics View */}
           {store.currentView === 'analytics' && (() => {
             const volumeByWeek = store.getVolumeByWeek(8);
@@ -11184,7 +11728,7 @@ gamify.it.com/fitness`;
               {/* Daily Challenges */}
               <DailyChallengeCard />
 
-              {/* Active Program Widget */}
+              {/* Active Program Widget - Compact */}
               {store.activeProgram && (() => {
                 const todaysWorkout = store.getTodaysWorkout();
                 const upcomingWorkouts = store.getUpcomingWorkouts(14);
@@ -11193,64 +11737,72 @@ gamify.it.com/fitness`;
                 const program = todaysWorkout?.program || store.programs.find(p => p.id === store.activeProgram?.programId);
                 if (!program) return null;
 
-                const totalDays = program.durationWeeks * 7;
-                const completedDays = ((store.activeProgram.currentWeek - 1) * 7) + store.activeProgram.currentDay - 1;
+                const totalDays = program.durationWeeks * (program.cycleLengthDays || 7);
+                const completedDays = ((store.activeProgram.currentWeek - 1) * (program.cycleLengthDays || 7)) + store.activeProgram.currentDay - 1;
                 const progress = Math.round((completedDays / totalDays) * 100);
+                const isMicrocycle = program.cycleType === 'microcycle';
+                const cycleLabel = isMicrocycle ? 'Microcycle' : 'Week';
+
+                // Find next uncompleted workout (skip rest days)
+                const nextWorkout = upcomingWorkouts.find(w => !w.isCompleted && !w.isRest && w.template);
+                const todaySession = upcomingWorkouts.find(w => w.isToday);
 
                 return (
-                  <div className="active-program-widget">
-                    <div className="widget-header">
-                      <div>
-                        <div className="widget-title">Active Program</div>
-                        <div className="widget-program-name">{program.name}</div>
+                  <div className="active-program-widget compact">
+                    <div className="widget-header-compact">
+                      <div className="widget-header-left">
+                        <span className="widget-icon">📋</span>
+                        <div>
+                          <div className="widget-title-compact">{program.name}</div>
+                          <div className="widget-subtitle-compact">{cycleLabel} {store.activeProgram.currentWeek} • {progress}%</div>
+                        </div>
                       </div>
-                      <div className="widget-week">Week {store.activeProgram.currentWeek}</div>
+                      <button
+                        className="view-program-btn"
+                        onClick={() => store.setView('program-detail')}
+                      >
+                        View Program
+                      </button>
                     </div>
 
-                    <div className="program-progress" style={{ marginBottom: '12px' }}>
-                      <div className="progress-bar-container">
-                        <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
-                      </div>
-                      <div className="progress-text">{progress}% complete</div>
-                    </div>
+                    {/* Next Up - Show next uncompleted workout */}
+                    {nextWorkout && (
+                      <button
+                        className={`todays-session ${nextWorkout.isToday ? 'today' : ''}`}
+                        onClick={() => {
+                          store.startProgramWorkoutForDay(nextWorkout.weekNumber, nextWorkout.dayNumber);
+                        }}
+                      >
+                        <div className="session-info">
+                          <div className="session-label">
+                            {nextWorkout.isToday ? "Today's Session" : `Next Up (${cycleLabel} ${nextWorkout.weekNumber}, Day ${nextWorkout.dayNumber})`}
+                          </div>
+                          <div className="session-name">
+                            {nextWorkout.workoutName}
+                          </div>
+                        </div>
+                        <span className="session-start">Start →</span>
+                      </button>
+                    )}
 
-                    {/* Upcoming Workouts List */}
-                    <div className="widget-upcoming">
-                      <div className="widget-upcoming-label">This Week</div>
-                      <div className="widget-workout-list">
-                        {upcomingWorkouts.slice(0, 7).map((workout, idx) => (
-                          <button
-                            key={`${workout.weekNumber}-${workout.dayNumber}`}
-                            className={`widget-workout-item ${workout.isToday ? 'today' : ''} ${workout.isRest ? 'rest' : ''} ${workout.isCompleted ? 'completed' : ''}`}
-                            onClick={() => {
-                              if (!workout.isRest && workout.template && !workout.isCompleted) {
-                                store.startProgramWorkoutForDay(workout.weekNumber, workout.dayNumber);
-                              }
-                            }}
-                            disabled={workout.isRest || !workout.template || workout.isCompleted}
-                          >
-                            {workout.isCompleted && <span className="completed-check">✓</span>}
-                            <div className="workout-item-day">
-                              <span className="day-name">{workout.dayName}</span>
-                              {workout.isToday && !workout.isCompleted && <span className="today-badge">Today</span>}
-                            </div>
-                            <div className="workout-item-name">
-                              {workout.isRest ? '😴 Rest' : workout.workoutName}
-                            </div>
-                            {workout.weekNumber !== store.activeProgram?.currentWeek && (
-                              <div className="workout-item-week">Wk {workout.weekNumber}</div>
-                            )}
-                          </button>
-                        ))}
+                    {/* Show if today is rest or completed */}
+                    {!nextWorkout && todaySession && (
+                      <div className="todays-session rest" style={{ cursor: 'default' }}>
+                        <div className="session-info">
+                          <div className="session-label">Today</div>
+                          <div className="session-name">
+                            {todaySession.isRest ? '😴 Rest Day' : '✓ All caught up!'}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })()}
 
-              {/* Almost There - Upcoming Milestones Carousel */}
+              {/* Almost There - Upcoming Milestones Carousel (only show >= 95%) */}
               {(() => {
-                const upcomingMilestones = store.getUpcomingMilestones();
+                const upcomingMilestones = store.getUpcomingMilestones().filter(m => m.progress >= 95);
                 if (upcomingMilestones.length === 0) return null;
 
                 return (
@@ -12594,33 +13146,118 @@ gamify.it.com/fitness`;
             .map(id => [...EXERCISES, ...store.customExercises].find(e => e.id === id))
             .filter(Boolean) as { id: string; name: string; muscle: string; equipment?: string }[];
 
+          // Search results from library
+          const allExercises = [...EXERCISES, ...store.customExercises];
+          const searchResults = substituteSearchQuery.trim().length >= 2
+            ? allExercises.filter(ex =>
+                ex.id !== currentEx.id &&
+                !substituteIds.includes(ex.id) &&
+                ex.name.toLowerCase().includes(substituteSearchQuery.toLowerCase())
+              ).slice(0, 8)
+            : [];
+
           return (
-            <div className="modal-overlay" onClick={() => setShowSubstituteModal(false)}>
+            <div className="modal-overlay" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
               <div className="modal substitute-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">Substitute Exercise</div>
                 <div className="modal-subtitle">Replace {currentEx.name} with:</div>
 
-                <div className="substitute-list">
-                  {substitutes.length > 0 ? (
-                    substitutes.map(sub => (
-                      <button
-                        key={sub.id}
-                        className="substitute-option"
-                        onClick={() => {
-                          store.substituteExercise(store.currentExerciseIndex, sub.id, sub.name);
-                          setShowSubstituteModal(false);
-                        }}
-                      >
-                        <span className="substitute-name">{sub.name}</span>
-                        <span className="substitute-info">{sub.equipment || sub.muscle}</span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="no-substitutes">No substitutes available for this exercise</div>
-                  )}
+                {substitutes.length > 0 && (
+                  <>
+                    <div className="substitute-section-label">Suggested Substitutes</div>
+                    <div className="substitute-list">
+                      {substitutes.map(sub => (
+                        <button
+                          key={sub.id}
+                          className="substitute-option"
+                          onClick={() => {
+                            store.substituteExercise(store.currentExerciseIndex, sub.id, sub.name);
+                            setShowSubstituteModal(false);
+                            setSubstituteSearchQuery('');
+                          }}
+                        >
+                          <span className="substitute-name">{sub.name}</span>
+                          <span className="substitute-info">{sub.equipment || sub.muscle}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="substitute-section-label">Search Exercise Library</div>
+                <div className="substitute-search-container">
+                  <input
+                    type="text"
+                    className="substitute-search-input"
+                    placeholder="Type to search exercises..."
+                    value={substituteSearchQuery}
+                    onChange={e => setSubstituteSearchQuery(e.target.value)}
+                    autoFocus={substitutes.length === 0}
+                  />
                 </div>
 
-                <button className="modal-btn secondary" onClick={() => setShowSubstituteModal(false)}>
+                {searchResults.length > 0 && (
+                  <div className="substitute-list search-results">
+                    {searchResults.map(ex => (
+                      <button
+                        key={ex.id}
+                        className="substitute-option"
+                        onClick={() => {
+                          store.substituteExercise(store.currentExerciseIndex, ex.id, ex.name);
+                          setShowSubstituteModal(false);
+                          setSubstituteSearchQuery('');
+                        }}
+                      >
+                        <span className="substitute-name">{ex.name}</span>
+                        <span className="substitute-info">{ex.equipment || ex.muscle}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {substituteSearchQuery.trim().length >= 2 && searchResults.length === 0 && (
+                  <div className="substitute-no-results">
+                    <div className="no-substitutes">No exercises found matching "{substituteSearchQuery}"</div>
+                    <button
+                      className="substitute-create-btn"
+                      onClick={() => {
+                        setCreatingCustomExercise({
+                          name: substituteSearchQuery.trim(),
+                          muscle: 'other',
+                          tier: 3,
+                          context: 'substitute'
+                        });
+                        setShowSubstituteModal(false);
+                        setSubstituteSearchQuery('');
+                      }}
+                    >
+                      <span className="substitute-create-icon">+</span>
+                      Create "{substituteSearchQuery.trim()}"
+                    </button>
+                  </div>
+                )}
+
+                {/* Always show option to add new when searching */}
+                {substituteSearchQuery.trim().length >= 2 && searchResults.length > 0 && (
+                  <button
+                    className="substitute-create-btn"
+                    onClick={() => {
+                      setCreatingCustomExercise({
+                        name: substituteSearchQuery.trim(),
+                        muscle: 'other',
+                        tier: 3,
+                        context: 'substitute'
+                      });
+                      setShowSubstituteModal(false);
+                      setSubstituteSearchQuery('');
+                    }}
+                  >
+                    <span className="substitute-create-icon">+</span>
+                    Create new: "{substituteSearchQuery.trim()}"
+                  </button>
+                )}
+
+                <button className="modal-btn secondary" onClick={() => { setShowSubstituteModal(false); setSubstituteSearchQuery(''); }}>
                   Cancel
                 </button>
               </div>
@@ -12833,6 +13470,9 @@ gamify.it.com/fitness`;
                       }]);
                       setAddingExerciseToNewWorkout(false);
                       setNewWorkoutExerciseSearch('');
+                    } else if (context === 'substitute') {
+                      // Substitute the current exercise with the new one
+                      store.substituteExercise(store.currentExerciseIndex, id, formattedName);
                     }
 
                     setCreatingCustomExercise(null);

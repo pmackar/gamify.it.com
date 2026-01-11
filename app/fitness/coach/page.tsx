@@ -19,6 +19,7 @@ import {
   BookOpen,
   ShieldX,
   FolderKanban,
+  CreditCard,
 } from "lucide-react";
 import { usePermissionsStandalone } from "@/hooks/usePermissions";
 import CoachNotificationBell from "@/components/fitness/CoachNotificationBell";
@@ -366,6 +367,20 @@ export default function CoachDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <CoachNotificationBell />
+            <Link
+              href="/fitness/coach/billing"
+              className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"
+              style={{
+                background: "linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%)",
+                boxShadow: "0 3px 0 #6c3483",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: "8px",
+                color: "white",
+              }}
+            >
+              <CreditCard className="w-4 h-4" />
+              BILLING
+            </Link>
             <Link
               href="/fitness/coach/groups"
               className="flex items-center gap-2 py-2 px-4 rounded-lg transition-all"

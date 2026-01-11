@@ -37,6 +37,7 @@ export function FriendRivalryScoreboard() {
   const store = useFitnessStore();
   const [friendRivalries, setFriendRivalries] = useState<FriendRivalry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const fetchRivalries = async () => {
@@ -65,12 +66,18 @@ export function FriendRivalryScoreboard() {
 
   return (
     <div className="friend-rivalry-scoreboard">
-      <div className="scoreboard-header">
+      <button
+        className="scoreboard-header"
+        onClick={() => setCollapsed(!collapsed)}
+        style={{ cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', padding: 0 }}
+      >
         <span className="scoreboard-icon">⚔️</span>
         <span className="scoreboard-title">Active Rivalries</span>
-      </div>
+        <span className="scoreboard-count">{friendRivalries.length}</span>
+        <span className="collapse-toggle">{collapsed ? '▶' : '▼'}</span>
+      </button>
 
-      <div className="scoreboard-list">
+      {!collapsed && <div className="scoreboard-list">
         {friendRivalries.map((rivalry) => {
           const friend = rivalry.friend;
           const myWins = rivalry.headToHead.userWins;
@@ -148,7 +155,7 @@ export function FriendRivalryScoreboard() {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       <style jsx>{`
         .friend-rivalry-scoreboard {
@@ -164,6 +171,7 @@ export function FriendRivalryScoreboard() {
           align-items: center;
           gap: 8px;
           margin-bottom: 16px;
+          text-align: left;
         }
 
         .scoreboard-icon {
@@ -176,6 +184,22 @@ export function FriendRivalryScoreboard() {
           color: #FFD700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          flex: 1;
+        }
+
+        .scoreboard-count {
+          font-size: 0.7rem;
+          background: rgba(255, 215, 0, 0.2);
+          color: #FFD700;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-weight: 600;
+        }
+
+        .collapse-toggle {
+          font-size: 0.6rem;
+          color: #888;
+          margin-left: 4px;
         }
 
         .scoreboard-list {

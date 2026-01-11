@@ -16,6 +16,7 @@ interface Achievement {
 export function AlmostThereCard() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -23,7 +24,11 @@ export function AlmostThereCard() {
         const res = await fetch('/api/fitness/achievement-progress');
         if (!res.ok) return;
         const data = await res.json();
-        setAchievements(data.almostThere || []);
+        // Only show achievements that are >= 95% complete
+        const nearComplete = (data.almostThere || []).filter(
+          (a: Achievement) => a.progress >= 95
+        );
+        setAchievements(nearComplete);
       } catch (error) {
         console.error('Failed to fetch achievement progress:', error);
       } finally {
@@ -54,6 +59,12 @@ export function AlmostThereCard() {
           align-items: center;
           gap: 0.5rem;
           margin-bottom: 0.75rem;
+          cursor: pointer;
+          width: 100%;
+          background: transparent;
+          border: none;
+          padding: 0;
+          text-align: left;
         }
 
         .card-title {
@@ -62,6 +73,22 @@ export function AlmostThereCard() {
           color: #a855f7;
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          flex: 1;
+        }
+
+        .card-count {
+          font-size: 0.6rem;
+          background: rgba(168, 85, 247, 0.2);
+          color: #a855f7;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-weight: 600;
+        }
+
+        .collapse-toggle {
+          font-size: 0.5rem;
+          color: #888;
+          margin-left: 4px;
         }
 
         .sparkle {
@@ -141,33 +168,37 @@ export function AlmostThereCard() {
       `}</style>
 
       <div className="almost-there-card">
-        <div className="card-header">
+        <button className="card-header" onClick={() => setCollapsed(!collapsed)}>
           <span className="sparkle">✨</span>
           <span className="card-title">Almost There!</span>
-        </div>
+          <span className="card-count">{achievements.length}</span>
+          <span className="collapse-toggle">{collapsed ? '▶' : '▼'}</span>
+        </button>
 
-        <div className="achievements-list">
-          {achievements.map((achievement) => (
-            <div key={achievement.id} className="achievement-item">
-              <span className="achievement-icon">{achievement.icon}</span>
-              <div className="achievement-info">
-                <div className="achievement-name">{achievement.name}</div>
-                <div className="achievement-progress-row">
-                  <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${achievement.progress}%` }}
-                    />
+        {!collapsed && (
+          <div className="achievements-list">
+            {achievements.map((achievement) => (
+              <div key={achievement.id} className="achievement-item">
+                <span className="achievement-icon">{achievement.icon}</span>
+                <div className="achievement-info">
+                  <div className="achievement-name">{achievement.name}</div>
+                  <div className="achievement-progress-row">
+                    <div className="progress-bar">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${achievement.progress}%` }}
+                      />
+                    </div>
+                    <span className="progress-text">
+                      {achievement.current}/{achievement.target}
+                    </span>
                   </div>
-                  <span className="progress-text">
-                    {achievement.current}/{achievement.target}
-                  </span>
                 </div>
+                <span className="achievement-xp">+{achievement.xp}</span>
               </div>
-              <span className="achievement-xp">+{achievement.xp}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

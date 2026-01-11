@@ -196,6 +196,7 @@ interface FitnessStore extends FitnessState, SyncState {
   getUpcomingWorkouts: (limit?: number) => { weekNumber: number; dayNumber: number; dayName: string; workoutName: string; isRest: boolean; isToday: boolean; template: WorkoutTemplate | null }[];
   startProgramWorkout: () => void;
   startProgramWorkoutForDay: (weekNumber: number, dayNumber: number) => void;
+  skipProgramWorkout: (weekNumber: number, dayNumber: number) => void;
   calculateSuggestedWeight: (exerciseId: string) => number | null;
   calculateProgressionTarget: (exerciseId: string, templateReps?: string) => {
     weight: number | null;
@@ -1645,6 +1646,9 @@ export const useFitnessStore = create<FitnessStore>()(
 
           // Find the next unachieved milestone
           for (const milestone of milestones) {
+            // Skip milestones the user has already exceeded
+            if (currentPR >= milestone.weight) continue;
+
             const key = `${exerciseId}_${milestone.weight}`;
             if (!state.achievements.includes(key)) {
               // This is the next milestone to achieve
@@ -2131,6 +2135,28 @@ export const useFitnessStore = create<FitnessStore>()(
 
         // Start workout from the template
         get().startWorkoutFromTemplate(template.id);
+      },
+
+      skipProgramWorkout: (weekNumber: number, dayNumber: number) => {
+        const state = get();
+        if (!state.activeProgram) return;
+
+        const workoutKey = `${weekNumber}-${dayNumber}`;
+        const completedWorkouts = state.activeProgram.completedWorkouts || [];
+
+        // Don't skip if already completed
+        if (completedWorkouts.includes(workoutKey)) return;
+
+        set({
+          activeProgram: {
+            ...state.activeProgram,
+            completedWorkouts: [...completedWorkouts, workoutKey]
+          },
+          pendingSync: true
+        });
+
+        get().showToast('Workout skipped');
+        queueSync(get);
       },
 
       calculateSuggestedWeight: (exerciseId: string) => {
