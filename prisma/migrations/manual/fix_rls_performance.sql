@@ -78,7 +78,7 @@ CREATE POLICY "Users can view kudos on visible activities" ON public.activity_ku
     EXISTS (
       SELECT 1 FROM public.activity_feed af
       WHERE af.id = activity_id
-      AND (af.user_id = (select auth.uid()) OR af.visibility = 'public')
+      AND (af.user_id = (select auth.uid()) OR af.actor_id = (select auth.uid()))
     )
   );
 
@@ -101,7 +101,7 @@ CREATE POLICY "Users can view comments on visible activities" ON public.activity
     EXISTS (
       SELECT 1 FROM public.activity_feed af
       WHERE af.id = activity_id
-      AND (af.user_id = (select auth.uid()) OR af.visibility = 'public')
+      AND (af.user_id = (select auth.uid()) OR af.actor_id = (select auth.uid()))
     )
   );
 
