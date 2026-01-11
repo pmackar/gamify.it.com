@@ -652,7 +652,7 @@ export function RivalSettingsPanel() {
               onClick={closeAddRivalModal}
             >
               <div
-                className="bg-gray-900 border-t sm:border border-gray-700 rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-sm max-h-[90vh] sm:max-h-[85vh] overflow-y-auto"
+                className="bg-gray-900 border-t sm:border border-gray-700 rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-sm max-h-[calc(90vh-env(safe-area-inset-bottom,0px))] sm:max-h-[85vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-5">

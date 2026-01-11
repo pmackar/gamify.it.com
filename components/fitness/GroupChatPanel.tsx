@@ -189,8 +189,7 @@ export default function GroupChatPanel({
 
       {/* Messages */}
       <div
-        className="flex-1 flex flex-col gap-2 p-3 overflow-y-auto"
-        style={{ minHeight: "250px", maxHeight: "400px" }}
+        className="flex-1 flex flex-col gap-2 p-3 overflow-y-auto min-h-0"
       >
         {loading && messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">

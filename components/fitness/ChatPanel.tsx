@@ -222,7 +222,7 @@ export default function ChatPanel({
 
   return (
     <div
-      className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 rounded-lg overflow-hidden"
+      className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 rounded-lg overflow-hidden flex flex-col"
       style={{
         background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
         border: "2px solid #3d3d4d",
@@ -273,8 +273,7 @@ export default function ChatPanel({
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="flex flex-col gap-2 p-3 overflow-y-auto"
-        style={{ height: "300px" }}
+        className="flex-1 flex flex-col gap-2 p-3 overflow-y-auto min-h-0"
       >
         {loading && messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">

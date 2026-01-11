@@ -145,7 +145,7 @@ export default function CoachNotificationBell() {
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-h-[70vh] overflow-hidden rounded-lg z-50"
+          className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-h-[70vh] rounded-lg z-50 flex flex-col"
           style={{
             background: "linear-gradient(180deg, #2d2d3d 0%, #1f1f2e 100%)",
             border: "2px solid #3d3d4d",
@@ -153,7 +153,7 @@ export default function CoachNotificationBell() {
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-[#3d3d4d]">
+          <div className="flex-shrink-0 flex items-center justify-between p-3 border-b border-[#3d3d4d]">
             <h3
               className="text-xs"
               style={{
@@ -184,7 +184,7 @@ export default function CoachNotificationBell() {
           </div>
 
           {/* Notifications list */}
-          <div className="overflow-y-auto max-h-[calc(70vh-60px)]">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {loading && notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500 text-sm">
                 Loading...

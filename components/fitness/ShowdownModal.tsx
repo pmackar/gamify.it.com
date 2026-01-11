@@ -153,7 +153,7 @@ function ShowdownNotification({ data, onClose }: ModalProps) {
           padding: 2rem;
           width: 400px;
           max-width: 95vw;
-          max-height: 90vh;
+          max-height: calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
           overflow-y: auto;
           position: relative;
           animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
