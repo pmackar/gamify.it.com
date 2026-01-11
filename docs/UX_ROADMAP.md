@@ -70,11 +70,27 @@ Reptura is a feature-rich fitness RPG with **16,226 lines** of UI code in the ma
 
 | Gap | Impact | Effort | Priority |
 |-----|--------|--------|----------|
-| Apple Health sync | Critical | High | **P0** |
+| Apple Health sync | Critical | Medium | **P0** |
 | Exercise demo videos | High | High | P1 |
 | AI workout suggestions | High | High | P1 |
 | Expand exercise library | Medium | Medium | P2 |
 | Onboarding optimization | Medium | Low | P2 |
+
+### Apple Health Strategy: Capacitor Native Wrapper
+
+**Decision:** Use Capacitor to wrap existing webapp as iOS app (vs React Native rewrite).
+
+| Approach | Effort | Code Reuse | Timeline |
+|----------|--------|------------|----------|
+| **Capacitor (chosen)** | Medium | 95% | 2-3 weeks |
+| React Native | High | 30% | 10-14 weeks |
+
+**Requirements:**
+- Apple Developer Account ($99/year)
+- Mac with Xcode
+- Sign in with Apple (App Store requirement)
+
+**See:** `docs/CAPACITOR_INTEGRATION.md` for full implementation plan
 
 ---
 
@@ -598,27 +614,39 @@ Reptura is a feature-rich fitness RPG with **16,226 lines** of UI code in the ma
 | Logo home navigation | ✅ DONE | Tap logo → home from any view |
 | Liquid glass UI polish | ✅ DONE | Refined visual effects |
 
-### 🔴 Sprint 5 - Critical Gaps (NEXT)
+### 🔴 Sprint 5 - iOS Native App (NEXT)
 
 | Task | Status | Impact | Effort |
 |------|--------|--------|--------|
-| Apple Health sync | 🔲 TODO | Critical | High |
+| Apple Developer enrollment | 🔲 TODO | Blocker | $99 |
+| Capacitor project setup | 🔲 TODO | Critical | Low |
+| Sign in with Apple | 🔲 TODO | Required | Medium |
+| HealthKit integration | 🔲 TODO | Critical | Medium |
+| Native UI polish (safe areas, haptics) | 🔲 TODO | High | Low |
+| App Store submission | 🔲 TODO | Critical | Medium |
+
+**See:** `docs/CAPACITOR_INTEGRATION.md` for detailed plan
+
+### 🟡 Sprint 6 - Content & AI
+
+| Task | Status | Impact | Effort |
+|------|--------|--------|--------|
 | Exercise demo videos (top 20) | 🔲 TODO | High | High |
 | AI workout suggestions | 🔲 TODO | High | High |
+| AI-generated insights to Analytics | 🔲 TODO | High | Medium |
 | Expand exercise library (+50) | 🔲 TODO | Medium | Medium |
 
-### 🟡 Sprint 6 - Polish & Features
+### 🟡 Sprint 7 - Polish & Social
 
 | Task | Status | Impact | Effort |
 |------|--------|--------|--------|
-| AI-generated insights to Analytics | 🔲 TODO | High | Medium |
 | Workout comparison feature | 🔲 TODO | Medium | Medium |
 | Template preview modal | 🔲 TODO | Medium | Low |
 | "Repeat This Workout" button | 🔲 TODO | Medium | Low |
 | Friend search/invite | 🔲 TODO | Medium | Medium |
 | Simplify Program Wizard (Quick Setup) | 🔲 TODO | Medium | High |
 
-### 🟢 Sprint 7+ - Lower Priority
+### 🟢 Sprint 8+ - Lower Priority
 
 | Task | Status | Impact | Effort |
 |------|--------|--------|--------|
@@ -776,6 +804,8 @@ Reptura is a feature-rich fitness RPG with **16,226 lines** of UI code in the ma
 - 🎯 Identified key differentiators: Gamification (A vs D), PR Celebration (A vs C)
 - ⚠️ Identified critical gap: Apple Health sync (F vs competitors' A)
 - 📈 Overall grade improved: A- (88.5) → A- (90)
+- 📱 Created Capacitor integration plan for iOS native app (`docs/CAPACITOR_INTEGRATION.md`)
+- 🗺️ Updated Sprint 5 to focus on iOS App Store launch
 
 ### 2026-01-10 (Sprint 3)
 - ✅ Added floating workout stats bar (timer, volume, sets, XP)
