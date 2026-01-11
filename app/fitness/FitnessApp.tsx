@@ -62,6 +62,11 @@ export default function FitnessApp() {
   const [query, setQuery] = useState('');
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [showSetPanel, setShowSetPanel] = useState(false);
+  // Inline editing state (Option A prototype)
+  const [expandedExerciseIdx, setExpandedExerciseIdx] = useState<number | null>(null);
+  const [inlineWeights, setInlineWeights] = useState<Record<string, number>>({});
+  const [inlineReps, setInlineReps] = useState<Record<string, number>>({});
+  const [inlineRpe, setInlineRpe] = useState<Record<string, number | null>>({});
   // Voice logging state
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -2187,6 +2192,295 @@ export default function FitnessApp() {
         .exercise-remove-btn:active {
           transform: scale(0.95);
           background: rgba(255, 107, 107, 0.2);
+        }
+
+        /* ===== INLINE EDITING (Option A Prototype) ===== */
+        .exercise-card-expanded {
+          background: var(--bg-card);
+          border: 1px solid var(--accent);
+          border-radius: 16px;
+          margin-bottom: 10px;
+          overflow: hidden;
+          box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .exercise-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          background: var(--bg-elevated);
+          border-bottom: 1px solid var(--border);
+        }
+
+        .exercise-card-title {
+          font-weight: 600;
+          font-size: 15px;
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .exercise-card-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .exercise-card-action-btn {
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          font-size: 16px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .exercise-card-action-btn:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--border-light);
+        }
+
+        .exercise-card-target {
+          padding: 10px 16px;
+          background: rgba(139, 92, 246, 0.1);
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .target-label {
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--text-tertiary);
+        }
+
+        .target-value {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--accent);
+        }
+
+        /* Set Table */
+        .inline-set-table {
+          width: 100%;
+          padding: 0;
+        }
+
+        .inline-set-header {
+          display: grid;
+          grid-template-columns: 70px 36px 1fr 1fr 44px;
+          gap: 6px;
+          padding: 8px 12px;
+          background: var(--bg-tertiary);
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--text-tertiary);
+        }
+
+        .inline-set-header span {
+          text-align: center;
+        }
+
+        .inline-set-header span:first-child {
+          text-align: left;
+        }
+
+        .inline-set-row {
+          display: grid;
+          grid-template-columns: 70px 36px 1fr 1fr 44px;
+          gap: 6px;
+          padding: 8px 12px;
+          align-items: center;
+          border-bottom: 1px solid var(--border-light);
+          transition: background 0.15s;
+        }
+
+        .inline-set-row:last-child {
+          border-bottom: none;
+        }
+
+        .inline-set-row.completed {
+          background: rgba(34, 197, 94, 0.08);
+        }
+
+        .inline-prev {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          cursor: pointer;
+          padding: 6px 8px;
+          border-radius: 6px;
+          transition: all 0.15s;
+          text-align: left;
+        }
+
+        .inline-prev:hover {
+          background: var(--bg-elevated);
+          color: var(--text-secondary);
+        }
+
+        .inline-prev:active {
+          background: var(--accent-glow);
+          color: var(--accent);
+        }
+
+        .inline-prev.no-prev {
+          color: var(--text-quaternary);
+          cursor: default;
+        }
+
+        .inline-prev.no-prev:hover {
+          background: transparent;
+          color: var(--text-quaternary);
+        }
+
+        .inline-set-num {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-align: center;
+        }
+
+        .inline-input {
+          width: 100%;
+          padding: 10px 8px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          color: var(--text-primary);
+          font-size: 16px;
+          font-weight: 600;
+          text-align: center;
+          outline: none;
+          transition: all 0.15s;
+          -webkit-appearance: none;
+          -moz-appearance: textfield;
+        }
+
+        .inline-input::-webkit-inner-spin-button,
+        .inline-input::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        .inline-input:focus {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .inline-input.filled {
+          background: var(--bg-elevated);
+        }
+
+        .inline-check-btn {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border: 2px solid var(--border);
+          border-radius: 12px;
+          font-size: 18px;
+          cursor: pointer;
+          transition: all 0.15s;
+          color: var(--text-tertiary);
+        }
+
+        .inline-check-btn:hover {
+          background: rgba(34, 197, 94, 0.15);
+          border-color: #22c55e;
+          color: #22c55e;
+        }
+
+        .inline-check-btn.checked {
+          background: #22c55e;
+          border-color: #22c55e;
+          color: white;
+        }
+
+        .inline-add-row {
+          display: flex;
+          justify-content: center;
+          padding: 12px;
+          border-top: 1px solid var(--border);
+        }
+
+        .inline-add-set {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 20px;
+          background: transparent;
+          border: 1px dashed var(--border);
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .inline-add-set:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+          background: var(--accent-glow);
+        }
+
+        .inline-collapse-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          padding: 8px;
+          background: var(--bg-tertiary);
+          border: none;
+          border-top: 1px solid var(--border);
+          font-size: 12px;
+          color: var(--text-tertiary);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .inline-collapse-btn:hover {
+          background: var(--bg-elevated);
+          color: var(--text-secondary);
+        }
+
+        @media (max-width: 400px) {
+          .inline-set-header {
+            grid-template-columns: 55px 30px 1fr 1fr 40px;
+            gap: 4px;
+            padding: 6px 8px;
+            font-size: 9px;
+          }
+          .inline-set-row {
+            grid-template-columns: 55px 30px 1fr 1fr 40px;
+            gap: 4px;
+            padding: 6px 8px;
+          }
+          .inline-prev {
+            font-size: 11px;
+            padding: 4px 6px;
+          }
+          .inline-input {
+            padding: 8px 4px;
+            font-size: 14px;
+          }
+          .inline-check-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+          }
         }
 
         /* Drag states */
@@ -9480,6 +9774,173 @@ export default function FitnessApp() {
                     store.currentWorkout!.exercises[idx + 1].supersetGroup === exercise.supersetGroup &&
                     exercise.supersetGroup;
 
+                  // Get previous workout data for this exercise
+                  const lastWorkoutEx = store.getLastWorkoutForExercise(exercise.id);
+                  const progressionTarget = store.calculateProgressionTarget(exercise.id, (exercise as { _targetReps?: string })?._targetReps);
+
+                  // EXPANDED INLINE EDITING VIEW
+                  if (expandedExerciseIdx === idx) {
+                    // Determine how many rows to show (existing sets + 1 new row)
+                    const existingSets = exercise.sets.length;
+                    const totalRows = existingSets + 1; // +1 for the new set row
+
+                    return (
+                      <div key={exercise.id + idx} className="exercise-card-expanded">
+                        {/* Header */}
+                        <div className="exercise-card-header">
+                          <div className="exercise-card-title">
+                            <span>{exercise.name}</span>
+                          </div>
+                          <div className="exercise-card-actions">
+                            <button
+                              className="exercise-card-action-btn"
+                              onClick={() => setShowSubstituteModal(true)}
+                              title="Substitute"
+                            >🔄</button>
+                            <button
+                              className="exercise-card-action-btn"
+                              onClick={() => {
+                                setChartExerciseId(exercise.id);
+                                setShowProgressChart(true);
+                              }}
+                              title="Progress"
+                            >📈</button>
+                            <button
+                              className="exercise-card-action-btn"
+                              onClick={() => handleRemoveExercise(idx)}
+                              title="Remove"
+                              style={{ color: 'var(--error)' }}
+                            >✕</button>
+                          </div>
+                        </div>
+
+                        {/* Target Prescription */}
+                        {progressionTarget && (progressionTarget.weight || progressionTarget.reps) && (
+                          <div className="exercise-card-target">
+                            <span className="target-label">Target:</span>
+                            <span className="target-value">
+                              {progressionTarget.weight && `${progressionTarget.weight} lbs`}
+                              {progressionTarget.weight && progressionTarget.reps && ' × '}
+                              {progressionTarget.reps && `${progressionTarget.reps} reps`}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Set Table */}
+                        <div className="inline-set-table">
+                          <div className="inline-set-header">
+                            <span>PREV</span>
+                            <span>SET</span>
+                            <span>LBS</span>
+                            <span>REPS</span>
+                            <span>✓</span>
+                          </div>
+
+                          {/* Existing completed sets */}
+                          {exercise.sets.map((set, setIdx) => {
+                            const prevSet = lastWorkoutEx?.sets[setIdx];
+                            return (
+                              <div key={setIdx} className="inline-set-row completed">
+                                <div
+                                  className={`inline-prev ${prevSet ? '' : 'no-prev'}`}
+                                  onClick={() => {
+                                    if (prevSet) {
+                                      // Already logged, but allow re-editing
+                                      store.showToast(`Set ${setIdx + 1}: ${set.weight}×${set.reps}`);
+                                    }
+                                  }}
+                                >
+                                  {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
+                                </div>
+                                <div className="inline-set-num">{setIdx + 1}</div>
+                                <div style={{ textAlign: 'center', fontWeight: 600 }}>{set.weight}</div>
+                                <div style={{ textAlign: 'center', fontWeight: 600 }}>{set.reps}</div>
+                                <button className="inline-check-btn checked">✓</button>
+                              </div>
+                            );
+                          })}
+
+                          {/* New set row for input */}
+                          {(() => {
+                            const newSetIdx = exercise.sets.length;
+                            const prevSet = lastWorkoutEx?.sets[newSetIdx];
+                            const inputKey = `${exercise.id}-${newSetIdx}`;
+                            const lastSet = exercise.sets[exercise.sets.length - 1];
+                            const defaultWeight = inlineWeights[inputKey] ?? lastSet?.weight ?? prevSet?.weight ?? 135;
+                            const defaultReps = inlineReps[inputKey] ?? lastSet?.reps ?? prevSet?.reps ?? 8;
+
+                            return (
+                              <div className="inline-set-row">
+                                <div
+                                  className={`inline-prev ${prevSet ? '' : 'no-prev'}`}
+                                  onClick={() => {
+                                    if (prevSet) {
+                                      setInlineWeights(w => ({ ...w, [inputKey]: prevSet.weight }));
+                                      setInlineReps(r => ({ ...r, [inputKey]: prevSet.reps }));
+                                      store.showToast('Copied from last session');
+                                    }
+                                  }}
+                                  title={prevSet ? 'Tap to copy' : ''}
+                                >
+                                  {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
+                                </div>
+                                <div className="inline-set-num">{newSetIdx + 1}</div>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  className={`inline-input ${inlineWeights[inputKey] ? 'filled' : ''}`}
+                                  value={inlineWeights[inputKey] ?? ''}
+                                  placeholder={String(defaultWeight)}
+                                  onChange={(e) => setInlineWeights(w => ({ ...w, [inputKey]: Number(e.target.value) }))}
+                                />
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  className={`inline-input ${inlineReps[inputKey] ? 'filled' : ''}`}
+                                  value={inlineReps[inputKey] ?? ''}
+                                  placeholder={String(defaultReps)}
+                                  onChange={(e) => setInlineReps(r => ({ ...r, [inputKey]: Number(e.target.value) }))}
+                                />
+                                <button
+                                  className="inline-check-btn"
+                                  onClick={() => {
+                                    const weight = inlineWeights[inputKey] || defaultWeight;
+                                    const reps = inlineReps[inputKey] || defaultReps;
+                                    // Select this exercise and log the set
+                                    store.selectExercise(idx);
+                                    store.logSet(weight, reps, undefined, false);
+                                    // Clear inputs for next set
+                                    setInlineWeights(w => {
+                                      const next = { ...w };
+                                      delete next[inputKey];
+                                      return next;
+                                    });
+                                    setInlineReps(r => {
+                                      const next = { ...r };
+                                      delete next[inputKey];
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  ✓
+                                </button>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Collapse button */}
+                        <button
+                          className="inline-collapse-btn"
+                          onClick={() => setExpandedExerciseIdx(null)}
+                        >
+                          ▲ Collapse
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // COLLAPSED PILL VIEW (existing)
                   return (
                   <div
                     key={exercise.id + idx}
@@ -9510,7 +9971,7 @@ export default function FitnessApp() {
                     }}
                     onClick={() => {
                       store.selectExercise(idx);
-                      openSetPanel(idx);
+                      setExpandedExerciseIdx(idx); // Use inline editing instead of modal
                     }}
                   >
                     <div
@@ -9538,7 +9999,7 @@ export default function FitnessApp() {
                             onClick={(e) => {
                               e.stopPropagation();
                               store.selectExercise(idx);
-                              openSetPanel(idx);
+                              setExpandedExerciseIdx(idx);
                             }}
                           >
                             + Log Set
@@ -9551,7 +10012,8 @@ export default function FitnessApp() {
                                 className={`set-badge clickable ${set.isWarmup ? 'warmup' : ''} ${!set.isWarmup && set.weight >= (store.records[exercise.id] || 0) ? 'pr' : ''}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openSetPanel(idx, setIdx);
+                                  store.selectExercise(idx);
+                                  setExpandedExerciseIdx(idx);
                                 }}
                               >
                                 {set.isWarmup && <span className="warmup-indicator">W</span>}
@@ -9563,7 +10025,7 @@ export default function FitnessApp() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 store.selectExercise(idx);
-                                openSetPanel(idx);
+                                setExpandedExerciseIdx(idx);
                               }}
                             >
                               +
