@@ -175,6 +175,12 @@ export default function FitnessApp() {
   const touchDragStartY = useRef<number>(0);
   const exerciseListRef = useRef<HTMLDivElement | null>(null);
 
+  // Touch drag state for program wizard goal priorities
+  const [goalTouchDragIndex, setGoalTouchDragIndex] = useState<number | null>(null);
+  const [goalTouchDragOverIndex, setGoalTouchDragOverIndex] = useState<number | null>(null);
+  const goalTouchDragCloneRef = useRef<HTMLDivElement | null>(null);
+  const goalPriorityListRef = useRef<HTMLDivElement | null>(null);
+
   // Program wizard - inline workout creation
   const [creatingWorkoutForDay, setCreatingWorkoutForDay] = useState<number | null>(null);
   const [editingWorkoutTemplateId, setEditingWorkoutTemplateId] = useState<string | null>(null); // Track if editing existing
@@ -1132,9 +1138,10 @@ export default function FitnessApp() {
     setUndoItem(null);
   };
 
-  // Touch drag handlers for mobile reordering
+  // Touch drag handlers for mobile reordering (exercises)
   const handleTouchDragStart = (idx: number, e: React.TouchEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const touch = e.touches[0];
     touchDragStartY.current = touch.clientY;
     setTouchDragIndex(idx);
@@ -1158,9 +1165,14 @@ export default function FitnessApp() {
       touchDragCloneRef.current = clone;
       target.classList.add('dragging');
     }
+
+    // Add global touch event listeners for move and end
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalTouchEnd);
+    document.addEventListener('touchcancel', handleGlobalTouchEnd);
   };
 
-  const handleTouchDragMove = (e: React.TouchEvent) => {
+  const handleGlobalTouchMove = (e: TouchEvent) => {
     if (touchDragIndex === null) return;
     e.preventDefault();
 
@@ -1186,7 +1198,12 @@ export default function FitnessApp() {
     }
   };
 
-  const handleTouchDragEnd = () => {
+  const handleGlobalTouchEnd = () => {
+    // Remove global listeners
+    document.removeEventListener('touchmove', handleGlobalTouchMove);
+    document.removeEventListener('touchend', handleGlobalTouchEnd);
+    document.removeEventListener('touchcancel', handleGlobalTouchEnd);
+
     if (touchDragIndex !== null && touchDragOverIndex !== null && touchDragIndex !== touchDragOverIndex) {
       store.reorderExercises(touchDragIndex, touchDragOverIndex);
     }
@@ -1201,6 +1218,92 @@ export default function FitnessApp() {
     });
     setTouchDragIndex(null);
     setTouchDragOverIndex(null);
+  };
+
+  // Touch drag handlers for program wizard goal priorities
+  const handleGoalTouchDragStart = (idx: number, e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const touch = e.touches[0];
+    setGoalTouchDragIndex(idx);
+    setGoalTouchDragOverIndex(idx);
+
+    // Create visual clone
+    const target = e.currentTarget.closest('.goal-priority-item') as HTMLElement;
+    if (target) {
+      const clone = target.cloneNode(true) as HTMLDivElement;
+      clone.classList.add('touch-drag-clone');
+      clone.style.position = 'fixed';
+      clone.style.left = `${target.getBoundingClientRect().left}px`;
+      clone.style.top = `${touch.clientY - 20}px`;
+      clone.style.width = `${target.offsetWidth}px`;
+      clone.style.zIndex = '9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.opacity = '0.9';
+      clone.style.transform = 'scale(1.02)';
+      clone.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
+      document.body.appendChild(clone);
+      goalTouchDragCloneRef.current = clone;
+      target.classList.add('dragging');
+    }
+
+    // Add global touch event listeners
+    document.addEventListener('touchmove', handleGoalGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGoalGlobalTouchEnd);
+    document.addEventListener('touchcancel', handleGoalGlobalTouchEnd);
+  };
+
+  const handleGoalGlobalTouchMove = (e: TouchEvent) => {
+    if (goalTouchDragIndex === null) return;
+    e.preventDefault();
+
+    const touch = e.touches[0];
+
+    // Move clone
+    if (goalTouchDragCloneRef.current) {
+      goalTouchDragCloneRef.current.style.top = `${touch.clientY - 20}px`;
+    }
+
+    // Find which goal we're over
+    if (goalPriorityListRef.current) {
+      const items = goalPriorityListRef.current.querySelectorAll('.goal-priority-item');
+      items.forEach((item, idx) => {
+        const rect = item.getBoundingClientRect();
+        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          setGoalTouchDragOverIndex(idx);
+          item.classList.add('drag-over');
+        } else {
+          item.classList.remove('drag-over');
+        }
+      });
+    }
+  };
+
+  const handleGoalGlobalTouchEnd = () => {
+    // Remove global listeners
+    document.removeEventListener('touchmove', handleGoalGlobalTouchMove);
+    document.removeEventListener('touchend', handleGoalGlobalTouchEnd);
+    document.removeEventListener('touchcancel', handleGoalGlobalTouchEnd);
+
+    if (goalTouchDragIndex !== null && goalTouchDragOverIndex !== null && goalTouchDragIndex !== goalTouchDragOverIndex) {
+      // Reorder goal priorities
+      const currentPriorities = store.programWizardData?.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general'];
+      const newPriorities = [...currentPriorities];
+      const [removed] = newPriorities.splice(goalTouchDragIndex, 1);
+      newPriorities.splice(goalTouchDragOverIndex, 0, removed);
+      store.updateProgramWizardData({ goalPriorities: newPriorities, goal: newPriorities[0] as Program['goal'] });
+    }
+
+    // Cleanup
+    if (goalTouchDragCloneRef.current) {
+      goalTouchDragCloneRef.current.remove();
+      goalTouchDragCloneRef.current = null;
+    }
+    document.querySelectorAll('.goal-priority-item.dragging, .goal-priority-item.drag-over').forEach(el => {
+      el.classList.remove('dragging', 'drag-over');
+    });
+    setGoalTouchDragIndex(null);
+    setGoalTouchDragOverIndex(null);
   };
 
   const handleFinishWorkout = async (saveTemplate: boolean) => {
@@ -5928,6 +6031,19 @@ export default function FitnessApp() {
         .goal-priority-handle {
           color: var(--text-secondary);
           opacity: 0.5;
+          padding: 8px;
+          margin: -8px 0;
+          touch-action: none;
+        }
+
+        .goal-priority-item.dragging {
+          opacity: 0.5;
+          border: 2px dashed var(--accent);
+        }
+
+        .goal-priority-item.drag-over {
+          border: 2px solid var(--accent);
+          background: var(--bg-elevated);
         }
 
         .goal-priority-icon {
@@ -9401,8 +9517,6 @@ export default function FitnessApp() {
                       className="drag-handle"
                       title="Drag to reorder"
                       onTouchStart={(e) => handleTouchDragStart(idx, e)}
-                      onTouchMove={handleTouchDragMove}
-                      onTouchEnd={handleTouchDragEnd}
                     >⋮⋮</div>
                     <div className="exercise-number">{idx + 1}</div>
                     <div className="exercise-info">
@@ -11991,7 +12105,7 @@ gamify.it.com/fitness`;
 
                   <div className="form-group">
                     <label>Goal Priority (drag to reorder, ✕ to exclude)</label>
-                    <div className="goal-priority-list">
+                    <div className="goal-priority-list" ref={goalPriorityListRef}>
                       {/* Active priorities */}
                       {(store.programWizardData.goalPriorities || ['strength', 'hypertrophy', 'endurance', 'general']).map((goal, idx) => (
                         <div
@@ -12012,7 +12126,10 @@ gamify.it.com/fitness`;
                           }}
                         >
                           <span className="goal-priority-rank">{idx + 1}</span>
-                          <span className="goal-priority-handle">⋮⋮</span>
+                          <span
+                            className="goal-priority-handle"
+                            onTouchStart={(e) => handleGoalTouchDragStart(idx, e)}
+                          >⋮⋮</span>
                           <span className="goal-priority-icon">
                             {goal === 'strength' && '💪'}
                             {goal === 'hypertrophy' && '🏋️'}
