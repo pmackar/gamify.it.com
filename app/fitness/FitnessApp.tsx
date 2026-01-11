@@ -1746,7 +1746,7 @@ export default function FitnessApp() {
 
         /* Main Content - full width matching navbar padding */
         .content-area {
-          padding-top: var(--content-top, 100px);
+          padding-top: calc(var(--content-top, 100px) + env(safe-area-inset-top, 0px));
           padding-bottom: 200px;
           min-height: 100vh;
           min-height: 100dvh;
@@ -9450,6 +9450,7 @@ export default function FitnessApp() {
           display: flex;
           flex-direction: column;
           animation: slideInFromRight 0.25s ease-out;
+          padding-top: env(safe-area-inset-top, 0px);
         }
 
         @keyframes slideInFromRight {
@@ -10015,7 +10016,7 @@ export default function FitnessApp() {
         /* Responsive */
         @media (max-width: 768px) {
           .content-area {
-            padding-top: var(--content-top, 90px);
+            padding-top: calc(var(--content-top, 90px) + env(safe-area-inset-top, 0px));
             padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
           }
         }
