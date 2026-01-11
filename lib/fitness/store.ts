@@ -135,6 +135,7 @@ interface FitnessStore extends FitnessState, SyncState {
   startRestTimer: () => void;
   tickRestTimer: () => void;
   stopRestTimer: () => void;
+  adjustRestTimer: (seconds: number) => void;
 
   // Exercise notes
   setExerciseNote: (exerciseId: string, note: string) => void;
@@ -1371,6 +1372,18 @@ export const useFitnessStore = create<FitnessStore>()(
 
       stopRestTimer: () => {
         set({ restTimerSeconds: 0, restTimerRunning: false });
+      },
+
+      adjustRestTimer: (seconds: number) => {
+        const state = get();
+        if (state.restTimerRunning || state.restTimerSeconds > 0) {
+          const newSeconds = Math.max(0, state.restTimerSeconds + seconds);
+          set({ restTimerSeconds: newSeconds });
+          // If timer was stopped and we added time, restart it
+          if (newSeconds > 0 && !state.restTimerRunning) {
+            set({ restTimerRunning: true });
+          }
+        }
       },
 
       // Exercise notes

@@ -22,6 +22,8 @@ import { DailyChallengeCard } from '@/components/fitness/DailyChallengeCard';
 import { NarrativeProvider } from '@/components/fitness/NarrativeProvider';
 import { RivalSettingsPanel } from '@/components/fitness/RivalSettingsPanel';
 import { FriendRivalryScoreboard } from '@/components/fitness/FriendRivalryScoreboard';
+import { RivalStatusCard } from '@/components/fitness/RivalStatusCard';
+import { CampaignProgressCard } from '@/components/fitness/CampaignProgressCard';
 
 interface Particle { id: number; x: number; y: number; size: number; color: string; speed: number; opacity: number; delay: number; }
 
@@ -92,6 +94,15 @@ export default function FitnessApp() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [addingExerciseToTemplate, setAddingExerciseToTemplate] = useState(false);
+  // PR Celebration Modal state
+  const [prCelebration, setPrCelebration] = useState<{
+    show: boolean;
+    exerciseName: string;
+    weight: number;
+    reps: number;
+    previousBest?: { weight: number; reps: number };
+  } | null>(null);
+
   // Workout Summary Modal state
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [workoutSummaryData, setWorkoutSummaryData] = useState<{
@@ -103,6 +114,7 @@ export default function FitnessApp() {
     exercises: Array<{ name: string; sets: number; volume: number }>;
     previousVolume?: number;
   } | null>(null);
+  const [showShareCard, setShowShareCard] = useState(false);
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
   // History filtering state
   const [historyMuscleFilter, setHistoryMuscleFilter] = useState<string | null>(null);
@@ -442,6 +454,25 @@ export default function FitnessApp() {
       return () => clearTimeout(timer);
     }
   }, [mounted, store.hasCompletedOnboarding, store.workouts.length]);
+
+  // Listen for PR celebration events
+  useEffect(() => {
+    const handlePREvent = (e: CustomEvent) => {
+      const { exerciseName, newWeight, newReps, previousBest } = e.detail;
+      setPrCelebration({
+        show: true,
+        exerciseName,
+        weight: newWeight,
+        reps: newReps,
+        previousBest: previousBest ? { weight: previousBest.weight, reps: previousBest.reps } : undefined,
+      });
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => setPrCelebration(null), 4000);
+    };
+
+    window.addEventListener('pr-achieved', handlePREvent as EventListener);
+    return () => window.removeEventListener('pr-achieved', handlePREvent as EventListener);
+  }, []);
 
   // Sync to server on page unload
   useEffect(() => {
@@ -2015,6 +2046,21 @@ export default function FitnessApp() {
         .workout-stat.xp-stat .workout-stat-value {
           color: var(--gold);
         }
+        .workout-stat.rival-stat {
+          background: rgba(139, 92, 246, 0.15);
+          padding: 6px 10px;
+          border-radius: 8px;
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          transition: all 0.15s;
+        }
+        .workout-stat.rival-stat:hover {
+          background: rgba(139, 92, 246, 0.25);
+          border-color: rgba(139, 92, 246, 0.5);
+        }
+        .workout-stat.rival-stat .workout-stat-value {
+          color: #a855f7;
+          font-size: 11px;
+        }
         @media (max-width: 400px) {
           .floating-workout-stats {
             padding: 10px 12px;
@@ -2446,11 +2492,60 @@ export default function FitnessApp() {
           background: var(--bg-elevated);
         }
 
+        /* Weight Stepper Group */
+        .weight-stepper-group {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .weight-stepper-btn {
+          width: 32px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s;
+          flex-shrink: 0;
+        }
+
+        .weight-stepper-btn:first-child {
+          border-radius: 8px 0 0 8px;
+        }
+
+        .weight-stepper-btn:last-child {
+          border-radius: 0 8px 8px 0;
+        }
+
+        .weight-stepper-btn:hover {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+
+        .weight-stepper-btn:active {
+          transform: scale(0.95);
+        }
+
+        .weight-stepper-group .inline-input.weight-input {
+          border-radius: 0;
+          border-left: none;
+          border-right: none;
+          width: 60px;
+          min-width: 60px;
+        }
+
         .inline-check-btn {
-          width: 44px;
-          height: 44px;
-          min-width: 44px;
-          min-height: 44px;
+          width: 48px;
+          height: 48px;
+          min-width: 48px;
+          min-height: 48px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2590,32 +2685,39 @@ export default function FitnessApp() {
           color: var(--accent);
         }
 
-        /* Quick actions row */
-        .inline-quick-actions {
+        /* Quick Repeat Button - Prominent one-tap action */
+        .quick-repeat-btn {
           display: flex;
-          gap: 8px;
-          padding: 8px 12px;
-          border-top: 1px solid var(--border);
-        }
-        .inline-copy-last-btn {
-          flex: 1;
-          padding: 10px 16px;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          color: var(--accent);
-          font-size: 13px;
-          font-weight: 600;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          width: 100%;
+          padding: 14px 20px;
+          margin-top: 12px;
+          background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+          border: none;
+          border-radius: 12px;
+          color: #000;
+          font-size: 15px;
+          font-weight: 700;
           cursor: pointer;
           transition: all 0.15s;
-          min-height: 44px;
+          min-height: 52px;
+          box-shadow: 0 4px 12px var(--accent-glow);
         }
-        .inline-copy-last-btn:hover {
-          background: var(--accent-glow);
-          border-color: var(--accent);
+        .quick-repeat-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px var(--accent-glow);
         }
-        .inline-copy-last-btn:active {
-          transform: scale(0.98);
+        .quick-repeat-btn:active {
+          transform: scale(0.98) translateY(0);
+        }
+        .quick-repeat-icon {
+          font-size: 18px;
+        }
+        .quick-repeat-text {
+          font-size: 15px;
+          font-weight: 700;
         }
 
         /* Swipe gesture hint animation */
@@ -3215,6 +3317,38 @@ export default function FitnessApp() {
           background: var(--accent);
           border-radius: 2px;
           transition: width 1s linear;
+        }
+
+        /* Rest Timer Quick-Adjust Buttons */
+        .rest-timer-adjust {
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+          margin: 8px 0;
+        }
+        .rest-adjust-btn {
+          padding: 8px 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .rest-adjust-btn:hover:not(:disabled) {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .rest-adjust-btn:active:not(:disabled) {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+        .rest-adjust-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
 
         /* Rest Timer Presets */
@@ -5716,6 +5850,334 @@ export default function FitnessApp() {
         @keyframes toastIn {
           from { opacity: 0; transform: translateX(-50%) translateY(10px); }
           to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* PR Celebration Modal */
+        .pr-celebration-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(8px);
+          z-index: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: prFadeIn 0.3s ease-out;
+        }
+        @keyframes prFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .pr-confetti {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          pointer-events: none;
+        }
+        .confetti-piece {
+          position: absolute;
+          top: -10px;
+          width: 10px;
+          height: 10px;
+          border-radius: 2px;
+          animation: confettiFall 3s ease-in forwards;
+        }
+        @keyframes confettiFall {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+        .pr-celebration-modal {
+          background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 107, 107, 0.1) 100%);
+          border: 2px solid rgba(255, 215, 0, 0.5);
+          border-radius: 24px;
+          padding: 32px 40px;
+          text-align: center;
+          animation: prModalIn 0.4s ease-out;
+          box-shadow: 0 0 60px rgba(255, 215, 0, 0.3);
+        }
+        @keyframes prModalIn {
+          from {
+            transform: scale(0.8) translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+          }
+        }
+        .pr-trophy {
+          font-size: 64px;
+          animation: prTrophyBounce 0.6s ease-out 0.2s;
+          animation-fill-mode: both;
+        }
+        @keyframes prTrophyBounce {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); }
+        }
+        .pr-title {
+          font-size: 32px;
+          font-weight: 800;
+          color: #FFD700;
+          text-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+          margin-top: 12px;
+          letter-spacing: 2px;
+        }
+        .pr-exercise {
+          font-size: 20px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-top: 16px;
+        }
+        .pr-weight {
+          font-size: 28px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-top: 8px;
+        }
+        .pr-improvement {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 16px;
+          padding: 10px 20px;
+          background: rgba(52, 199, 89, 0.15);
+          border-radius: 20px;
+          color: #34c759;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .pr-arrow {
+          font-size: 18px;
+        }
+        .pr-dismiss-btn {
+          margin-top: 24px;
+          padding: 14px 32px;
+          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+          border: none;
+          border-radius: 14px;
+          color: #000;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .pr-dismiss-btn:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+        }
+        .pr-dismiss-btn:active {
+          transform: scale(0.98);
+        }
+
+        /* Share Card Modal (Instagram Story Format) */
+        .share-card-overlay {
+          background: rgba(0, 0, 0, 0.95);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          padding: 20px;
+        }
+        .share-card-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+          max-width: 100%;
+        }
+        .share-card {
+          position: relative;
+          width: 280px;
+          aspect-ratio: 9/16;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        .share-card-bg {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        .share-card-bg::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%);
+        }
+        .share-card-content {
+          position: relative;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 24px 20px;
+        }
+        .share-card-header {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: auto;
+        }
+        .share-card-logo {
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 3px;
+          color: var(--accent);
+          text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+        .share-card-date {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+        .share-card-icon {
+          font-size: 56px;
+          margin-bottom: 12px;
+          animation: shareIconBounce 0.6s ease-out;
+        }
+        @keyframes shareIconBounce {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); }
+        }
+        .share-card-title {
+          font-size: 24px;
+          font-weight: 800;
+          color: var(--text-primary);
+          letter-spacing: 2px;
+          margin-bottom: 24px;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        .share-card-stats {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 20px;
+          padding: 16px 20px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .share-stat {
+          text-align: center;
+        }
+        .share-stat-value {
+          font-size: 26px;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+        .share-stat-label {
+          font-size: 9px;
+          font-weight: 600;
+          letter-spacing: 1px;
+          color: var(--text-tertiary);
+          margin-top: 4px;
+        }
+        .share-stat-divider {
+          width: 1px;
+          height: 30px;
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .share-card-xp {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%);
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          border-radius: 24px;
+          margin-bottom: 20px;
+        }
+        .share-xp-icon {
+          font-size: 16px;
+        }
+        .share-xp-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: #FFD700;
+        }
+        .share-card-prs {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: auto;
+        }
+        .share-pr-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 14px;
+          background: rgba(255, 215, 0, 0.1);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+          border-radius: 10px;
+        }
+        .share-pr-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .share-pr-value {
+          font-size: 14px;
+          font-weight: 700;
+          color: #FFD700;
+        }
+        .share-card-footer {
+          margin-top: auto;
+          text-align: center;
+        }
+        .share-card-watermark {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          opacity: 0.7;
+        }
+        .share-card-actions {
+          text-align: center;
+        }
+        .share-card-hint {
+          font-size: 14px;
+          color: var(--text-secondary);
+          margin-bottom: 16px;
+        }
+        .share-card-buttons {
+          display: flex;
+          gap: 12px;
+        }
+        .share-action-btn {
+          padding: 12px 24px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          color: var(--text-secondary);
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .share-action-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .share-action-btn.primary {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #000;
+        }
+        .share-action-btn.primary:hover {
+          filter: brightness(1.1);
         }
 
         /* Undo Toast */
@@ -10366,6 +10828,29 @@ export default function FitnessApp() {
                   <span className="workout-stat-icon">✨</span>
                   <span className="workout-stat-value">{getWorkoutStats().xp} XP</span>
                 </div>
+                {/* Floating Rival Indicator */}
+                {store.narrativeEngine?.rivals && store.narrativeEngine.rivals.length > 0 && (
+                  <div
+                    className="workout-stat rival-stat"
+                    onClick={() => setShowRivalSettings(true)}
+                    title="Tap to view rivals"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="workout-stat-icon">⚔️</span>
+                    <span className="workout-stat-value rival-value">
+                      {(() => {
+                        const stats = getWorkoutStats();
+                        const rival = store.narrativeEngine?.rivals[0];
+                        if (!rival) return 'Rival';
+                        // Show sets comparison - simple and immediate
+                        const rivalName = rival.rivalType === 'friend' && rival.friend
+                          ? (rival.friend.displayName || rival.friend.username || 'Friend').split(' ')[0]
+                          : (rival.phantomConfig?.name || 'AI').split(' ')[0];
+                        return `vs ${rivalName}`;
+                      })()}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             <div className="exercises-container" ref={exerciseListRef}>
@@ -10574,15 +11059,39 @@ export default function FitnessApp() {
                                   {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
                                 </div>
                                 <div className="inline-set-num">{setIdx + 1}</div>
-                                <input
-                                  ref={setIdx === existingSets ? inlineWeightInputRef : undefined}
-                                  type="number"
-                                  inputMode="decimal"
-                                  className={`inline-input ${inlineWeights[inputKey] ? 'filled' : ''}`}
-                                  value={inlineWeights[inputKey] ?? ''}
-                                  placeholder={String(defaultWeight)}
-                                  onChange={(e) => setInlineWeights(w => ({ ...w, [inputKey]: Number(e.target.value) }))}
-                                />
+                                <div className="weight-stepper-group">
+                                  <button
+                                    type="button"
+                                    className="weight-stepper-btn"
+                                    onClick={() => {
+                                      const current = inlineWeights[inputKey] || defaultWeight;
+                                      setInlineWeights(w => ({ ...w, [inputKey]: Math.max(0, current - 5) }));
+                                    }}
+                                    aria-label="Decrease weight by 5"
+                                  >
+                                    -5
+                                  </button>
+                                  <input
+                                    ref={setIdx === existingSets ? inlineWeightInputRef : undefined}
+                                    type="number"
+                                    inputMode="decimal"
+                                    className={`inline-input weight-input ${inlineWeights[inputKey] ? 'filled' : ''}`}
+                                    value={inlineWeights[inputKey] ?? ''}
+                                    placeholder={String(defaultWeight)}
+                                    onChange={(e) => setInlineWeights(w => ({ ...w, [inputKey]: Number(e.target.value) }))}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="weight-stepper-btn"
+                                    onClick={() => {
+                                      const current = inlineWeights[inputKey] || defaultWeight;
+                                      setInlineWeights(w => ({ ...w, [inputKey]: current + 5 }));
+                                    }}
+                                    aria-label="Increase weight by 5"
+                                  >
+                                    +5
+                                  </button>
+                                </div>
                                 <input
                                   type="number"
                                   inputMode="numeric"
@@ -10664,23 +11173,24 @@ export default function FitnessApp() {
                           )}
                         </div>
 
-                        {/* Quick actions row */}
+                        {/* Quick Repeat Button - Most prominent action */}
                         {exercise.sets.length > 0 && (
-                          <div className="inline-quick-actions">
-                            <button
-                              className="inline-copy-last-btn"
-                              onClick={() => {
-                                const lastSet = exercise.sets[exercise.sets.length - 1];
-                                if (lastSet) {
-                                  store.selectExercise(idx);
-                                  store.logSet(lastSet.weight, lastSet.reps, lastSet.rpe, lastSet.isWarmup);
-                                  store.showToast(`Logged ${lastSet.weight}×${lastSet.reps}`);
-                                }
-                              }}
-                            >
-                              ↩ Copy Last ({exercise.sets[exercise.sets.length - 1].weight}×{exercise.sets[exercise.sets.length - 1].reps})
-                            </button>
-                          </div>
+                          <button
+                            className="quick-repeat-btn"
+                            onClick={() => {
+                              const lastSet = exercise.sets[exercise.sets.length - 1];
+                              if (lastSet) {
+                                store.selectExercise(idx);
+                                store.logSet(lastSet.weight, lastSet.reps, lastSet.rpe, lastSet.isWarmup);
+                                store.showToast(`Logged ${lastSet.weight}×${lastSet.reps}`);
+                              }
+                            }}
+                          >
+                            <span className="quick-repeat-icon">⚡</span>
+                            <span className="quick-repeat-text">
+                              Repeat {exercise.sets[exercise.sets.length - 1].weight} × {exercise.sets[exercise.sets.length - 1].reps}
+                            </span>
+                          </button>
                         )}
 
                         {/* Workout Notes Field */}
@@ -14617,6 +15127,12 @@ gamify.it.com/fitness`;
                 </div>
               </div>
 
+              {/* Rival Status Card - Show competition status */}
+              <RivalStatusCard onOpenSettings={() => setShowRivalSettings(true)} />
+
+              {/* Campaign Progress - Show active campaign */}
+              <CampaignProgressCard onViewAll={() => store.setView('campaigns')} />
+
               {/* Today's Focus - Show ONE engaging card (Daily Challenge or Almost There) */}
               <DailyChallengeCard />
 
@@ -15293,6 +15809,22 @@ gamify.it.com/fitness`;
                     </span>
                     <button className="rest-timer-skip" onClick={() => store.stopRestTimer()}>Skip</button>
                   </div>
+                  {/* Quick-adjust buttons */}
+                  <div className="rest-timer-adjust">
+                    <button
+                      className="rest-adjust-btn"
+                      onClick={() => store.adjustRestTimer(-30)}
+                      disabled={store.restTimerSeconds <= 30}
+                    >
+                      -30s
+                    </button>
+                    <button
+                      className="rest-adjust-btn"
+                      onClick={() => store.adjustRestTimer(30)}
+                    >
+                      +30s
+                    </button>
+                  </div>
                   <div className="rest-timer-bar">
                     <div
                       className="rest-timer-fill"
@@ -15416,20 +15948,12 @@ gamify.it.com/fitness`;
                 </div>
               )}
 
-              {/* Share Button */}
+              {/* Share Card Button */}
               <button
                 className="summary-share-btn"
-                onClick={() => {
-                  const text = `Just crushed a ${Math.floor(workoutSummaryData.duration / 60)} min workout!\n\n💪 ${workoutSummaryData.totalSets} sets\n⚡ ${workoutSummaryData.totalXP.toLocaleString()} XP earned\n${workoutSummaryData.prsHit.length > 0 ? `🏆 ${workoutSummaryData.prsHit.length} new PR${workoutSummaryData.prsHit.length > 1 ? 's' : ''}!\n` : ''}\n#Reptura`;
-                  if (navigator.share) {
-                    navigator.share({ text });
-                  } else {
-                    navigator.clipboard.writeText(text);
-                    store.showToast('Copied to clipboard!');
-                  }
-                }}
+                onClick={() => setShowShareCard(true)}
               >
-                <span>📤</span> Share Workout
+                <span>📸</span> Create Share Card
               </button>
 
               {/* Done Button */}
@@ -15442,6 +15966,105 @@ gamify.it.com/fitness`;
               >
                 Done
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Share Card Modal (Instagram Story Format) */}
+        {showShareCard && workoutSummaryData && (
+          <div className="modal-overlay share-card-overlay" role="dialog" aria-modal="true" onClick={() => setShowShareCard(false)}>
+            <div className="share-card-container" onClick={(e) => e.stopPropagation()}>
+              {/* Share Card - Instagram Story Format */}
+              <div className="share-card">
+                <div className="share-card-bg" />
+                <div className="share-card-content">
+                  {/* Header */}
+                  <div className="share-card-header">
+                    <div className="share-card-logo">REPTURA</div>
+                    <div className="share-card-date">
+                      {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </div>
+
+                  {/* Main Icon */}
+                  <div className="share-card-icon">
+                    {workoutSummaryData.prsHit.length > 0 ? '🏆' : '💪'}
+                  </div>
+
+                  {/* Title */}
+                  <div className="share-card-title">
+                    {workoutSummaryData.prsHit.length > 0 ? 'NEW PR!' : 'WORKOUT COMPLETE'}
+                  </div>
+
+                  {/* Stats */}
+                  <div className="share-card-stats">
+                    <div className="share-stat">
+                      <div className="share-stat-value">{Math.floor(workoutSummaryData.duration / 60)}</div>
+                      <div className="share-stat-label">MINUTES</div>
+                    </div>
+                    <div className="share-stat-divider" />
+                    <div className="share-stat">
+                      <div className="share-stat-value">{workoutSummaryData.totalSets}</div>
+                      <div className="share-stat-label">SETS</div>
+                    </div>
+                    <div className="share-stat-divider" />
+                    <div className="share-stat">
+                      <div className="share-stat-value">{(workoutSummaryData.totalVolume / 1000).toFixed(1)}k</div>
+                      <div className="share-stat-label">VOLUME</div>
+                    </div>
+                  </div>
+
+                  {/* XP Badge */}
+                  <div className="share-card-xp">
+                    <span className="share-xp-icon">⚡</span>
+                    <span className="share-xp-value">+{workoutSummaryData.totalXP.toLocaleString()} XP</span>
+                  </div>
+
+                  {/* PRs Section */}
+                  {workoutSummaryData.prsHit.length > 0 && (
+                    <div className="share-card-prs">
+                      {workoutSummaryData.prsHit.slice(0, 3).map((pr, i) => (
+                        <div key={i} className="share-pr-item">
+                          <span className="share-pr-name">{pr.exerciseName}</span>
+                          <span className="share-pr-value">{pr.weight} × {pr.reps}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div className="share-card-footer">
+                    <div className="share-card-watermark">gamify.it.com/fitness</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions below card */}
+              <div className="share-card-actions">
+                <p className="share-card-hint">📱 Screenshot to share on your story!</p>
+                <div className="share-card-buttons">
+                  <button
+                    className="share-action-btn"
+                    onClick={() => {
+                      const text = `Just crushed a ${Math.floor(workoutSummaryData.duration / 60)} min workout!\n\n💪 ${workoutSummaryData.totalSets} sets\n⚡ ${workoutSummaryData.totalXP.toLocaleString()} XP earned\n${workoutSummaryData.prsHit.length > 0 ? `🏆 ${workoutSummaryData.prsHit.length} new PR${workoutSummaryData.prsHit.length > 1 ? 's' : ''}!\n` : ''}\ngamify.it.com/fitness`;
+                      if (navigator.share) {
+                        navigator.share({ text });
+                      } else {
+                        navigator.clipboard.writeText(text);
+                        store.showToast('Copied to clipboard!');
+                      }
+                    }}
+                  >
+                    <span>📤</span> Share Text
+                  </button>
+                  <button
+                    className="share-action-btn primary"
+                    onClick={() => setShowShareCard(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -15989,6 +16612,40 @@ gamify.it.com/fitness`;
 
         {/* Toast */}
         {store.toastMessage && <div className="toast">{store.toastMessage}</div>}
+
+        {/* PR Celebration Modal */}
+        {prCelebration && (
+          <div className="pr-celebration-overlay" onClick={() => setPrCelebration(null)}>
+            <div className="pr-confetti">
+              {Array.from({ length: 50 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="confetti-piece"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 0.5}s`,
+                    backgroundColor: ['#FFD700', '#FF6B6B', '#5CC9F5', '#FF8F8F', '#34c759', '#a855f7'][Math.floor(Math.random() * 6)],
+                  }}
+                />
+              ))}
+            </div>
+            <div className="pr-celebration-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="pr-trophy">🏆</div>
+              <div className="pr-title">NEW PR!</div>
+              <div className="pr-exercise">{prCelebration.exerciseName}</div>
+              <div className="pr-weight">{prCelebration.weight} lbs × {prCelebration.reps}</div>
+              {prCelebration.previousBest && (
+                <div className="pr-improvement">
+                  <span className="pr-arrow">↑</span>
+                  <span>+{prCelebration.weight - prCelebration.previousBest.weight} lbs from previous best</span>
+                </div>
+              )}
+              <button className="pr-dismiss-btn" onClick={() => setPrCelebration(null)}>
+                Continue 💪
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Sync Status Indicator */}
         {(!store.isOnline || store.pendingSync) && (
