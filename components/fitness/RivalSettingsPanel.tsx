@@ -192,6 +192,47 @@ export function RivalSettingsPanel() {
     setLoading(false);
   };
 
+  const handleNotificationToggle = async (key: 'encounterPopups' | 'weeklyShowdowns') => {
+    const currentValue = settings.notificationPreferences[key];
+    const newValue = !currentValue;
+
+    // Optimistic update
+    store.updateNarrativeSettings({
+      notificationPreferences: {
+        ...settings.notificationPreferences,
+        [key]: newValue,
+      },
+    });
+
+    try {
+      const res = await fetch('/api/fitness/narrative/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notificationPreferences: { [key]: newValue },
+        }),
+      });
+      if (!res.ok) {
+        // Revert on failure
+        store.updateNarrativeSettings({
+          notificationPreferences: {
+            ...settings.notificationPreferences,
+            [key]: currentValue,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update notification preferences:', error);
+      // Revert on error
+      store.updateNarrativeSettings({
+        notificationPreferences: {
+          ...settings.notificationPreferences,
+          [key]: currentValue,
+        },
+      });
+    }
+  };
+
   const handleAddPhantom = async (character: RivalCharacter) => {
     setLoading(true);
     try {
@@ -320,6 +361,10 @@ export function RivalSettingsPanel() {
   const getRivalName = (rival: RivalRelationship): string => {
     if (rival.rivalType === 'ai_phantom' && rival.phantomConfig) {
       return rival.phantomConfig.name || 'Shadow Self';
+    }
+    // For friend rivals, show their display name or username
+    if (rival.friend) {
+      return rival.friend.displayName || rival.friend.username || 'Friend Rival';
     }
     return 'Friend Rival';
   };
@@ -526,12 +571,26 @@ export function RivalSettingsPanel() {
                     >
                       <div className="flex items-center gap-4">
                         {/* Avatar */}
-                        <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-                          style={{ backgroundColor: `${getRivalColor(rival)}20` }}
-                        >
-                          {getRivalAvatar(rival)}
-                        </div>
+                        {rival.rivalType === 'friend' && rival.friend?.avatarUrl ? (
+                          <img
+                            src={rival.friend.avatarUrl}
+                            alt={getRivalName(rival)}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : rival.rivalType === 'friend' && rival.friend ? (
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0 bg-indigo-500/20 text-indigo-400"
+                          >
+                            {(rival.friend.displayName?.[0] || rival.friend.username?.[0] || '?').toUpperCase()}
+                          </div>
+                        ) : (
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{ backgroundColor: `${getRivalColor(rival)}20` }}
+                          >
+                            {getRivalAvatar(rival)}
+                          </div>
+                        )}
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
@@ -582,14 +641,14 @@ export function RivalSettingsPanel() {
             )}
           </div>
 
-          {/* Add Rival Modal */}
+          {/* Add Rival Modal - Full screen on mobile, centered dialog on desktop */}
           {showAddRival && (
             <div
-              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 sm:p-4"
               onClick={closeAddRivalModal}
             >
               <div
-                className="bg-gray-900 border border-gray-700 rounded-2xl p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto"
+                className="bg-gray-900 border-t sm:border border-gray-700 rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-sm max-h-[90vh] sm:max-h-[85vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-5">
@@ -758,26 +817,27 @@ export function RivalSettingsPanel() {
             </label>
             <div className="space-y-3">
               {[
-                { key: 'encounterPopups', label: 'Encounter Popups' },
-                { key: 'weeklyShowdowns', label: 'Weekly Showdowns' },
+                { key: 'encounterPopups' as const, label: 'Encounter Popups' },
+                { key: 'weeklyShowdowns' as const, label: 'Weekly Showdowns' },
               ].map(({ key, label }) => (
-                <div
+                <button
                   key={key}
-                  className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl"
+                  onClick={() => handleNotificationToggle(key)}
+                  className="w-full flex items-center justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-colors"
                 >
                   <span className="text-sm text-gray-300">{label}</span>
                   <div
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
-                      settings.notificationPreferences[key as keyof typeof settings.notificationPreferences]
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      settings.notificationPreferences[key]
                         ? 'bg-yellow-500 border-yellow-500'
                         : 'border-gray-600'
                     }`}
                   >
-                    {settings.notificationPreferences[key as keyof typeof settings.notificationPreferences] && (
+                    {settings.notificationPreferences[key] && (
                       <span className="text-black text-xs font-bold">✓</span>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
