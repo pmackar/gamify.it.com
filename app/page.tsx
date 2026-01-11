@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { RetroNavBar } from '@/components/RetroNavBar';
 import { useAchievements } from '@/components/AchievementPopup';
+import { AccountMergeBanner } from '@/components/AccountMergeBanner';
 import type { User } from '@supabase/supabase-js';
 
 const videos = [
@@ -103,6 +104,7 @@ function Dashboard({ user }: { user: User }) {
       <RetroNavBar />
       <div className="dashboard-wrapper">
         <PixelParticles />
+        <AccountMergeBanner />
         <div className="dashboard-content" style={{ paddingTop: 'var(--content-top, 100px)' }}>
           {/* Welcome Header */}
           <section className="welcome-section">
